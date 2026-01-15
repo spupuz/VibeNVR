@@ -1,0 +1,1078 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Camera, Plus, Trash2, MapPin, Activity, Edit, Download, Upload, Film, Image, Copy } from 'lucide-react';
+import { Toggle, Slider, InputField, SelectField, SectionHeader } from '../components/ui/FormControls';
+
+const CameraCard = ({ camera, onDelete, onEdit }) => (
+    <div className="bg-card border border-border rounded-xl p-6 hover:shadow-lg transition-all duration-300 group">
+        <div className="flex justify-between items-start mb-4">
+            <div className="flex items-center space-x-3">
+                <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                    <Camera className="w-6 h-6" />
+                </div>
+                <div>
+                    <h3 className="font-semibold text-lg">{camera.name}</h3>
+                    <div className="flex items-center text-xs text-muted-foreground mt-1">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        {camera.location || 'Unknown Location'}
+                    </div>
+                </div>
+            </div>
+            <div className={`px-2 py-1 rounded-full text-xs font-medium ${camera.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700'}`}>
+                {camera.is_active ? 'Active' : 'Offline'}
+            </div>
+        </div>
+
+        <div className="space-y-2 text-sm text-muted-foreground mb-4">
+            <p className="truncate"><span className="font-medium text-foreground">RTSP:</span> {camera.rtsp_url}</p>
+        </div>
+
+        <div className="flex justify-end pt-4 border-t border-border space-x-2">
+            <button
+                onClick={() => window.open(`http://localhost:5000/cameras/${camera.id}/export`, '_blank')}
+                className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                title="Export Camera Settings"
+            >
+                <Download className="w-5 h-5" />
+            </button>
+            <button
+                onClick={() => onEdit(camera)}
+                className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                title="Edit Camera"
+            >
+                <Edit className="w-5 h-5" />
+            </button>
+            <button
+                onClick={() => onDelete(camera.id)}
+                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                title="Delete Camera"
+            >
+                <Trash2 className="w-5 h-5" />
+            </button>
+        </div>
+    </div>
+);
+
+export const Cameras = () => {
+    const [cameras, setCameras] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [newCamera, setNewCamera] = useState({
+        name: '',
+        rtsp_url: '',
+        stream_url: '',
+        location: '',
+        resolution_width: 800,
+        resolution_height: 600,
+        framerate: 15,
+        rotation: 0,
+        text_left: 'Camera Name',
+        text_right: '%Y-%m-%d %H:%M:%S',
+        storage_path: '',
+        root_directory: '',
+        movie_file_name: '%Y-%m-%d/%H-%M-%S',
+        movie_passthrough: true,
+        movie_quality: 75,
+        recording_mode: 'Motion Triggered',
+        max_movie_length: 0,
+        preserve_movies: 'For One Week',
+        auto_threshold_tuning: true,
+        auto_noise_detection: true,
+        light_switch_detection: 0,
+        despeckle_filter: false,
+        motion_gap: 10,
+        threshold: 1500,
+        captured_before: 30,
+        captured_after: 30,
+        min_motion_frames: 2,
+        mask: false,
+        show_frame_changes: true,
+        create_debug_media: false,
+        notify_start_email: false,
+        notify_start_telegram: false,
+        notify_start_webhook: false,
+        notify_end_webhook: false,
+        notify_webhook_url: '',
+        notify_telegram_token: '',
+        notify_telegram_chat_id: '',
+        notify_email_address: '',
+        detect_motion_mode: 'Always',
+        picture_file_name: '%Y-%m-%d/%H-%M-%S-%q',
+        picture_quality: 75,
+        picture_recording_mode: 'Manual',
+        preserve_pictures: 'Forever',
+        max_pictures_storage_gb: 0
+    });
+    const [stats, setStats] = useState(null);
+    const [activeTab, setActiveTab] = useState('general');
+    const [editingId, setEditingId] = useState(null);
+
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    // Fetch Cameras
+    useEffect(() => {
+        fetchCameras();
+        fetchStats();
+    }, []);
+
+    const fetchStats = async () => {
+        try {
+            const res = await fetch('http://localhost:5000/stats/');
+            if (res.ok) setStats(await res.json());
+        } catch (err) {
+            console.error("Failed to fetch stats", err);
+        }
+    };
+
+    // Check for edit parameter in URL
+    useEffect(() => {
+        const editId = searchParams.get('edit');
+        if (editId && cameras.length > 0) {
+            const camera = cameras.find(c => c.id === parseInt(editId));
+            if (camera) {
+                setNewCamera(camera);
+                setEditingId(camera.id);
+                setShowAddModal(true);
+                // Clear the URL parameter after opening modal
+                setSearchParams({});
+            }
+        }
+    }, [cameras, searchParams]);
+
+    const fetchCameras = async () => {
+        try {
+            const res = await fetch('http://localhost:5000/cameras/');
+            if (res.ok) {
+                const data = await res.json();
+                setCameras(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch cameras", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm("Are you sure?")) return;
+        try {
+            await fetch(`http://localhost:5000/cameras/${id}`, { method: 'DELETE' });
+            fetchCameras();
+        } catch (err) {
+            console.error("Failed to delete", err);
+        }
+    };
+
+    const handleEdit = (camera) => {
+        setNewCamera(camera);
+        setEditingId(camera.id);
+        setShowAddModal(true);
+    };
+
+    const handleCleanup = async (cameraId, type) => {
+        if (!window.confirm(`Are you sure you want to clean up ${type} storage for this camera? This will enforce retention limits immediately.`)) return;
+        try {
+            const res = await fetch(`http://localhost:5000/cameras/${cameraId}/cleanup?type=${type}`, { method: 'POST' });
+            if (res.ok) {
+                const data = await res.json();
+                alert(data.message);
+                fetchStats(); // Refresh stats after cleanup
+            } else {
+                const err = await res.json();
+                alert('Cleanup failed: ' + err.detail);
+            }
+        } catch (err) {
+            console.error("Failed to cleanup", err);
+            alert('Cleanup failed: ' + err.message);
+        }
+    };
+
+    const [showCopyModal, setShowCopyModal] = useState(false);
+    const [copyTargets, setCopyTargets] = useState([]);
+
+    const handleCreate = async (e, shouldClose = true) => {
+        if (e) e.preventDefault();
+        try {
+            const url = editingId
+                ? `http://localhost:5000/cameras/${editingId}`
+                : 'http://localhost:5000/cameras/';
+
+            const method = editingId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newCamera)
+            });
+            if (res.ok) {
+                if (shouldClose) {
+                    setShowAddModal(false);
+                    setNewCamera({
+                        name: '',
+                        rtsp_url: '',
+                        stream_url: '',
+                        location: '',
+                        resolution_width: 800,
+                        resolution_height: 600,
+                        framerate: 15,
+                        rotation: 0,
+                        text_left: 'Camera Name',
+                        text_right: '%Y-%m-%d %H:%M:%S',
+                        storage_path: '',
+                        root_directory: '',
+                        movie_file_name: '%Y-%m-%d/%H-%M-%S',
+                        movie_passthrough: true,
+                        movie_quality: 75,
+                        recording_mode: 'Motion Triggered',
+                        max_movie_length: 0,
+                        preserve_movies: 'For One Week',
+                        max_storage_gb: 0,
+                        auto_threshold_tuning: true,
+                        auto_noise_detection: true,
+                        light_switch_detection: 0,
+                        despeckle_filter: false,
+                        motion_gap: 10,
+                        threshold: 1500,
+                        captured_before: 30,
+                        captured_after: 30,
+                        min_motion_frames: 2,
+                        mask: false,
+                        show_frame_changes: true,
+                        create_debug_media: false,
+                        notify_start_email: false,
+                        notify_start_telegram: false,
+                        notify_start_webhook: false,
+                        notify_end_webhook: false,
+                        notify_webhook_url: '',
+                        notify_telegram_token: '',
+                        notify_telegram_chat_id: '',
+                        notify_email_address: '',
+                        detect_motion_mode: 'Always',
+                        picture_file_name: '%Y-%m-%d/%H-%M-%S-%q',
+                        picture_quality: 75,
+                        picture_recording_mode: 'Manual',
+                        preserve_pictures: 'Forever',
+                        max_pictures_storage_gb: 0,
+                        enable_manual_snapshots: true
+                    });
+                    setEditingId(null);
+                } else {
+                    alert("Settings saved successfully.");
+                }
+                fetchCameras();
+            }
+        } catch (err) {
+            console.error("Failed to save", err);
+            alert("Failed to save: " + err.message);
+        }
+    };
+
+    const handleCopySettings = async () => {
+        if (copyTargets.length === 0) return;
+        if (!window.confirm(`Overwrite settings for ${copyTargets.length} cameras?`)) return;
+
+        // Fields to EXCLUDE (Unique items)
+        const EXCLUDED_FIELDS = ['id', 'name', 'rtsp_url', 'stream_url', 'created_at', 'location', 'stream_port'];
+
+        const settingsToCopy = Object.keys(newCamera).reduce((acc, key) => {
+            if (!EXCLUDED_FIELDS.includes(key)) {
+                acc[key] = newCamera[key];
+            }
+            return acc;
+        }, {});
+
+        for (const targetId of copyTargets) {
+            const targetCam = cameras.find(c => c.id === targetId);
+            if (!targetCam) continue;
+
+            const updatedCam = { ...targetCam, ...settingsToCopy };
+            try {
+                const res = await fetch(`http://localhost:5000/cameras/${targetId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedCam)
+                });
+                if (!res.ok) throw new Error(`Camera ${targetId} failed`);
+            } catch (err) {
+                console.error(`Failed to update camera ${targetId}`, err);
+                alert(`Failed to copy to camera ${targetCam.name}: ${err.message}`);
+            }
+        }
+
+        setShowCopyModal(false);
+        setCopyTargets([]);
+        fetchCameras();
+        alert("Settings copied to selected cameras.");
+    };
+
+    return (
+        <div className="space-y-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight">Cameras</h2>
+                    <p className="text-muted-foreground mt-2">Manage your video sources.</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <button
+                        onClick={() => {
+                            setEditingId(null);
+                            setNewCamera({
+                                name: '',
+                                rtsp_url: '',
+                                stream_url: '',
+                                location: '',
+                                resolution_width: 800,
+                                resolution_height: 600,
+                                framerate: 15,
+                                rotation: 0,
+                                text_left: 'Camera Name',
+                                text_right: '%Y-%m-%d %H:%M:%S',
+                                storage_path: '',
+                                root_directory: '',
+                                movie_file_name: '%Y-%m-%d/%H-%M-%S',
+                                movie_passthrough: true,
+                                movie_quality: 75,
+                                recording_mode: 'Motion Triggered',
+                                max_movie_length: 0,
+                                preserve_movies: 'For One Week',
+                                max_storage_gb: 0,
+                                auto_threshold_tuning: true,
+                                auto_noise_detection: true,
+                                light_switch_detection: 0,
+                                despeckle_filter: false,
+                                motion_gap: 10,
+                                captured_before: 30,
+                                captured_after: 30,
+                                min_motion_frames: 2,
+                                mask: false,
+                                show_frame_changes: true,
+                                create_debug_media: false,
+                                notify_start_email: false,
+                                notify_start_telegram: false,
+                                notify_start_webhook: false,
+                                notify_end_webhook: false,
+                                notify_webhook_url: '',
+                                notify_telegram_token: '',
+                                notify_telegram_chat_id: '',
+                                notify_email_address: '',
+                                detect_motion_mode: 'Always',
+                                picture_file_name: '%Y-%m-%d/%H-%M-%S-%q',
+                                picture_quality: 75,
+                                picture_recording_mode: 'Manual',
+                                preserve_pictures: 'Forever',
+                                enable_manual_snapshots: true
+                            });
+                            setShowAddModal(true);
+                        }}
+                        className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                    >
+                        <Plus className="w-5 h-5" />
+                        <span>Add Camera</span>
+                    </button>
+                    <button
+                        onClick={() => window.open('http://localhost:5000/cameras/export/all', '_blank')}
+                        className="flex items-center space-x-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md"
+                        title="Export all cameras to JSON"
+                    >
+                        <Download className="w-4 h-4" />
+                        <span>Export All</span>
+                    </button>
+                    <label className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md cursor-pointer" title="Import cameras from JSON file">
+                        <Upload className="w-4 h-4" />
+                        <span>Import</span>
+                        <input
+                            type="file"
+                            accept=".json"
+                            className="hidden"
+                            onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const formData = new FormData();
+                                formData.append('file', file);
+                                try {
+                                    const res = await fetch('http://localhost:5000/cameras/import', {
+                                        method: 'POST',
+                                        body: formData
+                                    });
+                                    if (res.ok) {
+                                        const data = await res.json();
+                                        alert(data.message);
+                                        fetchCameras();
+                                    } else {
+                                        const err = await res.json();
+                                        alert('Import failed: ' + err.detail);
+                                    }
+                                } catch (err) {
+                                    alert('Import failed: ' + err.message);
+                                }
+                                e.target.value = '';
+                            }}
+                        />
+                    </label>
+                </div>
+            </div>
+            {loading ? (
+                <div className="flex justify-center p-12"><Activity className="animate-spin w-8 h-8 text-primary" /></div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {cameras.map(cam => (
+                        <CameraCard key={cam.id} camera={cam} onDelete={handleDelete} onEdit={handleEdit} />
+                    ))}
+                    {cameras.length === 0 && (
+                        <div className="col-span-full text-center py-12 text-muted-foreground bg-card border border-dashed border-border rounded-xl">
+                            <Camera className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                            <p>No cameras found. Add one to get started.</p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Simple Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-card p-6 rounded-xl w-full max-w-lg border border-border">
+                        <h3 className="text-xl font-bold mb-4">{editingId ? `Edit ${newCamera.name}` : 'Add New Camera'}</h3>
+
+                        {/* Tabs */}
+                        <div className="flex space-x-4 mb-4 border-b border-border text-xs overflow-x-auto scrollbar-hide flex-nowrap min-h-[40px]">
+                            <button
+                                className={`pb-2 ${activeTab === 'general' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                onClick={() => setActiveTab('general')}
+                            >
+                                General
+                            </button>
+                            <button
+                                className={`pb-2 ${activeTab === 'video' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                onClick={() => setActiveTab('video')}
+                            >
+                                Video Device
+                            </button>
+                            <button
+                                className={`pb-2 ${activeTab === 'storage' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                onClick={() => setActiveTab('storage')}
+                            >
+                                File Storage
+                            </button>
+                            <button
+                                className={`pb-2 ${activeTab === 'movies' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                onClick={() => setActiveTab('movies')}
+                            >
+                                Movies
+                            </button>
+                            <button
+                                className={`pb-2 ${activeTab === 'motion' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                onClick={() => setActiveTab('motion')}
+                            >
+                                Motion Detection
+                            </button>
+                            <button
+                                className={`pb-2 ${activeTab === 'still_images' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                onClick={() => setActiveTab('still_images')}
+                            >
+                                Still Images
+                            </button>
+                            <button
+                                className={`pb-2 ${activeTab === 'notifications' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                onClick={() => setActiveTab('notifications')}
+                            >
+                                Notifications
+                            </button>
+                            <button
+                                className={`pb-2 flex-shrink-0 ${activeTab === 'overlay' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                onClick={() => setActiveTab('overlay')}
+                            >
+                                Text Overlay
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreate} className="space-y-4 max-h-[60vh] overflow-y-auto">
+
+                            {activeTab === 'general' && (
+                                <div className="space-y-6">
+                                    <SectionHeader title="Camera Identity" description="Basic camera information" />
+                                    <InputField
+                                        label="Camera Name"
+                                        value={newCamera.name}
+                                        onChange={(val) => setNewCamera({ ...newCamera, name: val })}
+                                        placeholder="Enter camera name"
+                                    />
+                                    <InputField
+                                        label="Location"
+                                        value={newCamera.location}
+                                        onChange={(val) => setNewCamera({ ...newCamera, location: val })}
+                                        placeholder="e.g. Front Door, Backyard"
+                                    />
+                                    <SectionHeader title="Connection" description="Video source configuration" />
+                                    <InputField
+                                        label="RTSP URL (Source)"
+                                        value={newCamera.rtsp_url}
+                                        onChange={(val) => setNewCamera({ ...newCamera, rtsp_url: val })}
+                                        placeholder="rtsp://username:password@ip:554/stream"
+                                    />
+                                    <InputField
+                                        label="Stream URL (Optional)"
+                                        value={newCamera.stream_url}
+                                        onChange={(val) => setNewCamera({ ...newCamera, stream_url: val })}
+                                        placeholder="Override streaming URL"
+                                    />
+                                </div>
+                            )}
+
+                            {activeTab === 'video' && (
+                                <div className="space-y-6">
+                                    <SectionHeader title="Resolution" description="Configure video resolution settings" />
+                                    <SelectField
+                                        label="Video Resolution"
+                                        value={`${newCamera.resolution_width}x${newCamera.resolution_height}`}
+                                        onChange={(val) => {
+                                            const [w, h] = val.split('x').map(Number);
+                                            setNewCamera({ ...newCamera, resolution_width: w, resolution_height: h });
+                                        }}
+                                        options={[
+                                            { value: '320x240', label: '320x240 (QVGA)' },
+                                            { value: '640x480', label: '640x480 (VGA)' },
+                                            { value: '800x600', label: '800x600 (SVGA)' },
+                                            { value: '1280x720', label: '1280x720 (HD)' },
+                                            { value: '1920x1080', label: '1920x1080 (Full HD)' },
+                                            { value: '2560x1440', label: '2560x1440 (QHD)' },
+                                            { value: '3840x2160', label: '3840x2160 (4K)' }
+                                        ]}
+                                    />
+                                    <SelectField
+                                        label="Video Rotation"
+                                        value={`${newCamera.rotation}°`}
+                                        onChange={(val) => setNewCamera({ ...newCamera, rotation: parseInt(val) })}
+                                        options={[
+                                            { value: '0', label: '0°' },
+                                            { value: '90', label: '90°' },
+                                            { value: '180', label: '180°' },
+                                            { value: '270', label: '270°' }
+                                        ]}
+                                    />
+                                    <SectionHeader title="Frame Rate" description="Frames captured per second" />
+                                    <Slider
+                                        label="Frame Rate"
+                                        value={newCamera.framerate}
+                                        onChange={(val) => setNewCamera({ ...newCamera, framerate: val })}
+                                        min={1}
+                                        max={30}
+                                        step={1}
+                                        unit=" fps"
+                                        marks={['1', '5', '10', '15', '20', '25', '30']}
+                                    />
+                                </div>
+                            )}
+
+                            {activeTab === 'storage' && (
+                                <div className="space-y-6">
+                                    <SectionHeader title="File Storage" description="Configure where media files are stored" />
+                                    <InputField
+                                        label="Storage Device (Path)"
+                                        value={newCamera.storage_path}
+                                        onChange={(val) => setNewCamera({ ...newCamera, storage_path: val })}
+                                        placeholder="Custom storage path"
+                                    />
+                                    <InputField
+                                        label="Root Directory"
+                                        value={newCamera.root_directory}
+                                        onChange={(val) => setNewCamera({ ...newCamera, root_directory: val })}
+                                        placeholder="/var/lib/motion/..."
+                                    />
+                                </div>
+                            )}
+
+                            {activeTab === 'overlay' && (
+                                <div className="space-y-6">
+                                    <SectionHeader title="Text Overlay" description="Configure on-screen text display" />
+                                    <InputField
+                                        label="Left Text"
+                                        value={newCamera.text_left}
+                                        onChange={(val) => setNewCamera({ ...newCamera, text_left: val })}
+                                        placeholder="Camera name or custom text"
+                                    />
+                                    <InputField
+                                        label="Right Text"
+                                        value={newCamera.text_right}
+                                        onChange={(val) => setNewCamera({ ...newCamera, text_right: val })}
+                                        placeholder="%Y-%m-%d %H:%M:%S"
+                                    />
+                                    <Slider
+                                        label="Text Scale"
+                                        value={newCamera.text_scale || 1}
+                                        onChange={(val) => setNewCamera({ ...newCamera, text_scale: val })}
+                                        min={0.5}
+                                        max={3}
+                                        step={0.1}
+                                        unit="x"
+                                    />
+                                </div>
+                            )}
+
+                            {activeTab === 'movies' && (
+                                <div className="space-y-6">
+                                    <SectionHeader title="Recording Settings" description="Configure video recording options" />
+                                    <SelectField
+                                        label="Recording Mode"
+                                        value={newCamera.recording_mode}
+                                        onChange={(val) => setNewCamera({ ...newCamera, recording_mode: val })}
+                                        options={['Motion Triggered', 'Continuous', 'Off']}
+                                    />
+                                    <Toggle
+                                        label="Movie Passthrough"
+                                        checked={newCamera.movie_passthrough}
+                                        onChange={(val) => setNewCamera({ ...newCamera, movie_passthrough: val })}
+                                    />
+                                    <Slider
+                                        label="Movie Quality"
+                                        value={newCamera.movie_quality}
+                                        onChange={(val) => setNewCamera({ ...newCamera, movie_quality: val })}
+                                        min={10}
+                                        max={100}
+                                        step={5}
+                                        unit="%"
+                                        marks={['10%', '25%', '50%', '75%', '100%']}
+                                    />
+                                    <InputField
+                                        label="Maximum Movie Length"
+                                        type="number"
+                                        value={newCamera.max_movie_length}
+                                        onChange={(val) => setNewCamera({ ...newCamera, max_movie_length: val })}
+                                        unit="seconds"
+                                        placeholder="0 = infinite"
+                                        help="Segment length for continuous recording or max length for motion events"
+                                    />
+                                    <SectionHeader title="File Naming" />
+                                    <InputField
+                                        label="Movie File Name"
+                                        value={newCamera.movie_file_name}
+                                        onChange={(val) => setNewCamera({ ...newCamera, movie_file_name: val })}
+                                        placeholder="%Y-%m-%d/%H-%M-%S"
+                                    />
+                                    <SelectField
+                                        label="Preserve Movies"
+                                        value={newCamera.preserve_movies}
+                                        onChange={(val) => setNewCamera({ ...newCamera, preserve_movies: val })}
+                                        options={['Forever', 'For One Month', 'For One Week', 'For One Day']}
+                                    />
+                                    <SectionHeader title="Storage Limit" description="Auto-delete old files when limit is reached" />
+                                    {stats?.details?.cameras?.[editingId] && (
+                                        <div className="mb-6 p-4 bg-muted/30 rounded-lg border border-border">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="p-1.5 bg-blue-500/10 rounded text-blue-500">
+                                                        <Film className="w-4 h-4" />
+                                                    </div>
+                                                    <span className="font-semibold text-sm">Movies Storage</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleCleanup(editingId, 'video')}
+                                                    className="text-xs flex items-center bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 px-2 py-1 rounded transition-colors"
+                                                    title="Enforce storage limits now"
+                                                >
+                                                    <Trash2 className="w-3 h-3 mr-1" />
+                                                    Clean Up
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4 mb-3">
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground">Disk Usage</p>
+                                                    <p className="text-lg font-bold">{stats.details.cameras[editingId].movies.size_gb} GB</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground">Total Files</p>
+                                                    <p className="text-lg font-bold">{stats.details.cameras[editingId].movies.count}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Progress Bar */}
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="text-muted-foreground">
+                                                        {newCamera.max_storage_gb > 0
+                                                            ? `${Math.round((stats.details.cameras[editingId].movies.size_gb / newCamera.max_storage_gb) * 100)}% Used`
+                                                            : 'Unlimited Storage'}
+                                                    </span>
+                                                    <span className="text-muted-foreground">
+                                                        Limit: {newCamera.max_storage_gb > 0 ? `${newCamera.max_storage_gb} GB` : 'None'}
+                                                    </span>
+                                                </div>
+                                                <div className="h-2 w-full bg-secondary/50 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full ${newCamera.max_storage_gb > 0 && stats.details.cameras[editingId].movies.size_gb > newCamera.max_storage_gb ? 'bg-red-500' : 'bg-blue-500'}`}
+                                                        style={{
+                                                            width: newCamera.max_storage_gb > 0
+                                                                ? `${Math.min((stats.details.cameras[editingId].movies.size_gb / newCamera.max_storage_gb) * 100, 100)}%`
+                                                                : '0%'
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <InputField
+                                        label="Maximum Storage (GB)"
+                                        type="number"
+                                        value={newCamera.max_storage_gb || 0}
+                                        onChange={(val) => setNewCamera({ ...newCamera, max_storage_gb: val })}
+                                        unit="GB"
+                                        placeholder="0 = unlimited"
+                                    />
+                                    <p className="text-xs text-muted-foreground">Set to 0 for unlimited storage. When exceeded, oldest files are deleted.</p>
+                                </div>
+                            )}
+
+                            {activeTab === 'motion' && (
+                                <div className="space-y-6">
+                                    <SectionHeader title="Automatic Detection" description="Motion detection tuning options" />
+                                    <Slider
+                                        label="Motion Threshold"
+                                        value={newCamera.threshold || 1500}
+                                        onChange={(val) => setNewCamera({ ...newCamera, threshold: val })}
+                                        min={100}
+                                        max={10000}
+                                        step={100}
+                                        helper="Lower = More Sensitive. 1500 is default."
+                                    />
+                                    <Toggle
+                                        label="Automatic Threshold Tuning"
+                                        checked={newCamera.auto_threshold_tuning}
+                                        onChange={(val) => setNewCamera({ ...newCamera, auto_threshold_tuning: val })}
+                                    />
+                                    <Toggle
+                                        label="Automatic Noise Detection"
+                                        checked={newCamera.auto_noise_detection}
+                                        onChange={(val) => setNewCamera({ ...newCamera, auto_noise_detection: val })}
+                                    />
+                                    <Slider
+                                        label="Light Switch Detection"
+                                        value={newCamera.light_switch_detection}
+                                        onChange={(val) => setNewCamera({ ...newCamera, light_switch_detection: val })}
+                                        min={0}
+                                        max={100}
+                                        step={1}
+                                        unit="%"
+                                        marks={['0%', '25%', '50%', '75%', '100%']}
+                                    />
+                                    <Toggle
+                                        label="Despeckle Filter"
+                                        checked={newCamera.despeckle_filter}
+                                        onChange={(val) => setNewCamera({ ...newCamera, despeckle_filter: val })}
+                                    />
+
+                                    <SectionHeader title="Capture Settings" description="Pre/post motion capture options" />
+                                    <InputField
+                                        label="Motion Gap"
+                                        type="number"
+                                        value={newCamera.motion_gap}
+                                        onChange={(val) => setNewCamera({ ...newCamera, motion_gap: val })}
+                                        unit="seconds"
+                                    />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <InputField
+                                            label="Captured Before"
+                                            type="number"
+                                            value={newCamera.captured_before}
+                                            onChange={(val) => setNewCamera({ ...newCamera, captured_before: val })}
+                                            unit="frames"
+                                        />
+                                        <InputField
+                                            label="Captured After"
+                                            type="number"
+                                            value={newCamera.captured_after}
+                                            onChange={(val) => setNewCamera({ ...newCamera, captured_after: val })}
+                                            unit="frames"
+                                        />
+                                    </div>
+                                    <InputField
+                                        label="Minimum Motion Frames"
+                                        type="number"
+                                        value={newCamera.min_motion_frames}
+                                        onChange={(val) => setNewCamera({ ...newCamera, min_motion_frames: val })}
+                                        unit="frames"
+                                    />
+
+                                    <SectionHeader title="Debug Options" />
+                                    <Toggle
+                                        label="Mask"
+                                        checked={newCamera.mask}
+                                        onChange={(val) => setNewCamera({ ...newCamera, mask: val })}
+                                    />
+                                    <Toggle
+                                        label="Show Frame Changes"
+                                        checked={newCamera.show_frame_changes}
+                                        onChange={(val) => setNewCamera({ ...newCamera, show_frame_changes: val })}
+                                    />
+                                    <Toggle
+                                        label="Create Debug Media Files"
+                                        checked={newCamera.create_debug_media}
+                                        onChange={(val) => setNewCamera({ ...newCamera, create_debug_media: val })}
+                                    />
+                                </div>
+                            )}
+
+                            {activeTab === 'still_images' && (
+                                <div className="space-y-6">
+                                    <SectionHeader title="Still Image Settings" description="Configure snapshot recording options" />
+                                    <Toggle
+                                        label="Auto-save Snapshots on Motion"
+                                        checked={newCamera.picture_recording_mode === 'Motion Triggered'}
+                                        onChange={(val) => setNewCamera({ ...newCamera, picture_recording_mode: val ? 'Motion Triggered' : 'Manual' })}
+                                    />
+                                    <Slider
+                                        label="Image Quality"
+                                        value={newCamera.picture_quality}
+                                        onChange={(val) => setNewCamera({ ...newCamera, picture_quality: val })}
+                                        min={10}
+                                        max={100}
+                                        step={5}
+                                        unit="%"
+                                        marks={['10%', '25%', '50%', '75%', '100%']}
+                                    />
+                                    <SectionHeader title="File Naming" />
+                                    <InputField
+                                        label="Image File Name"
+                                        value={newCamera.picture_file_name}
+                                        onChange={(val) => setNewCamera({ ...newCamera, picture_file_name: val })}
+                                        placeholder="%Y-%m-%d/%H-%M-%S-%q"
+                                    />
+                                    <SelectField
+                                        label="Preserve Pictures"
+                                        value={newCamera.preserve_pictures}
+                                        onChange={(val) => setNewCamera({ ...newCamera, preserve_pictures: val })}
+                                        options={['Forever', 'For One Month', 'For One Week', 'For One Day']}
+                                    />
+                                    <InputField
+                                        label="Maximum Pictures Storage (GB)"
+                                        type="number"
+                                        value={newCamera.max_pictures_storage_gb}
+                                        onChange={(val) => setNewCamera({ ...newCamera, max_pictures_storage_gb: val })}
+                                        unit="GB"
+                                    />
+                                    {stats?.details?.cameras?.[editingId] && (
+                                        <div className="-mt-4 mb-6 p-4 bg-muted/30 rounded-lg border border-border">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="p-1.5 bg-green-500/10 rounded text-green-500">
+                                                        <Image className="w-4 h-4" />
+                                                    </div>
+                                                    <span className="font-semibold text-sm">Snapshots Storage</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleCleanup(editingId, 'snapshot')}
+                                                    className="text-xs flex items-center bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 px-2 py-1 rounded transition-colors"
+                                                    title="Enforce storage limits now"
+                                                >
+                                                    <Trash2 className="w-3 h-3 mr-1" />
+                                                    Clean Up
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4 mb-3">
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground">Disk Usage</p>
+                                                    <p className="text-lg font-bold">{stats.details.cameras[editingId].images.size_gb} GB</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground">Total Files</p>
+                                                    <p className="text-lg font-bold">{stats.details.cameras[editingId].images.count}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Progress Bar */}
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="text-muted-foreground">
+                                                        {newCamera.max_pictures_storage_gb > 0
+                                                            ? `${Math.round((stats.details.cameras[editingId].images.size_gb / newCamera.max_pictures_storage_gb) * 100)}% Used`
+                                                            : 'Unlimited Storage'}
+                                                    </span>
+                                                    <span className="text-muted-foreground">
+                                                        Limit: {newCamera.max_pictures_storage_gb > 0 ? `${newCamera.max_pictures_storage_gb} GB` : 'None'}
+                                                    </span>
+                                                </div>
+                                                <div className="h-2 w-full bg-secondary/50 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full ${newCamera.max_pictures_storage_gb > 0 && stats.details.cameras[editingId].images.size_gb > newCamera.max_pictures_storage_gb ? 'bg-red-500' : 'bg-green-500'}`}
+                                                        style={{
+                                                            width: newCamera.max_pictures_storage_gb > 0
+                                                                ? `${Math.min((stats.details.cameras[editingId].images.size_gb / newCamera.max_pictures_storage_gb) * 100, 100)}%`
+                                                                : '0%'
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <Toggle
+                                        label="Show Manual Snapshot Button"
+                                        checked={newCamera.enable_manual_snapshots}
+                                        onChange={(val) => setNewCamera({ ...newCamera, enable_manual_snapshots: val })}
+                                    />
+                                    <p className="text-xs text-muted-foreground">Enables the 'Take Snapshot' button in Live View.</p>
+                                </div>
+                            )}
+
+                            {activeTab === 'notifications' && (
+                                <div className="space-y-6">
+                                    <SectionHeader title="Motion Notifications" description="Send alerts when motion is detected" />
+                                    <Toggle
+                                        label="Send Email on Start"
+                                        checked={newCamera.notify_start_email}
+                                        onChange={(val) => setNewCamera({ ...newCamera, notify_start_email: val })}
+                                    />
+                                    <Toggle
+                                        label="Send Telegram on Start"
+                                        checked={newCamera.notify_start_telegram}
+                                        onChange={(val) => setNewCamera({ ...newCamera, notify_start_telegram: val })}
+                                    />
+                                    <Toggle
+                                        label="Call Webhook on Start"
+                                        checked={newCamera.notify_start_webhook}
+                                        onChange={(val) => setNewCamera({ ...newCamera, notify_start_webhook: val })}
+                                    />
+                                    <Toggle
+                                        label="Call Webhook on End"
+                                        checked={newCamera.notify_end_webhook}
+                                        onChange={(val) => setNewCamera({ ...newCamera, notify_end_webhook: val })}
+                                    />
+
+                                    {(newCamera.notify_start_webhook || newCamera.notify_end_webhook) && (
+                                        <InputField
+                                            label="Webhook URL"
+                                            value={newCamera.notify_webhook_url}
+                                            onChange={(val) => setNewCamera({ ...newCamera, notify_webhook_url: val })}
+                                            placeholder="https://hooks.example.com/..."
+                                        />
+                                    )}
+
+                                    {newCamera.notify_start_telegram && (
+                                        <div className="space-y-4 p-4 bg-muted/30 rounded-lg border border-border">
+                                            <InputField
+                                                label="Telegram Bot Token"
+                                                value={newCamera.notify_telegram_token}
+                                                onChange={(val) => setNewCamera({ ...newCamera, notify_telegram_token: val })}
+                                                placeholder="123456:ABC-DEF..."
+                                            />
+                                            <InputField
+                                                label="Telegram Chat ID"
+                                                value={newCamera.notify_telegram_chat_id}
+                                                onChange={(val) => setNewCamera({ ...newCamera, notify_telegram_chat_id: val })}
+                                                placeholder="@chat_name or ID"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {newCamera.notify_start_email && (
+                                        <InputField
+                                            label="Email Recipient"
+                                            value={newCamera.notify_email_address}
+                                            onChange={(val) => setNewCamera({ ...newCamera, notify_email_address: val })}
+                                            placeholder="user@example.com"
+                                        />
+                                    )}
+
+                                    <SectionHeader title="Detection Schedule" />
+                                    <SelectField
+                                        label="Motion Schedule Mode"
+                                        value={newCamera.detect_motion_mode}
+                                        onChange={(val) => setNewCamera({ ...newCamera, detect_motion_mode: val })}
+                                        options={['Always', 'Working Schedule', 'Manual Toggle']}
+                                    />
+                                </div>
+                            )}
+
+                            <div className="flex justify-between items-center mt-6 pt-4 border-t border-border">
+                                {editingId && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCopyModal(true)}
+                                        className="flex items-center space-x-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 py-2 rounded-lg transition-colors"
+                                    >
+                                        <Copy className="w-4 h-4" />
+                                        <span>Copy Settings to...</span>
+                                    </button>
+                                )}
+                                {!editingId && <div></div>} {/* Spacer */}
+
+                                <div className="flex space-x-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAddModal(false)}
+                                        className="px-4 py-2 text-sm font-medium hover:bg-accent rounded-lg"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => handleCreate(e, false)}
+                                        className="px-4 py-2 text-primary hover:bg-primary/10 text-sm font-medium rounded-lg transition-colors border border-primary/20"
+                                    >
+                                        Apply
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90"
+                                    >
+                                        {editingId ? 'Save Changes' : 'Create Camera'}
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Copy Settings Modal */}
+            {showCopyModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+                    <div className="bg-card p-6 rounded-xl w-full max-w-md border border-border shadow-xl">
+                        <h3 className="text-lg font-bold mb-2">Copy Settings</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Select cameras to overwrite with current settings. <br />
+                            <span className="text-xs text-yellow-600 dark:text-yellow-400">Warning: This will replace configuration for selected cameras.</span>
+                        </p>
+
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto mb-6 bg-muted/20 p-2 rounded-lg border border-border/50">
+                            {cameras.filter(c => c.id !== editingId).map(cam => (
+                                <label key={cam.id} className="flex items-center p-2 hover:bg-accent rounded cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="mr-3 w-4 h-4 rounded border-gray-300"
+                                        checked={copyTargets.includes(cam.id)}
+                                        onChange={(e) => {
+                                            if (e.target.checked) setCopyTargets([...copyTargets, cam.id]);
+                                            else setCopyTargets(copyTargets.filter(id => id !== cam.id));
+                                        }}
+                                    />
+                                    <span className="font-medium">{cam.name}</span>
+                                    <span className="text-xs text-muted-foreground ml-auto">{cam.resolution_width}x{cam.resolution_height}</span>
+                                </label>
+                            ))}
+                            {cameras.filter(c => c.id !== editingId).length === 0 && (
+                                <p className="text-sm text-center py-4 text-muted-foreground">No other cameras available.</p>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end space-x-3">
+                            <button
+                                onClick={() => { setShowCopyModal(false); setCopyTargets([]); }}
+                                className="px-4 py-2 text-sm font-medium hover:bg-accent rounded-lg"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleCopySettings}
+                                disabled={copyTargets.length === 0}
+                                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                            >
+                                <Copy className="w-4 h-4 mr-2" />
+                                Copy to {copyTargets.length} Cameras
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
