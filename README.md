@@ -56,18 +56,60 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 ### Prerequisites
 - Docker & Docker Compose
 
-### Installation
+---
+
+### 🐳 Option 1: Production Deployment (Pre-built Images)
+
+**Recommended for most users.** Uses pre-built Docker images from Docker Hub - no building required.
+
+```bash
+# Download the production compose file
+curl -O https://raw.githubusercontent.com/spupuz/VibeNVR/main/docker-compose.prod.yml
+
+# Start VibeNVR
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Or if you've cloned the repository:
+
+```bash
+cd VibeNVR
+docker compose -f docker-compose.prod.yml up -d
+```
+
+#### Using Specific Versions
+
+You can use specific release versions instead of `latest`:
+
+```bash
+# Edit docker-compose.prod.yml and change image tags:
+# spupuz/vibenvr-frontend:v1.0.0
+# spupuz/vibenvr-backend:v1.0.0
+# spupuz/vibenvr-motion:v1.0.0
+```
+
+---
+
+### 🛠️ Option 2: Development Setup (Build from Source)
+
+**For contributors and developers.** Builds images locally from source code.
 
 ```bash
 # Clone the repository
 git clone https://github.com/spupuz/VibeNVR.git
 cd VibeNVR
 
-# Start the application
+# Build and start the application
 docker compose up -d --build
 ```
 
-Access the application at **http://localhost:8080**
+> **Note:** The development compose file (`docker-compose.yml`) mounts local directories for live code changes.
+
+---
+
+### 🌐 Access the Application
+
+Once running, access VibeNVR at **http://localhost:8080**
 
 ### Default Ports
 
@@ -83,15 +125,37 @@ Access the application at **http://localhost:8080**
 
 ## 🐳 Docker Images
 
-Pre-built images are available on Docker Hub:
+Pre-built images are available on [Docker Hub](https://hub.docker.com/u/spupuz):
+
+| Image | Description |
+|-------|-------------|
+| `spupuz/vibenvr-frontend` | React web interface |
+| `spupuz/vibenvr-backend` | FastAPI backend server |
+| `spupuz/vibenvr-motion` | Motion detection engine |
+
+### Available Tags
+
+| Tag | Description |
+|-----|-------------|
+| `latest` | Most recent stable release |
+| `vX.Y.Z` | Specific version (e.g., `v1.0.0`, `v1.2.3`) |
+| `main` | Latest development build |
+
+### Pull Images Manually
 
 ```bash
+# Latest stable version
 docker pull spupuz/vibenvr-frontend:latest
 docker pull spupuz/vibenvr-backend:latest
 docker pull spupuz/vibenvr-motion:latest
+
+# Specific version
+docker pull spupuz/vibenvr-frontend:v1.0.0
+docker pull spupuz/vibenvr-backend:v1.0.0
+docker pull spupuz/vibenvr-motion:v1.0.0
 ```
 
-Images are automatically built on each release with semantic versioning tags.
+Images are automatically built and pushed on each GitHub release with semantic versioning tags.
 
 ---
 
