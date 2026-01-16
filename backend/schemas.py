@@ -12,6 +12,7 @@ class CameraBase(BaseModel):
     # Video Device
     resolution_width: Optional[int] = 800
     resolution_height: Optional[int] = 600
+    auto_resolution: Optional[bool] = True
     framerate: Optional[int] = 15
     rotation: Optional[int] = 0
 

@@ -222,15 +222,12 @@ export const LiveView = () => {
     };
 
     const handleToggleRecording = async (camera) => {
-        const newMode = camera.recording_mode === 'Always' ? 'Motion Triggered' : 'Always';
         try {
-            const res = await fetch(`http://localhost:5000/cameras/${camera.id}`, {
-                method: 'PUT',
+            const res = await fetch(`http://localhost:5000/cameras/${camera.id}/recording`, {
+                method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({ ...camera, recording_mode: newMode })
+                }
             });
             if (res.ok) fetchCameras();
         } catch (err) { console.error(err); }

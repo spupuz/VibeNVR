@@ -27,6 +27,8 @@ def generate_motion_config(db: Session):
 camera_id {cam.id}
 camera_name {cam.name}
 netcam_url {cam.rtsp_url}
+rtsp_uses_tcp on
+netcam_tolerant_check on
 
 # Video Settings
 width {cam.resolution_width}
@@ -109,4 +111,33 @@ def trigger_snapshot(camera_id: int):
     except Exception as e:
         print(f"Error triggering snapshot for camera {camera_id}: {e}")
         return False
+
+def toggle_recording_mode(camera_id: int, camera: Camera):
+    """
+    Toggle recording mode for a specific camera.
+    For 'Always' mode: Uses eventstart to trigger immediate recording.
+    For 'Motion Triggered': Uses eventend to stop forced recording.
+    This avoids full Motion restart by using runtime API instead of config changes.
+    """
+    if camera.recording_mode in ['Continuous', 'Always']:
+        # Start an event to trigger recording
+        url = f"http://vibenvr-motion:8080/{camera_id}/action/eventstart"
+        action = "eventstart (start continuous recording)"
+    else:
+        # End the forced event, return to motion-triggered
+        url = f"http://vibenvr-motion:8080/{camera_id}/action/eventend"
+        action = "eventend (return to motion triggered)"
+    
+    try:
+        resp = requests.get(url, timeout=5)
+        if resp.status_code == 200:
+            print(f"Camera {camera_id}: {action} successful", flush=True)
+            return True
+        else:
+            print(f"Camera {camera_id}: {action} failed - {resp.status_code}", flush=True)
+            return False
+    except Exception as e:
+        print(f"Camera {camera_id}: {action} error - {e}", flush=True)
+        return False
+
 

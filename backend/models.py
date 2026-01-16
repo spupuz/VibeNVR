@@ -16,6 +16,7 @@ class Camera(Base):
     # Video Device
     resolution_width = Column(Integer, default=800)
     resolution_height = Column(Integer, default=600)
+    auto_resolution = Column(Boolean, default=True)
     framerate = Column(Integer, default=15)
     rotation = Column(Integer, default=0) # 0, 90, 180, 270
 

@@ -15,7 +15,8 @@ router = APIRouter(
 @router.post("/", response_model=schemas.Camera)
 def create_camera(camera: schemas.CameraCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     # Auto-detect resolution if passthrough is enabled
-    if camera.movie_passthrough and camera.rtsp_url:
+    # Auto-detect resolution if enabled
+    if camera.auto_resolution and camera.rtsp_url:
         print(f"Probing stream for camera {camera.name}...", flush=True)
         dims = probe_service.probe_stream(camera.rtsp_url)
         if dims:
@@ -43,9 +44,15 @@ def read_camera(camera_id: int, db: Session = Depends(database.get_db), current_
 
 @router.put("/{camera_id}", response_model=schemas.Camera)
 def update_camera(camera_id: int, camera: schemas.CameraCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
-    # Auto-detect resolution if passthrough is enabled
-    if camera.movie_passthrough and camera.rtsp_url:
-        print(f"Probing stream for camera {camera.name}...", flush=True)
+    # Get existing camera to check if RTSP URL changed
+    existing_camera = crud.get_camera(db, camera_id=camera_id)
+    if existing_camera is None:
+        raise HTTPException(status_code=404, detail="Camera not found")
+    
+    # Only probe if auto_resolution is enabled AND RTSP URL changed
+    rtsp_changed = existing_camera.rtsp_url != camera.rtsp_url
+    if camera.auto_resolution and camera.rtsp_url and rtsp_changed:
+        print(f"Probing stream for camera {camera.name} (URL changed)...", flush=True)
         dims = probe_service.probe_stream(camera.rtsp_url)
         if dims:
             print(f"Detected resolution: {dims['width']}x{dims['height']}", flush=True)
@@ -59,6 +66,34 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, db: Session = De
         raise HTTPException(status_code=404, detail="Camera not found")
     
     motion_service.generate_motion_config(db)
+    return db_camera
+
+@router.post("/{camera_id}/recording")
+def toggle_camera_recording(camera_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """
+    Toggle recording mode for a specific camera.
+    Uses Motion's per-camera config API to avoid full restart.
+    """
+    db_camera = crud.get_camera(db, camera_id=camera_id)
+    if db_camera is None:
+        raise HTTPException(status_code=404, detail="Camera not found")
+    
+    # Toggle between Always and Motion Triggered
+    new_mode = 'Motion Triggered' if db_camera.recording_mode == 'Always' else 'Always'
+    
+    # Update DB
+    db_camera.recording_mode = new_mode
+    db.commit()
+    db.refresh(db_camera)
+    
+    # Toggle in Motion without full restart (update config file + per-camera restart)
+    success = motion_service.toggle_recording_mode(camera_id, db_camera)
+    
+    if not success:
+        # Fallback: regenerate config and restart (slower but reliable)
+        print("Per-camera toggle failed, falling back to full restart", flush=True)
+        motion_service.generate_motion_config(db)
+    
     return db_camera
 
 @router.delete("/{camera_id}", response_model=schemas.Camera)
