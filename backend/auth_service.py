@@ -7,8 +7,10 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 import crud, database, models
 
+import os
+
 # Secret key for JWT (Should be in env var in production)
-SECRET_KEY = "vibenvr-super-secret-key-change-me"
+SECRET_KEY = os.getenv("SECRET_KEY", "vibenvr-super-secret-key-change-me")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
