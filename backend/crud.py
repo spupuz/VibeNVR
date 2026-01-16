@@ -95,3 +95,36 @@ def update_user_password(db: Session, user_id: int, hashed_password: str):
         db.commit()
         db.refresh(db_user)
     return db_user
+
+# Groups
+def get_groups(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.CameraGroup).offset(skip).limit(limit).all()
+
+def get_group(db: Session, group_id: int):
+    return db.query(models.CameraGroup).filter(models.CameraGroup.id == group_id).first()
+
+def create_group(db: Session, group: schemas.CameraGroupCreate):
+    db_group = models.CameraGroup(**group.dict())
+    db.add(db_group)
+    db.commit()
+    db.refresh(db_group)
+    return db_group
+
+def delete_group(db: Session, group_id: int):
+    db_group = db.query(models.CameraGroup).filter(models.CameraGroup.id == group_id).first()
+    if db_group:
+        db.delete(db_group)
+        db.commit()
+    return db_group
+
+def update_group_cameras(db: Session, group_id: int, camera_ids: list[int]):
+    db_group = get_group(db, group_id)
+    if not db_group:
+        return None
+    
+    # Fetch cameras
+    cameras = db.query(models.Camera).filter(models.Camera.id.in_(camera_ids)).all()
+    db_group.cameras = cameras
+    db.commit()
+    db.refresh(db_group)
+    return db_group

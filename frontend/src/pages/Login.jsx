@@ -44,7 +44,6 @@ export const Login = () => {
 
             if (res.ok) {
                 const data = await res.json();
-                // Login successful, fetch user data
                 const userRes = await fetch('http://localhost:5000/auth/me', {
                     headers: { Authorization: `Bearer ${data.access_token}` }
                 });
@@ -62,11 +61,21 @@ export const Login = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-            <div className="w-full max-w-md p-8 space-y-6 bg-card rounded-xl border border-border shadow-lg">
-                <div className="space-y-2 text-center">
-                    <h1 className="text-3xl font-bold tracking-tighter">Welcome Back</h1>
-                    <p className="text-muted-foreground">Enter your credentials to access VibeNVR</p>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+            <div className="w-full max-w-md p-6 sm:p-8 space-y-6 bg-white rounded-2xl shadow-2xl">
+                {/* Logo */}
+                <div className="flex flex-col items-center space-y-4">
+                    <img
+                        src="/vibe_logo_variant_1.png"
+                        alt="VibeNVR"
+                        className="h-32 sm:h-40 w-auto"
+                    />
+                    <div className="text-center">
+                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Welcome Back</h1>
+                        <p className="text-gray-500 text-sm sm:text-base mt-1">
+                            Enter your credentials to access VibeNVR
+                        </p>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -76,7 +85,7 @@ export const Login = () => {
                             <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                             <input
                                 type="text"
-                                className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-primary focus:outline-none"
+                                className="w-full pl-9 pr-3 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
                                 placeholder="admin"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
@@ -91,7 +100,7 @@ export const Login = () => {
                             <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                             <input
                                 type="password"
-                                className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-primary focus:outline-none"
+                                className="w-full pl-9 pr-3 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -102,10 +111,14 @@ export const Login = () => {
 
                     {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
-                    <Button className="w-full" type="submit">
+                    <Button className="w-full py-2.5" type="submit">
                         Sign In
                     </Button>
                 </form>
+
+                <p className="text-center text-xs text-muted-foreground">
+                    Secure Video Surveillance System
+                </p>
             </div>
         </div>
     );

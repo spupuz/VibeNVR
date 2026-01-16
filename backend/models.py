@@ -93,6 +93,24 @@ class Camera(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     events = relationship("Event", back_populates="camera")
+    
+    # Groups (Many-to-Many)
+    groups = relationship("CameraGroup", secondary="camera_group_association", back_populates="cameras")
+
+# Association Table
+class CameraGroupAssociation(Base):
+    __tablename__ = "camera_group_association"
+    camera_id = Column(Integer, ForeignKey("cameras.id"), primary_key=True)
+    group_id = Column(Integer, ForeignKey("camera_groups.id"), primary_key=True)
+
+class CameraGroup(Base):
+    __tablename__ = "camera_groups"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+    description = Column(String, nullable=True)
+
+    cameras = relationship("Camera", secondary="camera_group_association", back_populates="groups")
 
 class Event(Base):
     __tablename__ = "events"
@@ -106,6 +124,8 @@ class Event(Base):
     file_path = Column(String)
     thumbnail_path = Column(String, nullable=True)
     file_size = Column(Integer, default=0) # Size in bytes
+    width = Column(Integer, nullable=True)
+    height = Column(Integer, nullable=True)
     motion_score = Column(Float, nullable=True)
     
     camera = relationship("Camera", back_populates="events")

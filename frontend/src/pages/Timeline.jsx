@@ -73,29 +73,22 @@ const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl, onDele
                 {event.thumbnail_path && !imgError ? (
                     <img
                         src={getMediaUrl(event.thumbnail_path)}
+                        loading="lazy"
                         alt="Thumbnail"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        onError={() => setImgError(true)}
-                    />
-                ) : event.type === 'video' && !imgError ? (
-                    <video
-                        src={getMediaUrl(event.file_path)}
-                        className="w-full h-full object-cover"
-                        muted
-                        preload="metadata"
-                        onLoadedData={(e) => { e.target.currentTime = 0.5; }}
                         onError={() => setImgError(true)}
                     />
                 ) : event.type === 'snapshot' && !imgError ? (
                     <img
                         src={getMediaUrl(event.file_path)}
+                        loading="lazy"
                         alt="Event"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                         onError={() => setImgError(true)}
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                        {event.type === 'video' ? <Video className="w-6 h-6" /> : <ImageIcon className="w-6 h-6" />}
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted">
+                        {event.type === 'video' ? <Video className="w-8 h-8 opacity-50" /> : <ImageIcon className="w-8 h-8 opacity-50" />}
                     </div>
                 )}
 
@@ -149,11 +142,26 @@ const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl, onDele
                         {event.file_path?.split('/').pop()}
                     </p>
                 </div>
-                <span className="text-[10px] text-muted-foreground">{time}</span>
+                <div className="flex justify-between items-center">
+                    <div className="flex flex-col">
+                        <span className="text-[10px] text-muted-foreground">{time}</span>
+                        <span className="text-[8px] text-muted-foreground/50">{date}</span>
+                    </div>
+                    {event.file_size > 0 && (
+                        <div className="text-[10px] font-mono text-primary/80 bg-primary/5 px-1.5 py-0.5 rounded">
+                            {event.file_size < 1024 * 1024
+                                ? `${(event.file_size / 1024).toFixed(1)} KB`
+                                : `${(event.file_size / (1024 * 1024)).toFixed(1)} MB`
+                            }
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
+
+const API_BASE = `http://${window.location.hostname}:5000`;
 
 export const Timeline = () => {
     const { token } = useAuth();
@@ -171,7 +179,7 @@ export const Timeline = () => {
 
     useEffect(() => {
         const fetchEvents = () => {
-            let url = 'http://localhost:5000/events';
+            let url = `${API_BASE}/events`;
             const params = new URLSearchParams();
             params.append('limit', '1000'); // Increased limit to see more history
             if (cameraId) params.append('camera_id', cameraId);
@@ -193,7 +201,7 @@ export const Timeline = () => {
         };
 
         const fetchCameras = () => {
-            fetch('http://localhost:5000/cameras/', {
+            fetch(`${API_BASE}/cameras/`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
                 .then(res => res.json())
@@ -219,14 +227,19 @@ export const Timeline = () => {
 
     const getMediaUrl = (path) => {
         if (!path) return '';
-        const relative = path.replace('/var/lib/motion/', '');
-        return `http://localhost:5000/media/${relative}`;
+        let relative = path;
+        if (relative.startsWith('/var/lib/motion/')) {
+            relative = relative.replace('/var/lib/motion/', '');
+        } else if (relative.startsWith('/var/lib/vibe/recordings/')) {
+            relative = relative.replace('/var/lib/vibe/recordings/', '');
+        }
+        return `${API_BASE}/media/${relative}`;
     };
 
     const handleDelete = async (id) => {
         if (!confirm("Delete this event?")) return;
         try {
-            const res = await fetch(`http://localhost:5000/events/${id}`, {
+            const res = await fetch(`${API_BASE}/events/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -269,9 +282,45 @@ export const Timeline = () => {
     }, [filteredEvents]);
 
     return (
-        <div className="h-[calc(100vh-8rem)] flex gap-4">
+        <div className="min-h-[calc(100vh-8rem)] lg:h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-4">
+            {/* Mobile: Sticky Video Player at Top */}
+            {selectedEvent && (
+                <div className="lg:hidden sticky top-0 z-20 bg-card border border-border rounded-xl p-3 flex flex-col">
+                    <div className="flex justify-between items-center mb-2">
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-bold truncate">{getCameraName(selectedEvent.camera_id)}</h3>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                                {new Date(selectedEvent.timestamp_start).toLocaleString()}
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setSelectedEvent(null)}
+                            className="ml-2 p-1 hover:bg-accent rounded text-muted-foreground"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                        {selectedEvent.type === 'video' ? (
+                            <video
+                                controls
+                                autoPlay
+                                className="w-full h-full object-contain"
+                                src={getMediaUrl(selectedEvent.file_path)}
+                            />
+                        ) : (
+                            <img
+                                src={getMediaUrl(selectedEvent.file_path)}
+                                alt="Event"
+                                className="w-full h-full object-contain"
+                            />
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Left: Event List */}
-            <div className="w-[380px] flex-shrink-0 flex flex-col">
+            <div className="w-full lg:w-[380px] flex-shrink-0 flex flex-col">
                 {/* Filters */}
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                     <select
@@ -356,8 +405,8 @@ export const Timeline = () => {
                 </div>
             </div>
 
-            {/* Right: Preview Panel */}
-            <div className="flex-1 bg-card border border-border rounded-xl p-4 flex flex-col min-h-0">
+            {/* Right: Preview Panel - Hidden on mobile, shown on desktop */}
+            <div className="hidden lg:flex flex-1 bg-card border border-border rounded-xl p-4 flex-col min-h-0">
                 {selectedEvent ? (
                     <>
                         <div className="flex justify-between items-start mb-3">
@@ -365,6 +414,9 @@ export const Timeline = () => {
                                 <h3 className="text-lg font-bold">Event Details</h3>
                                 <p className="text-xs text-muted-foreground">
                                     {getCameraName(selectedEvent.camera_id)} • {new Date(selectedEvent.timestamp_start).toLocaleString()}
+                                    {selectedEvent.file_size > 0 && ` • ${selectedEvent.file_size < 1024 * 1024
+                                        ? (selectedEvent.file_size / 1024).toFixed(1) + ' KB'
+                                        : (selectedEvent.file_size / (1024 * 1024)).toFixed(1) + ' MB'}`}
                                 </p>
                             </div>
                             <div className="flex space-x-1">

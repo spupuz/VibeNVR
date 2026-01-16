@@ -1,51 +1,78 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, CameraOff, Maximize2, Settings, Image as ImageIcon, Play, Square, Power, Disc, Grid } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
+const API_BASE = `http://${window.location.hostname}:5000`;
+
 const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onToggleRecording, isDetectingMotion }) => {
     const { token } = useAuth();
-    const [loadState, setLoadState] = useState('idle'); // idle, loading, loaded, error
-    const [retryKey, setRetryKey] = useState(0);
-    const [cacheBuster, setCacheBuster] = useState(Date.now());
+    const [loadState, setLoadState] = useState('loading');
+    const [frameSrc, setFrameSrc] = useState('');
     const navigate = useNavigate();
+    const pollingRef = useRef(null);
+    const mountedRef = useRef(true);
 
+    // JPEG Polling - fetch individual frames at 10 FPS
     useEffect(() => {
-        // Staggered loading start
-        const startTimer = setTimeout(() => {
-            setLoadState('loading');
-        }, index * 200);
+        mountedRef.current = true;
+        let frameCount = 0;
 
-        return () => clearTimeout(startTimer);
-    }, [index]);
+        const fetchFrame = async () => {
+            if (!mountedRef.current) return;
 
-    useEffect(() => {
-        // Watchdog & Auto-Retry
-        let timeoutId;
+            try {
+                const response = await fetch(`${API_BASE}/cameras/${camera.id}/frame?t=${Date.now()}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
 
-        if (loadState === 'loading') {
-            timeoutId = setTimeout(() => {
-                setLoadState('error');
-            }, 10000); // 10s connection timeout
-        } else if (loadState === 'error') {
-            timeoutId = setTimeout(() => {
-                console.log(`Auto-retrying camera ${camera.id}...`);
-                setRetryKey(prev => prev + 1);
-                setCacheBuster(Date.now());
-                setLoadState('loading');
-            }, 2000); // Retry every 2 seconds (faster recovery)
-        }
+                if (!mountedRef.current) return;
 
-        return () => clearTimeout(timeoutId);
-    }, [loadState, camera.id]);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    if (!mountedRef.current) return;
+
+                    const url = URL.createObjectURL(blob);
+                    setFrameSrc(prev => {
+                        if (prev) URL.revokeObjectURL(prev); // Clean up old blob
+                        return url;
+                    });
+                    setLoadState('loaded');
+                    frameCount++;
+                } else {
+                    setLoadState('error');
+                }
+            } catch (err) {
+                if (mountedRef.current) {
+                    setLoadState('error');
+                }
+            }
+        };
+
+        // Staggered start
+        const startDelay = setTimeout(() => {
+            fetchFrame(); // Immediate first frame
+            pollingRef.current = setInterval(fetchFrame, 100); // 10 FPS
+        }, index * 100);
+
+        return () => {
+            mountedRef.current = false;
+            clearTimeout(startDelay);
+            if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+            }
+            // Clean up blob URL
+            setFrameSrc(prev => {
+                if (prev) URL.revokeObjectURL(prev);
+                return '';
+            });
+        };
+    }, [camera.id, token, index]);
 
     const handleFullscreen = (e) => {
         const el = e.currentTarget.closest('.video-container');
         if (el.requestFullscreen) el.requestFullscreen();
     };
-
-
-    const streamUrl = (camera.stream_url || `http://localhost:5000/cameras/${camera.id}/stream`) + `?cb=${cacheBuster}`;
 
     return (
         <div className={`video-container relative w-full bg-black rounded-xl overflow-hidden aspect-video group border border-border ${isFocused ? 'ring-2 ring-primary' : ''}`}>
@@ -57,7 +84,7 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                 </div>
                 <div className="flex space-x-1.5 pointer-events-auto">
                     {/* Motion Active Indicator */}
-                    {(isDetectingMotion || camera.recording_mode === 'Continuous') && (
+                    {(isDetectingMotion || camera.recording_mode === 'Always') && (
                         <div className="px-2 py-1 bg-red-600/90 text-white rounded-lg flex items-center space-x-1.5 animate-pulse shadow-lg ring-1 ring-red-400/50">
                             <div className="w-2 h-2 rounded-full bg-white shadow-sm" />
                             <span className="text-[10px] font-bold tracking-wider">REC</span>
@@ -70,7 +97,7 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                         <Maximize2 className="w-4 h-4" />
                     </button>
                     <button onClick={() => {
-                        fetch(`http://localhost:5000/cameras/${camera.id}/snapshot`, {
+                        fetch(`${API_BASE}/cameras/${camera.id}/snapshot`, {
                             method: 'POST',
                             headers: { Authorization: `Bearer ${token}` }
                         })
@@ -82,10 +109,10 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                     }} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Take Snapshot">
                         <Camera className="w-4 h-4" />
                     </button>
-                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=images`)} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Picture Browser">
+                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=snapshot`)} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Picture Browser">
                         <ImageIcon className="w-4 h-4" />
                     </button>
-                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=videos`)} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Movie Browser">
+                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=video`)} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Movie Browser">
                         <Play className="w-4 h-4" />
                     </button>
                     <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Settings">
@@ -106,25 +133,15 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                         <span className="bg-black/80 text-white px-3 py-1 rounded text-sm font-mono tracking-widest border border-white/20">NO SIGNAL</span>
                     </div>
                 </div>
-            ) : loadState === 'idle' ? (
-                <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-black/90">
-                    <span className="text-white/50 text-xs animate-pulse">Initializing...</span>
-                </div>
-            ) : (
+            ) : frameSrc ? (
                 <img
-                    key={retryKey}
-                    src={streamUrl}
+                    src={frameSrc}
                     alt={camera.name}
-                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${loadState === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
-                    onLoad={() => setLoadState('loaded')}
-                    onError={() => setLoadState('error')}
+                    className="absolute inset-0 w-full h-full object-cover"
                 />
-            )}
-            {/* Loading Spinner overlay */}
-            {loadState === 'loading' && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none space-y-2">
+            ) : (
+                <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-black/90">
                     <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    {retryKey > 0 && <span className="text-white/80 text-xs font-medium animate-pulse">Reconnecting...</span>}
                 </div>
             )}
 
@@ -168,7 +185,7 @@ export const LiveView = () => {
     });
 
     const fetchCameras = () => {
-        fetch('http://localhost:5000/cameras', {
+        fetch(`${API_BASE}/cameras`, {
             headers: { Authorization: `Bearer ${token}` }
         })
             .then(res => res.json())
@@ -177,7 +194,7 @@ export const LiveView = () => {
     };
 
     const fetchMotionStatus = () => {
-        fetch('http://localhost:5000/events/status', {
+        fetch(`${API_BASE}/events/status`, {
             headers: { Authorization: `Bearer ${token}` }
         })
             .then(res => res.json())
@@ -189,6 +206,7 @@ export const LiveView = () => {
 
     useEffect(() => {
         if (!token) return;
+
         fetchCameras();
         fetchMotionStatus();
 
@@ -209,7 +227,7 @@ export const LiveView = () => {
 
     const handleToggleActive = async (camera) => {
         try {
-            const res = await fetch(`http://localhost:5000/cameras/${camera.id}`, {
+            const res = await fetch(`${API_BASE}/cameras/${camera.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -223,7 +241,7 @@ export const LiveView = () => {
 
     const handleToggleRecording = async (camera) => {
         try {
-            const res = await fetch(`http://localhost:5000/cameras/${camera.id}/recording`, {
+            const res = await fetch(`${API_BASE}/cameras/${camera.id}/recording`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -276,16 +294,16 @@ export const LiveView = () => {
                 </div>
             </div>
 
-            <div className={`grid gap-4 flex-1 min-h-0 ${focusCameraId ? 'grid-cols-1' :
+            <div className={`grid gap-2 sm:gap-4 flex-1 min-h-0 ${focusCameraId ? 'grid-cols-1' :
                 columnSetting === 'auto' ? (
                     cameras.length <= 1 ? 'grid-cols-1' :
-                        cameras.length <= 4 ? 'grid-cols-2' :
-                            'grid-cols-3'
+                        cameras.length <= 4 ? 'grid-cols-1 sm:grid-cols-2' :
+                            'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
                 ) : (
                     columnSetting === '1' ? 'grid-cols-1' :
-                        columnSetting === '2' ? 'grid-cols-2' :
-                            columnSetting === '3' ? 'grid-cols-3' :
-                                columnSetting === '4' ? 'grid-cols-4' : 'grid-cols-3'
+                        columnSetting === '2' ? 'grid-cols-1 sm:grid-cols-2' :
+                            columnSetting === '3' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
+                                columnSetting === '4' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
                 )
                 }`}>
                 {displayCameras.map((cam, i) => (

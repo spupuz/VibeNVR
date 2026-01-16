@@ -1,20 +1,22 @@
 # 📹 VibeNVR – Modern Video Surveillance System
 
-VibeNVR is a modern, modular, and containerized video surveillance system designed to manage IP/USB cameras, recordings, motion detection, and a unified event timeline.
+VibeNVR is a modern, modular, and containerized video surveillance system designed to manage IP/USB cameras, recordings, motion detection, and a unified event timeline. It features a custom high-performance video engine (VibeEngine) built for efficiency and reliability.
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
 | Feature | Description |
 |---------|-------------|
-| 🖥️ **Modern Web Interface** | Built with React + Vite + TailwindCSS |
-| 📷 **Multi-Camera Support** | RTSP, MJPEG, HTTP, USB cameras |
-| 🎯 **Motion Detection** | Integrated with Motion Project |
-| 📅 **Unified Timeline** | View events and recordings in a single timeline |
-| 🐳 **Dockerized** | Easy deployment with Docker Compose |
-| 🔐 **Authentication** | Secure login with session management |
-| 📊 **Dashboard** | Real-time stats on cameras, storage, and system health |
+| 🖥️ **Modern Web Interface** | Ultra-premium UI built with React, Vite, and Lucide icons. |
+| 📷 **Advanced Video Engine** | Custom Python engine using OpenCV & FFmpeg for RTSP streaming and processing. |
+| 🎯 **Smart Motion Detection** | Native motion detection with adjustable sensitivity, gap, and pre/post-capture buffers. |
+| 📅 **Event Timeline** | Unified browser for movie recordings and high-res snapshots with instant filters. |
+| 🛡️ **Storage Management** | Automated background cleanup (FIFO) with global and per-camera GB/retention limits. |
+| 📁 **Camera Groups** | Organize cameras into custom groups for logical multi-view management. |
+| 🕙 **Timezone Synchronization** | Full ISO 8601 support ensures perfect timing between engine, backend, and UI. |
+| 🐳 **Dockerized** | Zero-dependency deployment using Docker Compose. |
+| 📊 **Real-time Monitoring** | Live view with adaptive frame polling and dynamic MJPEG stream proxying. |
 
 ---
 
@@ -42,57 +44,23 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 
 ## 🧱 Architecture
 
-| Component | Technology |
-|-----------|------------|
-| Frontend | React, TailwindCSS, Vite |
-| Backend | Python (FastAPI) |
-| Video Engine | Motion Project |
-| Database | PostgreSQL |
+VibeNVR is split into four main microservices:
+
+*   **Frontend**: React-based SPA providing a sleek, responsive dashboard.
+*   **Backend**: FastAPI server handling logic, database (PostgreSQL), and media relay.
+*   **VibeEngine**: Custom processing engine for motion detection, recording, and overlays.
+*   **Database**: PostgreSQL for persistent storage of camera configs and events.
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Docker & Docker Compose
+- Docker & Docker Compose (V2 recommended)
 
 ---
 
-### 🐳 Option 1: Production Deployment (Pre-built Images)
-
-**Recommended for most users.** Uses pre-built Docker images from Docker Hub - no building required.
-
-```bash
-# Download the production compose file
-curl -O https://raw.githubusercontent.com/spupuz/VibeNVR/main/docker-compose.prod.yml
-
-# Start VibeNVR
-docker compose -f docker-compose.prod.yml up -d
-```
-
-Or if you've cloned the repository:
-
-```bash
-cd VibeNVR
-docker compose -f docker-compose.prod.yml up -d
-```
-
-#### Using Specific Versions
-
-You can use specific release versions instead of `latest`:
-
-```bash
-# Edit docker-compose.prod.yml and change image tags:
-# spupuz/vibenvr-frontend:v1.0.0
-# spupuz/vibenvr-backend:v1.0.0
-# spupuz/vibenvr-motion:v1.0.0
-```
-
----
-
-### 🛠️ Option 2: Development Setup (Build from Source)
-
-**For contributors and developers.** Builds images locally from source code.
+### 🛠️ Development & Source Build
 
 ```bash
 # Clone the repository
@@ -103,59 +71,31 @@ cd VibeNVR
 docker compose up -d --build
 ```
 
-> **Note:** The development compose file (`docker-compose.yml`) mounts local directories for live code changes.
-
----
-
 ### 🌐 Access the Application
 
 Once running, access VibeNVR at **http://localhost:8080**
 
-### Default Ports
-
-| Service | Port |
-|---------|------|
-| Frontend (UI) | 8080 |
-| Backend (API) | 5000 |
-| Motion Stream | 8081 |
-| Motion Control | 8082 |
-| Camera Streams | 8101-8120 |
+| Service | Port | External Access |
+|---------|------|-----------------|
+| Frontend (UI) | 8080 | Dashboard & Live View |
+| Backend (API) | 5000 | Core API & Webhooks |
+| VibeEngine | 8000 | Video Node API |
 
 ---
 
-## 🐳 Docker Images
+## 🔧 Core Functionality
 
-Pre-built images are available on [Docker Hub](https://hub.docker.com/u/spupuz):
+### 🎬 Recording & Snapshots
+VibeNVR supports three recording modes: **Off**, **Always**, and **Motion Triggered**.
+- **Pre-capture Buffer**: Capture the seconds *before* motion was detected.
+- **Post-capture Buffer**: Continue recording for a set duration after motion ends.
+- **Motion Snapshots**: Automatically save high-resolution JPEG images when motion starts.
 
-| Image | Description |
-|-------|-------------|
-| `spupuz/vibenvr-frontend` | React web interface |
-| `spupuz/vibenvr-backend` | FastAPI backend server |
-| `spupuz/vibenvr-motion` | Motion detection engine |
-
-### Available Tags
-
-| Tag | Description |
-|-----|-------------|
-| `latest` | Most recent stable release |
-| `vX.Y.Z` | Specific version (e.g., `v1.0.0`, `v1.2.3`) |
-| `main` | Latest development build |
-
-### Pull Images Manually
-
-```bash
-# Latest stable version
-docker pull spupuz/vibenvr-frontend:latest
-docker pull spupuz/vibenvr-backend:latest
-docker pull spupuz/vibenvr-motion:latest
-
-# Specific version
-docker pull spupuz/vibenvr-frontend:v1.0.0
-docker pull spupuz/vibenvr-backend:v1.0.0
-docker pull spupuz/vibenvr-motion:v1.0.0
-```
-
-Images are automatically built and pushed on each GitHub release with semantic versioning tags.
+### 💾 Storage Monitor
+The system includes a background `storage_service` that monitors disk usage:
+- **Global Limit**: Set a maximum size (GB) for all recordings.
+- **Per-Camera Retention**: Define how long or how much space each camera can take.
+- **FIFO Cleanup**: Automatically deletes the oldest media when limits are reached.
 
 ---
 
@@ -165,24 +105,10 @@ Images are automatically built and pushed on each GitHub release with semantic v
 VibeNVR/
 ├── frontend/          # React frontend application
 ├── backend/           # FastAPI backend server
-├── motion/            # Motion project configuration
+├── engine/            # Custom Video Engine (OpenCV/FFmpeg)
+├── motion/            # Legacy/External motion config support
 └── docker-compose.yml # Docker orchestration
 ```
-
----
-
-## 🔧 Configuration
-
-### Adding Cameras
-
-1. Navigate to **Settings** in the web UI
-2. Click **Add Camera**
-3. Enter camera details (name, stream URL, type)
-4. Save and the camera will appear in Live View
-
-### Motion Detection
-
-Motion detection is powered by [Motion Project](https://motion-project.github.io/). Configuration files are in `motion/`.
 
 ---
 

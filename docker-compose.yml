@@ -19,24 +19,24 @@ services:
       - vibenvr_data:/data
       - ./motion:/etc/motion
     environment:
-      - DATABASE_URL=postgresql://vibenvr:vibenvrpass@db:5432/vibenvr
+      - DATABASE_URL=postgresql://vibenvr:${POSTGRES_PASSWORD:-vibenvrpass}@db:5432/vibenvr
+      - TZ=Europe/Rome
     depends_on:
       - db
     restart: always
 
-  motion:
-    image: motionproject/motion:latest
-    container_name: vibenvr-motion
-    user: root
+  engine:
+    build:
+      context: ./engine
+    container_name: vibenvr-engine
     ports:
-      - "8081:8081" # Stream port (default)
-      - "8082:8080" # Webcontrol port
-      - "8101-8120:8101-8120" # Dynamic camera stream ports
+      - "8000:8000"
     volumes:
-      - ./motion:/etc/motion
-      - vibenvr_data:/var/lib/motion
-    command: motion -n -c /etc/motion/motion.conf
+      - vibenvr_data:/var/lib/vibe/recordings
+    environment:
+      - TZ=Europe/Rome
     restart: always
+    command: sh -c "python -u main.py 2>&1 | grep --line-buffered -v 'SEI type 764'"
 
   db:
     image: postgres:15-alpine

@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Camera, Film, History, Users, Settings, LogOut, Moon, Sun } from 'lucide-react';
+import { LayoutDashboard, Camera, Film, History, Settings, LogOut, Moon, Sun, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
@@ -16,7 +16,7 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     </button>
 );
 
-export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme }) => {
+export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, onClose }) => {
     const { logout } = useAuth();
     const menuItems = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -27,16 +27,25 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme }) => {
     ];
 
     return (
-        <aside className="w-64 h-screen bg-card border-r border-border flex flex-col fixed left-0 top-0 z-30">
-            <div className="p-6">
-                <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                        <Camera className="w-5 h-5 text-primary-foreground" />
-                    </div>
-                    <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-                        VibeNVR
-                    </h1>
-                </div>
+        <aside className={`
+            w-64 h-screen bg-card border-r border-border flex flex-col fixed left-0 top-0 z-50
+            transition-transform duration-300 ease-in-out
+            ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+            lg:translate-x-0
+        `}>
+            <div className="p-6 flex flex-col items-center">
+                <img
+                    src="/vibe_logo_variant_2.png"
+                    alt="VibeNVR"
+                    className="h-20 lg:h-24 w-auto"
+                />
+                {/* Close button for mobile - absolute positioned */}
+                <button
+                    onClick={onClose}
+                    className="lg:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-accent"
+                >
+                    <X className="w-5 h-5" />
+                </button>
             </div>
 
             <nav className="flex-1 px-4 space-y-1">

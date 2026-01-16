@@ -115,7 +115,13 @@ async def webhook_event(payload: dict, db: Session = Depends(database.get_db)):
         print(f"[WEBHOOK] Saving movie event: {file_path}")
         
         # Calculate file size
-        local_path = file_path.replace("/var/lib/motion", "/data", 1) if file_path else None
+        if file_path and file_path.startswith("/var/lib/motion"):
+            local_path = file_path.replace("/var/lib/motion", "/data", 1)
+        elif file_path and file_path.startswith("/var/lib/vibe/recordings"):
+             local_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
+        else:
+             local_path = None
+             
         file_size = 0
         if local_path and os.path.exists(local_path):
             file_size = os.path.getsize(local_path)
@@ -124,13 +130,22 @@ async def webhook_event(payload: dict, db: Session = Depends(database.get_db)):
         if camera_id in ACTIVE_CAMERAS:
             del ACTIVE_CAMERAS[camera_id]
         
+        from datetime import datetime
+        ts_str = payload.get("timestamp")
+        try:
+            ts = datetime.fromisoformat(ts_str)
+        except:
+            ts = datetime.now().astimezone()
+
         event_data = schemas.EventCreate(
             camera_id=camera_id,
-            timestamp_start=payload.get("timestamp"), 
+            timestamp_start=ts, 
             type="video",
             event_type="motion",
             file_path=file_path,
             file_size=file_size,
+            width=payload.get("width"),
+            height=payload.get("height"),
             motion_score=0.0
         )
         
@@ -178,18 +193,32 @@ async def webhook_event(payload: dict, db: Session = Depends(database.get_db)):
         print(f"[WEBHOOK] Saving picture event: {file_path}")
         
         # Calculate file size
-        local_path = file_path.replace("/var/lib/motion", "/data", 1) if file_path else None
+        if file_path and file_path.startswith("/var/lib/motion"):
+            local_path = file_path.replace("/var/lib/motion", "/data", 1)
+        elif file_path and file_path.startswith("/var/lib/vibe/recordings"):
+             local_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
+        else:
+             local_path = None
         file_size = 0
         if local_path and os.path.exists(local_path):
             file_size = os.path.getsize(local_path)
 
+        from datetime import datetime
+        ts_str = payload.get("timestamp")
+        try:
+            ts = datetime.fromisoformat(ts_str)
+        except:
+            ts = datetime.now().astimezone()
+
         event_data = schemas.EventCreate(
             camera_id=camera_id,
-            timestamp_start=payload.get("timestamp"), 
+            timestamp_start=ts, 
             type="snapshot",
             event_type="motion",
             file_path=file_path,
             file_size=file_size,
+            width=payload.get("width"),
+            height=payload.get("height"),
             thumbnail_path=file_path, # Use same for now
             motion_score=0.0
         )
@@ -218,8 +247,10 @@ def delete_event(event_id: int, db: Session = Depends(database.get_db)):
         backend_prefix = "/data"
         
         file_path = event.file_path
-        if file_path.startswith(prefix):
-            file_path = file_path.replace(prefix, backend_prefix, 1)
+        if file_path.startswith("/var/lib/motion"):
+            file_path = file_path.replace("/var/lib/motion", "/data", 1)
+        elif file_path.startswith("/var/lib/vibe/recordings"):
+            file_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
         
         try:
             if os.path.exists(file_path):
@@ -230,8 +261,10 @@ def delete_event(event_id: int, db: Session = Depends(database.get_db)):
             # Delete thumbnail if exists
             if event.thumbnail_path:
                 thumb_path = event.thumbnail_path
-                if thumb_path.startswith(prefix):
-                    thumb_path = thumb_path.replace(prefix, backend_prefix, 1)
+            if thumb_path.startswith("/var/lib/motion"):
+                thumb_path = thumb_path.replace("/var/lib/motion", "/data", 1)
+            elif thumb_path.startswith("/var/lib/vibe/recordings"):
+                thumb_path = thumb_path.replace("/var/lib/vibe/recordings", "/data", 1)
                 if os.path.exists(thumb_path):
                     os.remove(thumb_path)
                     
@@ -257,6 +290,8 @@ def download_event(event_id: int, db: Session = Depends(database.get_db)):
     file_path = event.file_path
     if file_path.startswith(prefix):
         file_path = file_path.replace(prefix, backend_prefix, 1)
+    elif file_path.startswith("/var/lib/vibe/recordings"):
+        file_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
     
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found on disk")

@@ -114,6 +114,8 @@ class EventBase(BaseModel):
     file_path: str
     file_size: Optional[int] = 0
     thumbnail_path: Optional[str] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
     motion_score: Optional[float] = None
 
 class EventCreate(EventBase):
@@ -151,3 +153,24 @@ class TokenData(BaseModel):
 class UserPasswordUpdate(BaseModel):
     old_password: Optional[str] = None
     new_password: str
+
+# Groups
+class CameraGroupBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class CameraGroupCreate(CameraGroupBase):
+    pass
+
+class CameraGroup(CameraGroupBase):
+    id: int
+    cameras: list[Camera] = []
+
+    class Config:
+        from_attributes = True
+
+class GroupAction(BaseModel):
+    action: str  # enable_motion, disable_motion, copy_settings
+    source_camera_id: Optional[int] = None
+    target_camera_ids: Optional[list[int]] = None
+

@@ -61,11 +61,28 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, db: Session = De
         else:
             print("Probe failed, using provided resolution.", flush=True)
 
+    # Store old active status to decide on start vs update
+    was_active = existing_camera.is_active
+    
     db_camera = crud.update_camera(db, camera_id=camera_id, camera=camera)
     if db_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
     
-    motion_service.generate_motion_config(db)
+    # If active status changed, we might need to start/stop the camera in Engine
+    # If it was inactive and now active -> Start
+    # If it was active and now inactive -> Stop? (Sync handles it?)
+    # For now, let's just Sync All if active status changes, simpler.
+    if was_active != db_camera.is_active:
+        print(f"Camera {camera.name} active status changed ({was_active} -> {db_camera.is_active}). Syncing Engine...", flush=True)
+        motion_service.generate_motion_config(db)
+    else:
+        # Just update runtime config
+        print(f"Camera {camera.name} updated. Applying runtime config...", flush=True)
+        success = motion_service.update_camera_runtime(db_camera)
+        if not success:
+             # Fallback
+             pass
+
     return db_camera
 
 @router.post("/{camera_id}/recording")
@@ -105,8 +122,31 @@ def delete_camera(camera_id: int, db: Session = Depends(database.get_db)):
     motion_service.generate_motion_config(db)
     return db_camera
 
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 import httpx
+
+@router.get("/{camera_id}/frame")
+async def get_camera_frame(camera_id: int, db: Session = Depends(database.get_db)):
+    """Proxy a single JPEG frame from the engine (for polling mode)"""
+    db_camera = crud.get_camera(db, camera_id=camera_id)
+    if db_camera is None:
+        raise HTTPException(status_code=404, detail="Camera not found")
+    
+    frame_url = f"http://vibenvr-engine:8000/cameras/{camera_id}/frame"
+    
+    try:
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            response = await client.get(frame_url)
+            return Response(
+                content=response.content,
+                media_type="image/jpeg",
+                headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+            )
+    except Exception as e:
+        print(f"[FRAME] Error getting frame for camera {camera_id}: {e}", flush=True)
+        # Return placeholder on error
+        placeholder = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00H\x00H\x00\x00\xff\xdb\x00C\x00\x03\x02\x02\x03\x02\x02\x03\x03\x03\x03\x04\x06\x0b\x07\x06\x06\x06\x06\r\x0b\x0b\x08\x0b\x0c\r\x0f\x0e\x0e\x0c\x0c\x0c\r\x0f\x10\x12\x17\x15\x15\x15\x17\x11\x13\x19\x1b\x18\x15\x1a\x14\x11\x11\x14\x1b\x15\x18\x1a\x1d\x1d\x1e\x1e\x1e\x13\x17 !\x1f\x1d!\x19\x1e\x1e\x1d\xff\xc0\x00\x11\x08\x00\x01\x00\x01\x03\x01"\x00\x02\x11\x01\x03\x11\x01\xff\xc4\x00\x14\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\xff\xda\x00\x0c\x03\x01\x00\x02\x11\x03\x11\x00?\x00\xbf\x00\xff\xd9'
+        return Response(content=placeholder, media_type="image/jpeg")
 
 @router.get("/{camera_id}/stream")
 async def stream_camera(camera_id: int, db: Session = Depends(database.get_db)):
@@ -116,26 +156,42 @@ async def stream_camera(camera_id: int, db: Session = Depends(database.get_db)):
         raise HTTPException(status_code=404, detail="Camera not found")
     
     # Use explicit container name for hostname stability
-    motion_stream_url = f"http://vibenvr-motion:{8100 + camera_id}/"
+    # Motion used 8100+ID, VibeEngine uses API path
+    motion_stream_url = f"http://vibenvr-engine:8000/cameras/{camera_id}/stream"
     
     async def generate():
         print(f"[STREAM] Starting proxy for camera {camera_id} from {motion_stream_url}", flush=True)
         try:
-            async with httpx.AsyncClient(timeout=None) as client:
-                async with client.stream("GET", motion_stream_url) as response:
-                    if response.status_code != 200:
-                        print(f"[STREAM] Motion returned status {response.status_code}, aborting.", flush=True)
-                        return
-                    
-                    async for chunk in response.aiter_bytes(chunk_size=32768):
-                        yield chunk
+            # Connection timeout 5s, Read timeout None (infinite stream)
+            timeout = httpx.Timeout(None, connect=5.0)
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                try:
+                    async with client.stream("GET", motion_stream_url) as response:
+                        if response.status_code != 200:
+                            print(f"[STREAM] Motion returned status {response.status_code}, aborting.", flush=True)
+                            return
+                        
+                        count = 0
+                        async for chunk in response.aiter_bytes():
+                            yield chunk
+                            count += 1
+                            if count % 100 == 0:
+                                print(f"[STREAM] Camera {camera_id} proxy active, chunk {count}", flush=True)
+                except Exception as e:
+                    print(f"[STREAM] Proxy error loop for {camera_id}: {e}", flush=True)
         except Exception as e:
             print(f"[STREAM] Proxy error for camera {camera_id}: {type(e).__name__}: {e}", flush=True)
-            # End of stream will close connection, triggering frontend onError
+        finally:
+            print(f"[STREAM] Proxy finished for camera {camera_id}", flush=True)
     
     return StreamingResponse(
         generate(),
-        media_type="multipart/x-mixed-replace; boundary=BoundaryString"
+        media_type="multipart/x-mixed-replace; boundary=frame",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        }
     )
 
 
