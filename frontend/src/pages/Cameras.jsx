@@ -4,6 +4,8 @@ import { Camera, Plus, Trash2, MapPin, Activity, Edit, Download, Upload, Film, I
 import { Toggle, Slider, InputField, SelectField, SectionHeader } from '../components/ui/FormControls';
 import { GroupsManager } from '../components/GroupsManager';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 
 const CameraCard = ({ camera, onDelete, onEdit }) => {
     const { user } = useAuth();
@@ -117,6 +119,8 @@ export const Cameras = () => {
     const [activeTab, setActiveTab] = useState('general');
     const [editingId, setEditingId] = useState(null);
     const [view, setView] = useState('cameras');
+    const { showToast } = useToast();
+    const [confirmConfig, setConfirmConfig] = useState({ isOpen: false });
 
     const [searchParams, setSearchParams] = useSearchParams();
 
@@ -170,16 +174,25 @@ export const Cameras = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure?")) return;
-        try {
-            await fetch(`http://localhost:5000/cameras/${id}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            fetchCameras();
-        } catch (err) {
-            console.error("Failed to delete", err);
-        }
+        setConfirmConfig({
+            isOpen: true,
+            title: 'Delete Camera',
+            message: 'Are you sure you want to delete this camera? All associated recordings will be kept on disk but the camera configuration will be removed.',
+            onConfirm: async () => {
+                try {
+                    await fetch(`http://localhost:5000/cameras/${id}`, {
+                        method: 'DELETE',
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    fetchCameras();
+                    showToast('Camera deleted successfully', 'success');
+                } catch (err) {
+                    showToast('Failed to delete: ' + err.message, 'error');
+                }
+                setConfirmConfig({ isOpen: false });
+            },
+            onCancel: () => setConfirmConfig({ isOpen: false })
+        });
     };
 
     const handleEdit = (camera) => {
@@ -232,24 +245,31 @@ export const Cameras = () => {
     };
 
     const handleCleanup = async (cameraId, type) => {
-        if (!window.confirm(`Are you sure you want to clean up ${type} storage for this camera? This will enforce retention limits immediately.`)) return;
-        try {
-            const res = await fetch(`http://localhost:5000/cameras/${cameraId}/cleanup?type=${type}`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                alert(data.message);
-                fetchStats(); // Refresh stats after cleanup
-            } else {
-                const err = await res.json();
-                alert('Cleanup failed: ' + err.detail);
-            }
-        } catch (err) {
-            console.error("Failed to cleanup", err);
-            alert('Cleanup failed: ' + err.message);
-        }
+        setConfirmConfig({
+            isOpen: true,
+            title: 'Storage Cleanup',
+            message: `Are you sure you want to clean up ${type} storage for this camera? This will enforce retention limits immediately.`,
+            onConfirm: async () => {
+                try {
+                    const res = await fetch(`http://localhost:5000/cameras/${cameraId}/cleanup?type=${type}`, {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        showToast(data.message, 'success');
+                        fetchStats();
+                    } else {
+                        const err = await res.json();
+                        showToast('Cleanup failed: ' + err.detail, 'error');
+                    }
+                } catch (err) {
+                    showToast('Cleanup failed: ' + err.message, 'error');
+                }
+                setConfirmConfig({ isOpen: false });
+            },
+            onCancel: () => setConfirmConfig({ isOpen: false })
+        });
     };
 
     const [showCopyModal, setShowCopyModal] = useState(false);
@@ -325,55 +345,63 @@ export const Cameras = () => {
                     });
                     setEditingId(null);
                 } else {
-                    alert("Settings saved successfully.");
+                    showToast("Settings saved successfully.", "success");
                 }
                 fetchCameras();
             }
         } catch (err) {
             console.error("Failed to save", err);
-            alert("Failed to save: " + err.message);
+            showToast("Failed to save: " + err.message, "error");
         }
     };
 
     const handleCopySettings = async () => {
         if (copyTargets.length === 0) return;
-        if (!window.confirm(`Overwrite settings for ${copyTargets.length} cameras?`)) return;
 
-        // Fields to EXCLUDE (Unique items)
-        const EXCLUDED_FIELDS = ['id', 'name', 'rtsp_url', 'stream_url', 'created_at', 'location', 'stream_port'];
+        setConfirmConfig({
+            isOpen: true,
+            title: 'Copy Settings',
+            message: `Overwrite settings for ${copyTargets.length} cameras?`,
+            onConfirm: async () => {
+                // Fields to EXCLUDE (Unique items)
+                const EXCLUDED_FIELDS = ['id', 'name', 'rtsp_url', 'stream_url', 'created_at', 'location', 'stream_port'];
 
-        const settingsToCopy = Object.keys(newCamera).reduce((acc, key) => {
-            if (!EXCLUDED_FIELDS.includes(key)) {
-                acc[key] = newCamera[key];
-            }
-            return acc;
-        }, {});
+                const settingsToCopy = Object.keys(newCamera).reduce((acc, key) => {
+                    if (!EXCLUDED_FIELDS.includes(key)) {
+                        acc[key] = newCamera[key];
+                    }
+                    return acc;
+                }, {});
 
-        for (const targetId of copyTargets) {
-            const targetCam = cameras.find(c => c.id === targetId);
-            if (!targetCam) continue;
+                for (const targetId of copyTargets) {
+                    const targetCam = cameras.find(c => c.id === targetId);
+                    if (!targetCam) continue;
 
-            const updatedCam = { ...targetCam, ...settingsToCopy };
-            try {
-                const res = await fetch(`http://localhost:5000/cameras/${targetId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`
-                    },
-                    body: JSON.stringify(updatedCam)
-                });
-                if (!res.ok) throw new Error(`Camera ${targetId} failed`);
-            } catch (err) {
-                console.error(`Failed to update camera ${targetId}`, err);
-                alert(`Failed to copy to camera ${targetCam.name}: ${err.message}`);
-            }
-        }
+                    const updatedCam = { ...targetCam, ...settingsToCopy };
+                    try {
+                        const res = await fetch(`http://localhost:5000/cameras/${targetId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${token}`
+                            },
+                            body: JSON.stringify(updatedCam)
+                        });
+                        if (!res.ok) throw new Error(`Camera ${targetId} failed`);
+                    } catch (err) {
+                        console.error(`Failed to update camera ${targetId}`, err);
+                        showToast(`Failed to copy to camera ${targetCam.name}: ${err.message}`, 'error');
+                    }
+                }
 
-        setShowCopyModal(false);
-        setCopyTargets([]);
-        fetchCameras();
-        alert("Settings copied to selected cameras.");
+                setShowCopyModal(false);
+                setCopyTargets([]);
+                fetchCameras();
+                showToast("Settings copied to selected cameras.", "success");
+                setConfirmConfig({ isOpen: false });
+            },
+            onCancel: () => setConfirmConfig({ isOpen: false })
+        });
     };
 
     return (
@@ -474,14 +502,14 @@ export const Cameras = () => {
                                             });
                                             if (res.ok) {
                                                 const data = await res.json();
-                                                alert(data.message);
+                                                showToast(data.message, 'success');
                                                 fetchCameras();
                                             } else {
                                                 const err = await res.json();
-                                                alert('Import failed: ' + err.detail);
+                                                showToast('Import failed: ' + err.detail, 'error');
                                             }
                                         } catch (err) {
-                                            alert('Import failed: ' + err.message);
+                                            showToast('Import failed: ' + err.message, 'error');
                                         }
                                         e.target.value = '';
                                     }}
@@ -1357,6 +1385,7 @@ export const Cameras = () => {
                     </div>
                 )
             }
+            <ConfirmModal {...confirmConfig} />
         </div >
     );
 };

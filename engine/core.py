@@ -15,18 +15,21 @@ class CameraManager:
 
     def start_camera(self, camera_id: int, config: dict):
         if camera_id in self.cameras:
-            logger.info(f"Camera {camera_id} already running, updating config...")
+            name = config.get('name', 'Unknown')
+            logger.info(f"Camera {name} (ID: {camera_id}) already running, updating config...")
             self.cameras[camera_id].update_config(config)
             return
 
-        logger.info(f"Starting camera {camera_id} with config: {config}")
+        name = config.get('name', 'Unknown')
+        logger.info(f"Starting camera {name} (ID: {camera_id}) with config: {config}")
         thread = CameraThread(camera_id, config, event_callback=self.handle_event)
         thread.start()
         self.cameras[camera_id] = thread
 
     def stop_camera(self, camera_id: int):
         if camera_id in self.cameras:
-            logger.info(f"Stopping camera {camera_id}")
+            name = self.cameras[camera_id].config.get('name', 'Unknown')
+            logger.info(f"Stopping camera {name} (ID: {camera_id})")
             self.cameras[camera_id].stop()
             del self.cameras[camera_id]
 
@@ -48,7 +51,8 @@ class CameraManager:
 
     def handle_event(self, camera_id, event_type, payload=None):
         """ Call backend webhooks """
-        logger.info(f"Event {event_type} for camera {camera_id}")
+        name = self.cameras[camera_id].config.get('name', 'Unknown') if camera_id in self.cameras else "Unknown"
+        logger.info(f"Event {event_type} for camera {name} (ID: {camera_id})")
         
         # Map VibeEngine internal events to Backend Webhook types
         # backend/routers/events.py expects: "event_start", "movie_end", "picture_save"

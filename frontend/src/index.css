@@ -138,3 +138,36 @@ input[type="range"]::-moz-range-thumb {
   border: none;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
+/* Custom keyframes for Toasts and Modals */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoom-in {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-in {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  animation-fill-mode: forwards;
+}
+
+.slide-in-from-right {
+  animation-name: slide-in-right;
+}
+
+.fade-in {
+  animation-name: fade-in;
+}
+
+.zoom-in-95 {
+  animation-name: zoom-in;
+}

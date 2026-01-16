@@ -58,7 +58,7 @@ class CameraThread(threading.Thread):
 
     def run(self):
         self.running = True
-        logger.info(f"Camera {self.camera_id}: Starting thread")
+        logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Starting thread")
         
         # Suppress OpenCV videoio debug
         os.environ["OPENCV_VIDEOIO_DEBUG"] = "0"
@@ -67,18 +67,18 @@ class CameraThread(threading.Thread):
             loop_start_time = time.time()
             try:
                 if self.cap is None or not self.cap.isOpened():
-                    logger.info(f"Camera {self.camera_id}: Connecting to {self._mask_url(self.config['rtsp_url'])}...")
+                    logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Connecting to {self._mask_url(self.config['rtsp_url'])}...")
                     self.cap = cv2.VideoCapture(self.config['rtsp_url'])
                     if not self.cap.isOpened():
                         # Use debug level for retries to avoid spamming info/error logs
-                        logger.warning(f"Camera {self.camera_id}: Failed to connect. Retrying in 2s...")
+                        logger.warning(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Failed to connect. Retrying in 2s...")
                         time.sleep(2)
                         continue
-                    logger.info(f"Camera {self.camera_id}: Connected successfully!")
+                    logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Connected successfully!")
                 
                 ret, frame = self.cap.read()
                 if not ret:
-                    logger.warning(f"Camera {self.camera_id}: Failed to read frame. Reconnecting...")
+                    logger.warning(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Failed to read frame. Reconnecting...")
                     self.cap.release()
                     self.cap = None
                     time.sleep(1)
@@ -142,14 +142,14 @@ class CameraThread(threading.Thread):
                          time.sleep(target_time - elapsed)
 
             except Exception as e:
-                logger.error(f"Camera {self.camera_id}: Error in loop: {e}")
+                logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Error in loop: {e}")
                 time.sleep(1)
                 
         # Cleanup
         if self.cap:
             self.cap.release()
         self.stop_recording()
-        logger.info(f"Camera {self.camera_id}: Thread stopped")
+        logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Thread stopped")
 
     def detect_motion(self, frame):
         # Resize for faster processing
@@ -174,7 +174,7 @@ class CameraThread(threading.Thread):
             self.last_motion_time = time.time()
             if not self.motion_detected:
                 self.motion_detected = True
-                logger.info(f"Camera {self.camera_id}: Motion START")
+                logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Motion START")
                 if self.event_callback:
                     self.event_callback(self.camera_id, 'motion_start')
                 
@@ -185,7 +185,7 @@ class CameraThread(threading.Thread):
             motion_gap = self.config.get('motion_gap', 10)
             if self.motion_detected and (time.time() - self.last_motion_time > motion_gap):
                 self.motion_detected = False
-                logger.info(f"Camera {self.camera_id}: Motion END")
+                logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Motion END")
                 if self.event_callback:
                     self.event_callback(self.camera_id, 'motion_end')
 
@@ -233,7 +233,7 @@ class CameraThread(threading.Thread):
                 cv2.rectangle(frame, (0, 0), (nm_w + 20, nm_h + 20), (0, 0, 0), -1)
                 cv2.putText(frame, text_left, (10, nm_h + 10), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (255, 255, 255), thickness)
         except Exception as e:
-            logger.error(f"Camera {self.camera_id}: Overlay error: {e}")
+            logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Overlay error: {e}")
             
         # Motion Debug Box
         if self.motion_detected and self.config.get('show_motion_box', False):
@@ -256,7 +256,7 @@ class CameraThread(threading.Thread):
         max_len = self.config.get('max_movie_length', 0)
         if self.is_recording and max_len > 0:
             if time.time() - self.recording_start_time > max_len:
-                logger.info(f"Camera {self.camera_id}: Max movie length reached, splitting file")
+                logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Max movie length reached, splitting file")
                 self.stop_recording()
                 # next loop will restart it if should_record is still True
 
@@ -272,7 +272,7 @@ class CameraThread(threading.Thread):
             try:
                 self.recording_process.stdin.write(frame.tobytes())
             except Exception as e:
-                logger.error(f"Camera {self.camera_id}: Error writing to ffmpeg: {e}")
+                logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Error writing to ffmpeg: {e}")
                 self.stop_recording()
 
     def start_recording(self, width, height):
@@ -281,7 +281,7 @@ class CameraThread(threading.Thread):
         os.makedirs(output_dir, exist_ok=True)
         filename = f"{output_dir}/{timestamp}.mp4"
         
-        logger.info(f"Camera {self.camera_id}: Start Recording to {filename}")
+        logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Start Recording to {filename}")
         
         # Use movie_quality (10-100) to map to CRF (51-0)
         # Typical good quality is CRF 23.
@@ -318,7 +318,7 @@ class CameraThread(threading.Thread):
                         self.recording_process.stdin.write(f.tobytes())
                     self.pre_buffer.clear()
                 except Exception as e:
-                    logger.error(f"Camera {self.camera_id}: Error writing pre-buffer: {e}")
+                    logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Error writing pre-buffer: {e}")
             
             if self.event_callback:
                  self.event_callback(self.camera_id, 'recording_start', {
@@ -328,11 +328,11 @@ class CameraThread(threading.Thread):
                  })
                  
         except Exception as e:
-            logger.error(f"Camera {self.camera_id}: Failed to start ffmpeg: {e}")
+            logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Failed to start ffmpeg: {e}")
 
     def stop_recording(self):
         if self.is_recording:
-            logger.info(f"Camera {self.camera_id}: Stop Recording")
+            logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Stop Recording")
             if self.recording_process:
                 self.recording_process.stdin.close()
                 self.recording_process.wait()
@@ -356,7 +356,7 @@ class CameraThread(threading.Thread):
             from collections import deque
             self.pre_buffer = deque(self.pre_buffer, maxlen=pre_cap)
             
-        logger.info(f"Camera {self.camera_id}: Config updated")
+        logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Config updated")
         
     def stop(self):
         self.running = False
@@ -388,7 +388,7 @@ class CameraThread(threading.Thread):
             with open(filepath, "wb") as f:
                 f.write(jpeg_bytes)
             
-            logger.info(f"Camera {self.camera_id}: Snapshot saved to {filepath}")
+            logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Snapshot saved to {filepath}")
 
             if self.event_callback:
                 self.event_callback(self.camera_id, "snapshot_save", {
@@ -398,5 +398,5 @@ class CameraThread(threading.Thread):
                 })
             return filepath
         except Exception as e:
-            logger.error(f"Camera {self.camera_id}: Failed to save snapshot: {e}")
+            logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Failed to save snapshot: {e}")
             return False

@@ -30,16 +30,30 @@ def delete_camera(db: Session, camera_id: int):
         db.commit()
     return db_camera
 
-def get_events(db: Session, skip: int = 0, limit: int = 100, camera_id: int = None, type: str = None):
+def get_events(db: Session, skip: int = 0, limit: int = 100, camera_id: int = None, type: str = None, date: str = None):
     query = db.query(models.Event)
     if camera_id:
         query = query.filter(models.Event.camera_id == camera_id)
     if type:
-        # type in DB is 'video' or 'image' (if implemented later), currently mostly 'video'
-        # event_type is 'motion'
-        # The user request asks for "picture browser" and "movie browser".
-        # Assuming type field: 'video' for movies. 'image' for pictures.
         query = query.filter(models.Event.type == type)
+    if date:
+        # Assuming date is YYYY-MM-DD
+        # Use a range to handle timezone correctly
+        from datetime import datetime, timedelta
+        from zoneinfo import ZoneInfo
+        
+        # Get local timezone from env or default to Europe/Rome as per docker-compose
+        import os
+        tz_name = os.environ.get('TZ', 'Europe/Rome')
+        local_tz = ZoneInfo(tz_name)
+        
+        # Parse date and set to start of day in local timezone
+        naive_start = datetime.strptime(date, '%Y-%m-%d')
+        start_date = naive_start.replace(tzinfo=local_tz)
+        end_date = start_date + timedelta(days=1)
+        
+        query = query.filter(models.Event.timestamp_start >= start_date)
+        query = query.filter(models.Event.timestamp_start < end_date)
         
     return query.order_by(models.Event.timestamp_start.desc()).offset(skip).limit(limit).all()
 

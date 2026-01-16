@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, CameraOff, Maximize2, Settings, Image as ImageIcon, Play, Square, Power, Disc, Grid } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 const API_BASE = `http://${window.location.hostname}:5000`;
 
 const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onToggleRecording, isDetectingMotion }) => {
     const { token } = useAuth();
+    const { showToast } = useToast();
     const [loadState, setLoadState] = useState('loading');
     const [frameSrc, setFrameSrc] = useState('');
     const navigate = useNavigate();
@@ -102,10 +104,13 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                             headers: { Authorization: `Bearer ${token}` }
                         })
                             .then(res => {
-                                if (res.ok) alert(`Snapshot triggered for ${camera.name}`);
-                                else alert('Failed to trigger snapshot');
+                                if (res.ok) showToast(`Snapshot triggered for ${camera.name}`, 'success');
+                                else showToast('Failed to trigger snapshot', 'error');
                             })
-                            .catch(err => console.error(err));
+                            .catch(err => {
+                                console.error(err);
+                                showToast('Error: ' + err.message, 'error');
+                            });
                     }} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Take Snapshot">
                         <Camera className="w-4 h-4" />
                     </button>

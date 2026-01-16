@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Monitor, Save, HardDrive, Clock, Trash2, Users, Plus, X, Key } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { Button } from '../components/ui/Button';
 
 export const Settings = () => {
@@ -18,6 +20,8 @@ export const Settings = () => {
     });
     const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0, percent: 0 });
     const [loading, setLoading] = useState(true);
+    const { showToast } = useToast();
+    const [confirmConfig, setConfirmConfig] = useState({ isOpen: false });
 
     // User Management State
     const [users, setUsers] = useState([]);
@@ -70,32 +74,41 @@ export const Settings = () => {
                 setNewUser({ username: '', password: '', role: 'viewer', email: '' });
                 setIsCreatingUser(false);
                 fetchUsers();
-                alert('User created successfully');
+                showToast('User created successfully', 'success');
             } else {
                 const err = await res.json();
-                alert('Failed to create user: ' + err.detail);
+                showToast('Failed to create user: ' + err.detail, 'error');
             }
         } catch (err) {
-            alert('Failed to create user: ' + err.message);
+            showToast('Failed to create user: ' + err.message, 'error');
         }
     };
 
     const handleDeleteUser = async (userId) => {
-        if (!confirm('Are you sure you want to delete this user?')) return;
-        try {
-            const res = await fetch('http://localhost:5000/users/' + userId, {
-                method: 'DELETE',
-                headers: { Authorization: 'Bearer ' + token }
-            });
-            if (res.ok) {
-                fetchUsers();
-            } else {
-                const err = await res.json();
-                alert('Failed to delete user: ' + err.detail);
-            }
-        } catch (err) {
-            alert('Failed to delete user: ' + err.message);
-        }
+        setConfirmConfig({
+            isOpen: true,
+            title: 'Delete User',
+            message: 'Are you sure you want to delete this user? This action cannot be undone.',
+            onConfirm: async () => {
+                try {
+                    const res = await fetch('http://localhost:5000/users/' + userId, {
+                        method: 'DELETE',
+                        headers: { Authorization: 'Bearer ' + token }
+                    });
+                    if (res.ok) {
+                        fetchUsers();
+                        showToast('User deleted successfully', 'success');
+                    } else {
+                        const err = await res.json();
+                        showToast('Failed to delete user: ' + err.detail, 'error');
+                    }
+                } catch (err) {
+                    showToast('Failed to delete user: ' + err.message, 'error');
+                }
+                setConfirmConfig({ isOpen: false });
+            },
+            onCancel: () => setConfirmConfig({ isOpen: false })
+        });
     };
 
     const openPasswordModal = (targetUser = null) => {
@@ -107,7 +120,7 @@ export const Settings = () => {
     const handlePasswordUpdate = async (e) => {
         e.preventDefault();
         if (pwdForm.new_password !== pwdForm.confirm_password) {
-            alert("New passwords do not match!");
+            showToast("New passwords do not match!", "error");
             return;
         }
         const targetId = pwdTargetUser ? pwdTargetUser.id : user.id;
@@ -126,14 +139,14 @@ export const Settings = () => {
             });
 
             if (res.ok) {
-                alert('Password updated successfully');
+                showToast('Password updated successfully', 'success');
                 setPwdModalOpen(false);
             } else {
                 const err = await res.json();
-                alert('Failed to update password: ' + err.detail);
+                showToast('Failed to update password: ' + err.detail, 'error');
             }
         } catch (err) {
-            alert('Failed to update password: ' + err.message);
+            showToast('Failed to update password: ' + err.message, 'error');
         }
     };
 
@@ -173,7 +186,7 @@ export const Settings = () => {
 
     const handleSave = async () => {
         if (user?.role !== 'admin') {
-            alert('Only admins can save settings.');
+            showToast('Only admins can save settings.', 'error');
             return;
         }
 
@@ -194,9 +207,9 @@ export const Settings = () => {
                     cleanup_interval_hours: globalSettings.cleanup_interval_hours.toString()
                 })
             });
-            alert('Settings saved successfully!');
+            showToast('Settings saved successfully!', 'success');
         } catch (err) {
-            alert('Failed to save settings: ' + err.message);
+            showToast('Failed to save settings: ' + err.message, 'error');
         }
     };
 
@@ -567,18 +580,25 @@ export const Settings = () => {
                 <div>
                     <button
                         onClick={async () => {
-                            if (confirm('Are you sure you want to trigger storage cleanup now?')) {
-                                try {
-                                    await fetch('http://localhost:5000/settings/cleanup', {
-                                        method: 'POST',
-                                        headers: { Authorization: `Bearer ${token}` }
-                                    });
-                                    alert('Cleanup triggered successfully!');
-                                    fetchStats();
-                                } catch (err) {
-                                    alert('Failed to trigger cleanup: ' + err.message);
-                                }
-                            }
+                            setConfirmConfig({
+                                isOpen: true,
+                                title: 'Manual Cleanup',
+                                message: 'Are you sure you want to trigger storage cleanup now? This will scan all camera folders and delete recordings that exceed set limits.',
+                                onConfirm: async () => {
+                                    try {
+                                        await fetch('http://localhost:5000/settings/cleanup', {
+                                            method: 'POST',
+                                            headers: { Authorization: `Bearer ${token}` }
+                                        });
+                                        showToast('Cleanup triggered successfully!', 'success');
+                                        fetchStats();
+                                    } catch (err) {
+                                        showToast('Failed to trigger cleanup: ' + err.message, 'error');
+                                    }
+                                    setConfirmConfig({ isOpen: false });
+                                },
+                                onCancel: () => setConfirmConfig({ isOpen: false })
+                            });
                         }}
                         className="flex items-center space-x-2 bg-amber-500 text-white px-6 py-3 rounded-lg hover:bg-amber-600 transition-colors"
                     >
@@ -603,6 +623,7 @@ export const Settings = () => {
                     </button>
                 </div>
             )}
+            <ConfirmModal {...confirmConfig} />
         </div>
     );
 };

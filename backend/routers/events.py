@@ -60,9 +60,10 @@ def read_events(
     limit: int = 100, 
     camera_id: Optional[int] = None, 
     type: Optional[str] = None, 
+    date: Optional[str] = None,
     db: Session = Depends(database.get_db)
 ):
-    events = crud.get_events(db, skip=skip, limit=limit, camera_id=camera_id, type=type)
+    events = crud.get_events(db, skip=skip, limit=limit, camera_id=camera_id, type=type, date=date)
     return events
 # Track active motion events globally
 # camera_id -> start_timestamp
@@ -95,15 +96,15 @@ def is_within_schedule(camera: models.Camera):
 
 @router.post("/webhook")
 async def webhook_event(payload: dict, db: Session = Depends(database.get_db)):
-    print(f"[WEBHOOK] Received: {payload.get('type')} for camera {payload.get('camera_id')}")
     camera_id = payload.get("camera_id")
-    event_type = payload.get("type") # event_start, picture_save, movie_end
-    
     # Fetch camera for settings
     camera = crud.get_camera(db, camera_id)
     if not camera:
-        print(f"[WEBHOOK] Camera {camera_id} not found")
+        print(f"[WEBHOOK] Camera ID: {camera_id} not found")
         return {"status": "error", "message": "camera not found"}
+
+    event_type = payload.get("type") # event_start, picture_save, movie_end
+    print(f"[WEBHOOK] Received: {event_type} for camera {camera.name} (ID: {camera_id})")
 
     # Check schedule
     if not is_within_schedule(camera):
@@ -112,7 +113,7 @@ async def webhook_event(payload: dict, db: Session = Depends(database.get_db)):
 
     if event_type == "movie_end":
         file_path = payload.get("file_path")
-        print(f"[WEBHOOK] Saving movie event: {file_path}")
+        print(f"[WEBHOOK] Saving movie event for {camera.name}: {file_path}")
         
         # Calculate file size
         if file_path and file_path.startswith("/var/lib/motion"):
@@ -184,13 +185,13 @@ async def webhook_event(payload: dict, db: Session = Depends(database.get_db)):
             print(f"[WEBHOOK] ERROR saving event: {e}")
             
     elif event_type == "event_start":
-        print(f"[WEBHOOK] Motion event started for camera {camera_id}")
+        print(f"[WEBHOOK] Motion event started for camera {camera.name} (ID: {camera_id})")
         ACTIVE_CAMERAS[camera_id] = payload.get("timestamp")
         send_notifications(camera, "event_start", payload)
         
     elif event_type == "picture_save":
         file_path = payload.get("file_path")
-        print(f"[WEBHOOK] Saving picture event: {file_path}")
+        print(f"[WEBHOOK] Saving picture event for {camera.name}: {file_path}")
         
         # Calculate file size
         if file_path and file_path.startswith("/var/lib/motion"):

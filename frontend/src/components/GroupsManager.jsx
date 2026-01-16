@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit, Camera, Settings, Copy, Play, Pause, Layers, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 
 export const GroupsManager = ({ cameras }) => {
     const { token } = useAuth();
@@ -12,6 +14,8 @@ export const GroupsManager = ({ cameras }) => {
     // Manage Modal
     const [managingGroup, setManagingGroup] = useState(null);
     const [selectedCameraIds, setSelectedCameraIds] = useState([]);
+    const { showToast } = useToast();
+    const [confirmConfig, setConfirmConfig] = useState({ isOpen: false });
 
     // Copy Modal
     const [copyingGroup, setCopyingGroup] = useState(null);
@@ -46,25 +50,39 @@ export const GroupsManager = ({ cameras }) => {
                 setNewGroupName('');
                 setShowCreateModal(false);
                 fetchGroups();
+                showToast('Group created successfully', 'success');
             } else {
-                alert('Failed to create group');
+                showToast('Failed to create group', 'error');
             }
         } catch (err) {
-            alert('Error creating group');
+            showToast('Error creating group', 'error');
         }
     };
 
     const handleDeleteGroup = async (id) => {
-        if (!window.confirm("Delete this group?")) return;
-        try {
-            await fetch(`http://localhost:5000/groups/${id}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            fetchGroups();
-        } catch (err) {
-            alert('Error deleting group');
-        }
+        setConfirmConfig({
+            isOpen: true,
+            title: 'Delete Group',
+            message: 'Are you sure you want to delete this group? The cameras will not be deleted, only the group association.',
+            onConfirm: async () => {
+                try {
+                    const res = await fetch(`http://localhost:5000/groups/${id}`, {
+                        method: 'DELETE',
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        fetchGroups();
+                        showToast('Group deleted', 'success');
+                    } else {
+                        showToast('Failed to delete group', 'error');
+                    }
+                } catch (err) {
+                    showToast('Error deleting group', 'error');
+                }
+                setConfirmConfig({ isOpen: false });
+            },
+            onCancel: () => setConfirmConfig({ isOpen: false })
+        });
     };
 
     const openManageModal = (group) => {
@@ -82,37 +100,46 @@ export const GroupsManager = ({ cameras }) => {
             if (res.ok) {
                 setManagingGroup(null);
                 fetchGroups();
+                showToast('Group updated successfully', 'success');
             } else {
-                alert('Failed to update group cameras');
+                showToast('Failed to update group cameras', 'error');
             }
         } catch (err) {
-            alert('Error updating group');
+            showToast('Error updating group', 'error');
         }
     };
 
     const handleAction = async (groupId, action, sourceId = null) => {
-        if (!window.confirm("Are you sure? This will update all cameras in the group.")) return;
-        try {
-            const body = { action };
-            if (sourceId) body.source_camera_id = parseInt(sourceId);
+        setConfirmConfig({
+            isOpen: true,
+            title: 'Group Action',
+            message: 'Are you sure? This will update all cameras in the group.',
+            onConfirm: async () => {
+                try {
+                    const body = { action };
+                    if (sourceId) body.source_camera_id = parseInt(sourceId);
 
-            const res = await fetch(`http://localhost:5000/groups/${groupId}/action`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify(body)
-            });
+                    const res = await fetch(`http://localhost:5000/groups/${groupId}/action`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify(body)
+                    });
 
-            if (res.ok) {
-                const data = await res.json();
-                alert(`Action completed. Modified ${data.modified_count} cameras.`);
-                setCopyingGroup(null);
-            } else {
-                const err = await res.json();
-                alert('Action failed: ' + err.detail);
-            }
-        } catch (err) {
-            alert('Error performing action');
-        }
+                    if (res.ok) {
+                        const data = await res.json();
+                        showToast(`Action completed. Modified ${data.modified_count} cameras.`, 'success');
+                        setCopyingGroup(null);
+                    } else {
+                        const err = await res.json();
+                        showToast('Action failed: ' + err.detail, 'error');
+                    }
+                } catch (err) {
+                    showToast('Error performing action', 'error');
+                }
+                setConfirmConfig({ isOpen: false });
+            },
+            onCancel: () => setConfirmConfig({ isOpen: false })
+        });
     };
 
     return (
@@ -283,6 +310,7 @@ export const GroupsManager = ({ cameras }) => {
                     </div>
                 </div>
             )}
+            <ConfirmModal {...confirmConfig} />
         </div>
     );
 };
