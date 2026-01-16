@@ -11,7 +11,7 @@ COPY webhook.sh /etc/motion/webhook.sh
 RUN chmod +x /etc/motion/webhook.sh
 
 # Create media directory
-RUN mkdir -p /var/lib/motion && chown motion:motion /var/lib/motion
+RUN mkdir -p /var/lib/motion
 
 # Expose ports (Stream, Webcontrol, Dynamic Streams)
 EXPOSE 8081 8082 8101-8120
