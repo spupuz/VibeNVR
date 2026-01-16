@@ -56,7 +56,7 @@ const HourTimeline = ({ events, onHourClick, selectedHour }) => {
     );
 };
 
-const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl }) => {
+const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl, onDelete }) => {
     const [imgError, setImgError] = useState(false);
     const time = new Date(event.timestamp_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const date = new Date(event.timestamp_start).toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -99,10 +99,36 @@ const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl }) => {
                     </div>
                 )}
 
+                {/* Overlaid Actions (Visible on Hover) */}
+                <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-90 transition-opacity z-10">
+                    {/* Download */}
+                    <a
+                        href={`http://localhost:5000/events/${event.id}/download`}
+                        download
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1 bg-black/50 hover:bg-black/70 text-white rounded backdrop-blur-sm transition-colors"
+                        title="Download"
+                    >
+                        <Download className="w-3 h-3" />
+                    </a>
+
+                    {/* Delete */}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(event.id);
+                        }}
+                        className="p-1 bg-black/50 hover:bg-red-500/80 text-white rounded backdrop-blur-sm transition-colors"
+                        title="Delete"
+                    >
+                        <Trash2 className="w-3 h-3" />
+                    </button>
+                </div>
+
                 {/* Type badge */}
                 <div className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase
-                    ${event.type === 'video' ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white'}
-                `}>
+                ${event.type === 'video' ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white'}
+            `}>
                     {event.type === 'video' ? 'Vid' : 'Img'}
                 </div>
 
@@ -319,6 +345,7 @@ export const Timeline = () => {
                                                 cameraName={getCameraName(event.camera_id)}
                                                 isSelected={selectedEvent?.id === event.id}
                                                 getMediaUrl={getMediaUrl}
+                                                onDelete={handleDelete}
                                             />
                                         ))}
                                     </div>
