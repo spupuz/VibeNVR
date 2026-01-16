@@ -48,7 +48,9 @@ picture_filename {cam.picture_file_name if cam.picture_file_name else '%Y-%m-%d/
 
 # Recording Configuration
 movie_output {'on' if cam.recording_mode != 'Off' else 'off'}
-movie_passthrough {'on' if cam.movie_passthrough else 'off'}
+movie_passthrough off
+movie_codec mp4
+movie_ext .mp4
 movie_quality {cam.movie_quality if cam.movie_quality else 75}
 picture_quality {cam.picture_quality if cam.picture_quality else 75}
 movie_max_time {(cam.max_movie_length if cam.max_movie_length > 0 else 600) if cam.recording_mode in ['Continuous', 'Always'] else (cam.max_movie_length if cam.max_movie_length else 0)}

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
-import crud, schemas, database, os, requests, threading, models
+import crud, schemas, database, os, requests, threading, models, subprocess
 from datetime import datetime
 
 router = APIRouter(
@@ -133,6 +133,33 @@ async def webhook_event(payload: dict, db: Session = Depends(database.get_db)):
             file_size=file_size,
             motion_score=0.0
         )
+        
+        # Generate Thumbnail
+        try:
+            if local_path and os.path.exists(local_path):
+                # /data/Camera1/xxx.mp4 -> /data/Camera1/xxx.jpg
+                base, _ = os.path.splitext(local_path)
+                local_thumb = f"{base}.jpg"
+                
+                # DB path
+                base_db, _ = os.path.splitext(file_path)
+                db_thumb = f"{base_db}.jpg"
+                
+                # Run ffmpeg to extract frame at 1s or 0s
+                # -ss 1 : seek 1 second
+                # -vframes 1: output 1 frame
+                subprocess.run([
+                    "ffmpeg", "-y", "-i", local_path, 
+                    "-ss", "00:00:01", "-vframes", "1", "-vf", "scale=320:-1",
+                    local_thumb
+                ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                
+                if os.path.exists(local_thumb):
+                    event_data.thumbnail_path = db_thumb
+                    print(f"[WEBHOOK] Thumbnail generated: {db_thumb}")
+        except Exception as e:
+            print(f"[WEBHOOK] Failed to generate thumbnail: {e}")
+
         try:
             crud.create_event(db, event_data)
             print(f"[WEBHOOK] Event saved successfully")
@@ -199,6 +226,15 @@ def delete_event(event_id: int, db: Session = Depends(database.get_db)):
                 os.remove(file_path)
             else:
                 print(f"File not found: {file_path}")
+                
+            # Delete thumbnail if exists
+            if event.thumbnail_path:
+                thumb_path = event.thumbnail_path
+                if thumb_path.startswith(prefix):
+                    thumb_path = thumb_path.replace(prefix, backend_prefix, 1)
+                if os.path.exists(thumb_path):
+                    os.remove(thumb_path)
+                    
         except Exception as e:
             print(f"Error deleting file {file_path}: {e}")
             
