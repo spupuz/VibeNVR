@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import crud, schemas, database, os, requests, threading, models
@@ -202,3 +203,37 @@ def delete_event(event_id: int, db: Session = Depends(database.get_db)):
             print(f"Error deleting file {file_path}: {e}")
             
     return event
+
+@router.get("/{event_id}/download")
+def download_event(event_id: int, db: Session = Depends(database.get_db)):
+    """Download event file with proper headers for cross-origin support"""
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    if not event.file_path:
+        raise HTTPException(status_code=404, detail="No file associated with this event")
+    
+    # Convert DB path to backend filesystem path
+    prefix = "/var/lib/motion"
+    backend_prefix = "/data"
+    
+    file_path = event.file_path
+    if file_path.startswith(prefix):
+        file_path = file_path.replace(prefix, backend_prefix, 1)
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+    
+    # Get filename from path
+    filename = os.path.basename(file_path)
+    
+    # Determine media type
+    media_type = "video/mp4" if event.type == "video" else "image/jpeg"
+    
+    return FileResponse(
+        path=file_path,
+        filename=filename,
+        media_type=media_type,
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )

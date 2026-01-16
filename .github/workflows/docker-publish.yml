@@ -10,8 +10,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  # TODO: Replace with your Docker Hub username/org
-  IMAGE_NAME: vibenvr
+  IMAGE_NAME: spupuz
 
 jobs:
   build-and-push:

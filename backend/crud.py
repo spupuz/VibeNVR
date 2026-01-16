@@ -50,6 +50,8 @@ def create_event(db: Session, event: schemas.EventCreate):
     db.refresh(db_event)
     return db_event
 
+def delete_event(db: Session, event_id: int):
+    db_event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if db_event:
         db.delete(db_event)
         db.commit()

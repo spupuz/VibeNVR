@@ -342,7 +342,7 @@ export const Timeline = () => {
                             </div>
                             <div className="flex space-x-1">
                                 <a
-                                    href={getMediaUrl(selectedEvent.file_path)}
+                                    href={`http://localhost:5000/events/${selectedEvent.id}/download`}
                                     download
                                     className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors"
                                 >
