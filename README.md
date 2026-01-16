@@ -18,6 +18,28 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 
 ---
 
+## 📸 Screenshots
+
+### Dashboard
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Live View
+![Live View](docs/screenshots/liveview.png)
+
+### Cameras
+![Cameras](docs/screenshots/cameras.png)
+
+### Camera Settings
+![Camera Settings](docs/screenshots/camera_settings.png)
+
+### Timeline
+![Timeline](docs/screenshots/timeline.png)
+
+### Settings
+![Settings](docs/screenshots/settings.png)
+
+---
+
 ## 🧱 Architecture
 
 | Component | Technology |
