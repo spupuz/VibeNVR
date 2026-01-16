@@ -43,7 +43,7 @@ services:
     container_name: vibenvr-db
     environment:
       - POSTGRES_USER=vibenvr
-      - POSTGRES_PASSWORD=vibenvrpass
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-vibenvrpass}
       - POSTGRES_DB=vibenvr
     volumes:
       - vibenvr_db_data:/var/lib/postgresql/data
