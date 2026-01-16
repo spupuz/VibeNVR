@@ -32,3 +32,4 @@ frontend/.env
 
 # VibeNVR Specific
 # We keep webhook.sh as it is source code
+motion/conf.d/*.conf
