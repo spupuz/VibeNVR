@@ -28,6 +28,8 @@ class CameraThread(threading.Thread):
         self.motion_detected = False
         self.last_motion_time = 0
         self.recording_start_time = 0
+        self.consecutive_motion_frames = 0
+        self.consecutive_still_frames = 0
         
         # Recording
         self.recording_process = None
@@ -85,8 +87,8 @@ class CameraThread(threading.Thread):
                     continue
                 
                 # Resize if needed
-                target_w = self.config.get('resolution_width')
-                target_h = self.config.get('resolution_height')
+                target_w = self.config.get('width')
+                target_h = self.config.get('height')
                 if target_w and target_h:
                     if frame.shape[1] != target_w or frame.shape[0] != target_h:
                         frame = cv2.resize(frame, (target_w, target_h))
@@ -158,6 +160,12 @@ class CameraThread(threading.Thread):
         
         # Threshold to remove shadows
         _, fgmask = cv2.threshold(fgmask, 200, 255, cv2.THRESH_BINARY)
+
+        # Despeckle (if enabled) - simple erosion/dilation
+        if self.config.get('despeckle_filter', False):
+            kernel = np.ones((3,3), np.uint8)
+            fgmask = cv2.erode(fgmask, kernel, iterations=1)
+            fgmask = cv2.dilate(fgmask, kernel, iterations=1)
         
         # Calculate motion ratio
         motion_ratio = (np.count_nonzero(fgmask) / fgmask.size) * 100
@@ -171,20 +179,30 @@ class CameraThread(threading.Thread):
             threshold_percent = (thresh_pixels / (640 * 360)) * 100
         
         if motion_ratio > threshold_percent:
-            self.last_motion_time = time.time()
-            if not self.motion_detected:
-                self.motion_detected = True
-                logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Motion START")
-                if self.event_callback:
-                    self.event_callback(self.camera_id, 'motion_start')
-                
-                # Take snapshot if mode is Motion Triggered
-                if self.config.get('picture_recording_mode') == 'Motion Triggered':
-                    self.save_snapshot(frame)
+            self.consecutive_motion_frames += 1
+            self.consecutive_still_frames = 0
+            
+            min_frames = self.config.get('min_motion_frames', 2)
+            
+            if self.consecutive_motion_frames >= min_frames:
+                self.last_motion_time = time.time()
+                if not self.motion_detected:
+                    self.motion_detected = True
+                    logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Motion START")
+                    if self.event_callback:
+                        self.event_callback(self.camera_id, 'motion_start')
+                    
+                    # Take snapshot if mode is Motion Triggered
+                    if self.config.get('picture_recording_mode') == 'Motion Triggered':
+                        self.save_snapshot(frame)
         else:
+            self.consecutive_still_frames += 1
+            self.consecutive_motion_frames = 0
+            
             motion_gap = self.config.get('motion_gap', 10)
             if self.motion_detected and (time.time() - self.last_motion_time > motion_gap):
                 self.motion_detected = False
+                self.consecutive_motion_frames = 0
                 logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Motion END")
                 if self.event_callback:
                     self.event_callback(self.camera_id, 'motion_end')
@@ -276,12 +294,21 @@ class CameraThread(threading.Thread):
                 self.stop_recording()
 
     def start_recording(self, width, height):
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        output_dir = f"/var/lib/vibe/recordings/{self.camera_id}"
-        os.makedirs(output_dir, exist_ok=True)
-        filename = f"{output_dir}/{timestamp}.mp4"
+        # Support custom filename format
+        format_str = self.config.get('movie_file_name', '%Y-%m-%d/%H-%M-%S')
+        # Simple cleanup of non-strftime placeholders (like %q from motion)
+        format_str = format_str.replace('%q', '00') 
         
-        logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Start Recording to {filename}")
+        timestamp_path = datetime.now().strftime(format_str)
+        output_dir = f"/var/lib/vibe/recordings/{self.camera_id}"
+        
+        full_path = os.path.join(output_dir, f"{timestamp_path}.mp4")
+        
+        # Ensure subdirectories exist (e.g. if format is %Y-%m-%d/%H-%M-%S)
+        # Ensure subdirectories exist (e.g. if format is %Y-%m-%d/%H-%M-%S)
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        
+        logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Start Recording to {full_path}")
         
         # Use movie_quality (10-100) to map to CRF (51-0)
         # Typical good quality is CRF 23.
@@ -302,13 +329,13 @@ class CameraThread(threading.Thread):
             '-preset', 'ultrafast',
             '-crf', str(crf),
             '-pix_fmt', 'yuv420p',
-            filename
+            full_path
         ]
         
         try:
             self.recording_process = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
             self.is_recording = True
-            self.recording_filename = filename
+            self.recording_filename = full_path
             self.recording_start_time = time.time()
             
             # Write pre-capture buffer
@@ -380,10 +407,15 @@ class CameraThread(threading.Thread):
                         return False
                     jpeg_bytes = self.latest_frame_jpeg
 
-            # Save to disk
-            timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-            filename = f"{timestamp}.jpg"
-            filepath = os.path.join(self.output_dir, filename)
+            # Support custom filename format
+            format_str = self.config.get('picture_file_name', '%Y-%m-%d/%H-%M-%S-%q')
+            format_str = format_str.replace('%q', '00') # %q is frame number in Motion, not native strftime
+            
+            timestamp_path = datetime.now().strftime(format_str)
+            output_dir = f"/var/lib/vibe/recordings/{self.camera_id}"
+            
+            filepath = os.path.join(output_dir, f"{timestamp_path}.jpg")
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
             
             with open(filepath, "wb") as f:
                 f.write(jpeg_bytes)

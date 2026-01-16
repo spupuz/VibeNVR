@@ -24,13 +24,14 @@ def camera_to_config(cam: Camera) -> dict:
         "pre_capture": cam.captured_before or 0,
         "post_capture": cam.captured_after or 0,
         "movie_quality": cam.movie_quality or 75,
-        "movie_passthrough": cam.movie_passthrough if cam.movie_passthrough is not None else True,
         "max_movie_length": cam.max_movie_length or 0,
         "movie_file_name": cam.movie_file_name or "%Y-%m-%d/%H-%M-%S",
         "picture_quality": cam.picture_quality or 75,
         "picture_recording_mode": cam.picture_recording_mode or "Manual",
         "picture_file_name": cam.picture_file_name or "%Y-%m-%d/%H-%M-%S-%q",
-        "show_motion_box": cam.show_frame_changes if cam.show_frame_changes is not None else True
+        "show_motion_box": cam.show_frame_changes if cam.show_frame_changes is not None else True,
+        "min_motion_frames": cam.min_motion_frames or 2,
+        "despeckle_filter": cam.despeckle_filter if cam.despeckle_filter is not None else False
     }
 
 def generate_motion_config(db: Session):

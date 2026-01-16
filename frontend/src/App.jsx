@@ -8,6 +8,7 @@ import { Timeline } from './pages/Timeline';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
 import { Setup } from './pages/Setup';
+import { About } from './pages/About';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
@@ -45,7 +46,8 @@ function AppContent() {
         '/cameras': 'cameras',
         '/timeline': 'timeline',
         '/recordings': 'timeline',
-        '/settings': 'settings'
+        '/settings': 'settings',
+        '/about': 'about'
     };
     const activeTab = pathToTab[location.pathname] || 'dashboard';
 
@@ -56,7 +58,8 @@ function AppContent() {
             'cameras': '/cameras',
             'timeline': '/timeline',
             'recordings': '/timeline',
-            'settings': '/settings'
+            'settings': '/settings',
+            'about': '/about'
         };
         navigate(tabToPath[tab] || '/');
     };
@@ -84,6 +87,7 @@ function AppContent() {
                             <Route path="/timeline" element={<Timeline />} />
                             <Route path="/recordings" element={<Timeline />} />
                             <Route path="/settings" element={<Settings />} />
+                            <Route path="/about" element={<About />} />
                         </Routes>
                     </Layout>
                 </ProtectedRoute>

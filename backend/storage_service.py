@@ -64,7 +64,7 @@ def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None):
     Enforce storage limits and retention for a specific camera.
     media_type: 'video' | 'snapshot' | None (both)
     """
-    camera_dir = camera.root_directory or f"/data/Camera{camera.id}"
+    camera_dir = f"/data/Camera{camera.id}"
     if not os.path.exists(camera_dir):
         # We don't return here because DB events might exist even if dir is gone
         pass

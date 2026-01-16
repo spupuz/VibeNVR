@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Camera, Film, History, Settings, LogOut, Moon, Sun, X } from 'lucide-react';
+import { LayoutDashboard, Camera, Film, History, Settings, LogOut, Moon, Sun, X, Info } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
@@ -24,6 +24,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
         { id: 'live', label: 'Live View', icon: Film },
         { id: 'timeline', label: 'Timeline', icon: History },
         { id: 'settings', label: 'Settings', icon: Settings },
+        { id: 'about', label: 'About', icon: Info },
     ];
 
     return (

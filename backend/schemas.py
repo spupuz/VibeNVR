@@ -5,7 +5,6 @@ from datetime import datetime
 class CameraBase(BaseModel):
     name: str
     rtsp_url: str
-    stream_url: Optional[str] = None
     location: Optional[str] = None
     is_active: bool = True
 
@@ -21,18 +20,12 @@ class CameraBase(BaseModel):
     text_right: Optional[str] = "%Y-%m-%d %H:%M:%S"
     text_scale: Optional[float] = 1.0
 
-    # File Storage
-    storage_path: Optional[str] = None
-    root_directory: Optional[str] = None
 
-    # Video Streaming
-    stream_quality: Optional[int] = 75
-    stream_max_rate: Optional[int] = 15
-    stream_port: Optional[int] = None
+
+
 
     # Movies
     movie_file_name: Optional[str] = "%Y-%m-%d/%H-%M-%S"
-    movie_passthrough: Optional[bool] = True
     movie_quality: Optional[int] = 75
     recording_mode: Optional[str] = "Motion Triggered"
     max_movie_length: Optional[int] = 0
@@ -49,17 +42,12 @@ class CameraBase(BaseModel):
 
     # Motion Detection
     threshold: Optional[int] = 1500
-    auto_threshold_tuning: Optional[bool] = True
-    auto_noise_detection: Optional[bool] = True
-    light_switch_detection: Optional[int] = 0
     despeckle_filter: Optional[bool] = False
     motion_gap: Optional[int] = 10
     captured_before: Optional[int] = 30
     captured_after: Optional[int] = 30
     min_motion_frames: Optional[int] = 2
-    mask: Optional[bool] = False
     show_frame_changes: Optional[bool] = True
-    create_debug_media: Optional[bool] = False
 
     # Notification Destinations
     notify_webhook_url: Optional[str] = None
@@ -76,14 +64,7 @@ class CameraBase(BaseModel):
     notify_end_command: Optional[bool] = False
 
 
-    @property
-    def computed_stream_url(self):
-        if self.stream_url:
-            return self.stream_url
-        if hasattr(self, 'id') and self.id:
-            port = 8100 + self.id
-            return f"http://localhost:{port}/"
-        return None
+
 
     # Schedule
     schedule_monday: Optional[bool] = True

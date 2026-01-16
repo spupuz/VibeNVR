@@ -35,6 +35,13 @@ class CameraConfig(BaseModel):
     picture_quality: int = 75
     picture_file_name: str = "%Y-%m-%d/%H-%M-%S-%q"
     show_motion_box: bool = False
+    min_motion_frames: int = 2
+    auto_threshold_tuning: bool = True
+    auto_noise_detection: bool = True
+    light_switch_detection: int = 0
+    despeckle_filter: bool = False
+    mask: bool = False
+    create_debug_media: bool = False
 
 @app.get("/")
 def health_check():

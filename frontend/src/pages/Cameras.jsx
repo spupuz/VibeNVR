@@ -609,12 +609,6 @@ export const Cameras = () => {
                                     Video Device
                                 </button>
                                 <button
-                                    className={`pb-2 ${activeTab === 'storage' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
-                                    onClick={() => setActiveTab('storage')}
-                                >
-                                    File Storage
-                                </button>
-                                <button
                                     className={`pb-2 ${activeTab === 'movies' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
                                     onClick={() => setActiveTab('movies')}
                                 >
@@ -733,12 +727,7 @@ export const Cameras = () => {
                                             </div>
                                         </div>
 
-                                        <InputField
-                                            label="Stream URL (Optional)"
-                                            value={newCamera.stream_url}
-                                            onChange={(val) => setNewCamera({ ...newCamera, stream_url: val })}
-                                            placeholder="Override streaming URL"
-                                        />
+
                                     </div>
                                 )}
 
@@ -803,23 +792,7 @@ export const Cameras = () => {
                                     </div>
                                 )}
 
-                                {activeTab === 'storage' && (
-                                    <div className="space-y-6">
-                                        <SectionHeader title="File Storage" description="Configure where media files are stored" />
-                                        <InputField
-                                            label="Storage Device (Path)"
-                                            value={newCamera.storage_path}
-                                            onChange={(val) => setNewCamera({ ...newCamera, storage_path: val })}
-                                            placeholder="Custom storage path"
-                                        />
-                                        <InputField
-                                            label="Root Directory"
-                                            value={newCamera.root_directory}
-                                            onChange={(val) => setNewCamera({ ...newCamera, root_directory: val })}
-                                            placeholder="/var/lib/motion/..."
-                                        />
-                                    </div>
-                                )}
+
 
                                 {activeTab === 'overlay' && (
                                     <div className="space-y-6">
@@ -914,11 +887,6 @@ export const Cameras = () => {
                                             value={newCamera.recording_mode}
                                             onChange={(val) => setNewCamera({ ...newCamera, recording_mode: val })}
                                             options={['Motion Triggered', 'Continuous', 'Off']}
-                                        />
-                                        <Toggle
-                                            label="Movie Passthrough"
-                                            checked={newCamera.movie_passthrough}
-                                            onChange={(val) => setNewCamera({ ...newCamera, movie_passthrough: val })}
                                         />
                                         <Slider
                                             label="Movie Quality"
@@ -1033,26 +1001,6 @@ export const Cameras = () => {
                                             helper="Lower = More Sensitive. 1500 is default."
                                         />
                                         <Toggle
-                                            label="Automatic Threshold Tuning"
-                                            checked={newCamera.auto_threshold_tuning}
-                                            onChange={(val) => setNewCamera({ ...newCamera, auto_threshold_tuning: val })}
-                                        />
-                                        <Toggle
-                                            label="Automatic Noise Detection"
-                                            checked={newCamera.auto_noise_detection}
-                                            onChange={(val) => setNewCamera({ ...newCamera, auto_noise_detection: val })}
-                                        />
-                                        <Slider
-                                            label="Light Switch Detection"
-                                            value={newCamera.light_switch_detection}
-                                            onChange={(val) => setNewCamera({ ...newCamera, light_switch_detection: val })}
-                                            min={0}
-                                            max={100}
-                                            step={1}
-                                            unit="%"
-                                            marks={['0%', '25%', '50%', '75%', '100%']}
-                                        />
-                                        <Toggle
                                             label="Despeckle Filter"
                                             checked={newCamera.despeckle_filter}
                                             onChange={(val) => setNewCamera({ ...newCamera, despeckle_filter: val })}
@@ -1090,21 +1038,10 @@ export const Cameras = () => {
                                             unit="frames"
                                         />
 
-                                        <SectionHeader title="Debug Options" />
-                                        <Toggle
-                                            label="Mask"
-                                            checked={newCamera.mask}
-                                            onChange={(val) => setNewCamera({ ...newCamera, mask: val })}
-                                        />
                                         <Toggle
                                             label="Show Frame Changes"
                                             checked={newCamera.show_frame_changes}
                                             onChange={(val) => setNewCamera({ ...newCamera, show_frame_changes: val })}
-                                        />
-                                        <Toggle
-                                            label="Create Debug Media Files"
-                                            checked={newCamera.create_debug_media}
-                                            onChange={(val) => setNewCamera({ ...newCamera, create_debug_media: val })}
                                         />
                                     </div>
                                 )}

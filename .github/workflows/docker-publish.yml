@@ -24,9 +24,9 @@ jobs:
           - context: ./frontend
             image: vibenvr-frontend
             dockerfile: ./frontend/Dockerfile
-          - context: ./motion
-            image: vibenvr-motion
-            dockerfile: ./motion/Dockerfile
+          - context: ./engine
+            image: vibenvr-engine
+            dockerfile: ./engine/Dockerfile
 
     permissions:
       contents: read
