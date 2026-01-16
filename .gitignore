@@ -31,5 +31,4 @@ frontend/.env
 .docker/
 
 # VibeNVR Specific
-motion/motion.conf
 # We keep webhook.sh as it is source code
