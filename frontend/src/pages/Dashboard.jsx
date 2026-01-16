@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Camera, HardDrive, ShieldAlert, Film, Image } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const StatCard = ({ title, value, subtext, icon: Icon, trend }) => (
     <div className="p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group">
@@ -17,6 +19,7 @@ const StatCard = ({ title, value, subtext, icon: Icon, trend }) => (
 );
 
 export const Dashboard = () => {
+    const { token } = useAuth();
     const [stats, setStats] = useState({
         active_cameras: 0,
         total_events: 0,
@@ -28,11 +31,16 @@ export const Dashboard = () => {
     });
     const [recentEvents, setRecentEvents] = useState([]);
     const [cameraMap, setCameraMap] = useState({});
+    const [graphData, setGraphData] = useState([]);
 
     useEffect(() => {
+        if (!token) return;
+
         const fetchStats = async () => {
             try {
-                const res = await fetch('http://localhost:5000/stats/');
+                const res = await fetch('http://localhost:5000/stats/', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
                 if (res.ok) setStats(await res.json());
             } catch (err) {
                 console.error("Failed to fetch stats", err);
@@ -41,7 +49,9 @@ export const Dashboard = () => {
 
         const fetchEvents = async () => {
             try {
-                const res = await fetch('http://localhost:5000/events/?limit=5');
+                const res = await fetch('http://localhost:5000/events/?limit=50', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
                 if (res.ok) setRecentEvents(await res.json());
             } catch (err) {
                 console.error("Failed to fetch events", err);
@@ -50,7 +60,9 @@ export const Dashboard = () => {
 
         const fetchCameras = async () => {
             try {
-                const res = await fetch('http://localhost:5000/cameras/');
+                const res = await fetch('http://localhost:5000/cameras/', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
                 if (res.ok) {
                     const data = await res.json();
                     const map = data.reduce((acc, cam) => ({ ...acc, [cam.id]: cam.name }), {});
@@ -61,15 +73,31 @@ export const Dashboard = () => {
             }
         };
 
+        const fetchGraphData = async () => {
+            try {
+                const res = await fetch('http://localhost:5000/stats/history', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    setGraphData(await res.json());
+                } else {
+                    console.warn("Failed to fetch graph data");
+                }
+            } catch (err) {
+                console.error("Error fetching graph data", err);
+            }
+        };
+
         fetchStats();
         fetchEvents();
         fetchCameras();
+        fetchGraphData();
         const interval = setInterval(() => {
             fetchStats();
             fetchEvents();
-        }, 30000); // Refresh every 30s
+        }, 30000);
         return () => clearInterval(interval);
-    }, []);
+    }, [token]);
 
     const getCameraName = (id) => cameraMap[id] || `Camera ${id}`;
 
@@ -122,44 +150,38 @@ export const Dashboard = () => {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                <StatCard
-                    title="Active Cameras"
-                    value={stats.active_cameras}
-                    subtext="All systems operational"
-                    icon={Camera}
-                    trend="positive"
-                />
-                <StatCard
-                    title="Motion Events"
-                    value={stats.total_events}
-                    subtext="Total events recorded"
-                    icon={Activity}
-                />
-                <StatCard
-                    title="Videos"
-                    value={stats.video_count}
-                    subtext="Recorded clips"
-                    icon={Film}
-                />
-                <StatCard
-                    title="Pictures"
-                    value={stats.picture_count}
-                    subtext="Captured snapshots"
-                    icon={Image}
-                />
-                <StatCard
-                    title="Storage Used"
-                    value={`${stats.storage.percent}%`}
-                    subtext={`${stats.storage.used_gb}GB / ${stats.storage.total_gb}GB`}
-                    icon={HardDrive}
-                />
-                <StatCard
-                    title="System Status"
-                    value={stats.system_status}
-                    subtext={`Uptime: ${stats.uptime}`}
-                    icon={ShieldAlert}
-                    trend="positive"
-                />
+                <StatCard title="Active Cameras" value={stats.active_cameras} subtext="All systems operational" icon={Camera} trend="positive" />
+                <StatCard title="Motion Events" value={stats.total_events} subtext="Total events recorded" icon={Activity} />
+                <StatCard title="Videos" value={stats.video_count} subtext="Recorded clips" icon={Film} />
+                <StatCard title="Pictures" value={stats.picture_count} subtext="Captured snapshots" icon={Image} />
+                <StatCard title="Storage Used" value={`${stats.storage.percent}%`} subtext={`${stats.storage.used_gb}GB / ${stats.storage.total_gb}GB`} icon={HardDrive} />
+                <StatCard title="System Status" value={stats.system_status} subtext={`Uptime: ${stats.uptime}`} icon={ShieldAlert} trend="positive" />
+            </div>
+
+            <div className="grid grid-cols-1 gap-8">
+                <div className="bg-card rounded-xl border border-border p-6 h-[400px]">
+                    <h3 className="text-lg font-semibold mb-6">Activity Overview (24h)</h3>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={graphData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="colorEvents" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <XAxis dataKey="time" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={value => `${value}`} />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}
+                                    itemStyle={{ color: 'hsl(var(--foreground))' }}
+                                />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" opacity={0.2} />
+                                <Area type="monotone" dataKey="events" stroke="#3b82f6" fillOpacity={1} fill="url(#colorEvents)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 gap-8">

@@ -27,6 +27,7 @@ services:
   motion:
     image: motionproject/motion:latest
     container_name: vibenvr-motion
+    user: root
     ports:
       - "8081:8081" # Stream port (default)
       - "8082:8080" # Webcontrol port

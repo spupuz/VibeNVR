@@ -50,9 +50,46 @@ def create_event(db: Session, event: schemas.EventCreate):
     db.refresh(db_event)
     return db_event
 
-def delete_event(db: Session, event_id: int):
-    db_event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if db_event:
         db.delete(db_event)
         db.commit()
     return db_event
+
+def get_user(db: Session, user_id: int):
+    return db.query(models.User).filter(models.User.id == user_id).first()
+
+def get_user_by_username(db: Session, username: str):
+    return db.query(models.User).filter(models.User.username == username).first()
+
+def get_users(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.User).offset(skip).limit(limit).all()
+
+def create_user(db: Session, user: schemas.UserCreate):
+    # Import here to avoid circular dependency
+    import auth_service
+    hashed_password = auth_service.get_password_hash(user.password)
+    db_user = models.User(
+        username=user.username,
+        email=user.email,
+        hashed_password=hashed_password,
+        role=user.role
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def delete_user(db: Session, user_id: int):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if db_user:
+        db.delete(db_user)
+        db.commit()
+    return db_user
+
+def update_user_password(db: Session, user_id: int, hashed_password: str):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if db_user:
+        db_user.hashed_password = hashed_password
+        db.commit()
+        db.refresh(db_user)
+    return db_user

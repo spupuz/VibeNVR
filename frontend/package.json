@@ -14,7 +14,8 @@
     "react-dom": "^19.0.0",
     "lucide-react": "^0.473.0",
     "clsx": "^2.1.0",
-    "tailwind-merge": "^2.2.0"
+    "tailwind-merge": "^2.2.0",
+    "recharts": "^2.10.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

@@ -49,9 +49,9 @@ movie_output {'on' if cam.recording_mode != 'Off' else 'off'}
 movie_passthrough {'on' if cam.movie_passthrough else 'off'}
 movie_quality {cam.movie_quality if cam.movie_quality else 75}
 picture_quality {cam.picture_quality if cam.picture_quality else 75}
-movie_max_time {cam.max_movie_length if cam.max_movie_length else 0}
+movie_max_time {(cam.max_movie_length if cam.max_movie_length > 0 else 600) if cam.recording_mode in ['Continuous', 'Always'] else (cam.max_movie_length if cam.max_movie_length else 0)}
 picture_output {'on' if cam.picture_recording_mode == 'Motion Triggered' else 'off'}
-emulate_motion {'on' if cam.recording_mode == 'Continuous' else 'off'}
+emulate_motion {'on' if cam.recording_mode in ['Continuous', 'Always'] else 'off'}
 
 # Motion Detection
 threshold {cam.threshold if cam.threshold else 1500}
@@ -89,6 +89,24 @@ on_picture_save /etc/motion/webhook.sh {cam.id} picture_save %f "%Y-%m-%dT%H:%M:
     try:
         requests.get(MOTION_CONTROL_URL, timeout=2)
         print("Motion reloaded successfully.")
+
     except Exception as e:
         print(f"Failed to reload Motion: {e}")
+
+def trigger_snapshot(camera_id: int):
+    """
+    Triggers a snapshot for the specific camera via Motion's WebControl port.
+    """
+    url = f"http://vibenvr-motion:8080/{camera_id}/action/snapshot"
+    try:
+        resp = requests.get(url, timeout=2)
+        if resp.status_code == 200:
+            print(f"Snapshot triggered for camera {camera_id}")
+            return True
+        else:
+            print(f"Failed to trigger snapshot for camera {camera_id}: {resp.status_code}")
+            return False
+    except Exception as e:
+        print(f"Error triggering snapshot for camera {camera_id}: {e}")
+        return False
 

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 import database
 import models
+import auth_service
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -26,13 +27,13 @@ def set_setting(db: Session, key: str, value: str, description: str = None):
     return setting
 
 @router.get("/")
-def get_all_settings(db: Session = Depends(database.get_db)):
+def get_all_settings(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
     """Get all system settings"""
     settings = db.query(models.SystemSettings).all()
     return {s.key: {"value": s.value, "description": s.description} for s in settings}
 
 @router.get("/{key}")
-def get_setting_by_key(key: str, db: Session = Depends(database.get_db)):
+def get_setting_by_key(key: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
     """Get a specific setting by key"""
     setting = db.query(models.SystemSettings).filter(models.SystemSettings.key == key).first()
     if not setting:
@@ -40,20 +41,20 @@ def get_setting_by_key(key: str, db: Session = Depends(database.get_db)):
     return {"key": setting.key, "value": setting.value, "description": setting.description}
 
 @router.put("/{key}")
-def update_setting(key: str, value: str, description: str = None, db: Session = Depends(database.get_db)):
+def update_setting(key: str, value: str, description: str = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Update or create a setting"""
     setting = set_setting(db, key, value, description)
     return {"key": setting.key, "value": setting.value, "description": setting.description}
 
 @router.post("/bulk")
-def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db)):
+def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Update multiple settings at once"""
     for key, value in settings.items():
         set_setting(db, key, str(value))
     return {"message": "Settings updated successfully", "count": len(settings)}
 
 @router.post("/cleanup")
-def trigger_cleanup():
+def trigger_cleanup(current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Manually trigger storage cleanup"""
     from storage_service import run_cleanup
     run_cleanup()

@@ -6,3 +6,5 @@ pydantic
 requests
 httpx
 python-multipart
+passlib[argon2]
+python-jose[cryptography]

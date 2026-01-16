@@ -1,28 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CameraOff, Maximize2, Settings, Image as ImageIcon, Play, Square, Power, Disc } from 'lucide-react';
+import { Camera, CameraOff, Maximize2, Settings, Image as ImageIcon, Play, Square, Power, Disc, Grid } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
-const VideoPlayer = ({ camera, onFocus, isFocused, onToggleActive, onToggleRecording, isDetectingMotion }) => {
-    const [error, setError] = useState(false);
+const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onToggleRecording, isDetectingMotion }) => {
+    const { token } = useAuth();
+    const [loadState, setLoadState] = useState('idle'); // idle, loading, loaded, error
+    const [retryKey, setRetryKey] = useState(0);
+    const [cacheBuster, setCacheBuster] = useState(Date.now());
     const navigate = useNavigate();
 
+    useEffect(() => {
+        // Staggered loading start
+        const startTimer = setTimeout(() => {
+            setLoadState('loading');
+        }, index * 200);
+
+        return () => clearTimeout(startTimer);
+    }, [index]);
+
+    useEffect(() => {
+        // Watchdog & Auto-Retry
+        let timeoutId;
+
+        if (loadState === 'loading') {
+            timeoutId = setTimeout(() => {
+                setLoadState('error');
+            }, 10000); // 10s connection timeout
+        } else if (loadState === 'error') {
+            timeoutId = setTimeout(() => {
+                console.log(`Auto-retrying camera ${camera.id}...`);
+                setRetryKey(prev => prev + 1);
+                setCacheBuster(Date.now());
+                setLoadState('loading');
+            }, 2000); // Retry every 2 seconds (faster recovery)
+        }
+
+        return () => clearTimeout(timeoutId);
+    }, [loadState, camera.id]);
+
     const handleFullscreen = (e) => {
-        // Simple DOM fullscreen for the container
         const el = e.currentTarget.closest('.video-container');
         if (el.requestFullscreen) el.requestFullscreen();
     };
 
+
+    const streamUrl = (camera.stream_url || `http://localhost:5000/cameras/${camera.id}/stream`) + `?cb=${cacheBuster}`;
+
     return (
-        <div className={`video-container relative bg-black rounded-xl overflow-hidden aspect-video group border border-border ${isFocused ? 'ring-2 ring-primary' : ''}`}>
+        <div className={`video-container relative w-full bg-black rounded-xl overflow-hidden aspect-video group border border-border ${isFocused ? 'ring-2 ring-primary' : ''}`}>
             {/* Header Overlay */}
-            <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/80 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity flex justify-between items-start">
-                <div>
+            <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/80 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity flex justify-between items-start pointer-events-none">
+                <div className="pointer-events-auto">
                     <h3 className="text-white font-medium text-sm text-shadow">{camera.name}</h3>
                     <p className="text-white/70 text-xs">{camera.location || `${camera.resolution_width}x${camera.resolution_height}`}</p>
                 </div>
-                <div className="flex space-x-1.5">
+                <div className="flex space-x-1.5 pointer-events-auto">
                     {/* Motion Active Indicator */}
-                    {isDetectingMotion && (
+                    {(isDetectingMotion || camera.recording_mode === 'Continuous') && (
                         <div className="px-2 py-1 bg-red-600/90 text-white rounded-lg flex items-center space-x-1.5 animate-pulse shadow-lg ring-1 ring-red-400/50">
                             <div className="w-2 h-2 rounded-full bg-white shadow-sm" />
                             <span className="text-[10px] font-bold tracking-wider">REC</span>
@@ -34,10 +69,23 @@ const VideoPlayer = ({ camera, onFocus, isFocused, onToggleActive, onToggleRecor
                     <button onClick={handleFullscreen} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Fullscreen">
                         <Maximize2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=image`)} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Picture Browser">
+                    <button onClick={() => {
+                        fetch(`http://localhost:5000/cameras/${camera.id}/snapshot`, {
+                            method: 'POST',
+                            headers: { Authorization: `Bearer ${token}` }
+                        })
+                            .then(res => {
+                                if (res.ok) alert(`Snapshot triggered for ${camera.name}`);
+                                else alert('Failed to trigger snapshot');
+                            })
+                            .catch(err => console.error(err));
+                    }} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Take Snapshot">
+                        <Camera className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=images`)} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Picture Browser">
                         <ImageIcon className="w-4 h-4" />
                     </button>
-                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=video`)} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Movie Browser">
+                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=videos`)} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Movie Browser">
                         <Play className="w-4 h-4" />
                     </button>
                     <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Settings">
@@ -46,24 +94,38 @@ const VideoPlayer = ({ camera, onFocus, isFocused, onToggleActive, onToggleRecor
                 </div>
             </div>
 
-            {/* Video Content */}
-            {error ? (
-                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground bg-muted/10">
-                    <CameraOff className="w-12 h-12 mb-2 opacity-50" />
-                    <span className="text-sm">No Signal</span>
-                    {camera.rtsp_url && (
-                        <span className="text-xs text-orange-500 mt-1 px-2 py-0.5 bg-orange-500/10 rounded">
-                            RTSP not supported in browser
-                        </span>
-                    )}
+            {/* Video Content Layer - Absolute Inset for stability */}
+            {loadState === 'error' ? (
+                <div className="absolute inset-0 w-full h-full">
+                    <img
+                        src="/no-signal.png"
+                        alt="No Signal"
+                        className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="bg-black/80 text-white px-3 py-1 rounded text-sm font-mono tracking-widest border border-white/20">NO SIGNAL</span>
+                    </div>
+                </div>
+            ) : loadState === 'idle' ? (
+                <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-black/90">
+                    <span className="text-white/50 text-xs animate-pulse">Initializing...</span>
                 </div>
             ) : (
                 <img
-                    src={camera.stream_url || `http://localhost:5000/cameras/${camera.id}/stream`}
+                    key={retryKey}
+                    src={streamUrl}
                     alt={camera.name}
-                    className="w-full h-full object-cover"
-                    onError={() => setError(true)}
+                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${loadState === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+                    onLoad={() => setLoadState('loaded')}
+                    onError={() => setLoadState('error')}
                 />
+            )}
+            {/* Loading Spinner overlay */}
+            {loadState === 'loading' && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none space-y-2">
+                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    {retryKey > 0 && <span className="text-white/80 text-xs font-medium animate-pulse">Reconnecting...</span>}
+                </div>
             )}
 
             {/* Status Footer */}
@@ -97,6 +159,7 @@ const VideoPlayer = ({ camera, onFocus, isFocused, onToggleActive, onToggleRecor
 };
 
 export const LiveView = () => {
+    const { token } = useAuth();
     const [cameras, setCameras] = useState([]);
     const [activeMotionIds, setActiveMotionIds] = useState([]);
     const [focusCameraId, setFocusCameraId] = useState(null);
@@ -105,14 +168,18 @@ export const LiveView = () => {
     });
 
     const fetchCameras = () => {
-        fetch('http://localhost:5000/cameras')
+        fetch('http://localhost:5000/cameras', {
+            headers: { Authorization: `Bearer ${token}` }
+        })
             .then(res => res.json())
             .then(data => setCameras(data))
             .catch(err => console.error(err));
     };
 
     const fetchMotionStatus = () => {
-        fetch('http://localhost:5000/events/status')
+        fetch('http://localhost:5000/events/status', {
+            headers: { Authorization: `Bearer ${token}` }
+        })
             .then(res => res.json())
             .then(data => {
                 setActiveMotionIds(data.active_ids || []);
@@ -121,6 +188,7 @@ export const LiveView = () => {
     };
 
     useEffect(() => {
+        if (!token) return;
         fetchCameras();
         fetchMotionStatus();
 
@@ -133,7 +201,7 @@ export const LiveView = () => {
             clearInterval(statusInterval);
             clearInterval(cameraInterval);
         };
-    }, []);
+    }, [token]);
 
     const toggleFocus = (id) => {
         setFocusCameraId(prev => prev === id ? null : id);
@@ -143,7 +211,10 @@ export const LiveView = () => {
         try {
             const res = await fetch(`http://localhost:5000/cameras/${camera.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
                 body: JSON.stringify({ ...camera, is_active: !camera.is_active })
             });
             if (res.ok) fetchCameras();
@@ -155,7 +226,10 @@ export const LiveView = () => {
         try {
             const res = await fetch(`http://localhost:5000/cameras/${camera.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
                 body: JSON.stringify({ ...camera, recording_mode: newMode })
             });
             if (res.ok) fetchCameras();
@@ -168,29 +242,59 @@ export const LiveView = () => {
         : cameras;
 
     return (
-        <div className="h-full flex flex-col">
-            <div className="mb-4 flex justify-between items-center">
+        <div className="h-full flex flex-col px-4 py-2">
+            <div className="mb-4 flex justify-between items-center px-2 pt-2">
                 <div>
-                    <h2 className="text-2xl font-bold">Live View</h2>
-                    <p className="text-muted-foreground text-sm">Real-time monitoring ({cameras.length} cameras)</p>
+                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                        Live View
+                        <span className="text-sm font-normal text-muted-foreground hidden sm:inline-block">({cameras.length} cameras)</span>
+                    </h2>
                 </div>
-                {focusCameraId && (
-                    <button onClick={() => setFocusCameraId(null)} className="text-sm text-primary hover:underline">
-                        Show All Cameras
-                    </button>
-                )}
+                <div className="flex items-center space-x-2">
+                    {/* Column Selector */}
+                    <div className="flex items-center space-x-1 bg-card border border-border rounded-lg p-1">
+                        <Grid className="w-4 h-4 text-muted-foreground ml-2" />
+                        <select
+                            className="bg-transparent text-sm border-none focus:ring-0 cursor-pointer py-1 pr-8 pl-2"
+                            value={columnSetting}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setColumnSetting(val);
+                                localStorage.setItem('liveViewColumns', val);
+                            }}
+                        >
+                            <option value="auto">Auto</option>
+                            <option value="1">1 Col</option>
+                            <option value="2">2 Cols</option>
+                            <option value="3">3 Cols</option>
+                            <option value="4">4 Cols</option>
+                        </select>
+                    </div>
+
+                    {focusCameraId && (
+                        <button onClick={() => setFocusCameraId(null)} className="text-sm text-primary hover:underline">
+                            Show All
+                        </button>
+                    )}
+                </div>
             </div>
 
-            <div className={`grid gap-4 h-full transition-all duration-300 ${focusCameraId ? 'grid-cols-1' :
+            <div className={`grid gap-4 flex-1 min-h-0 ${focusCameraId ? 'grid-cols-1' :
                 columnSetting === 'auto' ? (
                     cameras.length <= 1 ? 'grid-cols-1' :
                         cameras.length <= 4 ? 'grid-cols-2' :
                             'grid-cols-3'
-                ) : `grid-cols-${columnSetting}`
+                ) : (
+                    columnSetting === '1' ? 'grid-cols-1' :
+                        columnSetting === '2' ? 'grid-cols-2' :
+                            columnSetting === '3' ? 'grid-cols-3' :
+                                columnSetting === '4' ? 'grid-cols-4' : 'grid-cols-3'
+                )
                 }`}>
-                {displayCameras.map(cam => (
+                {displayCameras.map((cam, i) => (
                     <VideoPlayer
                         key={cam.id}
+                        index={i}
                         camera={cam}
                         onFocus={toggleFocus}
                         isFocused={focusCameraId === cam.id}

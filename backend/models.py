@@ -116,3 +116,13 @@ class SystemSettings(Base):
     key = Column(String, unique=True, index=True, nullable=False)
     value = Column(String, nullable=True)
     description = Column(String, nullable=True)
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    role = Column(String, default="viewer") # "admin", "viewer"
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

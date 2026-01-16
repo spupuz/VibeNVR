@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Calendar, Filter, Play, Image as ImageIcon, Trash2, Download, Video, Camera } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 // Vertical Hour Timeline Component with motion indicators
 const HourTimeline = ({ events, onHourClick, selectedHour }) => {
@@ -129,6 +130,7 @@ const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl }) => {
 };
 
 export const Timeline = () => {
+    const { token } = useAuth();
     const [events, setEvents] = useState([]);
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [cameraMap, setCameraMap] = useState({});
@@ -153,7 +155,9 @@ export const Timeline = () => {
                 url += `?${params.toString()}`;
             }
 
-            fetch(url)
+            fetch(url, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
                 .then(res => res.json())
                 .then(data => {
                     console.log(`Fetched ${data.length} events`);
@@ -163,7 +167,9 @@ export const Timeline = () => {
         };
 
         const fetchCameras = () => {
-            fetch('http://localhost:5000/cameras/')
+            fetch('http://localhost:5000/cameras/', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
                 .then(res => res.json())
                 .then(data => {
                     setCameras(data);
@@ -173,13 +179,15 @@ export const Timeline = () => {
                 .catch(err => console.error(err));
         };
 
-        fetchEvents();
-        fetchCameras();
+        if (token) {
+            fetchEvents();
+            fetchCameras();
 
-        // Auto-refresh every 30 seconds
-        const timer = setInterval(fetchEvents, 30000);
-        return () => clearInterval(timer);
-    }, [cameraId, type]);
+            // Auto-refresh every 30 seconds
+            const timer = setInterval(fetchEvents, 30000);
+            return () => clearInterval(timer);
+        }
+    }, [cameraId, type, token]);
 
     const getCameraName = (id) => cameraMap[id] || `Camera ${id}`;
 
@@ -192,7 +200,10 @@ export const Timeline = () => {
     const handleDelete = async (id) => {
         if (!confirm("Delete this event?")) return;
         try {
-            const res = await fetch(`http://localhost:5000/events/${id}`, { method: 'DELETE' });
+            const res = await fetch(`http://localhost:5000/events/${id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` }
+            });
             if (res.ok) {
                 setEvents(prev => prev.filter(e => e.id !== id));
                 if (selectedEvent?.id === id) setSelectedEvent(null);

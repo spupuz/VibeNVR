@@ -123,3 +123,30 @@ class Event(EventBase):
 
     class Config:
         from_attributes = True
+
+class UserBase(BaseModel):
+    username: str
+    email: Optional[str] = None
+    role: str = "viewer"
+
+class UserCreate(UserBase):
+    password: str
+
+class User(UserBase):
+    id: int
+    is_active: bool = True # inherited logic? No model has active.
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+class UserPasswordUpdate(BaseModel):
+    old_password: Optional[str] = None
+    new_password: str

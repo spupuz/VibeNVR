@@ -84,3 +84,64 @@ def get_stats(db: Session = Depends(database.get_db)):
         "system_status": "Healthy",
         "uptime": uptime_str
     }
+
+@router.get("/history")
+def get_stats_history(db: Session = Depends(database.get_db)):
+    """
+    Returns hourly event counts for the last 24 hours.
+    """
+    now = datetime.now()
+    twenty_four_hours_ago = now - timedelta(hours=24)
+    
+    # Query for events in the last 24h
+    try:
+        # Group by hour
+        # Postgres: date_trunc('hour', timestamp)
+        # SQLite: strftime('%Y-%m-%d %H:00:00', timestamp)
+        # To be safe/simple with ORM without worrying about dialect specifics too much,
+        # we can fetch the events (id, type, timestamp) and aggregate in Python.
+        # Given this is NVR, 24h events could be 10k+. Python agg is fine for 10k items.
+        
+        events = db.query(models.Event.timestamp_start, models.Event.type)\
+            .filter(models.Event.timestamp_start >= twenty_four_hours_ago)\
+            .all()
+            
+        # Initialize buckets for last 24h
+        history = {}
+        # Pre-fill with 0
+        for i in range(25):
+            t = now - timedelta(hours=i)
+            key = t.strftime("%H:00")
+            history[key] = {"events": 0, "videos": 0}
+            
+        for evt in events:
+            if not evt.timestamp_start:
+                continue
+            key = evt.timestamp_start.strftime("%H:00")
+            # We might need to handle timezone if DB is UTC and local is not
+            # But usually naive datetimes in DB match logic.
+            # If the key isn't in history (slightly out of bounds due to minute diff), skip or find nearest.
+            if key in history:
+                history[key]["events"] += 1
+                if evt.type == 'video':
+                    history[key]["videos"] += 1
+        
+        # Convert to list sorted by time
+        data = []
+        # sort keys by time?
+        # Construct list from 24h ago to now
+        for i in range(24, -1, -1):
+            t = now - timedelta(hours=i)
+            key = t.strftime("%H:00")
+            if key in history:
+                data.append({
+                    "time": key,
+                    "events": history[key]["events"],
+                    "videos": history[key]["videos"]
+                })
+        
+        return data
+
+    except Exception as e:
+        print(f"Error generating history stats: {e}")
+        return []

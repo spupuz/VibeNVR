@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 from typing import List
-import crud, schemas, database, motion_service, storage_service, probe_service
+import crud, schemas, database, motion_service, storage_service, probe_service, auth_service, models
 import json, asyncio
 from typing import Optional
 
@@ -13,7 +13,7 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=schemas.Camera)
-def create_camera(camera: schemas.CameraCreate, db: Session = Depends(database.get_db)):
+def create_camera(camera: schemas.CameraCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     # Auto-detect resolution if passthrough is enabled
     if camera.movie_passthrough and camera.rtsp_url:
         print(f"Probing stream for camera {camera.name}...", flush=True)
@@ -30,19 +30,19 @@ def create_camera(camera: schemas.CameraCreate, db: Session = Depends(database.g
     return new_camera
 
 @router.get("/", response_model=List[schemas.Camera])
-def read_cameras(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
+def read_cameras(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
     cameras = crud.get_cameras(db, skip=skip, limit=limit)
     return cameras
 
 @router.get("/{camera_id}", response_model=schemas.Camera)
-def read_camera(camera_id: int, db: Session = Depends(database.get_db)):
+def read_camera(camera_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
     db_camera = crud.get_camera(db, camera_id=camera_id)
     if db_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
     return db_camera
 
 @router.put("/{camera_id}", response_model=schemas.Camera)
-def update_camera(camera_id: int, camera: schemas.CameraCreate, db: Session = Depends(database.get_db)):
+def update_camera(camera_id: int, camera: schemas.CameraCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     # Auto-detect resolution if passthrough is enabled
     if camera.movie_passthrough and camera.rtsp_url:
         print(f"Probing stream for camera {camera.name}...", flush=True)
@@ -84,30 +84,19 @@ async def stream_camera(camera_id: int, db: Session = Depends(database.get_db)):
     motion_stream_url = f"http://vibenvr-motion:{8100 + camera_id}/"
     
     async def generate():
-        print(f"[STREAM] Starting persistent proxy for camera {camera_id} from {motion_stream_url}", flush=True)
-        retry_delay = 1.0
-        while True:
-            try:
-                async with httpx.AsyncClient(timeout=None) as client:
-                    async with client.stream("GET", motion_stream_url) as response:
-                        if response.status_code != 200:
-                            print(f"[STREAM] Motion returned status {response.status_code}, retrying in {retry_delay}s...", flush=True)
-                            await asyncio.sleep(retry_delay)
-                            continue
-                        
-                        # Reset delay on successful connection
-                        retry_delay = 1.0
-                        async for chunk in response.aiter_bytes(chunk_size=32768):
-                            yield chunk
-            except (httpx.RemoteProtocolError, httpx.ConnectError):
-                print(f"[STREAM] Motion connection lost/failed for camera {camera_id}, retrying in {retry_delay}s...", flush=True)
-                await asyncio.sleep(retry_delay)
-                # Exponential backoff up to 10s
-                retry_delay = min(retry_delay * 1.5, 10.0)
-            except Exception as e:
-                print(f"[STREAM] Unexpected error proxying camera {camera_id}: {type(e).__name__}: {e}", flush=True)
-                break
-        print(f"[STREAM] Persistent proxy ended for camera {camera_id}", flush=True)
+        print(f"[STREAM] Starting proxy for camera {camera_id} from {motion_stream_url}", flush=True)
+        try:
+            async with httpx.AsyncClient(timeout=None) as client:
+                async with client.stream("GET", motion_stream_url) as response:
+                    if response.status_code != 200:
+                        print(f"[STREAM] Motion returned status {response.status_code}, aborting.", flush=True)
+                        return
+                    
+                    async for chunk in response.aiter_bytes(chunk_size=32768):
+                        yield chunk
+        except Exception as e:
+            print(f"[STREAM] Proxy error for camera {camera_id}: {type(e).__name__}: {e}", flush=True)
+            # End of stream will close connection, triggering frontend onError
     
     return StreamingResponse(
         generate(),
@@ -250,3 +239,15 @@ def cleanup_camera(camera_id: int, type: Optional[str] = None, db: Session = Dep
         
     storage_service.cleanup_camera(db, db_camera, media_type=type)
     return {"status": "success", "message": f"Cleanup triggered for camera {db_camera.name} (type={type})"}
+
+@router.post("/{camera_id}/snapshot")
+def manual_snapshot(camera_id: int, db: Session = Depends(database.get_db)):
+    db_camera = crud.get_camera(db, camera_id=camera_id)
+    if db_camera is None:
+        raise HTTPException(status_code=404, detail="Camera not found")
+        
+    success = motion_service.trigger_snapshot(camera_id)
+    if success:
+        return {"status": "success", "message": "Snapshot triggered"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to trigger snapshot via Motion")

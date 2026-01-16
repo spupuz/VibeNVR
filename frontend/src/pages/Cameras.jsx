@@ -2,58 +2,67 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Camera, Plus, Trash2, MapPin, Activity, Edit, Download, Upload, Film, Image, Copy } from 'lucide-react';
 import { Toggle, Slider, InputField, SelectField, SectionHeader } from '../components/ui/FormControls';
+import { useAuth } from '../contexts/AuthContext';
 
-const CameraCard = ({ camera, onDelete, onEdit }) => (
-    <div className="bg-card border border-border rounded-xl p-6 hover:shadow-lg transition-all duration-300 group">
-        <div className="flex justify-between items-start mb-4">
-            <div className="flex items-center space-x-3">
-                <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                    <Camera className="w-6 h-6" />
-                </div>
-                <div>
-                    <h3 className="font-semibold text-lg">{camera.name}</h3>
-                    <div className="flex items-center text-xs text-muted-foreground mt-1">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        {camera.location || 'Unknown Location'}
+const CameraCard = ({ camera, onDelete, onEdit }) => {
+    const { user } = useAuth();
+    return (
+        <div className="bg-card border border-border rounded-xl p-6 hover:shadow-lg transition-all duration-300 group">
+            <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                        <Camera className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-lg">{camera.name}</h3>
+                        <div className="flex items-center text-xs text-muted-foreground mt-1">
+                            <MapPin className="w-3 h-3 mr-1" />
+                            {camera.location || 'Unknown Location'}
+                        </div>
                     </div>
                 </div>
+                <div className={`px-2 py-1 rounded-full text-xs font-medium ${camera.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700'}`}>
+                    {camera.is_active ? 'Active' : 'Offline'}
+                </div>
             </div>
-            <div className={`px-2 py-1 rounded-full text-xs font-medium ${camera.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700'}`}>
-                {camera.is_active ? 'Active' : 'Offline'}
+
+            <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                <p className="truncate"><span className="font-medium text-foreground">RTSP:</span> {camera.rtsp_url}</p>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-border space-x-2">
+                <button
+                    onClick={() => window.open(`http://localhost:5000/cameras/${camera.id}/export`, '_blank')}
+                    className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                    title="Export Camera Settings"
+                >
+                    <Download className="w-5 h-5" />
+                </button>
+                {user?.role === 'admin' && (
+                    <>
+                        <button
+                            onClick={() => onEdit(camera)}
+                            className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            title="Edit Camera"
+                        >
+                            <Edit className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => onDelete(camera.id)}
+                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Delete Camera"
+                        >
+                            <Trash2 className="w-5 h-5" />
+                        </button>
+                    </>
+                )}
             </div>
         </div>
-
-        <div className="space-y-2 text-sm text-muted-foreground mb-4">
-            <p className="truncate"><span className="font-medium text-foreground">RTSP:</span> {camera.rtsp_url}</p>
-        </div>
-
-        <div className="flex justify-end pt-4 border-t border-border space-x-2">
-            <button
-                onClick={() => window.open(`http://localhost:5000/cameras/${camera.id}/export`, '_blank')}
-                className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                title="Export Camera Settings"
-            >
-                <Download className="w-5 h-5" />
-            </button>
-            <button
-                onClick={() => onEdit(camera)}
-                className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                title="Edit Camera"
-            >
-                <Edit className="w-5 h-5" />
-            </button>
-            <button
-                onClick={() => onDelete(camera.id)}
-                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                title="Delete Camera"
-            >
-                <Trash2 className="w-5 h-5" />
-            </button>
-        </div>
-    </div>
-);
+    );
+};
 
 export const Cameras = () => {
+    const { user, token } = useAuth();
     const [cameras, setCameras] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -111,13 +120,16 @@ export const Cameras = () => {
 
     // Fetch Cameras
     useEffect(() => {
+        if (!token) return;
         fetchCameras();
         fetchStats();
-    }, []);
+    }, [token]);
 
     const fetchStats = async () => {
         try {
-            const res = await fetch('http://localhost:5000/stats/');
+            const res = await fetch('http://localhost:5000/stats/', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             if (res.ok) setStats(await res.json());
         } catch (err) {
             console.error("Failed to fetch stats", err);
@@ -141,7 +153,9 @@ export const Cameras = () => {
 
     const fetchCameras = async () => {
         try {
-            const res = await fetch('http://localhost:5000/cameras/');
+            const res = await fetch('http://localhost:5000/cameras/', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             if (res.ok) {
                 const data = await res.json();
                 setCameras(data);
@@ -156,7 +170,10 @@ export const Cameras = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure?")) return;
         try {
-            await fetch(`http://localhost:5000/cameras/${id}`, { method: 'DELETE' });
+            await fetch(`http://localhost:5000/cameras/${id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` }
+            });
             fetchCameras();
         } catch (err) {
             console.error("Failed to delete", err);
@@ -172,7 +189,10 @@ export const Cameras = () => {
     const handleCleanup = async (cameraId, type) => {
         if (!window.confirm(`Are you sure you want to clean up ${type} storage for this camera? This will enforce retention limits immediately.`)) return;
         try {
-            const res = await fetch(`http://localhost:5000/cameras/${cameraId}/cleanup?type=${type}`, { method: 'POST' });
+            const res = await fetch(`http://localhost:5000/cameras/${cameraId}/cleanup?type=${type}`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` }
+            });
             if (res.ok) {
                 const data = await res.json();
                 alert(data.message);
@@ -201,7 +221,10 @@ export const Cameras = () => {
 
             const res = await fetch(url, {
                 method: method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
                 body: JSON.stringify(newCamera)
             });
             if (res.ok) {
@@ -289,7 +312,10 @@ export const Cameras = () => {
             try {
                 const res = await fetch(`http://localhost:5000/cameras/${targetId}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                    },
                     body: JSON.stringify(updatedCam)
                 });
                 if (!res.ok) throw new Error(`Camera ${targetId} failed`);
@@ -313,102 +339,108 @@ export const Cameras = () => {
                     <p className="text-muted-foreground mt-2">Manage your video sources.</p>
                 </div>
                 <div className="flex items-center space-x-2">
-                    <button
-                        onClick={() => {
-                            setEditingId(null);
-                            setNewCamera({
-                                name: '',
-                                rtsp_url: '',
-                                stream_url: '',
-                                location: '',
-                                resolution_width: 800,
-                                resolution_height: 600,
-                                framerate: 15,
-                                rotation: 0,
-                                text_left: 'Camera Name',
-                                text_right: '%Y-%m-%d %H:%M:%S',
-                                storage_path: '',
-                                root_directory: '',
-                                movie_file_name: '%Y-%m-%d/%H-%M-%S',
-                                movie_passthrough: true,
-                                movie_quality: 75,
-                                recording_mode: 'Motion Triggered',
-                                max_movie_length: 0,
-                                preserve_movies: 'For One Week',
-                                max_storage_gb: 0,
-                                auto_threshold_tuning: true,
-                                auto_noise_detection: true,
-                                light_switch_detection: 0,
-                                despeckle_filter: false,
-                                motion_gap: 10,
-                                captured_before: 30,
-                                captured_after: 30,
-                                min_motion_frames: 2,
-                                mask: false,
-                                show_frame_changes: true,
-                                create_debug_media: false,
-                                notify_start_email: false,
-                                notify_start_telegram: false,
-                                notify_start_webhook: false,
-                                notify_end_webhook: false,
-                                notify_webhook_url: '',
-                                notify_telegram_token: '',
-                                notify_telegram_chat_id: '',
-                                notify_email_address: '',
-                                detect_motion_mode: 'Always',
-                                picture_file_name: '%Y-%m-%d/%H-%M-%S-%q',
-                                picture_quality: 75,
-                                picture_recording_mode: 'Manual',
-                                preserve_pictures: 'Forever',
-                                enable_manual_snapshots: true
-                            });
-                            setShowAddModal(true);
-                        }}
-                        className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-                    >
-                        <Plus className="w-5 h-5" />
-                        <span>Add Camera</span>
-                    </button>
-                    <button
-                        onClick={() => window.open('http://localhost:5000/cameras/export/all', '_blank')}
-                        className="flex items-center space-x-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md"
-                        title="Export all cameras to JSON"
-                    >
-                        <Download className="w-4 h-4" />
-                        <span>Export All</span>
-                    </button>
-                    <label className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md cursor-pointer" title="Import cameras from JSON file">
-                        <Upload className="w-4 h-4" />
-                        <span>Import</span>
-                        <input
-                            type="file"
-                            accept=".json"
-                            className="hidden"
-                            onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-                                const formData = new FormData();
-                                formData.append('file', file);
-                                try {
-                                    const res = await fetch('http://localhost:5000/cameras/import', {
-                                        method: 'POST',
-                                        body: formData
+                    {user?.role === 'admin' && (
+                        <>
+                            <button
+                                onClick={() => {
+                                    setEditingId(null);
+                                    setNewCamera({
+                                        name: '',
+                                        rtsp_url: '',
+                                        stream_url: '',
+                                        location: '',
+                                        resolution_width: 800,
+                                        resolution_height: 600,
+                                        framerate: 15,
+                                        rotation: 0,
+                                        text_left: 'Camera Name',
+                                        text_right: '%Y-%m-%d %H:%M:%S',
+                                        storage_path: '',
+                                        root_directory: '',
+                                        movie_file_name: '%Y-%m-%d/%H-%M-%S',
+                                        movie_passthrough: true,
+                                        movie_quality: 75,
+                                        recording_mode: 'Motion Triggered',
+                                        max_movie_length: 0,
+                                        preserve_movies: 'For One Week',
+                                        max_storage_gb: 0,
+                                        auto_threshold_tuning: true,
+                                        auto_noise_detection: true,
+                                        light_switch_detection: 0,
+                                        despeckle_filter: false,
+                                        motion_gap: 10,
+                                        threshold: 1500,
+                                        captured_before: 30,
+                                        captured_after: 30,
+                                        min_motion_frames: 2,
+                                        mask: false,
+                                        show_frame_changes: true,
+                                        create_debug_media: false,
+                                        notify_start_email: false,
+                                        notify_start_telegram: false,
+                                        notify_start_webhook: false,
+                                        notify_end_webhook: false,
+                                        notify_webhook_url: '',
+                                        notify_telegram_token: '',
+                                        notify_telegram_chat_id: '',
+                                        notify_email_address: '',
+                                        detect_motion_mode: 'Always',
+                                        picture_file_name: '%Y-%m-%d/%H-%M-%S-%q',
+                                        picture_quality: 75,
+                                        picture_recording_mode: 'Manual',
+                                        preserve_pictures: 'Forever',
+                                        max_pictures_storage_gb: 0,
+                                        enable_manual_snapshots: true
                                     });
-                                    if (res.ok) {
-                                        const data = await res.json();
-                                        alert(data.message);
-                                        fetchCameras();
-                                    } else {
-                                        const err = await res.json();
-                                        alert('Import failed: ' + err.detail);
-                                    }
-                                } catch (err) {
-                                    alert('Import failed: ' + err.message);
-                                }
-                                e.target.value = '';
-                            }}
-                        />
-                    </label>
+                                    setShowAddModal(true);
+                                }}
+                                className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                            >
+                                <Plus className="w-5 h-5" />
+                                <span>Add Camera</span>
+                            </button>
+                            <button
+                                onClick={() => window.open('http://localhost:5000/cameras/export/all', '_blank')}
+                                className="flex items-center space-x-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md"
+                                title="Export all cameras to JSON"
+                            >
+                                <Download className="w-4 h-4" />
+                                <span>Export All</span>
+                            </button>
+                            <label className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md cursor-pointer" title="Import cameras from JSON file">
+                                <Upload className="w-4 h-4" />
+                                <span>Import</span>
+                                <input
+                                    type="file"
+                                    accept=".json"
+                                    className="hidden"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        const formData = new FormData();
+                                        formData.append('file', file);
+                                        try {
+                                            const res = await fetch('http://localhost:5000/cameras/import', {
+                                                method: 'POST',
+                                                body: formData
+                                            });
+                                            if (res.ok) {
+                                                const data = await res.json();
+                                                alert(data.message);
+                                                fetchCameras();
+                                            } else {
+                                                const err = await res.json();
+                                                alert('Import failed: ' + err.detail);
+                                            }
+                                        } catch (err) {
+                                            alert('Import failed: ' + err.message);
+                                        }
+                                        e.target.value = '';
+                                    }}
+                                />
+                            </label>
+                        </>
+                    )}
                 </div>
             </div>
             {loading ? (
@@ -434,6 +466,36 @@ export const Cameras = () => {
                         <h3 className="text-xl font-bold mb-4">{editingId ? `Edit ${newCamera.name}` : 'Add New Camera'}</h3>
 
                         {/* Tabs */}
+                        {!editingId && (
+                            <div className="mb-4 p-4 bg-muted/30 rounded-lg border border-border">
+                                <label className="block text-sm font-medium mb-2">Clone Settings From (Optional)</label>
+                                <select
+                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    onChange={(e) => {
+                                        const sourceId = parseInt(e.target.value);
+                                        const sourceCam = cameras.find(c => c.id === sourceId);
+                                        if (sourceCam) {
+                                            // Clone everything but unique identity fields
+                                            setNewCamera(prev => ({
+                                                ...sourceCam,
+                                                id: undefined,
+                                                name: prev.name, // Keep current input
+                                                rtsp_url: prev.rtsp_url, // Keep current input
+                                                stream_url: prev.stream_url,
+                                                location: prev.location,
+                                                created_at: undefined
+                                            }));
+                                        }
+                                    }}
+                                >
+                                    <option value="">-- Start Fresh --</option>
+                                    {cameras.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
                         <div className="flex space-x-4 mb-4 border-b border-border text-xs overflow-x-auto scrollbar-hide flex-nowrap min-h-[40px]">
                             <button
                                 className={`pb-2 ${activeTab === 'general' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}

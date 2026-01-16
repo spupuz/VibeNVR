@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
-from routers import cameras, events, stats, settings
+from routers import cameras, events, stats, settings, auth, users
 import threading
 import storage_service
 import motion_service
@@ -37,6 +37,8 @@ app.include_router(cameras.router)
 app.include_router(events.router)
 app.include_router(stats.router)
 app.include_router(settings.router)
+app.include_router(auth.router)
+app.include_router(users.router)
 
 from fastapi.staticfiles import StaticFiles
 # Mount /media to serve files from /data (mapped to vibenvr_data)

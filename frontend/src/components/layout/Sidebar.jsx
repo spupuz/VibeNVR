@@ -1,5 +1,6 @@
 import React from 'react';
 import { LayoutDashboard, Camera, Film, History, Users, Settings, LogOut, Moon, Sun } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     <button
@@ -16,6 +17,7 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
 );
 
 export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme }) => {
+    const { logout } = useAuth();
     const menuItems = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'cameras', label: 'Cameras', icon: Camera },
@@ -63,7 +65,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme }) => {
                         {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                     </span>
                 </button>
-                <SidebarItem icon={LogOut} label="Logout" onClick={() => console.log('logout')} />
+                <SidebarItem icon={LogOut} label="Logout" onClick={logout} />
             </div>
         </aside>
     );
