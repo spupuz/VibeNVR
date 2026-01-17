@@ -81,7 +81,7 @@ You can pull the pre-built images directly from Docker Hub without needing to bu
         volumes:
           - ./data/recordings:/data # Bind Mount for video storage
         environment:
-          - DATABASE_URL=postgresql://vibenvr:vibenvrpass@db:5432/vibenvr
+          - DATABASE_URL=postgresql://vibenvr:your_secure_password@db:5432/vibenvr
           - TZ=Europe/Rome
         depends_on:
           - db
@@ -101,7 +101,7 @@ You can pull the pre-built images directly from Docker Hub without needing to bu
         image: postgres:15-alpine
         environment:
           - POSTGRES_USER=vibenvr
-          - POSTGRES_PASSWORD=vibenvrpass
+          - POSTGRES_PASSWORD=your_secure_password
           - POSTGRES_DB=vibenvr
         volumes:
           - ./data/db:/var/lib/postgresql/data # Bind Mount for DB
