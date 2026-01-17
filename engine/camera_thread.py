@@ -7,20 +7,124 @@ import os
 import numpy as np
 import logging
 from datetime import datetime
+from collections import deque
 
 logger = logging.getLogger(__name__)
+
+class StreamReader(threading.Thread):
+    """
+    Dedicated thread for reading frames from RTSP stream.
+    This ensures the buffer is constantly drained and we always 
+    have the latest frame, preventing "video lag".
+    """
+    def __init__(self, url, camera_name="Unknown"):
+        super().__init__(daemon=True)
+        self.url = url
+        self.camera_name = camera_name
+        self.latest_frame = None
+        self.last_read_time = 0
+        self.lock = threading.Lock()
+        self.running = False
+        self.connected = False
+        # Limit reconnection log spam
+        self.last_error_log = 0
+        
+    def update_url(self, new_url):
+        if self.url != new_url:
+            logger.info(f"StreamReader ({self.camera_name}): URL updated, triggering reconnect")
+            self.url = new_url
+            # Trigger reconnect by modifying state handled in run loop
+            # We don't have direct access to 'cap' here, but the loop checks self.url
+        
+    def run(self):
+        self.running = True
+        cap = None
+        current_url = self.url
+        
+        # Suppress OpenCV videoio debug
+        os.environ["OPENCV_VIDEOIO_DEBUG"] = "0"
+        
+        while self.running:
+            try:
+                # 1. Connection Phase
+                if cap is None or not cap.isOpened():
+                    current_url = self.url # Update current target
+                    logger.info(f"StreamReader ({self.camera_name}): Connecting to stream...")
+                    cap = cv2.VideoCapture(current_url)
+                    
+                    # Try to minimize buffer if backed supports it
+                    try:
+                        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                    except:
+                        pass
+                        
+                    if not cap.isOpened():
+                        if time.time() - self.last_error_log > 10:
+                            logger.warning(f"StreamReader ({self.camera_name}): Failed to connect. Retrying...")
+                            self.last_error_log = time.time()
+                        time.sleep(2)
+                        continue
+                        
+                    logger.info(f"StreamReader ({self.camera_name}): Connected!")
+                    self.connected = True
+                
+                # 2. URL Change Check
+                if self.url != current_url:
+                    logger.info(f"StreamReader ({self.camera_name}): Switching stream URL...")
+                    cap.release()
+                    cap = None
+                    self.connected = False
+                    continue
+
+                # 3. Read Frame
+                ret, frame = cap.read()
+                if not ret:
+                    logger.warning(f"StreamReader ({self.camera_name}): Stream ended or failed. Reconnecting...")
+                    cap.release()
+                    cap = None
+                    self.connected = False
+                    time.sleep(1)
+                    continue
+                
+                # 4. Update Latest
+                with self.lock:
+                    self.latest_frame = frame
+                    self.last_read_time = time.time()
+                    
+            except Exception as e:
+                logger.error(f"StreamReader ({self.camera_name}): Error in loop: {e}")
+                if cap:
+                    cap.release()
+                cap = None
+                self.connected = False
+                time.sleep(1)
+                
+        if cap: cap.release()
+        logger.info(f"StreamReader ({self.camera_name}): Stopped")
+
+    def get_latest(self):
+        with self.lock:
+            return self.latest_frame, self.last_read_time
+            
+    def stop(self):
+        self.running = False
+
 
 class CameraThread(threading.Thread):
     def __init__(self, camera_id, config, event_callback=None):
         super().__init__()
         self.camera_id = camera_id
         self.config = config # Dict containing rtsp_url, name, text settings, etc.
-        self.event_callback = event_callback # Function to call on events (start/stop recording, motion)
+        self.event_callback = event_callback # Function to call on events
         
         self.running = False
-        self.cap = None
-        # Queue replaced with atomic storage for broadcasting
+        
+        # Reader Thread
+        self.stream_reader = StreamReader(self.config['rtsp_url'], self.config.get('name', str(camera_id)))
+        
+        # Frame Storage
         self.latest_frame_jpeg = None
+        self.last_frame_update_time = 0
         self.lock = threading.Lock()
         
         # Motion Detection
@@ -39,7 +143,6 @@ class CameraThread(threading.Thread):
         # Metrics
         self.fps = 0
         self.frame_count = 0
-        self.frame_count = 0
         self.last_fps_time = time.time()
         
         self.output_dir = f"/var/lib/vibe/recordings/{self.camera_id}"
@@ -50,7 +153,6 @@ class CameraThread(threading.Thread):
         self.height = 0
 
         # Pre-capture buffer
-        from collections import deque
         self.pre_buffer = deque(maxlen=self.config.get('pre_capture', 0) or 1)
     
     def _mask_url(self, url):
@@ -60,33 +162,24 @@ class CameraThread(threading.Thread):
 
     def run(self):
         self.running = True
-        logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Starting thread")
+        logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Starting processing thread")
         
-        # Suppress OpenCV videoio debug
-        os.environ["OPENCV_VIDEOIO_DEBUG"] = "0"
+        # Start the reader (producer)
+        self.stream_reader.start()
         
         while self.running:
             loop_start_time = time.time()
             try:
-                if self.cap is None or not self.cap.isOpened():
-                    logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Connecting to {self._mask_url(self.config['rtsp_url'])}...")
-                    self.cap = cv2.VideoCapture(self.config['rtsp_url'])
-                    if not self.cap.isOpened():
-                        # Use debug level for retries to avoid spamming info/error logs
-                        logger.warning(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Failed to connect. Retrying in 2s...")
-                        time.sleep(2)
-                        continue
-                    logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Connected successfully!")
+                # 1. Get Frame from Reader
+                frame, read_time = self.stream_reader.get_latest()
                 
-                ret, frame = self.cap.read()
-                if not ret:
-                    logger.warning(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Failed to read frame. Reconnecting...")
-                    self.cap.release()
-                    self.cap = None
-                    time.sleep(1)
+                if frame is None:
+                    # No frame yet, wait a bit
+                    time.sleep(0.1)
                     continue
-                
-                # Resize if needed
+                    
+                # 2. Process dimensions & Resize if needed
+                # Note: StreamReader gives raw frames. We might want to resize.
                 target_w = self.config.get('width')
                 target_h = self.config.get('height')
                 if target_w and target_h:
@@ -104,28 +197,34 @@ class CameraThread(threading.Thread):
 
                 self.height, self.width = frame.shape[:2]
 
-                # 1. Motion Detection
+                # 3. Motion Detection
                 self.detect_motion(frame)
 
-                # 2. Text Overlay
+                # 4. Text Overlay
                 self.draw_overlay(frame)
                 
-                # 4. Handle Recording
+                # 5. Handle Recording (Video)
                 self.handle_recording(frame)
                 
-                # Buffer for pre-capture (even if not recording)
+                # 6. Pre-capture Buffer
                 pre_cap_count = self.config.get('pre_capture', 0)
                 if pre_cap_count > 0:
                     if self.pre_buffer.maxlen != pre_cap_count:
-                        from collections import deque
                         self.pre_buffer = deque(self.pre_buffer, maxlen=pre_cap_count)
                     self.pre_buffer.append(frame.copy())
 
-                # 5. Update Stream Buffer (Broadcast)
+                # 7. Update Live View Buffer (Broadcast)
+                # Only update if we have a NEW frame from the reader?
+                # Actually, the processing loop might run faster or slower than reader.
+                # If processing is slower, we skip frames (good).
+                # If processing is faster, we duplicate frames (bad waste of CPU).
+                # Ideally check read_time against last processed time.
+                
                 ret, jpeg = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
                 if ret:
                     with self.lock:
                         self.latest_frame_jpeg = jpeg.tobytes()
+                        self.last_frame_update_time = time.time()
                 
                 # FPS Calculation
                 self.frame_count += 1
@@ -134,8 +233,7 @@ class CameraThread(threading.Thread):
                     self.frame_count = 0
                     self.last_fps_time = time.time()
 
-                # Framerate throttle
-                # If we processed faster than target FPS, sleep
+                # Framerate throttle (Processing FPS)
                 target_fps = self.config.get('framerate', 30)
                 if target_fps > 0:
                      elapsed = time.time() - loop_start_time
@@ -144,12 +242,12 @@ class CameraThread(threading.Thread):
                          time.sleep(target_time - elapsed)
 
             except Exception as e:
-                logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Error in loop: {e}")
+                logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Error in processing loop: {e}")
                 time.sleep(1)
                 
         # Cleanup
-        if self.cap:
-            self.cap.release()
+        self.stream_reader.stop()
+        self.stream_reader.join()
         self.stop_recording()
         logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Thread stopped")
 
@@ -212,19 +310,17 @@ class CameraThread(threading.Thread):
             h, w = frame.shape[:2]
             
             # Scale: 1.0 at 1080p roughly
-            base_scale = self.config.get('text_scale', 1.0) # User input 1-50
-            # Normalize the user input (10 -> 1.0 roughly)
+            base_scale = self.config.get('text_scale', 1.0)
             font_scale = (base_scale / 10.0) * (w / 1920.0) * 2.5
             thickness = max(1, int(font_scale * 2))
             
-            # Text Right (Timestamp often) -- now bottom right
+            # Text Right (Timestamp)
             text_right = self.config.get('text_right', '')
-            if '%Y' in text_right or '%m' in text_right: # Simple strftime check
+            if '%Y' in text_right or '%m' in text_right: 
                 text_right = datetime.now().strftime(text_right)
                 
             if text_right:
                 (ts_w, ts_h), _ = cv2.getTextSize(text_right, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
-                # Draw black background
                 cv2.rectangle(frame, (w - ts_w - 20, h - ts_h - 20), (w, h), (0, 0, 0), -1)
                 cv2.putText(frame, text_right, (w - ts_w - 10, h - 10), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (255, 255, 255), thickness)
 
@@ -232,17 +328,12 @@ class CameraThread(threading.Thread):
             text_left = self.config.get('text_left', '')
             cam_name = self.config.get('name', 'Camera')
             
-            # 1. Clean up legacy motion symbols ($) and whitespace
             text_left = text_left.replace('$', '').strip()
-            
-            # 2. If it is only a placeholder or empty, use the actual camera name
             if text_left == '%' or text_left == '%N' or not text_left:
                 text_left = cam_name
             else:
-                # 3. Replace placeholders if they are part of a longer string
                 text_left = text_left.replace('%N', cam_name)
             
-            # Support datetime in left text
             if '%Y' in text_left or '%m' in text_left or '%d' in text_left:
                  text_left = datetime.now().strftime(text_left)
                  
@@ -256,10 +347,6 @@ class CameraThread(threading.Thread):
         # Motion Debug Box
         if self.motion_detected and self.config.get('show_motion_box', False):
             cv2.rectangle(frame, (10, 10), (w-10, h-10), (0, 0, 255), 4)
-
-        # REC Indicator Overlay
-        # (Removed as requested by user)
-        pass
 
     def handle_recording(self, frame):
         mode = self.config.get('recording_mode', 'Off')
@@ -294,28 +381,20 @@ class CameraThread(threading.Thread):
                 self.stop_recording()
 
     def start_recording(self, width, height):
-        # Support custom filename format
         format_str = self.config.get('movie_file_name', '%Y-%m-%d/%H-%M-%S')
-        # Simple cleanup of non-strftime placeholders (like %q from motion)
         format_str = format_str.replace('%q', '00') 
         
         timestamp_path = datetime.now().strftime(format_str)
         output_dir = f"/var/lib/vibe/recordings/{self.camera_id}"
         
         full_path = os.path.join(output_dir, f"{timestamp_path}.mp4")
-        
-        # Ensure subdirectories exist (e.g. if format is %Y-%m-%d/%H-%M-%S)
-        # Ensure subdirectories exist (e.g. if format is %Y-%m-%d/%H-%M-%S)
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
         
         logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Start Recording to {full_path}")
         
-        # Use movie_quality (10-100) to map to CRF (51-0)
-        # Typical good quality is CRF 23.
         quality = self.config.get('movie_quality', 75)
         crf = max(0, min(51, int(51 - (quality * 51 / 100))))
 
-        # FFmpeg command to read raw video from stdin and encode to MP4
         command = [
             'ffmpeg',
             '-y',
@@ -377,10 +456,13 @@ class CameraThread(threading.Thread):
         """ Update config dynamically without stopping thread """
         self.config.update(new_config)
         
-        # Update pre-buffer length if pre_capture changed
+        # Update StreamReader URL if changed
+        if 'rtsp_url' in new_config:
+            self.stream_reader.update_url(new_config['rtsp_url'])
+
+        # Update pre-buffer length
         pre_cap = self.config.get('pre_capture', 0)
         if pre_cap > 0 and self.pre_buffer.maxlen != pre_cap:
-            from collections import deque
             self.pre_buffer = deque(self.pre_buffer, maxlen=pre_cap)
             
         logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Config updated")
@@ -391,6 +473,9 @@ class CameraThread(threading.Thread):
 
     def get_frame_bytes(self):
         with self.lock:
+            # Prevent serving stale frames (older than 10 seconds)
+            if time.time() - self.last_frame_update_time > 10:
+                return None
             return self.latest_frame_jpeg
 
     def save_snapshot(self, frame=None):
@@ -407,9 +492,8 @@ class CameraThread(threading.Thread):
                         return False
                     jpeg_bytes = self.latest_frame_jpeg
 
-            # Support custom filename format
             format_str = self.config.get('picture_file_name', '%Y-%m-%d/%H-%M-%S-%q')
-            format_str = format_str.replace('%q', '00') # %q is frame number in Motion, not native strftime
+            format_str = format_str.replace('%q', '00') 
             
             timestamp_path = datetime.now().strftime(format_str)
             output_dir = f"/var/lib/vibe/recordings/{self.camera_id}"

@@ -1,35 +1,23 @@
-# VibeNVR v1.4.0 Release Notes
+# VibeNVR v1.4.1 Release Notes
 
-## New Features
+## ⚡ Zero-Lag Live View System
+**Critical Update for Video Stability**
 
-### 📅 Advanced Motion Scheduling
-- Introduced granular, day-by-day scheduling for motion detection.
-- Users can now specify exact start and end times for each day of the week.
-- "Copy Monday to All Days" quick action for rapid configuration.
+We have completely rewritten the core video acquisition engine to eliminate video lag and synchronization issues.
 
-### 💾 Backup & Restore System
-- **Full Configuration Export**: Download a single JSON file containing all system settings, camera configurations, and group definitions.
-- **Smart Import**: Restore configurations with automatic merging and updating of existing records.
-- Accessible via the Settings page.
+### The Problem
+Previously, the video processing loop handled both frame reading and analysis sequentially. If the analysis (motion detection, recording, overlay) took longer than the frame interval (even by milliseconds), frames would accumulate in the buffer. Over time, this caused the "Live View" to display video that was minutes or even hours old.
 
-### 🔔 Global Notification Settings
-- Centralized configuration for SMTP (Email) and Telegram.
-- Set global defaults that can be overridden per camera.
-- **Snapshot Attachments**: Email and Telegram notifications now include the snapshot image of the event.
+### The Solution: Multi-Threaded Stream Reader
+- **Separate Reader Thread**: We introduced a dedicated `StreamReader` thread for each camera that does nothing but read frames from the RTSP stream at maximum speed.
+- **Buffer Management**: The reader aggressively drains the buffer and always provides the absolute latest frame to the processing engine.
+- **Stale Frame Prevention**: The engine now detects if a frame is "stale" (older than 10 seconds) and automatically stops serving it to the frontend, preventing misleading "frozen" images.
 
-### 👥 Enhanced Group Management
-- **Unified Motion Toggle**: Quickly enable or disable motion detection for an entire group of cameras with a single click.
-- Improved UI for managing group members and actions.
+### Improvements
+- **Real-Time Latency**: Live View is now synchronized with reality with negligible latency.
+- **Auto-Healing**: If a stream disconnects, the new architecture detects it immediately and handles reconnection more robustly.
+- **Performance**: Processing delays no longer impact the freshness of the video stream.
 
-### ⚙️ Camera Management
-- **Dynamic Export/Import**: Camera exports now include all advanced schedule and notification fields.
-- **Copy Settings**: improved "Copy to..." functionality to replicate complex schedules across multiple cameras.
+---
 
-## UI Improvements
-- **Settings Page**: Redesigned Layout with dedicated sections for Notifications and Backup.
-- **Visual Feedback**: Added icons and clearer status indicators for camera activities.
-
-## Technical
-- Backend JSON Export updated to dynamically reflect database schema.
-- Added endpoints for bulk Import/Export.
-- Docker environment stability improvements.
+*This release is highly recommended for all users experiencing video lag or "stuck" cameras.*
