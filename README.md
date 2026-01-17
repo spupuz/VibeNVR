@@ -60,7 +60,64 @@ VibeNVR is split into four main microservices:
 
 ---
 
+### 📦 Installation via Docker (Recommended)
+
+You can pull the pre-built images directly from Docker Hub without needing to build from source.
+
+1.  Create a `docker-compose.yml` file:
+
+    ```yaml
+    services:
+      frontend:
+        image: spupuz/vibenvr-frontend:latest
+        ports:
+          - "8080:80" # Frontend (UI) Port
+        restart: always
+
+      backend:
+        image: spupuz/vibenvr-backend:latest
+        ports:
+          - "5000:5000"
+        volumes:
+          - ./data/recordings:/data # Bind Mount for video storage
+        environment:
+          - DATABASE_URL=postgresql://vibenvr:vibenvrpass@db:5432/vibenvr
+          - TZ=Europe/Rome
+        depends_on:
+          - db
+        restart: always
+
+      engine:
+        image: spupuz/vibenvr-engine:latest
+        ports:
+          - "8000:8000"
+        volumes:
+          - ./data/recordings:/var/lib/vibe/recordings # Same Bind Mount as backend
+        environment:
+          - TZ=Europe/Rome
+        restart: always
+
+      db:
+        image: postgres:15-alpine
+        environment:
+          - POSTGRES_USER=vibenvr
+          - POSTGRES_PASSWORD=vibenvrpass
+          - POSTGRES_DB=vibenvr
+        volumes:
+          - ./data/db:/var/lib/postgresql/data # Bind Mount for DB
+        restart: always
+    ```
+
+2.  Start the service:
+    ```bash
+    docker compose up -d
+    ```
+
+---
+
 ### 🛠️ Development & Source Build
+
+If you want to modify the code or build locally:
 
 ```bash
 # Clone the repository
@@ -69,6 +126,32 @@ cd VibeNVR
 
 # Build and start the application
 docker compose up -d --build
+```
+
+---
+
+### 💾 Data Persistence (Bind Mounts vs Volumes)
+
+By default, Docker uses **Named Volumes** which are managed internally by Docker. To easily access your recordings and database files from your host system (e.g., for backup or external players), use **Bind Mounts**.
+
+**To use Bind Mounts (Host Folders):**
+Modify your `docker-compose.yml` volumes section as shown above:
+*   Change `vibenvr_data:/data` to `- ./your/local/path:/data`
+*   Change `vibenvr_db_data:/var/lib/postgresql/data` to `- ./your/local/db_path:/var/lib/postgresql/data`
+
+*Note: Ensure the local folders exist or that Docker has permission to create them.*
+
+---
+
+### ⚙️ Configuration
+
+**Changing the Frontend Port:**
+If port `8080` is occupied, change the mapping in `docker-compose.yml`:
+
+```yaml
+frontend:
+  ports:
+    - "YOUR_PORT:80" # Change 8080 to your desired port (e.g., "3000:80")
 ```
 
 ### 🌐 Access the Application
