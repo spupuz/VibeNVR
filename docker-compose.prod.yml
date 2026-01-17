@@ -6,7 +6,7 @@ services:
     image: spupuz/vibenvr-frontend:latest
     container_name: vibenvr-frontend
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
     user: "1000:1000"
     restart: always
 
@@ -14,28 +14,26 @@ services:
     image: spupuz/vibenvr-backend:latest
     container_name: vibenvr-backend
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     volumes:
       - vibenvr_data:/data
-      - motion_config:/etc/motion
     environment:
       - DATABASE_URL=postgresql://vibenvr:${POSTGRES_PASSWORD:-vibenvrpass}@db:5432/vibenvr
+      - TZ=Europe/Rome
+      - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
     depends_on:
       - db
     restart: always
 
-  motion:
-    image: spupuz/vibenvr-motion:latest
-    container_name: vibenvr-motion
-    user: root
+  engine:
+    image: spupuz/vibenvr-engine:latest
+    container_name: vibenvr-engine
     ports:
-      - "8081:8081" # Stream port (default)
-      - "8082:8080" # Webcontrol port
-      - "8101-8120:8101-8120" # Dynamic camera stream ports
+      - "127.0.0.1:8000:8000"
     volumes:
-      - motion_config:/etc/motion
-      - vibenvr_data:/var/lib/motion
-    command: motion -n -c /etc/motion/motion.conf
+      - vibenvr_data:/var/lib/vibe/recordings
+    environment:
+      - TZ=Europe/Rome
     restart: always
 
   db:
@@ -52,4 +50,3 @@ services:
 volumes:
   vibenvr_data:
   vibenvr_db_data:
-  motion_config:

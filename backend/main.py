@@ -11,7 +11,7 @@ import auth_service
 # Create tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="VibeNVR API", version="1.3.0")
+app = FastAPI(title="VibeNVR API", version="1.3.1")
 
 @app.on_event("startup")
 async def startup_event():
