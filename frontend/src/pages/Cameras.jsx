@@ -17,7 +17,12 @@ const CameraCard = ({ camera, onDelete, onEdit }) => {
                         <Camera className="w-6 h-6" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-lg">{camera.name}</h3>
+                        <h3 className="font-semibold text-lg flex items-center gap-2">
+                            {camera.name}
+                            <span className="text-xs font-mono bg-muted/50 px-1.5 py-0.5 rounded text-muted-foreground border border-border">
+                                ID: {camera.id}
+                            </span>
+                        </h3>
                         <div className="flex items-center text-xs text-muted-foreground mt-1">
                             <MapPin className="w-3 h-3 mr-1" />
                             {camera.location || 'Unknown Location'}
@@ -604,7 +609,7 @@ export const Cameras = () => {
                 showAddModal && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                         <div className="bg-card p-6 rounded-xl w-full max-w-lg border border-border">
-                            <h3 className="text-xl font-bold mb-4">{editingId ? `Edit ${newCamera.name}` : 'Add New Camera'}</h3>
+                            <h3 className="text-xl font-bold mb-4">{editingId ? `Edit ${newCamera.name} (ID: ${editingId})` : 'Add New Camera'}</h3>
 
                             {/* Tabs */}
                             {!editingId && (

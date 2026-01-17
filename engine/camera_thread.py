@@ -252,6 +252,18 @@ class CameraThread(threading.Thread):
         logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Thread stopped")
 
     def detect_motion(self, frame):
+        # Skip motion detection if disabled
+        detect_mode = self.config.get('detect_motion_mode', 'Always')
+        recording_mode = self.config.get('recording_mode', 'Motion Triggered')
+        if detect_mode == 'Off' or recording_mode == 'Off':
+            # If motion was active, end it
+            if self.motion_detected:
+                self.motion_detected = False
+                logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Motion END (detection disabled)")
+                if self.event_callback:
+                    self.event_callback(self.camera_id, 'motion_end')
+            return
+        
         # Resize for faster processing
         small_frame = cv2.resize(frame, (640, 360))
         fgmask = self.fgbg.apply(small_frame)
@@ -392,8 +404,13 @@ class CameraThread(threading.Thread):
         
         logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Start Recording to {full_path}")
         
+        # Map quality (0-100) to CRF (51-18)
+        # 100 = CRF 18 (Visually Lossless)
+        # 75  = CRF 26 (Good Compromise)
+        # 50  = CRF 34 (Low Quality)
         quality = self.config.get('movie_quality', 75)
-        crf = max(0, min(51, int(51 - (quality * 51 / 100))))
+        crf = int(51 - (quality * 0.33))
+        crf = max(18, min(51, crf))
 
         command = [
             'ffmpeg',

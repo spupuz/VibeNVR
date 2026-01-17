@@ -58,6 +58,7 @@ def perform_group_action(group_id: int, action: schemas.GroupAction, db: Session
     elif action.action == "disable_motion":
         for cam in group.cameras:
             cam.recording_mode = "Off"
+            cam.detect_motion_mode = "Off"
             modified_count += 1
 
     elif action.action == "copy_settings":
@@ -91,6 +92,9 @@ def perform_group_action(group_id: int, action: schemas.GroupAction, db: Session
 
     if modified_count > 0:
         db.commit()
-        motion_service.generate_motion_config(db) # Regenerate for all
+        # Sync updated cameras to VibeEngine
+        for cam in group.cameras:
+            motion_service.update_camera_runtime(cam)
+        motion_service.generate_motion_config(db) # Regenerate for all (legacy)
     
     return {"status": "success", "modified_count": modified_count}

@@ -31,7 +31,8 @@ def camera_to_config(cam: Camera) -> dict:
         "picture_file_name": cam.picture_file_name or "%Y-%m-%d/%H-%M-%S-%q",
         "show_motion_box": cam.show_frame_changes if cam.show_frame_changes is not None else True,
         "min_motion_frames": cam.min_motion_frames or 2,
-        "despeckle_filter": cam.despeckle_filter if cam.despeckle_filter is not None else False
+        "despeckle_filter": cam.despeckle_filter if cam.despeckle_filter is not None else False,
+        "detect_motion_mode": cam.detect_motion_mode or "Always"
     }
 
 def generate_motion_config(db: Session):
@@ -78,10 +79,11 @@ def generate_motion_config(db: Session):
 def update_camera_runtime(camera: Camera):
     """
     Updates configuration for a single camera.
+    Uses /start endpoint which handles update if camera is already running.
     """
     config = camera_to_config(camera)
     try:
-        resp = requests.put(f"{ENGINE_BASE_URL}/cameras/{camera.id}/config", json=config, timeout=5)
+        resp = requests.post(f"{ENGINE_BASE_URL}/cameras/{camera.id}/start", json=config, timeout=5)
         if resp.status_code == 200:
             print(f"Updated camera {camera.id} config", flush=True)
             return True

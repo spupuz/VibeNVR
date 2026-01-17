@@ -3,6 +3,8 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 import logging
 import sys
+import psutil
+import os
 from core import manager
 
 # Configure logging
@@ -46,6 +48,27 @@ class CameraConfig(BaseModel):
 @app.get("/")
 def health_check():
     return {"status": "running", "engine": "VibeEngine"}
+
+@app.get("/stats")
+def get_stats():
+    """Return CPU and memory usage for the engine process"""
+    process = psutil.Process(os.getpid())
+    
+    # CPU percent (since last call or over interval)
+    cpu_percent = process.cpu_percent(interval=0.1)
+    
+    # Memory info
+    mem_info = process.memory_info()
+    mem_mb = mem_info.rss / (1024 * 1024)
+    
+    # Count active camera threads
+    active_cameras = len(manager.cameras)
+    
+    return {
+        "cpu_percent": round(cpu_percent, 1),
+        "memory_mb": round(mem_mb, 1),
+        "active_cameras": active_cameras
+    }
 
 @app.post("/cameras/{camera_id}/start")
 def start_camera(camera_id: int, config: CameraConfig):

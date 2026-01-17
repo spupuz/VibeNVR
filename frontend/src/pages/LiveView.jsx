@@ -15,10 +15,10 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
     const pollingRef = useRef(null);
     const mountedRef = useRef(true);
 
-    // JPEG Polling - fetch individual frames at 10 FPS
+    // JPEG Polling - Recursive "Fetch then Wait" pattern to prevent connection flooding
     useEffect(() => {
         mountedRef.current = true;
-        let frameCount = 0;
+        let timeoutId = null;
 
         const fetchFrame = async () => {
             if (!mountedRef.current) return;
@@ -38,36 +38,40 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                         return url;
                     });
                     setLoadState('loaded');
-                    frameCount++;
                 } else {
-                    setLoadState('error');
+                    // Don't show error immediately on single failure to reduce flicker
+                    // setLoadState('error');
                 }
             } catch (err) {
+                // Network error (e.g. abort or connection reset)
+                console.debug(`Frame fetch error for ${camera.id}`, err);
+            } finally {
                 if (mountedRef.current) {
-                    setLoadState('error');
+                    // adaptive delay: very fast if focused, restricted if grid
+                    // Serial execution guarantees no queue buildup
+                    const delay = isFocused ? 50 : 200;
+                    timeoutId = setTimeout(fetchFrame, delay);
                 }
             }
         };
 
-        // Staggered start
+        // Staggered start to reduce initial spike
         const startDelay = setTimeout(() => {
-            fetchFrame(); // Immediate first frame
-            pollingRef.current = setInterval(fetchFrame, 100); // 10 FPS
-        }, index * 100);
+            fetchFrame();
+        }, index * 150);
 
         return () => {
             mountedRef.current = false;
             clearTimeout(startDelay);
-            if (pollingRef.current) {
-                clearInterval(pollingRef.current);
-            }
+            if (timeoutId) clearTimeout(timeoutId);
+
             // Clean up blob URL
             setFrameSrc(prev => {
                 if (prev) URL.revokeObjectURL(prev);
                 return '';
             });
         };
-    }, [camera.id, token, index]);
+    }, [camera.id, token, index, isFocused]);
 
     const handleFullscreen = (e) => {
         const el = e.currentTarget.closest('.video-container');

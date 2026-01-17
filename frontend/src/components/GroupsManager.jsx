@@ -130,6 +130,7 @@ export const GroupsManager = ({ cameras }) => {
                         const data = await res.json();
                         showToast(`Action completed. Modified ${data.modified_count} cameras.`, 'success');
                         setCopyingGroup(null);
+                        fetchGroups(); // Refresh groups to update UI
                     } else {
                         const err = await res.json();
                         showToast('Action failed: ' + err.detail, 'error');

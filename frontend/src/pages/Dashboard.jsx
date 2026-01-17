@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Camera, HardDrive, ShieldAlert, Film, Image } from 'lucide-react';
+import { Activity, Camera, HardDrive, ShieldAlert, Film, Image, CalendarClock, Cpu, MemoryStick } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -25,7 +25,10 @@ export const Dashboard = () => {
         total_events: 0,
         video_count: 0,
         picture_count: 0,
-        storage: { total_gb: 0, used_gb: 0, free_gb: 0, percent: 0 },
+        storage: {
+            total_gb: 0, used_gb: 0, free_gb: 0, percent: 0,
+            estimated_retention_days: null, daily_rate_gb: null
+        },
         system_status: 'Unknown',
         uptime: '0m'
     });
@@ -109,7 +112,7 @@ export const Dashboard = () => {
             </div>
 
             {stats.details && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="bg-card border border-border rounded-xl p-6">
                         <div className="flex items-center space-x-3 mb-6">
                             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
@@ -146,15 +149,55 @@ export const Dashboard = () => {
                             </div>
                         </div>
                     </div>
+                    <div className="bg-card border border-border rounded-xl p-6">
+                        <div className="flex items-center space-x-3 mb-6">
+                            <div className="p-2 bg-purple-500/10 rounded-lg text-purple-500">
+                                <CalendarClock className="w-5 h-5" />
+                            </div>
+                            <h3 className="font-semibold text-lg">Retention Est.</h3>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-3xl font-bold">
+                                    {stats.storage.estimated_retention_days !== null
+                                        ? `~${stats.storage.estimated_retention_days} Days`
+                                        : 'Calculating...'}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Capacity at current daily rate
+                                </p>
+                            </div>
+                            <div className="p-2 rounded-lg bg-muted/30 flex justify-between items-center">
+                                <p className="text-sm text-muted-foreground">Daily Burn Rate</p>
+                                <p className="text-lg font-bold">
+                                    {stats.storage.daily_rate_gb
+                                        ? `${stats.storage.daily_rate_gb} GB/day`
+                                        : 'N/A'}
+                                </p>
+                            </div>
+                            {stats.storage.required_storage_gb && (
+                                <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 flex justify-between items-center">
+                                    <p className="text-sm text-muted-foreground">
+                                        Required for {stats.storage.configured_retention_days} days
+                                    </p>
+                                    <p className="text-lg font-bold text-purple-500">
+                                        {stats.storage.required_storage_gb} GB
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <StatCard title="Active Cameras" value={stats.active_cameras} subtext="All systems operational" icon={Camera} trend="positive" />
                 <StatCard title="Motion Events" value={stats.total_events} subtext="Total events recorded" icon={Activity} />
                 <StatCard title="Videos" value={stats.video_count} subtext="Recorded clips" icon={Film} />
                 <StatCard title="Pictures" value={stats.picture_count} subtext="Captured snapshots" icon={Image} />
                 <StatCard title="Storage Used" value={`${stats.storage.percent}%`} subtext={`${stats.storage.used_gb}GB / ${stats.storage.total_gb}GB`} icon={HardDrive} />
+                <StatCard title="CPU Usage" value={`${stats.resources?.cpu_percent || 0}%`} subtext={`Engine: ${stats.resources?.engine_cpu || 0}% | API: ${stats.resources?.backend_cpu || 0}%`} icon={Cpu} />
+                <StatCard title="Memory" value={`${Math.round(stats.resources?.memory_mb || 0)} MB`} subtext={`Engine: ${Math.round(stats.resources?.engine_mem_mb || 0)} | API: ${Math.round(stats.resources?.backend_mem_mb || 0)} MB`} icon={MemoryStick} />
                 <StatCard title="System Status" value={stats.system_status} subtext={`Uptime: ${stats.uptime}`} icon={ShieldAlert} trend="positive" />
             </div>
 
@@ -193,9 +236,9 @@ export const Dashboard = () => {
                                     images: data.images.count,
                                     videos: data.movies.count
                                 }))}
-                                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                                margin={{ top: 10, right: 30, left: 0, bottom: 60 }}
                             >
-                                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                <XAxis dataKey="name" stroke="#888888" fontSize={11} tickLine={false} axisLine={false} angle={-45} textAnchor="end" interval={0} height={70} />
                                 <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                                 <Tooltip
                                     cursor={{ fill: 'transparent' }}

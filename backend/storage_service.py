@@ -2,7 +2,7 @@ import os
 import shutil
 import time
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 import models
 import database
@@ -18,6 +18,18 @@ PRESERVE_MAP = {
     "Forever": None
 }
 
+def translate_path(p):
+    """Translate DB path to local container path"""
+    if not p:
+        return None
+    # Support new Engine path
+    if p.startswith("/var/lib/vibe/recordings"):
+        return p.replace("/var/lib/vibe/recordings", "/data", 1)
+    # Support legacy Motion path
+    if p.startswith("/var/lib/motion"):
+        return p.replace("/var/lib/motion", "/data", 1)
+    return p
+
 def get_dir_size(path):
     """Get size of directory in bytes"""
     total_size = 0
@@ -27,19 +39,24 @@ def get_dir_size(path):
         for dirpath, dirnames, filenames in os.walk(path):
             for f in filenames:
                 fp = os.path.join(dirpath, f)
-                # skip if it is symbolic link
                 if not os.path.islink(fp):
                     total_size += os.path.getsize(fp)
     except Exception as e:
         logger.error(f"Error calculating directory size for {path}: {e}")
     return total_size
 
-def delete_event_media(event, db: Session):
+def delete_event_media(event, db: Session, reason="Unknown"):
     """Delete media files associated with an event and the event itself from DB"""
     try:
         # Translate paths from /var/lib/motion (DB) to /data (Backend container)
         def translate_path(p):
-            if p and p.startswith("/var/lib/motion"):
+            if not p:
+                return p
+            # Support new Engine path
+            if p.startswith("/var/lib/vibe/recordings"):
+                return p.replace("/var/lib/vibe/recordings", "/data", 1)
+            # Support legacy Motion path
+            if p.startswith("/var/lib/motion"):
                 return p.replace("/var/lib/motion", "/data", 1)
             return p
 
@@ -48,10 +65,10 @@ def delete_event_media(event, db: Session):
 
         if file_path and os.path.exists(file_path):
             os.remove(file_path)
-            logger.info(f"Deleted file: {file_path}")
+            logger.info(f"[{reason}] Deleted files for event {event.id}: {file_path}")
+        
         if thumb_path and os.path.exists(thumb_path):
             os.remove(thumb_path)
-            logger.info(f"Deleted thumbnail: {thumb_path}")
         
         db.delete(event)
         return True
@@ -65,20 +82,16 @@ def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None):
     media_type: 'video' | 'snapshot' | None (both)
     """
     camera_dir = f"/data/Camera{camera.id}"
-    if not os.path.exists(camera_dir):
-        # We don't return here because DB events might exist even if dir is gone
-        pass
-
+    
     # 1. Cleanup Movies (max_storage_gb)
     if (not media_type or media_type == 'video') and camera.max_storage_gb and camera.max_storage_gb > 0:
         total_movies_size = 0
         movie_events = db.query(models.Event).filter(models.Event.camera_id == camera.id, models.Event.type == "video").all()
         for e in movie_events:
-            # Use file_size if available, else check disk
             if e.file_size and e.file_size > 0:
                 total_movies_size += e.file_size
             else:
-                fp = e.file_path.replace("/var/lib/motion", "/data", 1) if e.file_path else None
+                fp = translate_path(e.file_path)
                 if fp and os.path.exists(fp):
                     total_movies_size += os.path.getsize(fp)
         
@@ -92,10 +105,10 @@ def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None):
                 
                 size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0
                 if size_gb == 0: # Fallback
-                     fp = oldest.file_path.replace("/var/lib/motion", "/data", 1) if oldest.file_path else None
+                     fp = translate_path(oldest.file_path)
                      if fp and os.path.exists(fp): size_gb = os.path.getsize(fp) / (1024**3)
 
-                delete_event_media(oldest, db)
+                delete_event_media(oldest, db, reason="Camera Quota (Video)")
                 db.commit()
                 movies_used_gb -= size_gb
 
@@ -107,7 +120,7 @@ def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None):
              if e.file_size and e.file_size > 0:
                 total_pics_size += e.file_size
              else:
-                fp = e.file_path.replace("/var/lib/motion", "/data", 1) if e.file_path else None
+                fp = translate_path(e.file_path)
                 if fp and os.path.exists(fp):
                     total_pics_size += os.path.getsize(fp)
         
@@ -121,34 +134,37 @@ def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None):
                 
                 size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0
                 if size_gb == 0:
-                     fp = oldest.file_path.replace("/var/lib/motion", "/data", 1) if oldest.file_path else None
+                     fp = translate_path(oldest.file_path)
                      if fp and os.path.exists(fp): size_gb = os.path.getsize(fp) / (1024**3)
 
-                delete_event_media(oldest, db)
+                delete_event_media(oldest, db, reason="Camera Quota (Snapshot)")
                 db.commit()
                 pics_used_gb -= size_gb
 
     # 3. Time-based cleanup
+    # Use timezone-aware cutoff to match DB timestamps
+    now_aware = datetime.now().astimezone()
+    
     if not media_type or media_type == 'video':
         movie_delta = PRESERVE_MAP.get(camera.preserve_movies)
         if movie_delta:
-            cutoff = datetime.utcnow() - movie_delta
+            cutoff = now_aware - movie_delta
             expired = db.query(models.Event).filter(models.Event.camera_id == camera.id, models.Event.type == "video", models.Event.timestamp_start < cutoff).all()
             if expired:
-                logger.info(f"Deleting {len(expired)} expired movies for camera {camera.name}")
+                logger.info(f"Deleting {len(expired)} expired movies for camera {camera.name} (Cutoff: {cutoff})")
                 for e in expired:
-                    delete_event_media(e, db)
+                    delete_event_media(e, db, reason="Retention Time (Video)")
                 db.commit()
 
     if not media_type or media_type == 'snapshot':
         pic_delta = PRESERVE_MAP.get(camera.preserve_pictures)
         if pic_delta:
-            cutoff = datetime.utcnow() - pic_delta
+            cutoff = now_aware - pic_delta
             expired = db.query(models.Event).filter(models.Event.camera_id == camera.id, models.Event.type == "snapshot", models.Event.timestamp_start < cutoff).all()
             if expired:
-                logger.info(f"Deleting {len(expired)} expired pictures for camera {camera.name}")
+                logger.info(f"Deleting {len(expired)} expired pictures for camera {camera.name} (Cutoff: {cutoff})")
                 for e in expired:
-                    delete_event_media(e, db)
+                    delete_event_media(e, db, reason="Retention Time (Snapshot)")
                 db.commit()
 
 def run_cleanup():
@@ -156,7 +172,13 @@ def run_cleanup():
     logger.info("Starting storage cleanup task...")
     db = next(database.get_db())
     try:
-        # 1. Global Storage Limit
+        # Priority 1: Enforce Per-Camera Limits first (Quota + Time)
+        cameras = db.query(models.Camera).all()
+        for camera in cameras:
+            cleanup_camera(db, camera)
+            
+        # Priority 2: Enforce Global Storage Limit
+        # Only iterate if we are STILL over limit after per-camera cleanup
         max_global_str = get_setting(db, "max_global_storage_gb")
         max_global_gb = float(max_global_str) if max_global_str else 0
         
@@ -165,25 +187,26 @@ def run_cleanup():
             
             if current_used_gb > max_global_gb:
                 logger.info(f"Global storage limit exceeded: {current_used_gb:.2f}GB > {max_global_gb:.2f}GB. Cleaning up...")
-                # Delete oldest events regardless of camera until we are under limit
-                # We target 95% of the limit to provide some buffer
                 target_gb = max_global_gb * 0.95
                 
                 while current_used_gb > target_gb:
+                    # Delete absolute oldest event across ALL cameras
                     oldest_event = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).first()
                     if not oldest_event:
                         break
                     
-                    delete_event_media(oldest_event, db)
+                    # Estimate size to subtract
+                    size_gb = 0
+                    if oldest_event.file_size:
+                        size_gb = oldest_event.file_size / (1024**3)
+                    
+                    delete_event_media(oldest_event, db, reason="Global Quota")
                     db.commit()
                     
-                    current_used_gb = get_dir_size("/data") / (1024**3)
-                    logger.debug(f"Current usage after deletion: {current_used_gb:.2f}GB")
-
-        # 2. Per-Camera Storage Limit
-        cameras = db.query(models.Camera).all()
-        for camera in cameras:
-            cleanup_camera(db, camera)
+                    # Recalculate or subtract? Subtracting is faster but less accurate.
+                    # Let's subtract for speed in loop
+                    current_used_gb -= size_gb
+                    logger.debug(f"Deleted old event to free space. Remaining est: {current_used_gb:.2f}GB")
 
     except Exception as e:
         logger.error(f"Error during cleanup: {e}")

@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 import shutil
 import time
 import os
+import psutil
+import requests
 from datetime import datetime, timedelta
 from sqlalchemy import func
 import crud, database, schemas, models
@@ -62,9 +64,100 @@ def get_stats(db: Session = Depends(database.get_db)):
         print(f"Error getting disk usage: {e}")
         storage_total_gb = storage_used_gb = storage_free_gb = storage_percent = 0
 
-    # 4. System Uptime
+    # ----------------------------------------------------
+    # Retention Estimation Logic
+    # ----------------------------------------------------
+    now = datetime.now()
+    one_day_ago = now - timedelta(days=1)
+    
+    # Calculate Daily "Burn Rate" (GB/day) based on last 24h of recordings
+    # Group by camera to be precise
+    daily_stats_query = db.query(models.Event.camera_id, func.sum(models.Event.file_size))\
+        .filter(models.Event.timestamp_start >= one_day_ago, models.Event.type == 'video')\
+        .group_by(models.Event.camera_id).all()
+    
+    daily_usage_map = {cam_id: (float(size) if size is not None else 0.0) for cam_id, size in daily_stats_query}
+    global_daily_bytes = sum(daily_usage_map.values())
+    global_daily_gb = global_daily_bytes / (1024**3)
+
+    # Get Global Limit setting
+    global_limit_row = db.query(models.SystemSettings).filter(models.SystemSettings.key == "max_global_storage_gb").first()
+    max_global_gb = float(global_limit_row.value) if global_limit_row and global_limit_row.value else 0
+
+    # Global Estimation
+    global_retention_days = None
+    if global_daily_gb > 0.1: # Threshold to avoid div by zero/noise
+        # If global limit is set, use it. Otherwise use physical free space + used by vibe (Total available to app)
+        available_gb = max_global_gb if max_global_gb > 0 else storage_total_gb
+        global_retention_days = round(available_gb / global_daily_gb, 1)
+
+    # Enhance Camera Stats with specific estimates
+    for cam in cameras:
+        d_bytes = daily_usage_map.get(cam.id, 0)
+        d_gb = d_bytes / (1024**3)
+        est_days = None
+        
+        if d_gb > 0.01:
+            # If camera has specific quota
+            if cam.max_storage_gb > 0:
+                est_days = round(cam.max_storage_gb / d_gb, 1)
+            else:
+                # If no specific quota, it's limited by Global or Disk
+                # To be conservative, show Global Estimate
+                est_days = global_retention_days
+
+        if cam.id in camera_stats:
+            camera_stats[cam.id]["daily_rate_gb"] = round(d_gb, 2)
+            camera_stats[cam.id]["estimated_retention_days"] = est_days
+
+    # 4. Calculate Required Storage for Configured Retention
+    # Map retention settings to days
+    RETENTION_DAYS_MAP = {
+        "For One Day": 1,
+        "For One Week": 7,
+        "For One Month": 30,
+        "For One Year": 365,
+        "Forever": None
+    }
+    
+    # Get the most common retention setting across cameras, or use a default
+    # For simplicity, use the first active camera's setting or fallback
+    configured_retention_setting = None
+    for cam in cameras:
+        if cam.preserve_movies and cam.preserve_movies in RETENTION_DAYS_MAP:
+            configured_retention_setting = cam.preserve_movies
+            break
+    
+    configured_retention_days = RETENTION_DAYS_MAP.get(configured_retention_setting) if configured_retention_setting else None
+    required_storage_gb = None
+    if configured_retention_days and global_daily_gb > 0.01:
+        required_storage_gb = round(global_daily_gb * configured_retention_days, 1)
+
+    # 5. System Uptime
     uptime_seconds = int(time.time() - START_TIME)
     uptime_str = f"{uptime_seconds // 86400}d {(uptime_seconds % 86400) // 3600}h {(uptime_seconds % 3600) // 60}m"
+
+    # 6. Resource Usage (CPU/Memory for VibeNVR app only)
+    # Backend process stats
+    backend_process = psutil.Process(os.getpid())
+    backend_cpu = backend_process.cpu_percent(interval=0.1)
+    backend_mem_mb = backend_process.memory_info().rss / (1024 * 1024)
+    
+    # Engine stats (from its /stats endpoint)
+    engine_cpu = 0
+    engine_mem_mb = 0
+    try:
+        engine_resp = requests.get("http://vibenvr-engine:8000/stats", timeout=2)
+        if engine_resp.status_code == 200:
+            engine_data = engine_resp.json()
+            engine_cpu = engine_data.get("cpu_percent", 0)
+            engine_mem_mb = engine_data.get("memory_mb", 0)
+    except:
+        pass  # Engine unreachable, use 0
+    
+    # Total app resources
+    total_cpu = round(backend_cpu + engine_cpu, 1)
+    total_mem_mb = round(backend_mem_mb + engine_mem_mb, 1)
 
     return {
         "active_cameras": active_cameras_count,
@@ -75,7 +168,20 @@ def get_stats(db: Session = Depends(database.get_db)):
             "total_gb": storage_total_gb,
             "used_gb": storage_used_gb,
             "free_gb": storage_free_gb,
-            "percent": storage_percent
+            "percent": storage_percent,
+            "estimated_retention_days": global_retention_days,
+            "daily_rate_gb": round(global_daily_gb, 2),
+            "configured_retention": configured_retention_setting,
+            "configured_retention_days": configured_retention_days,
+            "required_storage_gb": required_storage_gb
+        },
+        "resources": {
+            "cpu_percent": total_cpu,
+            "memory_mb": total_mem_mb,
+            "backend_cpu": round(backend_cpu, 1),
+            "backend_mem_mb": round(backend_mem_mb, 1),
+            "engine_cpu": engine_cpu,
+            "engine_mem_mb": engine_mem_mb
         },
         "details": {
             "global": global_stats,
