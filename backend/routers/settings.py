@@ -1,9 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from typing import Optional
 import database
 import models
 import auth_service
+import json
+from datetime import datetime
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -65,6 +69,16 @@ DEFAULT_SETTINGS = {
     "max_global_storage_gb": {"value": "0", "description": "Maximum total storage for all cameras (0 = unlimited)"},
     "cleanup_enabled": {"value": "true", "description": "Enable automatic cleanup of old recordings"},
     "cleanup_interval_hours": {"value": "24", "description": "How often to run cleanup (in hours)"},
+    
+    # Notification Settings
+    "smtp_server": {"value": "", "description": "SMTP Server Address"},
+    "smtp_port": {"value": "587", "description": "SMTP Port (e.g. 587 or 465)"},
+    "smtp_username": {"value": "", "description": "SMTP Username"},
+    "smtp_password": {"value": "", "description": "SMTP Password"},
+    "smtp_from_email": {"value": "", "description": "Email Sender Address"},
+    "telegram_bot_token": {"value": "", "description": "Telegram Bot Token for global notifications"},
+    "telegram_chat_id": {"value": "", "description": "Telegram Chat ID for global notifications"},
+    "notify_email_recipient": {"value": "", "description": "Default recipient for email notifications"},
 }
 
 @router.post("/init-defaults")
@@ -77,3 +91,119 @@ def init_default_settings(db: Session = Depends(database.get_db)):
             set_setting(db, key, data["value"], data["description"])
             created += 1
     return {"message": f"Initialized {created} default settings"}
+
+# -----------------------------------------------------------------------------
+# BACKUP & RESTORE
+# -----------------------------------------------------------------------------
+
+@router.get("/backup/export")
+def export_backup(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """Export configuration to JSON"""
+    data = {
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0",
+        "settings": jsonable_encoder(db.query(models.SystemSettings).all()),
+        "cameras": jsonable_encoder(db.query(models.Camera).all()),
+        "groups": jsonable_encoder(db.query(models.CameraGroup).all()),
+        "associations": jsonable_encoder(db.query(models.CameraGroupAssociation).all())
+    }
+    
+    filename = f"vibenvr_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    return JSONResponse(
+        content=data,
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@router.post("/backup/import")
+async def import_backup(
+    file: UploadFile = File(...), 
+    db: Session = Depends(database.get_db), 
+    current_user: models.User = Depends(auth_service.get_current_active_admin)
+):
+    """Import configuration from JSON"""
+    try:
+        content = await file.read()
+        data = json.loads(content)
+        
+        # 1. Restore Check
+        if not isinstance(data, dict) or "cameras" not in data:
+            raise HTTPException(status_code=400, detail="Invalid backup file format")
+
+        # 2. Restore Settings
+        if "settings" in data:
+            for s in data["settings"]:
+                # Merge: Update if exists, insert if not
+                # DB merge requires an object
+                # Filter out nulls if needed, or just overwrite
+                existing = db.query(models.SystemSettings).filter(models.SystemSettings.key == s["key"]).first()
+                if existing:
+                    existing.value = s["value"]
+                    existing.description = s.get("description")
+                else:
+                    new_setting = models.SystemSettings(
+                        key=s["key"], value=s["value"], description=s.get("description")
+                    )
+                    db.add(new_setting)
+        
+        # 3. Restore Cameras
+        # Strategy: Upsert based on ID.
+        if "cameras" in data:
+            for c in data["cameras"]:
+                cam_id = c.get("id")
+                # Remove fields that might cause issues if they don't exist or are calculated (none here mostly)
+                # Parse datetimes if necessary, but string usually works with matching types?
+                # SQLAlchemy expects python objects for DateTime columns if not using specific drivers.
+                # jsonable_encoder converted them to ISO strings.
+                # We need to ensure models accept them or convert back.
+                # simpler: Let's try direct attribute setting.
+                
+                # Check exist
+                existing_cam = db.query(models.Camera).filter(models.Camera.id == cam_id).first()
+                if not existing_cam:
+                    existing_cam = models.Camera(id=cam_id)
+                    db.add(existing_cam)
+                
+                for k, v in c.items():
+                    if k == "events" or k == "groups": continue # Skip relationships
+                    if hasattr(existing_cam, k):
+                        setattr(existing_cam, k, v)
+
+        # 4. Restore Groups
+        if "groups" in data:
+            for g in data["groups"]:
+                grp_id = g.get("id")
+                existing_grp = db.query(models.CameraGroup).filter(models.CameraGroup.id == grp_id).first()
+                if not existing_grp:
+                    existing_grp = models.CameraGroup(id=grp_id)
+                    db.add(existing_grp)
+                
+                for k, v in g.items():
+                    if k == "cameras": continue
+                    if hasattr(existing_grp, k):
+                        setattr(existing_grp, k, v)
+        
+        db.flush() # Sync ID sequences?
+        
+        # 5. Restore Associations
+        # Wipe existing associations for robustness or merge?
+        # Merging is safer.
+        if "associations" in data:
+            # Clear old associations? Maybe too aggressive.
+            # Just add missing.
+            for a in data["associations"]:
+                 cam_id = a.get("camera_id")
+                 grp_id = a.get("group_id")
+                 if cam_id and grp_id:
+                     exists = db.query(models.CameraGroupAssociation).filter_by(camera_id=cam_id, group_id=grp_id).first()
+                     if not exists:
+                         assoc = models.CameraGroupAssociation(camera_id=cam_id, group_id=grp_id)
+                         db.add(assoc)
+
+        db.commit()
+        return {"message": "Backup imported successfully. Please refresh the page."}
+
+    except Exception as e:
+        db.rollback()
+        print(f"Import Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to import backup: {str(e)}")
+

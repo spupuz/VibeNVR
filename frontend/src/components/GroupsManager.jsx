@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit, Camera, Settings, Copy, Play, Pause, Layers, Check } from 'lucide-react';
+import { Toggle } from './ui/FormControls';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
@@ -187,22 +188,23 @@ export const GroupsManager = ({ cameras }) => {
 
                         {/* Actions */}
                         <div className="pt-4 border-t border-border grid grid-cols-3 gap-2">
-                            <button
-                                onClick={() => handleAction(group.id, 'enable_motion')}
-                                className="flex flex-col items-center justify-center p-2 text-xs bg-green-500/10 text-green-600 hover:bg-green-500/20 rounded-lg transition-colors border border-green-500/20"
-                                title="Enable Motion Detection"
-                            >
-                                <Play className="w-4 h-4 mb-1" />
-                                Enable Motion
-                            </button>
-                            <button
-                                onClick={() => handleAction(group.id, 'disable_motion')}
-                                className="flex flex-col items-center justify-center p-2 text-xs bg-red-500/10 text-red-600 hover:bg-red-500/20 rounded-lg transition-colors border border-red-500/20"
-                                title="Disable Motion Detection"
-                            >
-                                <Pause className="w-4 h-4 mb-1" />
-                                Disable Motion
-                            </button>
+                            <div className="col-span-2 flex items-center justify-center bg-muted/30 rounded-lg border border-border px-4 py-2">
+                                <div className="flex items-center space-x-3 w-full justify-between">
+                                    <span className="text-xs font-medium text-muted-foreground flex items-center">
+                                        {group.cameras.every(c => c.detect_motion_mode === 'Always') ? (
+                                            <Play className="w-3 h-3 mr-1 text-green-500" />
+                                        ) : (
+                                            <Pause className="w-3 h-3 mr-1 text-muted-foreground" />
+                                        )}
+                                        Motion Detection
+                                    </span>
+                                    <Toggle
+                                        label=""
+                                        checked={group.cameras.length > 0 && group.cameras.every(c => c.detect_motion_mode === 'Always')}
+                                        onChange={(val) => handleAction(group.id, val ? 'enable_motion' : 'disable_motion')}
+                                    />
+                                </div>
+                            </div>
                             <button
                                 onClick={() => setCopyingGroup(group)}
                                 className="flex flex-col items-center justify-center p-2 text-xs bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 rounded-lg transition-colors border border-blue-500/20"

@@ -67,14 +67,35 @@ class CameraBase(BaseModel):
 
 
     # Schedule
-    schedule_monday: Optional[bool] = True
-    schedule_tuesday: Optional[bool] = True
-    schedule_wednesday: Optional[bool] = True
-    schedule_thursday: Optional[bool] = True
-    schedule_friday: Optional[bool] = True
-    schedule_saturday: Optional[bool] = True
-    schedule_sunday: Optional[bool] = True
     detect_motion_mode: Optional[str] = "Always"
+    
+    schedule_monday: Optional[bool] = True
+    schedule_monday_start: Optional[str] = "00:00"
+    schedule_monday_end: Optional[str] = "23:59"
+    
+    schedule_tuesday: Optional[bool] = True
+    schedule_tuesday_start: Optional[str] = "00:00"
+    schedule_tuesday_end: Optional[str] = "23:59"
+    
+    schedule_wednesday: Optional[bool] = True
+    schedule_wednesday_start: Optional[str] = "00:00"
+    schedule_wednesday_end: Optional[str] = "23:59"
+    
+    schedule_thursday: Optional[bool] = True
+    schedule_thursday_start: Optional[str] = "00:00"
+    schedule_thursday_end: Optional[str] = "23:59"
+    
+    schedule_friday: Optional[bool] = True
+    schedule_friday_start: Optional[str] = "00:00"
+    schedule_friday_end: Optional[str] = "23:59"
+    
+    schedule_saturday: Optional[bool] = True
+    schedule_saturday_start: Optional[str] = "00:00"
+    schedule_saturday_end: Optional[str] = "23:59"
+    
+    schedule_sunday: Optional[bool] = True
+    schedule_sunday_start: Optional[str] = "00:00"
+    schedule_sunday_end: Optional[str] = "23:59"
 
 class CameraCreate(CameraBase):
     pass

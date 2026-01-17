@@ -149,14 +149,30 @@ const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl, onDele
                         <span className="text-[10px] text-muted-foreground">{time}</span>
                         <span className="text-[8px] text-muted-foreground/50">{date}</span>
                     </div>
-                    {event.file_size > 0 && (
-                        <div className="text-[10px] font-mono text-primary/80 bg-primary/5 px-1.5 py-0.5 rounded">
-                            {event.file_size < 1024 * 1024
-                                ? `${(event.file_size / 1024).toFixed(1)} KB`
-                                : `${(event.file_size / (1024 * 1024)).toFixed(1)} MB`
-                            }
-                        </div>
-                    )}
+                    <div className="flex space-x-1">
+                        {/* Duration Badge */}
+                        {event.timestamp_end && (
+                            <div className="text-[10px] font-mono text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded flex items-center">
+                                {(() => {
+                                    const start = new Date(event.timestamp_start);
+                                    const end = new Date(event.timestamp_end);
+                                    const diff = Math.floor((end - start) / 1000);
+                                    if (diff < 0) return '';
+                                    const m = Math.floor(diff / 60);
+                                    const s = diff % 60;
+                                    return `${m}:${s.toString().padStart(2, '0')}`;
+                                })()}
+                            </div>
+                        )}
+                        {event.file_size > 0 && (
+                            <div className="text-[10px] font-mono text-primary/80 bg-primary/5 px-1.5 py-0.5 rounded">
+                                {event.file_size < 1024 * 1024
+                                    ? `${(event.file_size / 1024).toFixed(1)} KB`
+                                    : `${(event.file_size / (1024 * 1024)).toFixed(1)} MB`
+                                }
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
@@ -304,6 +320,32 @@ export const Timeline = () => {
         }, {});
     }, [filteredEvents]);
 
+    const videoRef = React.useRef(null);
+    const [autoplayNext, setAutoplayNext] = useState(true);
+    const [playbackSpeed2x, setPlaybackSpeed2x] = useState(false);
+
+    useEffect(() => {
+        if (videoRef.current) {
+            videoRef.current.playbackRate = playbackSpeed2x ? 2.0 : 1.0;
+        }
+    }, [playbackSpeed2x, selectedEvent]);
+
+    const handleVideoEnded = () => {
+        if (!autoplayNext || !selectedEvent) return;
+
+        // Flatten grouped events to get a linear list
+        const allEvents = filteredEvents;
+        const currentIndex = allEvents.findIndex(e => e.id === selectedEvent.id);
+        // Find next event (Newest -> Oldest)
+        if (currentIndex < allEvents.length - 1) {
+            // Go to index + 1 (Older event)
+            const nextEvent = allEvents[currentIndex + 1];
+            if (nextEvent.type === 'video') {
+                setSelectedEvent(nextEvent);
+            }
+        }
+    };
+
     return (
         <div className="min-h-[calc(100vh-8rem)] lg:h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-4">
             {/* Mobile: Sticky Video Player at Top */}
@@ -323,13 +365,15 @@ export const Timeline = () => {
                             ✕
                         </button>
                     </div>
-                    <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                    <div className="aspect-video bg-black rounded-lg overflow-hidden relative">
                         {selectedEvent.type === 'video' ? (
                             <video
+                                ref={videoRef}
                                 controls
                                 autoPlay
                                 className="w-full h-full object-contain"
                                 src={getMediaUrl(selectedEvent.file_path)}
+                                onEnded={handleVideoEnded}
                             />
                         ) : (
                             <img
@@ -337,6 +381,15 @@ export const Timeline = () => {
                                 alt="Event"
                                 className="w-full h-full object-contain"
                             />
+                        )}
+                        {/* Mobile Speed Overlay */}
+                        {selectedEvent.type === 'video' && (
+                            <button
+                                onClick={() => setPlaybackSpeed2x(!playbackSpeed2x)}
+                                className={`absolute bottom-10 right-2 px-2 py-1 rounded text-xs font-bold backdrop-blur-md ${playbackSpeed2x ? 'bg-primary text-white' : 'bg-black/50 text-white'}`}
+                            >
+                                2x
+                            </button>
                         )}
                     </div>
                 </div>
@@ -346,6 +399,7 @@ export const Timeline = () => {
             <div className="w-full lg:w-[380px] flex-shrink-0 flex flex-col">
                 {/* Filters */}
                 <div className="flex flex-wrap items-center gap-3 mb-4 p-1">
+                    {/* ... (Previous filters remain unchanged) ... */}
                     <div className="relative">
                         <select
                             className="appearance-none pl-3 pr-8 py-2 bg-card border border-border rounded-xl text-sm min-w-[140px] focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50"
@@ -435,14 +489,12 @@ export const Timeline = () => {
 
                 {/* Events area with vertical timeline */}
                 <div className="flex-1 flex gap-2 min-h-0">
-                    {/* Vertical Hour Timeline */}
                     <HourTimeline
                         events={events}
                         onHourClick={(h) => setSelectedHour(selectedHour === h ? null : h)}
                         selectedHour={selectedHour}
                     />
 
-                    {/* Event List */}
                     <div className="flex-1 overflow-y-auto space-y-2 pr-1">
                         {filteredEvents.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
@@ -489,7 +541,32 @@ export const Timeline = () => {
                                         : (selectedEvent.file_size / (1024 * 1024)).toFixed(1) + ' MB'}`}
                                 </p>
                             </div>
-                            <div className="flex space-x-1">
+                            <div className="flex items-center space-x-2">
+                                {/* Autoplay Toggle */}
+                                <div className="flex items-center space-x-2 mr-2 bg-muted/30 px-2 py-1 rounded-lg">
+                                    <input
+                                        type="checkbox"
+                                        id="autoplayNext"
+                                        checked={autoplayNext}
+                                        onChange={(e) => setAutoplayNext(e.target.checked)}
+                                        className="rounded border-gray-400 text-primary focus:ring-primary"
+                                    />
+                                    <label htmlFor="autoplayNext" className="text-xs font-medium cursor-pointer select-none">Auto-next</label>
+                                </div>
+
+                                {/* Speed Toggle */}
+                                {selectedEvent.type === 'video' && (
+                                    <button
+                                        onClick={() => setPlaybackSpeed2x(!playbackSpeed2x)}
+                                        className={`px-2 py-1 rounded text-xs font-bold transition-all ${playbackSpeed2x ? 'bg-primary text-white shadow-lg' : 'bg-muted hover:bg-muted/80'}`}
+                                        title="Toggle 2x Speed"
+                                    >
+                                        2x
+                                    </button>
+                                )}
+
+                                <div className="w-px h-6 bg-border mx-1"></div>
+
                                 <a
                                     href={`http://localhost:5000/events/${selectedEvent.id}/download`}
                                     download
@@ -509,10 +586,12 @@ export const Timeline = () => {
                         <div className="flex-1 bg-black rounded-lg overflow-hidden flex items-center justify-center min-h-0">
                             {selectedEvent.type === 'video' ? (
                                 <video
+                                    ref={videoRef}
                                     controls
                                     autoPlay
                                     className="max-w-full max-h-full object-contain"
                                     src={getMediaUrl(selectedEvent.file_path)}
+                                    onEnded={handleVideoEnded}
                                 >
                                     Your browser does not support video.
                                 </video>

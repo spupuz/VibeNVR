@@ -12,40 +12,147 @@ router = APIRouter(
 )
 
 def send_notifications(camera: models.Camera, event_type: str, details: dict):
-    """Async wrapper for sending notifications"""
+    """Async wrapper for sending notifications using Global + Camera settings"""
     def _send():
-        # 1. Webhooks
-        if (event_type == "event_start" and camera.notify_start_webhook) or \
-           (event_type == "movie_end" and camera.notify_end_webhook):
-            if camera.notify_webhook_url:
-                try:
-                    requests.post(camera.notify_webhook_url, json={
-                        "camera_name": camera.name,
-                        "event": event_type,
-                        "timestamp": details.get("timestamp"),
-                        "file_path": details.get("file_path")
-                    }, timeout=5)
-                except Exception as e:
-                    print(f"[NOTIFY] Webhook failed: {e}")
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.image import MIMEImage
+        
+        # Open a new DB session for this thread to fetch global settings
+        db_notify = database.SessionLocal()
+        try:
+            # Helper to get setting
+            def get_conf(key):
+                s = db_notify.query(models.SystemSettings).filter(models.SystemSettings.key == key).first()
+                return s.value if s else ""
 
-        # 2. Telegram
-        if event_type == "event_start" and camera.notify_start_telegram:
-            if camera.notify_telegram_token and camera.notify_telegram_chat_id:
-                msg = f"🚨 *Motion Detected!*\nCamera: {camera.name}\nTime: {details.get('timestamp')}"
-                url = f"https://api.telegram.org/bot{camera.notify_telegram_token}/sendMessage"
+            # Fetch Global Settings
+            smtp_server = get_conf("smtp_server")
+            smtp_port = int(get_conf("smtp_port") or "587")
+            smtp_user = get_conf("smtp_username")
+            smtp_pass = get_conf("smtp_password")
+            smtp_from = get_conf("smtp_from_email")
+            
+            global_tg_token = get_conf("telegram_bot_token")
+            global_tg_chat = get_conf("telegram_chat_id")
+            global_email_recipient = get_conf("notify_email_recipient")
+
+            # Resolve effective config (Camera overrides Global?)
+            # Usually Notifications are ON/OFF per camera, but credentials might be global.
+            # Logic: If camera has specific config, use it. Else use global.
+            
+            tg_token = camera.notify_telegram_token or global_tg_token
+            tg_chat = camera.notify_telegram_chat_id or global_tg_chat
+            
+            email_recipient = camera.notify_email_address or global_email_recipient
+            
+            # Prepare Attachment (Snapshot)
+            # Try to find a valid image file
+            file_path = details.get("file_path")
+            image_path = None
+            
+            # If path provided
+            if file_path:
+                # If it's a video, try to find the timestamp-based thumb or .jpg replacement
+                if file_path.endswith(".mp4") or file_path.endswith(".mkv"):
+                    # active event might not have mp4 yet, usually event_start sends a jpg if 'picture_output on'
+                    # Try swapping extension
+                    possible_jpg = file_path.rsplit('.', 1)[0] + ".jpg"
+                    if os.path.exists(possible_jpg):
+                        image_path = possible_jpg
+                elif file_path.endswith(".jpg"):
+                    if os.path.exists(file_path):
+                        image_path = file_path
+                        
+            # Fix path if it is internal /var/lib/motion vs backend /data
+            if image_path and image_path.startswith("/var/lib/motion"):
+                 image_path = image_path.replace("/var/lib/motion", "/data", 1)
+            
+            if image_path and not os.path.exists(image_path):
+                print(f"[NOTIFY] Image not found at {image_path}, sending text only.")
+                image_path = None
+
+            # ---------------------------------------------------------
+            # 1. Telegram Notification
+            # ---------------------------------------------------------
+            if (event_type == "event_start" and camera.notify_start_telegram) and tg_token and tg_chat:
                 try:
-                    requests.post(url, json={
-                        "chat_id": camera.notify_telegram_chat_id,
-                        "text": msg,
-                        "parse_mode": "Markdown"
-                    }, timeout=5)
+                    caption = f"🚨 *Motion Detected!*\n📷 Camera: {camera.name}\n⏰ Time: {details.get('timestamp')}"
+                    
+                    if image_path:
+                        # Send Photo
+                        url = f"https://api.telegram.org/bot{tg_token}/sendPhoto"
+                        with open(image_path, 'rb') as f:
+                            files = {'photo': f}
+                            data = {'chat_id': tg_chat, 'caption': caption, 'parse_mode': 'Markdown'}
+                            requests.post(url, data=data, files=files, timeout=10)
+                    else:
+                        # Send Text
+                        url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
+                        requests.post(url, json={
+                            "chat_id": tg_chat,
+                            "text": caption,
+                            "parse_mode": "Markdown"
+                        }, timeout=5)
                 except Exception as e:
                     print(f"[NOTIFY] Telegram failed: {e}")
 
-        # 3. Email (Placeholder Log)
-        if event_type == "event_start" and camera.notify_start_email:
-            if camera.notify_email_address:
-                print(f"[NOTIFY] MOCK EMAIL to {camera.notify_email_address}: Motion on {camera.name}")
+            # ---------------------------------------------------------
+            # 2. Email Notification
+            # ---------------------------------------------------------
+            if (event_type == "event_start" and camera.notify_start_email) and smtp_server and email_recipient:
+                try:
+                    msg = MIMEMultipart()
+                    msg['Subject'] = f"Motion Detected: {camera.name}"
+                    msg['From'] = smtp_from or "vibenvr@localhost"
+                    msg['To'] = email_recipient
+
+                    body = f"""
+                    <h2>Motion Detected</h2>
+                    <p><b>Camera:</b> {camera.name}</p>
+                    <p><b>Time:</b> {details.get('timestamp')}</p>
+                    <p><i>VibeNVR Alert System</i></p>
+                    """
+                    msg.attach(MIMEText(body, 'html'))
+
+                    if image_path:
+                        with open(image_path, 'rb') as f:
+                            img = MIMEImage(f.read())
+                            img.add_header('Content-Disposition', 'attachment', filename=os.path.basename(image_path))
+                            msg.attach(img)
+
+                    # Connect and send
+                    server = smtplib.SMTP(smtp_server, smtp_port)
+                    server.starttls()
+                    if smtp_user and smtp_pass:
+                        server.login(smtp_user, smtp_pass)
+                    server.send_message(msg)
+                    server.quit()
+                    print(f"[NOTIFY] Email sent to {email_recipient}")
+                except Exception as e:
+                    print(f"[NOTIFY] Email failed: {e}")
+
+            # ---------------------------------------------------------
+            # 3. Webhook (Legacy/Existing)
+            # ---------------------------------------------------------
+            if (event_type == "event_start" and camera.notify_start_webhook) or \
+               (event_type == "movie_end" and camera.notify_end_webhook):
+                if camera.notify_webhook_url:
+                    try:
+                        requests.post(camera.notify_webhook_url, json={
+                            "camera_name": camera.name,
+                            "event": event_type,
+                            "timestamp": details.get("timestamp"),
+                            "file_path": details.get("file_path")
+                        }, timeout=5)
+                    except Exception as e:
+                        print(f"[NOTIFY] Webhook failed: {e}")
+
+        except Exception as e:
+            print(f"[NOTIFY] General error: {e}")
+        finally:
+            db_notify.close()
 
     threading.Thread(target=_send, daemon=True).start()
 
@@ -83,16 +190,25 @@ def is_within_schedule(camera: models.Camera):
     
     # Working Schedule (Day based)
     now = datetime.now()
-    day_map = {
-        0: camera.schedule_monday,
-        1: camera.schedule_tuesday,
-        2: camera.schedule_wednesday,
-        3: camera.schedule_thursday,
-        4: camera.schedule_friday,
-        5: camera.schedule_saturday,
-        6: camera.schedule_sunday
-    }
-    return day_map.get(now.weekday(), True)
+    days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+    current_day = days[now.weekday()]
+    
+    # Check if day is enabled
+    is_day_allowed = getattr(camera, f"schedule_{current_day}", True)
+    if not is_day_allowed:
+        return False
+
+    # Time Schedule Check for specific day
+    start_str = getattr(camera, f"schedule_{current_day}_start", "00:00") or "00:00"
+    end_str = getattr(camera, f"schedule_{current_day}_end", "23:59") or "23:59"
+
+    current_time_str = now.strftime("%H:%M")
+    
+    if start_str <= end_str:
+        return start_str <= current_time_str <= end_str
+    else:
+        # Cross-midnight (e.g. 22:00 to 06:00)
+        return current_time_str >= start_str or current_time_str <= end_str
 
 @router.post("/webhook")
 async def webhook_event(payload: dict, db: Session = Depends(database.get_db)):
@@ -138,9 +254,27 @@ async def webhook_event(payload: dict, db: Session = Depends(database.get_db)):
         except:
             ts = datetime.now().astimezone()
 
+        # Get Duration using ffprobe
+        ts_end = None
+        if local_path and os.path.exists(local_path):
+            try:
+                cmd = [
+                    "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                    "-of", "default=noprint_wrappers=1:nokey=1", local_path
+                ]
+                result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                if result.returncode == 0:
+                    duration_sec = float(result.stdout.strip())
+                    from datetime import timedelta
+                    ts_end = ts + timedelta(seconds=duration_sec)
+                    print(f"[WEBHOOK] Video duration: {duration_sec}s")
+            except Exception as e:
+                print(f"[WEBHOOK] Failed to get duration: {e}")
+
         event_data = schemas.EventCreate(
             camera_id=camera_id,
-            timestamp_start=ts, 
+            timestamp_start=ts,
+            timestamp_end=ts_end,
             type="video",
             event_type="motion",
             file_path=file_path,

@@ -84,8 +84,13 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "notify_end_command", "BOOLEAN", False)
 
     # Schedule
-    for day in ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]:
+    # Schedule
+    days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+    for day in days:
         add_column_if_not_exists(engine, "cameras", f"schedule_{day}", "BOOLEAN", True)
+        add_column_if_not_exists(engine, "cameras", f"schedule_{day}_start", "VARCHAR", "00:00")
+        add_column_if_not_exists(engine, "cameras", f"schedule_{day}_end", "VARCHAR", "23:59")
+    
     add_column_if_not_exists(engine, "cameras", "detect_motion_mode", "VARCHAR", "Always")
 
 if __name__ == "__main__":

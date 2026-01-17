@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Monitor, Save, HardDrive, Clock, Trash2, Users, Plus, X, Key } from 'lucide-react';
+import { Monitor, Save, HardDrive, Clock, Trash2, Users, Plus, X, Key, Bell, Download, Upload } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
@@ -16,7 +16,15 @@ export const Settings = () => {
     const [globalSettings, setGlobalSettings] = useState({
         max_global_storage_gb: 0,
         cleanup_enabled: true,
-        cleanup_interval_hours: 24
+        cleanup_interval_hours: 24,
+        smtp_server: '',
+        smtp_port: '587',
+        smtp_username: '',
+        smtp_password: '',
+        smtp_from_email: '',
+        telegram_bot_token: '',
+        telegram_chat_id: '',
+        notify_email_recipient: ''
     });
     const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0, percent: 0 });
     const [loading, setLoading] = useState(true);
@@ -174,7 +182,15 @@ export const Settings = () => {
                 setGlobalSettings({
                     max_global_storage_gb: parseFloat(data.max_global_storage_gb?.value) || 0,
                     cleanup_enabled: data.cleanup_enabled?.value === 'true',
-                    cleanup_interval_hours: parseInt(data.cleanup_interval_hours?.value) || 24
+                    cleanup_interval_hours: parseInt(data.cleanup_interval_hours?.value) || 24,
+                    smtp_server: data.smtp_server?.value || '',
+                    smtp_port: data.smtp_port?.value || '587',
+                    smtp_username: data.smtp_username?.value || '',
+                    smtp_password: data.smtp_password?.value || '',
+                    smtp_from_email: data.smtp_from_email?.value || '',
+                    telegram_bot_token: data.telegram_bot_token?.value || '',
+                    telegram_chat_id: data.telegram_chat_id?.value || '',
+                    notify_email_recipient: data.notify_email_recipient?.value || ''
                 });
             }
         } catch (err) {
@@ -204,13 +220,81 @@ export const Settings = () => {
                 body: JSON.stringify({
                     max_global_storage_gb: globalSettings.max_global_storage_gb.toString(),
                     cleanup_enabled: globalSettings.cleanup_enabled.toString(),
-                    cleanup_interval_hours: globalSettings.cleanup_interval_hours.toString()
+                    cleanup_interval_hours: globalSettings.cleanup_interval_hours.toString(),
+                    smtp_server: globalSettings.smtp_server,
+                    smtp_port: globalSettings.smtp_port,
+                    smtp_username: globalSettings.smtp_username,
+                    smtp_password: globalSettings.smtp_password,
+                    smtp_from_email: globalSettings.smtp_from_email,
+                    telegram_bot_token: globalSettings.telegram_bot_token,
+                    telegram_chat_id: globalSettings.telegram_chat_id,
+                    notify_email_recipient: globalSettings.notify_email_recipient
                 })
             });
             showToast('Settings saved successfully!', 'success');
         } catch (err) {
             showToast('Failed to save settings: ' + err.message, 'error');
         }
+    };
+
+    const handleExport = async () => {
+        try {
+            const res = await fetch('http://localhost:5000/settings/backup/export', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error("Export failed");
+
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            // Try to get filename from header
+            const disposition = res.headers.get('Content-Disposition');
+            let filename = `vibenvr_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            if (disposition && disposition.includes('filename=')) {
+                filename = disposition.split('filename=')[1].replace(/"/g, '');
+            }
+            a.download = filename;
+
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            showToast("Backup exported successfully", "success");
+        } catch (err) {
+            showToast("Export failed: " + err.message, "error");
+        }
+    };
+
+    const handleImport = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!window.confirm("Are you sure you want to restore this backup? Current settings and camera configurations will be overwritten/merged. This cannot be undone.")) {
+            e.target.value = null; // reset
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await fetch('http://localhost:5000/settings/backup/import', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+                body: formData
+            });
+            if (res.ok) {
+                showToast("Backup imported successfully! Reloading...", "success");
+                setTimeout(() => window.location.reload(), 2000);
+            } else {
+                const err = await res.json();
+                showToast("Import failed: " + err.detail, "error");
+            }
+        } catch (err) {
+            showToast("Import failed: " + err.message, "error");
+        }
+        e.target.value = null;
     };
 
     const initDefaults = async () => {
@@ -566,6 +650,123 @@ export const Settings = () => {
                 </div>
             </div>
 
+            {/* Notification Settings */}
+            <div className={'bg-card border border-border rounded-xl p-6 space-y-6 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
+                <div className="flex items-center space-x-3 pb-4 border-b border-border">
+                    <div className="p-2 bg-yellow-500/10 rounded-lg text-yellow-500">
+                        <Bell className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-lg">Notification Settings</h3>
+                        <p className="text-sm text-muted-foreground">Configure global Email and Telegram credentials</p>
+                    </div>
+                </div>
+
+                <div className="space-y-6">
+                    {/* SMTP Section */}
+                    <div>
+                        <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">SMTP (Email) Configuration</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="col-span-2 md:col-span-1">
+                                <label className="block text-xs font-medium mb-1">SMTP Server</label>
+                                <input
+                                    type="text"
+                                    placeholder="smtp.gmail.com"
+                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
+                                    value={globalSettings.smtp_server}
+                                    onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_server: e.target.value })}
+                                />
+                            </div>
+                            <div className="col-span-2 md:col-span-1">
+                                <label className="block text-xs font-medium mb-1">SMTP Port</label>
+                                <input
+                                    type="text"
+                                    placeholder="587"
+                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
+                                    value={globalSettings.smtp_port}
+                                    onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_port: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium mb-1">Username</label>
+                                <input
+                                    type="text"
+                                    placeholder="user@example.com"
+                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
+                                    value={globalSettings.smtp_username}
+                                    onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_username: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium mb-1">Password</label>
+                                <input
+                                    type="password"
+                                    placeholder="App Password"
+                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
+                                    value={globalSettings.smtp_password}
+                                    onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_password: e.target.value })}
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <label className="block text-xs font-medium mb-1">Sender Email ("From")</label>
+                                <input
+                                    type="email"
+                                    placeholder="nvr@yourdomain.com"
+                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
+                                    value={globalSettings.smtp_from_email}
+                                    onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_from_email: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Telegram Section */}
+                    <div className="pt-4 border-t border-border/50">
+                        <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Telegram Configuration</h4>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-medium mb-1">Bot Token</label>
+                                <input
+                                    type="password"
+                                    placeholder="123456:ABC-DEF..."
+                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm font-mono"
+                                    value={globalSettings.telegram_bot_token}
+                                    onChange={(e) => setGlobalSettings({ ...globalSettings, telegram_bot_token: e.target.value })}
+                                />
+                                <p className="text-[10px] text-muted-foreground mt-1">Get this from @BotFather</p>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium mb-1">Global Chat ID</label>
+                                <input
+                                    type="text"
+                                    placeholder="-100123456789"
+                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm font-mono"
+                                    value={globalSettings.telegram_chat_id}
+                                    onChange={(e) => setGlobalSettings({ ...globalSettings, telegram_chat_id: e.target.value })}
+                                />
+                                <p className="text-[10px] text-muted-foreground mt-1">Default chat/channel for notifications</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Default Recipient Section */}
+                    <div className="pt-4 border-t border-border/50">
+                        <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Defaults</h4>
+                        <div>
+                            <label className="block text-xs font-medium mb-1">Default Email Recipient</label>
+                            <input
+                                type="email"
+                                placeholder="admin@example.com"
+                                className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
+                                value={globalSettings.notify_email_recipient}
+                                onChange={(e) => setGlobalSettings({ ...globalSettings, notify_email_recipient: e.target.value })}
+                            />
+                            <p className="text-[10px] text-muted-foreground mt-1">Used if a camera doesn't specify a recipient</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Clean Up Button */}
             <div className={'bg-card border border-border rounded-xl p-6 space-y-4 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
                 <div className="flex items-center space-x-3">
@@ -607,6 +808,47 @@ export const Settings = () => {
                     </button>
                     <p className="text-xs text-muted-foreground mt-2">
                         This will force an immediate check and deletion of recordings that exceed your storage limits or retention periods.
+                    </p>
+                </div>
+            </div>
+
+            {/* Backup & Restore */}
+            <div className={'bg-card border border-border rounded-xl p-6 space-y-4 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
+                <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                        <HardDrive className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-lg">Backup & Restore</h3>
+                        <p className="text-sm text-muted-foreground">Export or Import system configuration (Settings, Cameras, Groups)</p>
+                    </div>
+                </div>
+                <div className="flex flex-wrap gap-4 pt-2">
+                    <button
+                        onClick={handleExport}
+                        className="flex items-center space-x-2 bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors"
+                    >
+                        <Download className="w-4 h-4" />
+                        <span>Export Configuration</span>
+                    </button>
+
+                    <div className="relative">
+                        <input
+                            type="file"
+                            accept=".json"
+                            onChange={handleImport}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <button
+                            className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors pointer-events-none"
+                        >
+                            <Upload className="w-4 h-4" />
+                            <span>Import Configuration</span>
+                        </button>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground w-full mt-1">
+                        * Export includes all cameras, groups, and system settings. Import will merge or overwrite existing configurations.
                     </p>
                 </div>
             </div>

@@ -3,6 +3,11 @@
 VibeNVR is a modern, modular, and containerized video surveillance system designed to manage IP/USB cameras, recordings, motion detection, and a unified event timeline. It features a custom high-performance video engine (VibeEngine) built for efficiency and reliability, wrapped in a premium React-based interface.
 
 ---
+## ⚠️ Beta Disclaimer
+
+This software is currently in active beta development. The database schema is still evolving and may undergo changes. While we strive for backward compatibility, manual database cleanup or migration steps might be required when updating to newer versions.
+
+---
 
 ## ✨ Key Features
 
@@ -95,6 +100,31 @@ VibeNVR is built with security as a priority. Recent updates have hardened the s
     ```bash
     docker compose up -d
     ```
+
+---
+
+## 💾 Data Persistence (Bind Mounts vs Volumes)
+
+The default configuration above uses **Bind Mounts** (mappings to local folders like `./data/recordings`) which makes it easy to access your video files directly from the host system.
+
+**Option A: Using Local Folders (Bind Mounts - Recommended)**
+This allows you to easily backup or view recordings using tools on your host machine.
+- Recordings: `./data/recordings`
+- Database: `./data/db`
+
+**Option B: Using Docker Volumes**
+If you prefer to let Docker manage storage (better for performance on some non-Linux filesystems), change the `volumes` section in `docker-compose.yml`:
+
+```yaml
+volumes:
+  - vibenvr_data:/data
+```
+
+And define the volume at the end of the file:
+```yaml
+volumes:
+  vibenvr_data:
+```
 
 ---
 

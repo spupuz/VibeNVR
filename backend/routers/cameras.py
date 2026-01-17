@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import JSONResponse, Response
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from typing import List
 import crud, schemas, database, motion_service, storage_service, probe_service, auth_service, models
@@ -202,36 +203,17 @@ def export_all_cameras(db: Session = Depends(database.get_db)):
     """Export all cameras settings as JSON"""
     cameras = crud.get_cameras(db)
     export_data = []
+    
+    fields_to_exclude = {'id', 'created_at', 'groups', 'events'}
+    
     for cam in cameras:
-        cam_dict = {
-            "name": cam.name,
-            "rtsp_url": cam.rtsp_url,
-            "location": cam.location,
-            "is_active": cam.is_active,
-            "resolution_width": cam.resolution_width,
-            "resolution_height": cam.resolution_height,
-            "framerate": cam.framerate,
-            "rotation": cam.rotation,
-            "text_left": cam.text_left,
-            "text_right": cam.text_right,
-            "text_scale": cam.text_scale,
-            "movie_file_name": cam.movie_file_name,
-            "movie_quality": cam.movie_quality,
-            "recording_mode": cam.recording_mode,
-            "max_movie_length": cam.max_movie_length,
-            "preserve_movies": cam.preserve_movies,
-            "despeckle_filter": cam.despeckle_filter,
-            "motion_gap": cam.motion_gap,
-            "captured_before": cam.captured_before,
-            "captured_after": cam.captured_after,
-            "min_motion_frames": cam.min_motion_frames,
-            "show_frame_changes": cam.show_frame_changes,
-            "detect_motion_mode": cam.detect_motion_mode,
-        }
-        export_data.append(cam_dict)
+        cam_data = jsonable_encoder(cam)
+        # Filter fields
+        filtered_data = {k: v for k, v in cam_data.items() if k not in fields_to_exclude}
+        export_data.append(filtered_data)
     
     return Response(
-        content=json.dumps({"cameras": export_data, "version": "1.0"}, indent=2),
+        content=json.dumps({"cameras": export_data, "version": "1.1"}, indent=2),
         media_type="application/json",
         headers={"Content-Disposition": "attachment; filename=vibenvr_cameras_export.json"}
     )
@@ -243,33 +225,13 @@ def export_single_camera(camera_id: int, db: Session = Depends(database.get_db))
     if cam is None:
         raise HTTPException(status_code=404, detail="Camera not found")
     
-    cam_dict = {
-        "name": cam.name,
-        "rtsp_url": cam.rtsp_url,
-        "location": cam.location,
-        "is_active": cam.is_active,
-        "resolution_width": cam.resolution_width,
-        "resolution_height": cam.resolution_height,
-        "framerate": cam.framerate,
-        "rotation": cam.rotation,
-        "text_left": cam.text_left,
-        "text_right": cam.text_right,
-        "text_scale": cam.text_scale,
-        "movie_file_name": cam.movie_file_name,
-        "movie_quality": cam.movie_quality,
-        "recording_mode": cam.recording_mode,
-        "preserve_movies": cam.preserve_movies,
-        "despeckle_filter": cam.despeckle_filter,
-        "motion_gap": cam.motion_gap,
-        "captured_before": cam.captured_before,
-        "captured_after": cam.captured_after,
-        "min_motion_frames": cam.min_motion_frames,
-        "show_frame_changes": cam.show_frame_changes,
-        "detect_motion_mode": cam.detect_motion_mode,
-    }
+    fields_to_exclude = {'id', 'created_at', 'groups', 'events'}
+    
+    cam_data = jsonable_encoder(cam)
+    filtered_data = {k: v for k, v in cam_data.items() if k not in fields_to_exclude}
     
     return Response(
-        content=json.dumps({"camera": cam_dict, "version": "1.0"}, indent=2),
+        content=json.dumps({"camera": filtered_data, "version": "1.1"}, indent=2),
         media_type="application/json",
         headers={"Content-Disposition": f"attachment; filename=vibenvr_camera_{cam.name.replace(' ', '_')}.json"}
     )

@@ -68,14 +68,35 @@ class Camera(Base):
 
 
     # Schedule
-    schedule_monday = Column(Boolean, default=True)
-    schedule_tuesday = Column(Boolean, default=True)
-    schedule_wednesday = Column(Boolean, default=True)
-    schedule_thursday = Column(Boolean, default=True)
-    schedule_friday = Column(Boolean, default=True)
-    schedule_saturday = Column(Boolean, default=True)
-    schedule_sunday = Column(Boolean, default=True)
     detect_motion_mode = Column(String, default="Always") # Always | Working Schedule
+    
+    schedule_monday = Column(Boolean, default=True)
+    schedule_monday_start = Column(String, default="00:00")
+    schedule_monday_end = Column(String, default="23:59")
+    
+    schedule_tuesday = Column(Boolean, default=True)
+    schedule_tuesday_start = Column(String, default="00:00")
+    schedule_tuesday_end = Column(String, default="23:59")
+    
+    schedule_wednesday = Column(Boolean, default=True)
+    schedule_wednesday_start = Column(String, default="00:00")
+    schedule_wednesday_end = Column(String, default="23:59")
+    
+    schedule_thursday = Column(Boolean, default=True)
+    schedule_thursday_start = Column(String, default="00:00")
+    schedule_thursday_end = Column(String, default="23:59")
+    
+    schedule_friday = Column(Boolean, default=True)
+    schedule_friday_start = Column(String, default="00:00")
+    schedule_friday_end = Column(String, default="23:59")
+    
+    schedule_saturday = Column(Boolean, default=True)
+    schedule_saturday_start = Column(String, default="00:00")
+    schedule_saturday_end = Column(String, default="23:59")
+    
+    schedule_sunday = Column(Boolean, default=True)
+    schedule_sunday_start = Column(String, default="00:00")
+    schedule_sunday_end = Column(String, default="23:59")
 
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())

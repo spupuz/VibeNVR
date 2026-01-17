@@ -30,7 +30,24 @@ const CameraCard = ({ camera, onDelete, onEdit }) => {
             </div>
 
             <div className="space-y-2 text-sm text-muted-foreground mb-4">
-                <p className="truncate"><span className="font-medium text-foreground">RTSP:</span> {camera.rtsp_url}</p>
+                <p className="truncate">
+                    <span className="font-medium text-foreground">RTSP:</span> {(() => {
+                        try {
+                            // Check if URL has credentials (contains @)
+                            if (camera.rtsp_url && camera.rtsp_url.includes('@')) {
+                                const parts = camera.rtsp_url.split('@');
+                                // parts[1] contains host:port/path
+                                // parts[0] contains protocol://user:pass
+                                // We want protocol from parts[0] and everything from parts[1]
+                                const protocol = parts[0].split('://')[0] + '://';
+                                return protocol + parts[1];
+                            }
+                            return camera.rtsp_url;
+                        } catch (e) {
+                            return camera.rtsp_url;
+                        }
+                    })()}
+                </p>
             </div>
 
             <div className="flex justify-end pt-4 border-t border-border space-x-2">
@@ -100,6 +117,30 @@ export const Cameras = () => {
         mask: false,
         show_frame_changes: true,
         create_debug_media: false,
+
+        // Scheduling
+        schedule_monday: true,
+        schedule_monday_start: '00:00',
+        schedule_monday_end: '23:59',
+        schedule_tuesday: true,
+        schedule_tuesday_start: '00:00',
+        schedule_tuesday_end: '23:59',
+        schedule_wednesday: true,
+        schedule_wednesday_start: '00:00',
+        schedule_wednesday_end: '23:59',
+        schedule_thursday: true,
+        schedule_thursday_start: '00:00',
+        schedule_thursday_end: '23:59',
+        schedule_friday: true,
+        schedule_friday_start: '00:00',
+        schedule_friday_end: '23:59',
+        schedule_saturday: true,
+        schedule_saturday_start: '00:00',
+        schedule_saturday_end: '23:59',
+        schedule_sunday: true,
+        schedule_sunday_start: '00:00',
+        schedule_sunday_end: '23:59',
+
         notify_start_email: false,
         notify_start_telegram: false,
         notify_start_webhook: false,
@@ -113,7 +154,8 @@ export const Cameras = () => {
         picture_quality: 75,
         picture_recording_mode: 'Manual',
         preserve_pictures: 'Forever',
-        max_pictures_storage_gb: 0
+        max_pictures_storage_gb: 0,
+        enable_manual_snapshots: true
     });
     const [stats, setStats] = useState(null);
     const [activeTab, setActiveTab] = useState('general');
@@ -990,16 +1032,104 @@ export const Cameras = () => {
 
                                 {activeTab === 'motion' && (
                                     <div className="space-y-6">
-                                        <SectionHeader title="Automatic Detection" description="Motion detection tuning options" />
-                                        <Slider
-                                            label="Motion Threshold"
-                                            value={newCamera.threshold || 1500}
-                                            onChange={(val) => setNewCamera({ ...newCamera, threshold: val })}
-                                            min={100}
-                                            max={10000}
-                                            step={100}
-                                            helper="Lower = More Sensitive. 1500 is default."
+                                        <SectionHeader title="Detection Schedule" description="When should motion detection be active?" />
+                                        <SelectField
+                                            label="Motion Schedule Mode"
+                                            value={newCamera.detect_motion_mode}
+                                            onChange={(val) => setNewCamera({ ...newCamera, detect_motion_mode: val })}
+                                            options={['Always', 'Working Schedule', 'Manual Toggle']}
                                         />
+
+                                        {newCamera.detect_motion_mode === 'Working Schedule' && (
+                                            <div className="bg-muted/30 p-4 rounded-lg border border-border">
+                                                <div className="flex justify-between items-center mb-4">
+                                                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Weekly Schedule</p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const monActive = newCamera.schedule_monday !== false;
+                                                            const monStart = newCamera.schedule_monday_start || "00:00";
+                                                            const monEnd = newCamera.schedule_monday_end || "23:59";
+
+                                                            const updates = {};
+                                                            ['tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
+                                                                updates[`schedule_${day}`] = monActive;
+                                                                updates[`schedule_${day}_start`] = monStart;
+                                                                updates[`schedule_${day}_end`] = monEnd;
+                                                            });
+                                                            setNewCamera(prev => ({ ...prev, ...updates }));
+                                                            showToast('Copied Monday settings to all days', 'success');
+                                                        }}
+                                                        className="text-xs bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded transition-colors flex items-center"
+                                                    >
+                                                        <Copy className="w-3 h-3 mr-1" />
+                                                        Copy Mon to All
+                                                    </button>
+                                                </div>
+
+                                                <div className="space-y-3">
+                                                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
+                                                        const key = `schedule_${day.toLowerCase()}`;
+                                                        const keyStart = `${key}_start`;
+                                                        const keyEnd = `${key}_end`;
+                                                        const isActive = newCamera[key] !== false;
+
+                                                        return (
+                                                            <div key={day} className={`grid grid-cols-12 gap-2 items-center text-sm ${!isActive ? 'opacity-50' : ''}`}>
+                                                                <div className="col-span-4 flex items-center space-x-2">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                                                        checked={isActive}
+                                                                        onChange={(e) => setNewCamera({ ...newCamera, [key]: e.target.checked })}
+                                                                    />
+                                                                    <span className="font-medium w-20">{day}</span>
+                                                                </div>
+                                                                <div className="col-span-8 flex items-center space-x-2">
+                                                                    <input
+                                                                        type="time"
+                                                                        className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs"
+                                                                        value={newCamera[keyStart] || "00:00"}
+                                                                        onChange={(e) => setNewCamera({ ...newCamera, [keyStart]: e.target.value })}
+                                                                        disabled={!isActive}
+                                                                    />
+                                                                    <span className="text-muted-foreground">-</span>
+                                                                    <input
+                                                                        type="time"
+                                                                        className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs"
+                                                                        value={newCamera[keyEnd] || "23:59"}
+                                                                        onChange={(e) => setNewCamera({ ...newCamera, [keyEnd]: e.target.value })}
+                                                                        disabled={!isActive}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="border-t border-border my-4"></div>
+                                        <SectionHeader title="Automatic Detection" description="Motion detection tuning options" />
+                                        <div className="space-y-1">
+                                            <Slider
+                                                label="Motion Sensitivity (Threshold)"
+                                                value={newCamera.threshold || 1500}
+                                                onChange={(val) => setNewCamera({ ...newCamera, threshold: val })}
+                                                min={100}
+                                                max={10000}
+                                                step={100}
+                                            />
+                                            <div className="flex justify-between text-[10px] text-muted-foreground px-1 -mt-2">
+                                                <span>High Sensitivity</span>
+                                                <span>Low Sensitivity</span>
+                                            </div>
+                                            <p className="text-[11px] text-muted-foreground pt-1">
+                                                Controls how many pixels must change to trigger motion. <br />
+                                                <span className="font-semibold">Lower value (left)</span> = Detects small movements (falling leaves, bugs). <br />
+                                                <span className="font-semibold">Higher value (right)</span> = Detects only big objects (people, cars).
+                                            </p>
+                                        </div>
                                         <Toggle
                                             label="Despeckle Filter"
                                             checked={newCamera.despeckle_filter}
@@ -1207,13 +1337,7 @@ export const Cameras = () => {
                                             />
                                         )}
 
-                                        <SectionHeader title="Detection Schedule" />
-                                        <SelectField
-                                            label="Motion Schedule Mode"
-                                            value={newCamera.detect_motion_mode}
-                                            onChange={(val) => setNewCamera({ ...newCamera, detect_motion_mode: val })}
-                                            options={['Always', 'Working Schedule', 'Manual Toggle']}
-                                        />
+
                                     </div>
                                 )}
 
