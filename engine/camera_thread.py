@@ -127,13 +127,14 @@ class CameraThread(threading.Thread):
         self.last_frame_update_time = 0
         self.lock = threading.Lock()
         
-        # Motion Detection
-        self.fgbg = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=25, detectShadows=True)
+        # Motion Detection (optimized: reduced history, no shadows)
+        self.fgbg = cv2.createBackgroundSubtractorMOG2(history=200, varThreshold=25, detectShadows=False)
         self.motion_detected = False
         self.last_motion_time = 0
         self.recording_start_time = 0
         self.consecutive_motion_frames = 0
         self.consecutive_still_frames = 0
+        self.motion_frame_counter = 0  # For frame skipping optimization
         
         # Recording
         self.recording_process = None
@@ -220,7 +221,7 @@ class CameraThread(threading.Thread):
                 # If processing is faster, we duplicate frames (bad waste of CPU).
                 # Ideally check read_time against last processed time.
                 
-                ret, jpeg = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
+                ret, jpeg = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 60])  # Optimized
                 if ret:
                     with self.lock:
                         self.latest_frame_jpeg = jpeg.tobytes()
@@ -264,8 +265,13 @@ class CameraThread(threading.Thread):
                     self.event_callback(self.camera_id, 'motion_end')
             return
         
-        # Resize for faster processing
-        small_frame = cv2.resize(frame, (640, 360))
+        # OPTIMIZATION: Skip every other frame for motion detection
+        self.motion_frame_counter += 1
+        if self.motion_frame_counter % 2 != 0:
+            return  # Skip odd frames, process even frames
+        
+        # Resize for faster processing (optimized: smaller resolution)
+        small_frame = cv2.resize(frame, (320, 180))
         fgmask = self.fgbg.apply(small_frame)
         
         # Threshold to remove shadows
@@ -284,9 +290,9 @@ class CameraThread(threading.Thread):
         # Compatibility with 'Motion' project 'threshold' (pixels)
         if 'threshold' in self.config:
             # threshold is pixels, e.g. 1500
-            # small_frame is 640x360 = 230400 pixels
+            # small_frame is 320x180 = 57600 pixels (optimized)
             thresh_pixels = int(self.config['threshold'])
-            threshold_percent = (thresh_pixels / (640 * 360)) * 100
+            threshold_percent = (thresh_pixels / (320 * 180)) * 100
         
         if motion_ratio > threshold_percent:
             self.consecutive_motion_frames += 1
