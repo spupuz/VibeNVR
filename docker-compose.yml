@@ -4,7 +4,7 @@ services:
       context: ./frontend
     container_name: vibenvr-frontend
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
     user: "1000:1000"
     restart: always
 
@@ -13,7 +13,7 @@ services:
       context: ./backend
     container_name: vibenvr-backend
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     volumes:
       - ./backend:/app
       - vibenvr_data:/data
@@ -21,6 +21,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://vibenvr:${POSTGRES_PASSWORD:-vibenvrpass}@db:5432/vibenvr
       - TZ=Europe/Rome
+      - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
     depends_on:
       - db
     restart: always
@@ -30,7 +31,7 @@ services:
       context: ./engine
     container_name: vibenvr-engine
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - vibenvr_data:/var/lib/vibe/recordings
     environment:

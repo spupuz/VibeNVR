@@ -244,7 +244,8 @@ export const Timeline = () => {
         } else if (relative.startsWith('/var/lib/vibe/recordings/')) {
             relative = relative.replace('/var/lib/vibe/recordings/', '');
         }
-        return `${API_BASE}/media/${relative}`;
+        // Append token for authentication
+        return `${API_BASE}/media/${relative}?token=${token}`;
     };
 
     const handleDelete = async (id) => {

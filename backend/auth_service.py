@@ -52,6 +52,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise credentials_exception
     return user
 
+
+
 async def get_current_active_admin(current_user: models.User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(
@@ -59,3 +61,61 @@ async def get_current_active_admin(current_user: models.User = Depends(get_curre
             detail="Admin privileges required"
         )
     return current_user
+
+async def get_current_user_from_query(token: str, db: Session = Depends(database.get_db)):
+    """
+    Alternative auth dependency extracting token from query param ?token=...
+    Used for static media files where Headers cannot be easily set (img/video tags).
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if user is None:
+        raise credentials_exception
+    return user
+
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
+
+async def get_current_user_mixed(
+    token: Optional[str] = None, 
+    token_header: Optional[str] = Depends(oauth2_scheme_optional),
+    db: Session = Depends(database.get_db)
+):
+    """
+    Accepts auth token from either ?token=... query param OR Authorization: Bearer header.
+    Query param takes precedence.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    # Resolve token
+    effective_token = token or token_header
+    if not effective_token:
+        raise credentials_exception
+
+    try:
+        payload = jwt.decode(effective_token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if user is None:
+        raise credentials_exception
+    return user

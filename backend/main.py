@@ -6,11 +6,12 @@ import threading
 import storage_service
 import motion_service
 import database
+import auth_service
 
 # Create tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="VibeNVR API", version="1.2.1")
+app = FastAPI(title="VibeNVR API", version="1.3.0")
 
 @app.on_event("startup")
 async def startup_event():
@@ -41,10 +42,22 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(groups.router)
 
-from fastapi.staticfiles import StaticFiles
-# Mount /media to serve files from /data (mapped to vibenvr_data)
-# Used for video playback and thumbnails
-app.mount("/media", StaticFiles(directory="/data"), name="media")
+from fastapi.responses import FileResponse
+import os
+from fastapi import HTTPException, Depends
+
+# Secure media serving
+@app.get("/media/{file_path:path}")
+async def get_secure_media(file_path: str, user=Depends(auth_service.get_current_user_from_query)):
+    # Prevent directory traversal
+    if ".." in file_path:
+        raise HTTPException(status_code=400, detail="Invalid path")
+    
+    full_path = f"/data/{file_path}"
+    if not os.path.exists(full_path):
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    return FileResponse(full_path)
 
 @app.get("/")
 def read_root():
