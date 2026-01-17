@@ -349,7 +349,7 @@ class CameraThread(threading.Thread):
             
             if self.event_callback:
                  self.event_callback(self.camera_id, 'recording_start', {
-                     "file_path": filename,
+                     "file_path": full_path,
                      "width": width,
                      "height": height
                  })

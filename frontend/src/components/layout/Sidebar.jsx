@@ -36,7 +36,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
         `}>
             <div className="p-6 flex flex-col items-center">
                 <img
-                    src="/vibe_logo_variant_2.png"
+                    src={theme === 'dark' ? "/vibe_logo_dark.png" : "/vibe_logo_variant_2.png"}
                     alt="VibeNVR"
                     className="h-20 lg:h-24 w-auto"
                 />

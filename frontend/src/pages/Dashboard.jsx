@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Camera, HardDrive, ShieldAlert, Film, Image } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const StatCard = ({ title, value, subtext, icon: Icon, trend }) => (
     <div className="p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group">
@@ -158,7 +158,7 @@ export const Dashboard = () => {
                 <StatCard title="System Status" value={stats.system_status} subtext={`Uptime: ${stats.uptime}`} icon={ShieldAlert} trend="positive" />
             </div>
 
-            <div className="grid grid-cols-1 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-card rounded-xl border border-border p-6 h-[400px]">
                     <h3 className="text-lg font-semibold mb-6">Activity Overview (24h)</h3>
                     <div className="h-[300px] w-full">
@@ -179,6 +179,34 @@ export const Dashboard = () => {
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" opacity={0.2} />
                                 <Area type="monotone" dataKey="events" stroke="#3b82f6" fillOpacity={1} fill="url(#colorEvents)" />
                             </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="bg-card rounded-xl border border-border p-6 h-[400px]">
+                    <h3 className="text-lg font-semibold mb-6">Media per Camera</h3>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                                data={Object.entries(stats.details?.cameras || {}).map(([id, data]) => ({
+                                    name: getCameraName(parseInt(id)),
+                                    images: data.images.count,
+                                    videos: data.movies.count
+                                }))}
+                                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                            >
+                                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                <Tooltip
+                                    cursor={{ fill: 'transparent' }}
+                                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}
+                                    itemStyle={{ color: 'hsl(var(--foreground))' }}
+                                />
+                                <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" opacity={0.2} />
+                                <Bar dataKey="images" name="Images" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="videos" name="Videos" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                            </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
