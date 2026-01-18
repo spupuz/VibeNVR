@@ -73,7 +73,7 @@ export const Dashboard = () => {
 
         const fetchEvents = async () => {
             try {
-                const res = await fetch('/api/events/?limit=50', {
+                const res = await fetch('/api/events?limit=50', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (res.ok) setRecentEvents(await res.json());
@@ -84,7 +84,7 @@ export const Dashboard = () => {
 
         const fetchCameras = async () => {
             try {
-                const res = await fetch('/api/cameras/', {
+                const res = await fetch('/api/cameras', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (res.ok) {
