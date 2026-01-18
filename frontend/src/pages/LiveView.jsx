@@ -4,7 +4,7 @@ import { Camera, CameraOff, Maximize2, Settings, Image as ImageIcon, Play, Squar
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
-const API_BASE = `http://${window.location.hostname}:5000`;
+const API_BASE = `/api`;
 
 const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onToggleRecording, isDetectingMotion }) => {
     const { token } = useAuth();
