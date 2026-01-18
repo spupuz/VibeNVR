@@ -14,7 +14,7 @@ services:
     image: spupuz/vibenvr-backend:latest
     container_name: vibenvr-backend
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     volumes:
       - vibenvr_data:/data
     environment:
@@ -30,7 +30,7 @@ services:
     image: spupuz/vibenvr-engine:latest
     container_name: vibenvr-engine
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - vibenvr_data:/var/lib/vibe/recordings
     environment:

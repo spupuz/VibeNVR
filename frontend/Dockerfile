@@ -5,7 +5,6 @@ WORKDIR /app
 
 COPY package.json ./
 RUN npm install
-RUN npm install react-router-dom
 
 COPY index.html vite.config.js tailwind.config.js postcss.config.js ./
 COPY src ./src
@@ -13,15 +12,17 @@ COPY public ./public
 RUN npm run build
 
 # Production Stage
-FROM node:18-alpine
+FROM nginx:alpine
 
-WORKDIR /app
+# Remove default nginx static assets
+RUN rm -rf /usr/share/nginx/html/*
 
-RUN npm install -g serve
+# Copy static assets from build stage
+COPY --from=build /app/dist /usr/share/nginx/html
 
-COPY --from=build /app/dist /app/dist
-COPY serve.json /app/dist/serve.json
+# Copy nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
-CMD ["serve", "-s", "dist", "-l", "80"]
+CMD ["nginx", "-g", "daemon off;"]

@@ -17,7 +17,7 @@ export const Setup = () => {
         setError('');
 
         try {
-            const res = await fetch('http://' + window.location.hostname + ':5000/auth/setup', {
+            const res = await fetch('/api/auth/setup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, email, password })
@@ -34,14 +34,14 @@ export const Setup = () => {
                 loginFormData.append('username', username);
                 loginFormData.append('password', password);
 
-                const loginRes = await fetch('http://' + window.location.hostname + ':5000/auth/login', {
+                const loginRes = await fetch('/api/auth/login', {
                     method: 'POST',
                     body: loginFormData,
                 });
 
                 if (loginRes.ok) {
                     const data = await loginRes.json();
-                    const userRes = await fetch('http://' + window.location.hostname + ':5000/auth/me', {
+                    const userRes = await fetch('/api/auth/me', {
                         headers: { Authorization: `Bearer ${data.access_token}` }
                     });
                     if (userRes.ok) {

@@ -61,7 +61,7 @@ const CameraCard = ({ camera, onDelete, onEdit, onToggleActive }) => {
 
             <div className="flex justify-end pt-4 border-t border-border space-x-2">
                 <button
-                    onClick={() => window.open(`http://${window.location.hostname}:5000/cameras/${camera.id}/export`, '_blank')}
+                    onClick={() => window.open(`/api/cameras/${camera.id}/export`, '_blank')}
                     className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
                     title="Export Camera Settings"
                 >
@@ -184,7 +184,7 @@ export const Cameras = () => {
 
     const fetchStats = async () => {
         try {
-            const res = await fetch('http://' + window.location.hostname + ':5000/stats/', {
+            const res = await fetch('/api/stats/', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) setStats(await res.json());
@@ -222,7 +222,7 @@ export const Cameras = () => {
 
     const fetchCameras = async () => {
         try {
-            const res = await fetch('http://' + window.location.hostname + ':5000/cameras/', {
+            const res = await fetch('/api/cameras/', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
@@ -243,7 +243,7 @@ export const Cameras = () => {
             message: 'Are you sure you want to delete this camera? All associated recordings will be kept on disk but the camera configuration will be removed.',
             onConfirm: async () => {
                 try {
-                    await fetch(`http://${window.location.hostname}:5000/cameras/${id}`, {
+                    await fetch(`/api/cameras/${id}`, {
                         method: 'DELETE',
                         headers: { Authorization: `Bearer ${token}` }
                     });
@@ -314,7 +314,7 @@ export const Cameras = () => {
             message: `Are you sure you want to clean up ${type} storage for this camera? This will enforce retention limits immediately.`,
             onConfirm: async () => {
                 try {
-                    const res = await fetch(`http://${window.location.hostname}:5000/cameras/${cameraId}/cleanup?type=${type}`, {
+                    const res = await fetch(`/api/cameras/${cameraId}/cleanup?type=${type}`, {
                         method: 'POST',
                         headers: { Authorization: `Bearer ${token}` }
                     });
@@ -337,7 +337,7 @@ export const Cameras = () => {
 
     const handleToggleActive = async (camera) => {
         try {
-            const res = await fetch(`http://${window.location.hostname}:5000/cameras/${camera.id}`, {
+            const res = await fetch(`/api/cameras/${camera.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -373,8 +373,8 @@ export const Cameras = () => {
         if (e) e.preventDefault();
         try {
             const url = editingId
-                ? `http://${window.location.hostname}:5000/cameras/${editingId}`
-                : 'http://' + window.location.hostname + ':5000/cameras/';
+                ? `/api/cameras/${editingId}`
+                : '/api/cameras/';
 
             const method = editingId ? 'PUT' : 'POST';
 
@@ -473,7 +473,7 @@ export const Cameras = () => {
 
                     const updatedCam = { ...targetCam, ...settingsToCopy };
                     try {
-                        const res = await fetch(`http://${window.location.hostname}:5000/cameras/${targetId}`, {
+                        const res = await fetch(`/api/cameras/${targetId}`, {
                             method: 'PUT',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -570,7 +570,7 @@ export const Cameras = () => {
                                 <span>Add Camera</span>
                             </button>
                             <button
-                                onClick={() => window.open('http://' + window.location.hostname + ':5000/cameras/export/all', '_blank')}
+                                onClick={() => window.open('/api/cameras/export/all', '_blank')}
                                 className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md"
                                 title="Export all cameras to JSON"
                             >
@@ -590,7 +590,7 @@ export const Cameras = () => {
                                         const formData = new FormData();
                                         formData.append('file', file);
                                         try {
-                                            const res = await fetch('http://' + window.location.hostname + ':5000/cameras/import', {
+                                            const res = await fetch('/api/cameras/import', {
                                                 method: 'POST',
                                                 body: formData
                                             });

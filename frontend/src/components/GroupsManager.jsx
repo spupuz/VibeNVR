@@ -28,7 +28,7 @@ export const GroupsManager = ({ cameras }) => {
 
     const fetchGroups = async () => {
         try {
-            const res = await fetch('http://' + window.location.hostname + ':5000/groups/', {
+            const res = await fetch('/api/groups/', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) setGroups(await res.json());
@@ -42,7 +42,7 @@ export const GroupsManager = ({ cameras }) => {
     const handleCreateGroup = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch('http://' + window.location.hostname + ':5000/groups/', {
+            const res = await fetch('/api/groups/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ name: newGroupName })
@@ -67,7 +67,7 @@ export const GroupsManager = ({ cameras }) => {
             message: 'Are you sure you want to delete this group? The cameras will not be deleted, only the group association.',
             onConfirm: async () => {
                 try {
-                    const res = await fetch(`http://${window.location.hostname}:5000/groups/${id}`, {
+                    const res = await fetch(`/api/groups/${id}`, {
                         method: 'DELETE',
                         headers: { Authorization: `Bearer ${token}` }
                     });
@@ -93,7 +93,7 @@ export const GroupsManager = ({ cameras }) => {
 
     const saveGroupCameras = async () => {
         try {
-            const res = await fetch(`http://${window.location.hostname}:5000/groups/${managingGroup.id}/cameras`, {
+            const res = await fetch(`/api/groups/${managingGroup.id}/cameras`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify(selectedCameraIds)
@@ -120,7 +120,7 @@ export const GroupsManager = ({ cameras }) => {
                     const body = { action };
                     if (sourceId) body.source_camera_id = parseInt(sourceId);
 
-                    const res = await fetch(`http://${window.location.hostname}:5000/groups/${groupId}/action`, {
+                    const res = await fetch(`/api/groups/${groupId}/action`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                         body: JSON.stringify(body)
