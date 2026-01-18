@@ -28,7 +28,7 @@ export const GroupsManager = ({ cameras }) => {
 
     const fetchGroups = async () => {
         try {
-            const res = await fetch('/api/groups/', {
+            const res = await fetch('/api/groups', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) setGroups(await res.json());
@@ -42,7 +42,7 @@ export const GroupsManager = ({ cameras }) => {
     const handleCreateGroup = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch('/api/groups/', {
+            const res = await fetch('/api/groups', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ name: newGroupName })
