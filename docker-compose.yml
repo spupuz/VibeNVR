@@ -5,7 +5,6 @@ services:
     container_name: vibenvr-frontend
     ports:
       - "8080:80"
-    user: "1000:1000"
     restart: always
 
   backend:
