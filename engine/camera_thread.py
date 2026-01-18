@@ -443,6 +443,24 @@ class CameraThread(threading.Thread):
                 logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Error writing to ffmpeg: {e}")
                 self.stop_recording()
 
+    def _monitor_ffmpeg_logs(self, process):
+        """Read stderr from ffmpeg, mask credentials, and log"""
+        try:
+            # Iterate lines until stderr is closed
+            for line in iter(process.stderr.readline, b''):
+                if not line: break
+                
+                msg = line.decode('utf-8', errors='replace').strip()
+                if not msg: continue
+                
+                masked_msg = self._mask_url(msg)
+                
+                # If using -loglevel error, practically everything here is important
+                logger.error(f"FFmpeg [{self.config.get('name')}]: {masked_msg}")
+        except Exception as e:
+            # Process probably died
+            pass
+
     def start_recording(self, width, height):
         format_str = self.config.get('movie_file_name', '%Y-%m-%d/%H-%M-%S')
         format_str = format_str.replace('%q', '00') 
@@ -500,24 +518,6 @@ class CameraThread(threading.Thread):
                 self.passthrough_active = False # Fallback? No, just fail
                 self.is_recording = False
                 return
-
-    def _monitor_ffmpeg_logs(self, process):
-        """Read stderr from ffmpeg, mask credentials, and log"""
-        try:
-            # Iterate lines until stderr is closed
-            for line in iter(process.stderr.readline, b''):
-                if not line: break
-                
-                msg = line.decode('utf-8', errors='replace').strip()
-                if not msg: continue
-                
-                masked_msg = self._mask_url(msg)
-                
-                # If using -loglevel error, practically everything here is important
-                logger.error(f"FFmpeg [{self.config.get('name')}]: {masked_msg}")
-        except Exception as e:
-            # Process probably died
-            pass
 
         # ENCODING MODE (Standard)
         # Map quality (0-100) to CRF (51-18)
@@ -591,6 +591,17 @@ class CameraThread(threading.Thread):
                 self.recording_process = None
             self.is_recording = False
             
+            # Verify file size prevents saving empty/broken files
+            if self.recording_filename and os.path.exists(self.recording_filename):
+                try:
+                    size = os.path.getsize(self.recording_filename)
+                    if size < 1024:
+                        logger.warning(f"Message: Recording {self.recording_filename} is too small ({size} bytes). Discarding.")
+                        os.remove(self.recording_filename)
+                        return # Do not send webhook
+                except Exception as e:
+                    logger.error(f"Error checking file size: {e}")
+
             if self.event_callback:
                  self.event_callback(self.camera_id, 'recording_end', {
                      "file_path": self.recording_filename,
