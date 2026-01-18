@@ -1,8 +1,16 @@
+# VibeNVR v1.6.3 - Connection Hotfix
+
+## 🐛 Bug Fixes
+
+*   **Docker Compose Configuration**: Simplified the database password variable substitution in `docker-compose.prod.yml`. This fixes a critical issue on some deployment environments (e.g., remote shells, older Docker versions) where complex variable expansion caused connection strings to be malformed (e.g., `$!@db`), preventing the backend from connecting to the database.
+
+---
+
 # VibeNVR v1.6.2 - Release Notes
 
 ## 🛟 Infrastructure & Stability Updates
 
-*   **start-up Race Condition Fix**: Implemented **Docker Healthchecks** for the database in `docker-compose.prod.yml`. The backend service now strictly waits for `pg_isready` to return success before attempting to start, preventing connection errors during cold boots.
+*   **Startup Race Condition Fix**: Implemented **Docker Healthchecks** for the database in `docker-compose.prod.yml`. The backend service now strictly waits for `pg_isready` to return success before attempting to start, preventing connection errors during cold boots.
 *   **Code-Level Resilience**: The Backend application now includes internal retry logic (15 attempts) for the initial database connection, making it robust against network storage delays or slow database startups even without Docker healthchecks.
 
 ---
