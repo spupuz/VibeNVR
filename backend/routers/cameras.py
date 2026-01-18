@@ -75,7 +75,10 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, db: Session = De
     # For now, let's just Sync All if active status changes, simpler.
     if was_active != db_camera.is_active:
         print(f"Camera {camera.name} active status changed ({was_active} -> {db_camera.is_active}). Syncing Engine...", flush=True)
-        motion_service.generate_motion_config(db)
+        if db_camera.is_active:
+            motion_service.update_camera_runtime(db_camera)
+        else:
+            motion_service.stop_camera(db_camera.id)
     else:
         # Just update runtime config
         print(f"Camera {camera.name} updated. Applying runtime config...", flush=True)

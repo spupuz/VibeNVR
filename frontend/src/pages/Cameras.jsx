@@ -7,10 +7,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 
-const CameraCard = ({ camera, onDelete, onEdit }) => {
+const CameraCard = ({ camera, onDelete, onEdit, onToggleActive }) => {
     const { user } = useAuth();
     return (
-        <div className="bg-card border border-border rounded-xl p-6 hover:shadow-lg transition-all duration-300 group">
+        <div className={`bg-card border border-border rounded-xl p-6 hover:shadow-lg transition-all duration-300 group ${!camera.is_active ? 'opacity-70 grayscale-[0.5]' : ''}`}>
             <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center space-x-3">
                     <div className="p-2 bg-primary/10 rounded-lg text-primary">
@@ -29,8 +29,12 @@ const CameraCard = ({ camera, onDelete, onEdit }) => {
                         </div>
                     </div>
                 </div>
-                <div className={`px-2 py-1 rounded-full text-xs font-medium ${camera.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700'}`}>
-                    {camera.is_active ? 'Active' : 'Offline'}
+                <div onClick={(e) => e.stopPropagation()}>
+                    <Toggle
+                        checked={camera.is_active}
+                        onChange={() => onToggleActive(camera)}
+                        compact={true}
+                    />
                 </div>
             </div>
 
@@ -319,6 +323,37 @@ export const Cameras = () => {
         });
     };
 
+    const handleToggleActive = async (camera) => {
+        try {
+            const res = await fetch(`http://localhost:5000/cameras/${camera.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    // Must include required fields if schema enforces them, 
+                    // but usually partial updates prefer explicit fields or full object.
+                    // To be safe, spread camera.
+                    ...camera,
+                    is_active: !camera.is_active,
+                    // Ensure excluded fields don't cause validation error if API is strict
+                    // But backend usually ignores extra fields or we use same schema.
+                    // Just spreading camera is usually safest if schema matches read model.
+                })
+            });
+            if (res.ok) {
+                fetchCameras();
+                showToast(`Camera ${camera.name} ${!camera.is_active ? 'Enabled' : 'Disabled'}`, 'success');
+            } else {
+                showToast("Failed to toggle camera", "error");
+            }
+        } catch (err) {
+            console.error(err);
+            showToast("Error toggling camera", "error");
+        }
+    };
+
     const [showCopyModal, setShowCopyModal] = useState(false);
     const [copyTargets, setCopyTargets] = useState([]);
 
@@ -592,7 +627,7 @@ export const Cameras = () => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {cameras.map(cam => (
-                            <CameraCard key={cam.id} camera={cam} onDelete={handleDelete} onEdit={handleEdit} />
+                            <CameraCard key={cam.id} camera={cam} onDelete={handleDelete} onEdit={handleEdit} onToggleActive={handleToggleActive} />
                         ))}
                         {cameras.length === 0 && (
                             <div className="col-span-full text-center py-12 text-muted-foreground bg-card border border-dashed border-border rounded-xl">
