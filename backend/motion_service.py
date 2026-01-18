@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from models import Camera
 
 # VibeEngine Control URL
-ENGINE_BASE_URL = "http://vibenvr-engine:8000"
+ENGINE_BASE_URL = "http://engine:8000"
 
 def camera_to_config(cam: Camera) -> dict:
     """ Convert DB Camera model to VibeEngine config dict """

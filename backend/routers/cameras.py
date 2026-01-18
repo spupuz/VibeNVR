@@ -137,7 +137,7 @@ async def get_camera_frame(camera_id: int, db: Session = Depends(database.get_db
     if db_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
     
-    frame_url = f"http://vibenvr-engine:8000/cameras/{camera_id}/frame"
+    frame_url = f"http://engine:8000/cameras/{camera_id}/frame"
     
     try:
         async with httpx.AsyncClient(timeout=2.0) as client:
@@ -162,7 +162,7 @@ async def stream_camera(camera_id: int, db: Session = Depends(database.get_db), 
     
     # Use explicit container name for hostname stability
     # Motion used 8100+ID, VibeEngine uses API path
-    motion_stream_url = f"http://vibenvr-engine:8000/cameras/{camera_id}/stream"
+    motion_stream_url = f"http://engine:8000/cameras/{camera_id}/stream"
     
     async def generate():
         print(f"[STREAM] Starting proxy for camera {camera_id} from {motion_stream_url}", flush=True)
