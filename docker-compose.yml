@@ -36,6 +36,21 @@ services:
       - vibenvr_data:/var/lib/vibe/recordings
     environment:
       - TZ=Europe/Rome
+      # Hardware Acceleration Settings
+      - HW_ACCEL=${HW_ACCEL:-false} # Set to 'true' on Linux with GPU access
+      - HW_ACCEL_TYPE=${HW_ACCEL_TYPE:-auto} # auto, nvidia, intel, amd
+    # GPU Device Passthrough (uncomment what applies to your system)
+    # For Intel/AMD (VAAPI) on Linux:
+    # devices:
+    #   - /dev/dri:/dev/dri
+    # For NVIDIA (requires nvidia-container-toolkit):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
     restart: always
     command: sh -c "python -u main.py 2>&1 | grep --line-buffered -v 'SEI type 764'"
 

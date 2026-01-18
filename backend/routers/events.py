@@ -443,3 +443,64 @@ def download_event(event_id: int, db: Session = Depends(database.get_db)):
         media_type=media_type,
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+@router.delete("/bulk/all")
+def delete_all_events(event_type: Optional[str] = None, db: Session = Depends(database.get_db)):
+    """
+    Delete all events. 
+    - event_type=video: Delete only video events
+    - event_type=picture: Delete only picture events
+    - No event_type: Delete all events
+    """
+    import shutil
+    
+    query = db.query(models.Event)
+    if event_type:
+        query = query.filter(models.Event.type == event_type)
+    
+    events = query.all()
+    deleted_count = 0
+    deleted_size = 0
+    
+    for event in events:
+        # Delete file
+        if event.file_path:
+            file_path = event.file_path
+            if file_path.startswith("/var/lib/motion"):
+                file_path = file_path.replace("/var/lib/motion", "/data", 1)
+            elif file_path.startswith("/var/lib/vibe/recordings"):
+                file_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
+            
+            try:
+                if os.path.exists(file_path):
+                    deleted_size += os.path.getsize(file_path)
+                    os.remove(file_path)
+            except Exception as e:
+                print(f"Error deleting file {file_path}: {e}")
+        
+        # Delete thumbnail
+        if event.thumbnail_path:
+            thumb_path = event.thumbnail_path
+            if thumb_path.startswith("/var/lib/motion"):
+                thumb_path = thumb_path.replace("/var/lib/motion", "/data", 1)
+            elif thumb_path.startswith("/var/lib/vibe/recordings"):
+                thumb_path = thumb_path.replace("/var/lib/vibe/recordings", "/data", 1)
+            
+            try:
+                if os.path.exists(thumb_path):
+                    os.remove(thumb_path)
+            except:
+                pass
+        
+        # Delete from DB
+        db.delete(event)
+        deleted_count += 1
+    
+    db.commit()
+    
+    return {
+        "deleted_count": deleted_count,
+        "deleted_size_bytes": deleted_size,
+        "deleted_size_mb": round(deleted_size / (1024 * 1024), 2),
+        "type": event_type or "all"
+    }

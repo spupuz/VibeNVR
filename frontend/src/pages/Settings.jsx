@@ -615,7 +615,70 @@ export const Settings = () => {
                         </p>
                     </div>
                 </div>
+
+                {/* Bulk Delete Section */}
+                {user?.role === 'admin' && (
+                    <div className="pt-4 border-t border-border mt-4">
+                        <h4 className="text-sm font-semibold mb-3">Bulk Deletion</h4>
+                        <div className="flex flex-wrap gap-3">
+                            <Button
+                                variant="outline"
+                                className="border-red-500/50 text-red-500 hover:bg-red-500/10"
+                                onClick={() => setConfirmConfig({
+                                    isOpen: true,
+                                    title: 'Delete All Videos',
+                                    message: 'Are you sure you want to delete ALL video recordings? This action cannot be undone and will free up disk space.',
+                                    onConfirm: async () => {
+                                        try {
+                                            const res = await fetch('http://localhost:5000/events/bulk/all?event_type=video', {
+                                                method: 'DELETE',
+                                                headers: { Authorization: 'Bearer ' + token }
+                                            });
+                                            const data = await res.json();
+                                            showToast(`Deleted ${data.deleted_count} videos (${data.deleted_size_mb} MB)`, 'success');
+                                            fetchStats();
+                                        } catch (e) {
+                                            showToast('Failed to delete videos', 'error');
+                                        }
+                                        setConfirmConfig({ isOpen: false });
+                                    }
+                                })}
+                            >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete All Videos
+                            </Button>
+
+                            <Button
+                                variant="outline"
+                                className="border-red-500/50 text-red-500 hover:bg-red-500/10"
+                                onClick={() => setConfirmConfig({
+                                    isOpen: true,
+                                    title: 'Delete All Pictures',
+                                    message: 'Are you sure you want to delete ALL picture snapshots? This action cannot be undone.',
+                                    onConfirm: async () => {
+                                        try {
+                                            const res = await fetch('http://localhost:5000/events/bulk/all?event_type=picture', {
+                                                method: 'DELETE',
+                                                headers: { Authorization: 'Bearer ' + token }
+                                            });
+                                            const data = await res.json();
+                                            showToast(`Deleted ${data.deleted_count} pictures (${data.deleted_size_mb} MB)`, 'success');
+                                            fetchStats();
+                                        } catch (e) {
+                                            showToast('Failed to delete pictures', 'error');
+                                        }
+                                        setConfirmConfig({ isOpen: false });
+                                    }
+                                })}
+                            >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete All Pictures
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
+
 
             {/* Live View Settings */}
             <div className="bg-card border border-border rounded-xl p-6 space-y-6">
@@ -854,18 +917,23 @@ export const Settings = () => {
             </div>
 
             {/* Save Button */}
-            {user?.role === 'admin' && (
-                <div className="flex justify-end">
-                    <button
-                        onClick={handleSave}
-                        className="flex items-center space-x-2 bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-                    >
-                        <Save className="w-4 h-4" />
-                        <span>Save Settings</span>
-                    </button>
-                </div>
-            )}
-            <ConfirmModal {...confirmConfig} />
-        </div>
+            {
+                user?.role === 'admin' && (
+                    <div className="flex justify-end">
+                        <button
+                            onClick={handleSave}
+                            className="flex items-center space-x-2 bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                        >
+                            <Save className="w-4 h-4" />
+                            <span>Save Settings</span>
+                        </button>
+                    </div>
+                )
+            }
+            <ConfirmModal
+                {...confirmConfig}
+                onCancel={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+            />
+        </div >
     );
 };

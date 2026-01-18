@@ -44,15 +44,33 @@ class StreamReader(threading.Thread):
         # Suppress OpenCV videoio debug
         os.environ["OPENCV_VIDEOIO_DEBUG"] = "0"
         
+        # Check for hardware acceleration setting
+        hw_accel_enabled = os.environ.get('HW_ACCEL', 'false').lower() == 'true'
+        hw_accel_type = os.environ.get('HW_ACCEL_TYPE', 'auto').lower()
+        
+        # Configure FFMPEG backend for hardware acceleration
+        if hw_accel_enabled:
+            if hw_accel_type == 'nvidia':
+                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;cuda"
+            elif hw_accel_type == 'intel':
+                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;qsv"
+            elif hw_accel_type == 'amd':
+                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;vaapi"
+            else:  # auto
+                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;auto"
+            logger.info(f"StreamReader ({self.camera_name}): HW acceleration enabled ({hw_accel_type})")
+        else:
+            os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
+        
         while self.running:
             try:
                 # 1. Connection Phase
                 if cap is None or not cap.isOpened():
                     current_url = self.url # Update current target
                     logger.info(f"StreamReader ({self.camera_name}): Connecting to stream...")
-                    cap = cv2.VideoCapture(current_url)
+                    cap = cv2.VideoCapture(current_url, cv2.CAP_FFMPEG)
                     
-                    # Try to minimize buffer if backed supports it
+                    # Try to minimize buffer if backend supports it
                     try:
                         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                     except:
@@ -127,8 +145,8 @@ class CameraThread(threading.Thread):
         self.last_frame_update_time = 0
         self.lock = threading.Lock()
         
-        # Motion Detection (optimized: reduced history, no shadows)
-        self.fgbg = cv2.createBackgroundSubtractorMOG2(history=200, varThreshold=25, detectShadows=False)
+        # Motion Detection (lazy init - only create when needed)
+        self.fgbg = None  # Will be created on first use if motion detection enabled
         self.motion_detected = False
         self.last_motion_time = 0
         self.recording_start_time = 0
@@ -145,6 +163,8 @@ class CameraThread(threading.Thread):
         self.fps = 0
         self.frame_count = 0
         self.last_fps_time = time.time()
+        self.live_view_counter = 0  # For live view frame skipping
+        self.last_processed_read_time = 0  # To skip duplicate frames
         
         self.output_dir = f"/var/lib/vibe/recordings/{self.camera_id}"
         os.makedirs(self.output_dir, exist_ok=True)
@@ -178,6 +198,12 @@ class CameraThread(threading.Thread):
                     # No frame yet, wait a bit
                     time.sleep(0.1)
                     continue
+                
+                # Skip if this is the same frame we already processed
+                if read_time == self.last_processed_read_time:
+                    time.sleep(0.01)  # Brief sleep to avoid busy loop
+                    continue
+                self.last_processed_read_time = read_time
                     
                 # 2. Process dimensions & Resize if needed
                 # Note: StreamReader gives raw frames. We might want to resize.
@@ -215,17 +241,21 @@ class CameraThread(threading.Thread):
                     self.pre_buffer.append(frame.copy())
 
                 # 7. Update Live View Buffer (Broadcast)
-                # Only update if we have a NEW frame from the reader?
-                # Actually, the processing loop might run faster or slower than reader.
-                # If processing is slower, we skip frames (good).
-                # If processing is faster, we duplicate frames (bad waste of CPU).
-                # Ideally check read_time against last processed time.
-                
-                ret, jpeg = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 60])  # Optimized
-                if ret:
-                    with self.lock:
-                        self.latest_frame_jpeg = jpeg.tobytes()
-                        self.last_frame_update_time = time.time()
+                # OPTIMIZATION: Only update live view every 2nd frame (reduces JPEG encoding CPU)
+                self.live_view_counter += 1
+                if self.live_view_counter % 2 == 0:
+                    # Resize to 720p before JPEG encoding (less CPU, less memory)
+                    live_frame = frame
+                    if frame.shape[0] > 720:  # If height > 720p
+                        scale = 720 / frame.shape[0]
+                        new_width = int(frame.shape[1] * scale)
+                        live_frame = cv2.resize(frame, (new_width, 720), interpolation=cv2.INTER_NEAREST)
+                    
+                    ret, jpeg = cv2.imencode('.jpg', live_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 60])
+                    if ret:
+                        with self.lock:
+                            self.latest_frame_jpeg = jpeg.tobytes()
+                            self.last_frame_update_time = time.time()
                 
                 # FPS Calculation
                 self.frame_count += 1
@@ -265,13 +295,19 @@ class CameraThread(threading.Thread):
                     self.event_callback(self.camera_id, 'motion_end')
             return
         
-        # OPTIMIZATION: Skip every other frame for motion detection
+        # OPTIMIZATION: Skip frames for motion detection (process every 3rd frame)
         self.motion_frame_counter += 1
-        if self.motion_frame_counter % 2 != 0:
-            return  # Skip odd frames, process even frames
+        if self.motion_frame_counter % 3 != 0:
+            return  # Skip frames, process every 3rd
         
-        # Resize for faster processing (optimized: smaller resolution)
-        small_frame = cv2.resize(frame, (320, 180))
+        # Resize for faster processing (optimized: smaller resolution + fastest interpolation)
+        small_frame = cv2.resize(frame, (320, 180), interpolation=cv2.INTER_NEAREST)
+        
+        # Lazy init MOG2 on first use (saves RAM if motion detection disabled)
+        if self.fgbg is None:
+            self.fgbg = cv2.createBackgroundSubtractorMOG2(history=200, varThreshold=25, detectShadows=False)
+            logger.info(f"Camera {self.config.get('name')}: MOG2 background subtractor initialized")
+        
         fgmask = self.fgbg.apply(small_frame)
         
         # Threshold to remove shadows
