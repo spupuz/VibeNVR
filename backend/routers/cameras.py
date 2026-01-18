@@ -80,12 +80,13 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, db: Session = De
         else:
             motion_service.stop_camera(db_camera.id)
     else:
-        # Just update runtime config
-        print(f"Camera {camera.name} updated. Applying runtime config...", flush=True)
-        success = motion_service.update_camera_runtime(db_camera)
-        if not success:
-             # Fallback
-             pass
+        # Just update runtime config if active
+        if db_camera.is_active:
+            print(f"Camera {camera.name} updated. Applying runtime config...", flush=True)
+            motion_service.update_camera_runtime(db_camera)
+        else:
+            print(f"Camera {camera.name} updated (inactive). Ensuring it is stopped...", flush=True)
+            motion_service.stop_camera(db_camera.id)
 
     return db_camera
 

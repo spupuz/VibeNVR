@@ -1,23 +1,35 @@
-# VibeNVR v1.4.1 Release Notes
+# VibeNVR v1.6.0 - The "Passthrough" Update
 
-## ⚡ Zero-Lag Live View System
-**Critical Update for Video Stability**
+## 🚀 New Features
 
-We have completely rewritten the core video acquisition engine to eliminate video lag and synchronization issues.
+*   **Passthrough Recording (CPU Saver)**: 
+    *   Implemented experimental support for "Direct Stream Copy". This allows recording the RTSP stream directly to disk without CPU-intensive re-encoding.
+    *   **Auto-Fallback Mechanism**: If passthrough fails (e.g., stream corruption or incompatible codecs), the system automatically falls back to standard encoding after 1 failed attempt, ensuring no footage is lost.
+    *   Added dedicated toggle in Camera Settings.
 
-### The Problem
-Previously, the video processing loop handled both frame reading and analysis sequentially. If the analysis (motion detection, recording, overlay) took longer than the frame interval (even by milliseconds), frames would accumulate in the buffer. Over time, this caused the "Live View" to display video that was minutes or even hours old.
+*   **Mobile Experience Overhaul**:
+    *   **Settings Page**: Completely redesigned for mobile. Headers now stack vertically, buttons extend to full width for easier tapping, and the User Management table scrolls horizontally to prevent overflow.
 
-### The Solution: Multi-Threaded Stream Reader
-- **Separate Reader Thread**: We introduced a dedicated `StreamReader` thread for each camera that does nothing but read frames from the RTSP stream at maximum speed.
-- **Buffer Management**: The reader aggressively drains the buffer and always provides the absolute latest frame to the processing engine.
-- **Stale Frame Prevention**: The engine now detects if a frame is "stale" (older than 10 seconds) and automatically stops serving it to the frontend, preventing misleading "frozen" images.
+*   **Enhanced Camera Management**:
+    *   **Quick Toggle**: Added an explicit ON/OFF switch directly in the Camera List for fast enabling/disabling of cameras.
+    *   **Resource Optimization**: Inactive cameras are now fully stopped in the backend engine, freeing up system resources.
 
-### Improvements
-- **Real-Time Latency**: Live View is now synchronized with reality with negligible latency.
-- **Auto-Healing**: If a stream disconnects, the new architecture detects it immediately and handles reconnection more robustly.
-- **Performance**: Processing delays no longer impact the freshness of the video stream.
+*   **UI/UX Improvements**:
+    *   **Modals**: Added standard Close (X) buttons and ESC key support to all dialogs (Camera Add/Edit, Password Change, etc.).
+    *   **Visual Feedback**: Inactive cameras are clearly visually dimmed in the list.
 
----
+## 🐛 Bug Fixes
 
-*This release is highly recommended for all users experiencing video lag or "stuck" cameras.*
+*   **Engine & Backend**: 
+    *   Fixed a critical bug where the `movie_passthrough` configuration was not being transmitted to the recording engine.
+    *   Fixed logic where updating settings for a disabled camera would inadvertently start it.
+    *   Fixed RTSP URL sanitization to allow custom formats (reverted double-slash removal).
+    
+*   **Dashboard**:
+    *   Corrected the Resource Usage chart labels (CPU was incorrectly labeled as Memory).
+
+## 🛠️ Technical Updates
+
+*   Unified Frontend and Backend version to `v1.6.0`.
+*   Added database auto-migration for new camera columns.
+*   Improved FFmpeg process error handling and logging.

@@ -24,6 +24,7 @@ def camera_to_config(cam: Camera) -> dict:
         "pre_capture": cam.captured_before or 0,
         "post_capture": cam.captured_after or 0,
         "movie_quality": cam.movie_quality or 75,
+        "movie_passthrough": cam.movie_passthrough if cam.movie_passthrough is not None else False,
         "max_movie_length": cam.max_movie_length or 0,
         "movie_file_name": cam.movie_file_name or "%Y-%m-%d/%H-%M-%S",
         "picture_quality": cam.picture_quality or 75,

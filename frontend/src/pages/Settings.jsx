@@ -374,8 +374,8 @@ export const Settings = () => {
             </div>
 
             {/* My Account Section (Visible to everyone) */}
-            <div className="bg-card border border-border rounded-xl p-6 space-y-6">
-                <div className="flex items-center justify-between">
+            <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center space-x-3">
                         <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
                             <Users className="w-6 h-6" />
@@ -394,8 +394,8 @@ export const Settings = () => {
 
             {/* User Management (Admin Only) */}
             {user?.role === 'admin' && (
-                <div className="bg-card border border-border rounded-xl p-6 space-y-6">
-                    <div className="flex items-center justify-between pb-4 border-b border-border">
+                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
                         <div className="flex items-center space-x-3">
                             <div className="p-2 bg-purple-500/10 rounded-lg text-purple-500">
                                 <Users className="w-6 h-6" />
@@ -466,13 +466,13 @@ export const Settings = () => {
                         </form>
                     )}
 
-                    <div className="rounded-lg border border-border overflow-hidden">
+                    <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead className="bg-muted/40 text-left">
                                 <tr>
                                     <th className="p-3 font-medium text-muted-foreground">Username</th>
                                     <th className="p-3 font-medium text-muted-foreground">Role</th>
-                                    <th className="p-3 font-medium text-muted-foreground">Created</th>
+                                    <th className="p-3 font-medium text-muted-foreground hidden sm:table-cell">Created</th>
                                     <th className="p-3 font-medium text-muted-foreground text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -493,7 +493,7 @@ export const Settings = () => {
                                                 {u.role}
                                             </span>
                                         </td>
-                                        <td className="p-3 text-muted-foreground">
+                                        <td className="p-3 text-muted-foreground hidden sm:table-cell">
                                             {new Date(u.created_at).toLocaleDateString()}
                                         </td>
                                         <td className="p-3 text-right flex justify-end gap-1">
@@ -526,7 +526,7 @@ export const Settings = () => {
             )}
 
             {/* Storage Settings */}
-            <div className={'bg-card border border-border rounded-xl p-6 space-y-6 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
+            <div className={'bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
                 <div className="flex items-center space-x-3 pb-4 border-b border-border">
                     <div className="p-2 bg-green-500/10 rounded-lg text-green-500">
                         <HardDrive className="w-6 h-6" />
@@ -681,7 +681,7 @@ export const Settings = () => {
 
 
             {/* Live View Settings */}
-            <div className="bg-card border border-border rounded-xl p-6 space-y-6">
+            <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6">
                 <div className="flex items-center space-x-3 pb-4 border-b border-border">
                     <div className="p-2 bg-primary/10 rounded-lg text-primary">
                         <Monitor className="w-6 h-6" />
@@ -714,7 +714,7 @@ export const Settings = () => {
             </div>
 
             {/* Notification Settings */}
-            <div className={'bg-card border border-border rounded-xl p-6 space-y-6 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
+            <div className={'bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
                 <div className="flex items-center space-x-3 pb-4 border-b border-border">
                     <div className="p-2 bg-yellow-500/10 rounded-lg text-yellow-500">
                         <Bell className="w-6 h-6" />
@@ -831,7 +831,7 @@ export const Settings = () => {
             </div>
 
             {/* Clean Up Button */}
-            <div className={'bg-card border border-border rounded-xl p-6 space-y-4 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
+            <div className={'bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
                 <div className="flex items-center space-x-3">
                     <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500">
                         <Trash2 className="w-6 h-6" />
@@ -864,7 +864,7 @@ export const Settings = () => {
                                 onCancel: () => setConfirmConfig({ isOpen: false })
                             });
                         }}
-                        className="flex items-center space-x-2 bg-amber-500 text-white px-6 py-3 rounded-lg hover:bg-amber-600 transition-colors"
+                        className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-amber-500 text-white px-4 py-3 rounded-lg hover:bg-amber-600 transition-colors"
                     >
                         <Trash2 className="w-4 h-4" />
                         <span>Clean Up Storage Now</span>
@@ -876,7 +876,7 @@ export const Settings = () => {
             </div>
 
             {/* Backup & Restore */}
-            <div className={'bg-card border border-border rounded-xl p-6 space-y-4 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
+            <div className={'bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
                 <div className="flex items-center space-x-3">
                     <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
                         <HardDrive className="w-6 h-6" />
@@ -886,16 +886,16 @@ export const Settings = () => {
                         <p className="text-sm text-muted-foreground">Export or Import system configuration (Settings, Cameras, Groups)</p>
                     </div>
                 </div>
-                <div className="flex flex-wrap gap-4 pt-2">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-4 pt-2">
                     <button
                         onClick={handleExport}
-                        className="flex items-center space-x-2 bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors"
+                        className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors"
                     >
                         <Download className="w-4 h-4" />
                         <span>Export Configuration</span>
                     </button>
 
-                    <div className="relative">
+                    <div className="relative w-full sm:w-auto">
                         <input
                             type="file"
                             accept=".json"
@@ -903,7 +903,7 @@ export const Settings = () => {
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         />
                         <button
-                            className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors pointer-events-none"
+                            className="w-full h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors pointer-events-none"
                         >
                             <Upload className="w-4 h-4" />
                             <span>Import Configuration</span>
@@ -922,7 +922,7 @@ export const Settings = () => {
                     <div className="flex justify-end">
                         <button
                             onClick={handleSave}
-                            className="flex items-center space-x-2 bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                            className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
                         >
                             <Save className="w-4 h-4" />
                             <span>Save Settings</span>

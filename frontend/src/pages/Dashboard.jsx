@@ -336,8 +336,8 @@ export const Dashboard = () => {
                                     <Tooltip
                                         contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}
                                         formatter={(value, name) => [
-                                            name === 'cpu' ? `${value}%` : `${value} GB`,
-                                            name === 'cpu' ? 'CPU' : 'Memory'
+                                            name === 'CPU' ? `${value}%` : `${value} GB`,
+                                            name
                                         ]}
                                     />
                                     <Legend />
@@ -345,7 +345,7 @@ export const Dashboard = () => {
                                         yAxisId="cpu"
                                         type="monotone"
                                         dataKey="cpu"
-                                        name="CPU %"
+                                        name="CPU"
                                         stroke="#3b82f6"
                                         strokeWidth={2}
                                         dot={false}
@@ -354,7 +354,7 @@ export const Dashboard = () => {
                                         yAxisId="mem"
                                         type="monotone"
                                         dataKey="memory"
-                                        name="Memory GB"
+                                        name="Memory"
                                         stroke="#10b981"
                                         strokeWidth={2}
                                         dot={false}

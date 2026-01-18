@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Camera, Plus, Trash2, MapPin, Activity, Edit, Download, Upload, Film, Image, Copy } from 'lucide-react';
+import { Camera, Plus, Trash2, MapPin, Activity, Edit, Download, Upload, Film, Image, Copy, X } from 'lucide-react';
 import { Toggle, Slider, InputField, SelectField, SectionHeader } from '../components/ui/FormControls';
 import { GroupsManager } from '../components/GroupsManager';
 import { useAuth } from '../contexts/AuthContext';
@@ -207,6 +207,18 @@ export const Cameras = () => {
             }
         }
     }, [cameras, searchParams]);
+
+    // Handle ESC key to close modal
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && showAddModal) {
+                setShowAddModal(false);
+                setEditingId(null);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showAddModal]);
 
     const fetchCameras = async () => {
         try {
@@ -643,8 +655,17 @@ export const Cameras = () => {
             {
                 showAddModal && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-card p-6 rounded-xl w-full max-w-lg border border-border">
-                            <h3 className="text-xl font-bold mb-4">{editingId ? `Edit ${newCamera.name} (ID: ${editingId})` : 'Add New Camera'}</h3>
+                        <div className="bg-card p-6 rounded-xl w-full max-w-lg border border-border relative">
+                            <button
+                                onClick={() => {
+                                    setShowAddModal(false);
+                                    setEditingId(null);
+                                }}
+                                className="absolute right-4 top-4 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted/50 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                            <h3 className="text-xl font-bold mb-4 pr-8">{editingId ? `Edit ${newCamera.name} (ID: ${editingId})` : 'Add New Camera'}</h3>
 
                             {/* Tabs */}
                             {!editingId && (
