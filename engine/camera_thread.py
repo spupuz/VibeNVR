@@ -592,17 +592,19 @@ class CameraThread(threading.Thread):
             self.is_recording = False
             
             # Verify file size prevents saving empty/broken files
+            valid_recording = False
             if self.recording_filename and os.path.exists(self.recording_filename):
                 try:
                     size = os.path.getsize(self.recording_filename)
                     if size < 1024:
-                        logger.warning(f"Message: Recording {self.recording_filename} is too small ({size} bytes). Discarding.")
+                        logger.warning(f"Recording {self.recording_filename} is too small ({size} bytes). Discarding.")
                         os.remove(self.recording_filename)
-                        return # Do not send webhook
+                    else:
+                        valid_recording = True
                 except Exception as e:
                     logger.error(f"Error checking file size: {e}")
 
-            if self.event_callback:
+            if valid_recording and self.event_callback:
                  self.event_callback(self.camera_id, 'recording_end', {
                      "file_path": self.recording_filename,
                      "width": self.width,
