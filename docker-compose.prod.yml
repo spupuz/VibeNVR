@@ -14,11 +14,11 @@ services:
     image: spupuz/vibenvr-backend:latest
     container_name: vibenvr-backend
     ports:
-      - "127.0.0.1:5000:5000"
+      - "5000:5000"
     volumes:
       - vibenvr_data:/data
     environment:
-      - DATABASE_URL=postgresql://vibenvr:${POSTGRES_PASSWORD:-vibenvrpass}@db:5432/vibenvr
+      - DATABASE_URL=postgresql://vibenvr:vibenvrpass@db:5432/vibenvr
       - TZ=Europe/Rome
       - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
     depends_on:
@@ -30,7 +30,7 @@ services:
     image: spupuz/vibenvr-engine:latest
     container_name: vibenvr-engine
     ports:
-      - "127.0.0.1:8000:8000"
+      - "8000:8000"
     volumes:
       - vibenvr_data:/var/lib/vibe/recordings
     environment:
@@ -58,7 +58,7 @@ services:
     container_name: vibenvr-db
     environment:
       - POSTGRES_USER=vibenvr
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-vibenvrpass}
+      - POSTGRES_PASSWORD=vibenvrpass
       - POSTGRES_DB=vibenvr
     volumes:
       - vibenvr_db_data:/var/lib/postgresql/data
