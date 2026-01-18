@@ -1,3 +1,12 @@
+# VibeNVR v1.6.4 - Remote Access Hotfix
+
+## 🐛 Critical Fixes
+
+*   **Remote LAN Access**: Fixed a critical issue where the Frontend was hardcoded to `localhost`, preventing access from other devices on the network (e.g., phones, tablets, remote PCs). The frontend now dynamically determines the API address based on the current hostname (`window.location.hostname`), performing robustly in any network environment.
+*   **Port Exposure**: Updated `docker-compose.prod.yml` to expose Backend (port 5000) and Engine (port 8000) to the LAN (`0.0.0.0`). This ensures the Frontend client running on your browser can directly contact the necessary APIs and video streams.
+
+---
+
 # VibeNVR v1.6.3 - Connection Hotfix
 
 ## 🐛 Bug Fixes

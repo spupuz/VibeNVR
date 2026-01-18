@@ -56,7 +56,7 @@ export const Settings = () => {
 
     const fetchUsers = async () => {
         try {
-            const res = await fetch('http://localhost:5000/users/', {
+            const res = await fetch('http://' + window.location.hostname + ':5000/users/', {
                 headers: { Authorization: 'Bearer ' + token }
             });
             if (res.ok) {
@@ -70,7 +70,7 @@ export const Settings = () => {
     const handleCreateUser = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch('http://localhost:5000/users/', {
+            const res = await fetch('http://' + window.location.hostname + ':5000/users/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ export const Settings = () => {
             message: 'Are you sure you want to delete this user? This action cannot be undone.',
             onConfirm: async () => {
                 try {
-                    const res = await fetch('http://localhost:5000/users/' + userId, {
+                    const res = await fetch('http://' + window.location.hostname + ':5000/users/' + userId, {
                         method: 'DELETE',
                         headers: { Authorization: 'Bearer ' + token }
                     });
@@ -134,7 +134,7 @@ export const Settings = () => {
         const targetId = pwdTargetUser ? pwdTargetUser.id : user.id;
 
         try {
-            const res = await fetch('http://localhost:5000/users/' + targetId + '/password', {
+            const res = await fetch('http://' + window.location.hostname + ':5000/users/' + targetId + '/password', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -160,7 +160,7 @@ export const Settings = () => {
 
     const fetchStats = async () => {
         try {
-            const res = await fetch('http://localhost:5000/stats/', {
+            const res = await fetch('http://' + window.location.hostname + ':5000/stats/', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
@@ -174,7 +174,7 @@ export const Settings = () => {
 
     const fetchSettings = async () => {
         try {
-            const res = await fetch('http://localhost:5000/settings/', {
+            const res = await fetch('http://' + window.location.hostname + ':5000/settings/', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
@@ -211,7 +211,7 @@ export const Settings = () => {
 
         // Save backend settings
         try {
-            await fetch('http://localhost:5000/settings/bulk', {
+            await fetch('http://' + window.location.hostname + ':5000/settings/bulk', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -239,7 +239,7 @@ export const Settings = () => {
 
     const handleExport = async () => {
         try {
-            const res = await fetch('http://localhost:5000/settings/backup/export', {
+            const res = await fetch('http://' + window.location.hostname + ':5000/settings/backup/export', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (!res.ok) throw new Error("Export failed");
@@ -279,7 +279,7 @@ export const Settings = () => {
         formData.append('file', file);
 
         try {
-            const res = await fetch('http://localhost:5000/settings/backup/import', {
+            const res = await fetch('http://' + window.location.hostname + ':5000/settings/backup/import', {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData
@@ -299,7 +299,7 @@ export const Settings = () => {
 
     const initDefaults = async () => {
         try {
-            await fetch('http://localhost:5000/settings/init-defaults', {
+            await fetch('http://' + window.location.hostname + ':5000/settings/init-defaults', {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -630,7 +630,7 @@ export const Settings = () => {
                                     message: 'Are you sure you want to delete ALL video recordings? This action cannot be undone and will free up disk space.',
                                     onConfirm: async () => {
                                         try {
-                                            const res = await fetch('http://localhost:5000/events/bulk/all?event_type=video', {
+                                            const res = await fetch('http://' + window.location.hostname + ':5000/events/bulk/all?event_type=video', {
                                                 method: 'DELETE',
                                                 headers: { Authorization: 'Bearer ' + token }
                                             });
@@ -657,7 +657,7 @@ export const Settings = () => {
                                     message: 'Are you sure you want to delete ALL picture snapshots? This action cannot be undone.',
                                     onConfirm: async () => {
                                         try {
-                                            const res = await fetch('http://localhost:5000/events/bulk/all?event_type=picture', {
+                                            const res = await fetch('http://' + window.location.hostname + ':5000/events/bulk/all?event_type=picture', {
                                                 method: 'DELETE',
                                                 headers: { Authorization: 'Bearer ' + token }
                                             });
@@ -850,7 +850,7 @@ export const Settings = () => {
                                 message: 'Are you sure you want to trigger storage cleanup now? This will scan all camera folders and delete recordings that exceed set limits.',
                                 onConfirm: async () => {
                                     try {
-                                        await fetch('http://localhost:5000/settings/cleanup', {
+                                        await fetch('http://' + window.location.hostname + ':5000/settings/cleanup', {
                                             method: 'POST',
                                             headers: { Authorization: `Bearer ${token}` }
                                         });

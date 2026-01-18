@@ -62,7 +62,7 @@ export const Dashboard = () => {
 
         const fetchStats = async () => {
             try {
-                const res = await fetch('http://localhost:5000/stats/', {
+                const res = await fetch('http://' + window.location.hostname + ':5000/stats/', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (res.ok) setStats(await res.json());
@@ -73,7 +73,7 @@ export const Dashboard = () => {
 
         const fetchEvents = async () => {
             try {
-                const res = await fetch('http://localhost:5000/events/?limit=50', {
+                const res = await fetch('http://' + window.location.hostname + ':5000/events/?limit=50', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (res.ok) setRecentEvents(await res.json());
@@ -84,7 +84,7 @@ export const Dashboard = () => {
 
         const fetchCameras = async () => {
             try {
-                const res = await fetch('http://localhost:5000/cameras/', {
+                const res = await fetch('http://' + window.location.hostname + ':5000/cameras/', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -99,7 +99,7 @@ export const Dashboard = () => {
 
         const fetchGraphData = async () => {
             try {
-                const res = await fetch('http://localhost:5000/stats/history', {
+                const res = await fetch('http://' + window.location.hostname + ':5000/stats/history', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -114,7 +114,7 @@ export const Dashboard = () => {
 
         const fetchResourceHistory = async () => {
             try {
-                const res = await fetch('http://localhost:5000/stats/resources-history', {
+                const res = await fetch('http://' + window.location.hostname + ':5000/stats/resources-history', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (res.ok) {
