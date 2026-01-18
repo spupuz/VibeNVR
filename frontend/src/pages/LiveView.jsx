@@ -155,15 +155,6 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
             {/* Status Footer */}
             <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-between items-end z-10">
                 <div className="flex items-center space-x-2">
-                    <button
-                        onClick={() => onToggleActive(camera)}
-                        className={`flex items-center space-x-1 px-2 py-1 rounded-full text-[10px] font-medium backdrop-blur-sm border border-white/10 ${camera.is_active ? 'bg-green-500/90 text-white' : 'bg-red-500/90 text-white'}`}
-                        title={camera.is_active ? "Disable Camera" : "Enable Camera"}
-                    >
-                        <Power className="w-3 h-3" />
-                        <span>{camera.is_active ? 'ON' : 'OFF'}</span>
-                    </button>
-
                     <div className={`px-2 py-1 rounded-full text-[10px] font-medium backdrop-blur-sm border border-white/10 flex items-center space-x-1 ${camera.recording_mode !== 'Off' ? 'bg-blue-500/20 text-blue-200 border-blue-500/30' : 'bg-black/40 text-muted-foreground'}`}>
                         {camera.recording_mode !== 'Off' && <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
                         <span>Mode: {camera.recording_mode}</span>
@@ -258,10 +249,13 @@ export const LiveView = () => {
         } catch (err) { console.error(err); }
     };
 
+    // Filter active cameras first
+    const activeCameras = cameras.filter(c => c.is_active);
+
     // Filter cameras if focused
     const displayCameras = focusCameraId
-        ? cameras.filter(c => c.id === focusCameraId)
-        : cameras;
+        ? activeCameras.filter(c => c.id === focusCameraId)
+        : activeCameras;
 
     return (
         <div className="h-full flex flex-col px-4 py-2">

@@ -111,3 +111,14 @@ def trigger_snapshot(camera_id: int):
     except Exception as e:
         print(f"Failed to trigger snapshot for camera {camera_id}: {e}")
         return False
+
+def stop_camera(camera_id: int):
+    """Stop a camera in VibeEngine"""
+    try:
+        url = f"{ENGINE_BASE_URL}/cameras/{camera_id}/stop"
+        requests.post(url, timeout=5)
+        print(f"Stopped camera {camera_id}", flush=True)
+        return True
+    except Exception as e:
+        print(f"Error stopping camera {camera_id}: {e}", flush=True)
+        return False
