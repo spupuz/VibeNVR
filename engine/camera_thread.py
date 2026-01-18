@@ -457,7 +457,8 @@ class CameraThread(threading.Thread):
                 '-y',
                 '-rtsp_transport', 'tcp',
                 '-i', self.config['rtsp_url'],
-                '-c', 'copy',
+                '-c:v', 'copy',
+                '-an',  # Disable audio to prevent MP4 container errors with PCM codecs
                 '-f', 'mp4',
                 '-movflags', '+faststart', # Enable fast start for web playback
                 full_path
@@ -465,7 +466,8 @@ class CameraThread(threading.Thread):
             
             try:
                 # No stdin pipe for passthrough, allows ffmpeg to pull from RTSP directly
-                self.recording_process = subprocess.Popen(command, stdin=None, stderr=subprocess.DEVNULL)
+                # stderr=None allows ffmpeg errors to show in container logs
+                self.recording_process = subprocess.Popen(command, stdin=None, stderr=None)
                 self.is_recording = True
                 self.recording_filename = full_path
                 self.recording_start_time = time.time()
