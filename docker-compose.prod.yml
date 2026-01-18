@@ -3,6 +3,7 @@
 
 services:
   frontend:
+    image: spupuz/vibenvr-frontend:latest
     build:
       context: ./frontend
     container_name: vibenvr-frontend
@@ -12,6 +13,7 @@ services:
     restart: always
 
   backend:
+    image: spupuz/vibenvr-backend:latest
     build:
       context: ./backend
     container_name: vibenvr-backend
@@ -29,6 +31,7 @@ services:
     restart: always
 
   engine:
+    image: spupuz/vibenvr-engine:latest
     build:
       context: ./engine
     container_name: vibenvr-engine
