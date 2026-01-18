@@ -476,8 +476,8 @@ class CameraThread(threading.Thread):
         logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Start Recording to {full_path}")
         
         # Passthrough Logic with Fallback
-        if self.passthrough_error_count > 3:
-             if self.passthrough_error_count == 4:
+        if self.passthrough_error_count > 1:
+             if self.passthrough_error_count == 2:
                  logger.warning(f"Camera {self.config.get('name')}: Passthrough failed too many times ({self.passthrough_error_count}). Falling back to Encoding.")
              self.passthrough_active = False
         else:
