@@ -22,7 +22,8 @@ services:
       - TZ=Europe/Rome
       - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: always
 
   engine:
@@ -35,12 +36,12 @@ services:
     environment:
       - TZ=Europe/Rome
       # Hardware Acceleration Settings
-      - HW_ACCEL=${HW_ACCEL:-false} # Set to 'true' on Linux with GPU access
+      - HW_ACCEL=true # Enabled for local GPU usage
       - HW_ACCEL_TYPE=${HW_ACCEL_TYPE:-auto} # auto, nvidia, intel, amd
     # GPU Device Passthrough (uncomment what applies to your system)
     # For Intel/AMD (VAAPI) on Linux:
-    # devices:
-    #   - /dev/dri:/dev/dri
+    devices:
+      - /dev/dri:/dev/dri
     # For NVIDIA (requires nvidia-container-toolkit):
     # deploy:
     #   resources:
@@ -61,6 +62,11 @@ services:
       - POSTGRES_DB=vibenvr
     volumes:
       - vibenvr_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U vibenvr" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: always
 
 volumes:

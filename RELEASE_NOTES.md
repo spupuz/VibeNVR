@@ -1,3 +1,12 @@
+# VibeNVR v1.6.2 - Release Notes
+
+## 🛟 Infrastructure & Stability Updates
+
+*   **start-up Race Condition Fix**: Implemented **Docker Healthchecks** for the database in `docker-compose.prod.yml`. The backend service now strictly waits for `pg_isready` to return success before attempting to start, preventing connection errors during cold boots.
+*   **Code-Level Resilience**: The Backend application now includes internal retry logic (15 attempts) for the initial database connection, making it robust against network storage delays or slow database startups even without Docker healthchecks.
+
+---
+
 # VibeNVR v1.6.1 - Release Notes
 
 ## 🔒 Security & Deployment Updates
