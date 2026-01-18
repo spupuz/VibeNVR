@@ -31,7 +31,7 @@ def set_setting(db: Session, key: str, value: str, description: str = None):
     db.refresh(setting)
     return setting
 
-@router.get("/")
+@router.get("")
 def get_all_settings(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
     """Get all system settings"""
     settings = db.query(models.SystemSettings).all()

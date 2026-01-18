@@ -56,7 +56,7 @@ export const Settings = () => {
 
     const fetchUsers = async () => {
         try {
-            const res = await fetch('/api/users/', {
+            const res = await fetch('/api/users', {
                 headers: { Authorization: 'Bearer ' + token }
             });
             if (res.ok) {
@@ -70,7 +70,7 @@ export const Settings = () => {
     const handleCreateUser = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch('/api/users/', {
+            const res = await fetch('/api/users', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -160,7 +160,7 @@ export const Settings = () => {
 
     const fetchStats = async () => {
         try {
-            const res = await fetch('/api/stats/', {
+            const res = await fetch('/api/stats', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
@@ -174,7 +174,7 @@ export const Settings = () => {
 
     const fetchSettings = async () => {
         try {
-            const res = await fetch('/api/settings/', {
+            const res = await fetch('/api/settings', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {

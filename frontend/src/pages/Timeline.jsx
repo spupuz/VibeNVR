@@ -205,7 +205,7 @@ export const Timeline = () => {
 
     useEffect(() => {
         const fetchEvents = () => {
-            let url = `${API_BASE}/events/`;
+            let url = `${API_BASE}/events`;
             const params = new URLSearchParams();
             params.append('limit', '1000'); // Increased limit to see more history
             if (cameraId) params.append('camera_id', cameraId);
