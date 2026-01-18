@@ -222,7 +222,7 @@ export const Cameras = () => {
 
     const fetchCameras = async () => {
         try {
-            const res = await fetch('/api/cameras/', {
+            const res = await fetch('/api/cameras', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
@@ -374,7 +374,7 @@ export const Cameras = () => {
         try {
             const url = editingId
                 ? `/api/cameras/${editingId}`
-                : '/api/cameras/';
+                : '/api/cameras';
 
             const method = editingId ? 'PUT' : 'POST';
 
