@@ -158,6 +158,7 @@ class CameraThread(threading.Thread):
         self.recording_process = None
         self.is_recording = False
         self.recording_filename = None
+        self.passthrough_active = False
         
         # Metrics
         self.fps = 0
@@ -427,7 +428,7 @@ class CameraThread(threading.Thread):
             if not self.motion_detected and (time.time() - self.last_motion_time > post_cap):
                  self.stop_recording()
 
-        if self.is_recording and self.recording_process:
+        if self.is_recording and self.recording_process and not self.passthrough_active:
             try:
                 self.recording_process.stdin.write(frame.tobytes())
             except Exception as e:
@@ -446,6 +447,45 @@ class CameraThread(threading.Thread):
         
         logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Start Recording to {full_path}")
         
+        self.passthrough_active = self.config.get('movie_passthrough', False)
+        
+        if self.passthrough_active:
+            # PASSTHROUGH MODE: Direct Stream Copy
+            # Note: No overlays, no resize, no pre-capture buffer
+            command = [
+                'ffmpeg',
+                '-y',
+                '-rtsp_transport', 'tcp',
+                '-i', self.config['rtsp_url'],
+                '-c', 'copy',
+                '-f', 'mp4',
+                '-movflags', '+faststart', # Enable fast start for web playback
+                full_path
+            ]
+            
+            try:
+                # No stdin pipe for passthrough, allows ffmpeg to pull from RTSP directly
+                self.recording_process = subprocess.Popen(command, stdin=None, stderr=subprocess.DEVNULL)
+                self.is_recording = True
+                self.recording_filename = full_path
+                self.recording_start_time = time.time()
+                
+                if self.event_callback:
+                     self.event_callback(self.camera_id, 'recording_start', {
+                         "file_path": full_path,
+                         "width": width, # Note: Actual width might differ if stream changes
+                         "height": height
+                     })
+                logger.info(f"Camera {self.config.get('name')}: Started Passthrough Recording")
+                return 
+                
+            except Exception as e:
+                logger.error(f"Camera {self.config.get('name')}: Failed to start Passthrough ffmpeg: {e}")
+                self.passthrough_active = False # Fallback? No, just fail
+                self.is_recording = False
+                return
+
+        # ENCODING MODE (Standard)
         # Map quality (0-100) to CRF (51-18)
         # 100 = CRF 18 (Visually Lossless)
         # 75  = CRF 26 (Good Compromise)
@@ -453,7 +493,10 @@ class CameraThread(threading.Thread):
         quality = self.config.get('movie_quality', 75)
         crf = int(51 - (quality * 0.33))
         crf = max(18, min(51, crf))
-
+        
+        # Use hardware acceleration if available for ENCODING too? 
+        # For now, software libx264 ultrafast is used as per existing code.
+        
         command = [
             'ffmpeg',
             '-y',
@@ -499,8 +542,18 @@ class CameraThread(threading.Thread):
         if self.is_recording:
             logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Stop Recording")
             if self.recording_process:
-                self.recording_process.stdin.close()
-                self.recording_process.wait()
+                if self.passthrough_active:
+                    # Passthrough: Terminate safely
+                    self.recording_process.terminate()
+                    try:
+                        self.recording_process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        self.recording_process.kill()
+                else:
+                    # Encoding: Close stdin to finish stream
+                    if self.recording_process.stdin:
+                        self.recording_process.stdin.close()
+                    self.recording_process.wait()
                 self.recording_process = None
             self.is_recording = False
             

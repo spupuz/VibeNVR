@@ -31,6 +31,7 @@ class Camera(Base):
     # Movies
     movie_file_name = Column(String, default="%Y-%m-%d/%H-%M-%S")
     movie_quality = Column(Integer, default=75)
+    movie_passthrough = Column(Boolean, default=False)
     recording_mode = Column(String, default="Motion Triggered")
     max_movie_length = Column(Integer, default=0)
     preserve_movies = Column(String, default="For One Week")

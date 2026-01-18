@@ -22,6 +22,15 @@ async def startup_event():
     # Regenerate motion config
     db = next(database.get_db())
     try:
+        # Auto-migration for Passthrough feature
+        from sqlalchemy import text
+        try:
+            db.execute(text("ALTER TABLE cameras ADD COLUMN IF NOT EXISTS movie_passthrough BOOLEAN DEFAULT FALSE"))
+            db.commit()
+        except Exception as e:
+            print(f"Migration warning: {e}")
+            db.rollback()
+            
         motion_service.generate_motion_config(db)
     finally:
         db.close()
