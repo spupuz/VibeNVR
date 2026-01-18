@@ -211,10 +211,9 @@ def export_all_cameras(db: Session = Depends(database.get_db)):
     fields_to_exclude = {'id', 'created_at', 'groups', 'events'}
     
     for cam in cameras:
-        cam_data = jsonable_encoder(cam)
-        # Filter fields
-        filtered_data = {k: v for k, v in cam_data.items() if k not in fields_to_exclude}
-        export_data.append(filtered_data)
+        # Pydantic v2 validation (excludes relationships and system fields like ID automatically)
+        cam_data = jsonable_encoder(schemas.CameraCreate.model_validate(cam))
+        export_data.append(cam_data)
     
     return Response(
         content=json.dumps({"cameras": export_data, "version": "1.1"}, indent=2),
@@ -231,8 +230,8 @@ def export_single_camera(camera_id: int, db: Session = Depends(database.get_db))
     
     fields_to_exclude = {'id', 'created_at', 'groups', 'events'}
     
-    cam_data = jsonable_encoder(cam)
-    filtered_data = {k: v for k, v in cam_data.items() if k not in fields_to_exclude}
+    # Use schema to serialize without relationships
+    filtered_data = jsonable_encoder(schemas.CameraCreate.model_validate(cam))
     
     return Response(
         content=json.dumps({"camera": filtered_data, "version": "1.1"}, indent=2),

@@ -1,35 +1,20 @@
-# VibeNVR v1.6.0 - The "Passthrough" Update
+# VibeNVR v1.6.1 - Release Notes
 
-## 🚀 New Features
+## 🔒 Security & Deployment Updates
 
-*   **Passthrough Recording (CPU Saver)**: 
-    *   Implemented experimental support for "Direct Stream Copy". This allows recording the RTSP stream directly to disk without CPU-intensive re-encoding.
-    *   **Auto-Fallback Mechanism**: If passthrough fails (e.g., stream corruption or incompatible codecs), the system automatically falls back to standard encoding after 1 failed attempt, ensuring no footage is lost.
-    *   Added dedicated toggle in Camera Settings.
+*   **Production Network Hardening**: The `docker-compose.prod.yml` configuration has been hardened for better security.
+    *   **Backend & Engine**: Now bind strictly to `127.0.0.1` (localhost), preventing accidental exposure of sensitive internal API ports (5000/8000) to the public network.
+    *   **Frontend**: Exposed on port `8080` to all interfaces (`0.0.0.0`), allowing LAN access.
+    *   *Recommendation*: For secure remote access, use a Reverse Proxy (e.g., Nginx Proxy Manager) to route traffic from port 80/443 to the containers.
 
-*   **Mobile Experience Overhaul**:
-    *   **Settings Page**: Completely redesigned for mobile. Headers now stack vertically, buttons extend to full width for easier tapping, and the User Management table scrolls horizontally to prevent overflow.
+## 🐛 Critical Bug Fixes
 
-*   **Enhanced Camera Management**:
-    *   **Quick Toggle**: Added an explicit ON/OFF switch directly in the Camera List for fast enabling/disabling of cameras.
-    *   **Resource Optimization**: Inactive cameras are now fully stopped in the backend engine, freeing up system resources.
+*   **Export/Backup Fixed**: Resolved a critical recursion issue where exporting configuration (Global Backup or Single Camera Settings) would fail or hang by attempting to serialize the entire event history. Exports are now optimized, instant, and reliable.
+*   **Database Performance**: Added automatic indexing for `timestamp` and `camera_id` columns on startup. This drastically improves query performance for the Timeline and Dashboard as the database grows.
 
-*   **UI/UX Improvements**:
-    *   **Modals**: Added standard Close (X) buttons and ESC key support to all dialogs (Camera Add/Edit, Password Change, etc.).
-    *   **Visual Feedback**: Inactive cameras are clearly visually dimmed in the list.
+## 🚀 Key Features (v1.6.0 included)
 
-## 🐛 Bug Fixes
-
-*   **Engine & Backend**: 
-    *   Fixed a critical bug where the `movie_passthrough` configuration was not being transmitted to the recording engine.
-    *   Fixed logic where updating settings for a disabled camera would inadvertently start it.
-    *   Fixed RTSP URL sanitization to allow custom formats (reverted double-slash removal).
-    
-*   **Dashboard**:
-    *   Corrected the Resource Usage chart labels (CPU was incorrectly labeled as Memory).
-
-## 🛠️ Technical Updates
-
-*   Unified Frontend and Backend version to `v1.6.0`.
-*   Added database auto-migration for new camera columns.
-*   Improved FFmpeg process error handling and logging.
+*   **Passthrough Recording**: Added experimental "Direct Stream Copy" support to record RTSP streams without re-encoding, saving 50-80% CPU. Includes auto-fallback to encoding if the stream is incompatible.
+*   **Mobile Experience**: Completely redesigned the **Settings** page for mobile devices (vertical stacking, scrollable tables, full-width touch targets).
+*   **Camera Management**: Added quick ON/OFF toggles in the camera list and improved handling of inactive cameras (fully stopped in backend).
+*   **UI Enhancements**: Added 'Close' (X) buttons and ESC key support to all modals.

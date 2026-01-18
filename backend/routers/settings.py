@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 import database
 import models
+import schemas
 import auth_service
 import json
 from datetime import datetime
@@ -103,8 +104,8 @@ def export_backup(db: Session = Depends(database.get_db), current_user: models.U
         "timestamp": datetime.now().isoformat(),
         "version": "1.0",
         "settings": jsonable_encoder(db.query(models.SystemSettings).all()),
-        "cameras": jsonable_encoder(db.query(models.Camera).all()),
-        "groups": jsonable_encoder(db.query(models.CameraGroup).all()),
+        "cameras": jsonable_encoder([schemas.Camera.model_validate(c) for c in db.query(models.Camera).all()]),
+        "groups": jsonable_encoder([schemas.CameraGroup.model_validate(g) for g in db.query(models.CameraGroup).all()]),
         "associations": jsonable_encoder(db.query(models.CameraGroupAssociation).all())
     }
     

@@ -11,7 +11,7 @@ import auth_service
 # Create tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="VibeNVR API", version="1.6.0")
+app = FastAPI(title="VibeNVR API", version="1.6.1")
 
 @app.on_event("startup")
 async def startup_event():
@@ -30,6 +30,15 @@ async def startup_event():
         except Exception as e:
             print(f"Migration warning: {e}")
             db.rollback()
+
+        # Auto-migration for Indices
+        try:
+            db.execute(text("CREATE INDEX IF NOT EXISTS ix_events_timestamp_start ON events (timestamp_start)"))
+            db.execute(text("CREATE INDEX IF NOT EXISTS ix_events_camera_id ON events (camera_id)"))
+            db.commit()
+        except Exception as e:
+            print(f"Index creation warning: {e}")
+            db.rollback()
             
         motion_service.generate_motion_config(db)
     finally:
@@ -41,6 +50,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
 
 app.include_router(cameras.router)

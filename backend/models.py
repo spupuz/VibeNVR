@@ -126,8 +126,8 @@ class Event(Base):
     __tablename__ = "events"
 
     id = Column(Integer, primary_key=True, index=True)
-    camera_id = Column(Integer, ForeignKey("cameras.id"))
-    timestamp_start = Column(DateTime(timezone=True), nullable=False)
+    camera_id = Column(Integer, ForeignKey("cameras.id"), index=True)
+    timestamp_start = Column(DateTime(timezone=True), nullable=False, index=True)
     timestamp_end = Column(DateTime(timezone=True), nullable=True)
     type = Column(String) # video | snapshot
     event_type = Column(String) # motion | manual | scheduled
