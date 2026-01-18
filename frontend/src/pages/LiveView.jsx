@@ -183,7 +183,7 @@ export const LiveView = () => {
     });
 
     const fetchCameras = () => {
-        fetch(`${API_BASE}/cameras`, {
+        fetch(`${API_BASE}/cameras/`, {
             headers: { Authorization: `Bearer ${token}` }
         })
             .then(res => res.json())
