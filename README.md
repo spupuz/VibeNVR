@@ -14,11 +14,12 @@ This software is currently in active beta development. The database schema is st
 | Feature | Description |
 |---------|-------------|
 | 🖥️ **Modern Web Interface** | Ultra-premium UI built with React, Vite, and Lucide icons. |
+| 🎨 **Customizable Dashboard** | Toggle widgets and graphs to suit your monitoring needs. |
 | 🛡️ **Secure by Design** | Full JWT authentication for API, streams, and static media. No unauthorized access. |
 | 📷 **Advanced Video Engine** | Custom Python engine using OpenCV & FFmpeg for RTSP streaming and processing. |
 | 🎯 **Smart Motion Detection** | Native motion detection with adjustable sensitivity, gap, and pre/post-capture buffers. |
 | 📅 **Event Timeline** | Unified browser for movie recordings and high-res snapshots with instant filters. |
-| 💾 **Storage Management** | Automated background cleanup (FIFO) with global and per-camera GB/retention limits. |
+| 💾 **Storage Management** | Automated background cleanup (FIFO) and **Bulk Deletion** tools. |
 | 📁 **Camera Groups** | Organize cameras into custom groups for logical multi-view management. |
 | 🕙 **Timezone Synchronization** | Full ISO 8601 support ensures perfect timing between engine, backend, and UI. |
 | 📊 **Real-time Monitoring** | Live view with adaptive frame polling and dynamic MJPEG stream proxying. |
@@ -78,6 +79,7 @@ VibeNVR is built with security as a priority. Recent updates have hardened the s
           - ./data/recordings:/var/lib/vibe/recordings
         environment:
           - TZ=Europe/Rome
+          - HW_ACCEL=false # Set to true for hardware acceleration (Intel/NVIDIA)
         restart: always
 
       db:
@@ -150,6 +152,9 @@ Attackers scanning your public IP will find all ports (5000, 8000) closed. They 
 
 ## 📸 Screenshots
 
+### Login
+![Login](docs/screenshots/login.png)
+
 ### Dashboard
 ![Dashboard](docs/screenshots/dashboard.png)
 
@@ -159,10 +164,9 @@ Attackers scanning your public IP will find all ports (5000, 8000) closed. They 
 ### Timeline
 ![Timeline](docs/screenshots/timeline.png)
 
-### Settings
+### Settings & Bulk Delete
 ![Settings](docs/screenshots/settings.png)
-
----
+![Storage Management](docs/screenshots/settings_storage.png)
 
 ## 🧱 Architecture
 
