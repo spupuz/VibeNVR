@@ -8,13 +8,23 @@ import motion_service
 import database
 import auth_service
 
-# Create tables
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(title="VibeNVR API", version="1.6.1")
 
 @app.on_event("startup")
 async def startup_event():
+    # Wait for DB to be ready
+    import time
+    from sqlalchemy.exc import OperationalError
+    
+    for i in range(15):
+        try:
+            Base.metadata.create_all(bind=engine)
+            print("Database connection established.")
+            break
+        except Exception as e:
+            print(f"Waiting for Database ({i+1}/15)...")
+            time.sleep(2)
+
     # Start storage monitor in background
     thread = threading.Thread(target=storage_service.storage_monitor_loop, daemon=True)
     thread.start()
