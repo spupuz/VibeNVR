@@ -245,36 +245,49 @@ export const GroupsManager = ({ cameras }) => {
                     <div className="bg-card p-6 rounded-xl w-full max-w-lg border border-border max-h-[80vh] flex flex-col">
                         <h3 className="text-lg font-bold mb-4">Manage Group: {managingGroup.name}</h3>
                         <div className="flex-1 overflow-y-auto min-h-0 space-y-2 mb-4 pr-2">
-                            {cameras.filter(cam => {
-                                // A camera is available if it's NOT in any other group
-                                const isInOtherGroup = groups.some(g =>
-                                    g.id !== managingGroup.id &&
-                                    g.cameras.some(gc => gc.id === cam.id)
-                                );
-                                return !isInOtherGroup;
-                            }).map(cam => (
-                                <label key={cam.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors">
-                                    <div className="flex items-center space-x-3">
-                                        <Camera className="w-4 h-4 text-muted-foreground" />
-                                        <span className="font-medium">{cam.name}</span>
-                                    </div>
-                                    <div className={`w-5 h-5 rounded border flex items-center justify-center ${selectedCameraIds.includes(cam.id) ? 'bg-primary border-primary text-primary-foreground' : 'border-input'}`}>
-                                        {selectedCameraIds.includes(cam.id) && <Check className="w-3 h-3" />}
-                                    </div>
-                                    <input
-                                        type="checkbox"
-                                        className="hidden"
-                                        checked={selectedCameraIds.includes(cam.id)}
-                                        onChange={() => {
-                                            if (selectedCameraIds.includes(cam.id)) {
-                                                setSelectedCameraIds(prev => prev.filter(id => id !== cam.id));
-                                            } else {
-                                                setSelectedCameraIds(prev => [...prev, cam.id]);
-                                            }
-                                        }}
-                                    />
-                                </label>
-                            ))}
+                            {(() => {
+                                const availableCameras = cameras.filter(cam => {
+                                    const isInOtherGroup = groups.some(g =>
+                                        g.id !== managingGroup.id &&
+                                        g.cameras.some(gc => gc.id === cam.id)
+                                    );
+                                    return !isInOtherGroup;
+                                });
+
+                                if (availableCameras.length === 0) {
+                                    return (
+                                        <div className="flex flex-col items-center justify-center py-8 text-center bg-muted/20 rounded-lg border border-dashed border-border">
+                                            <Camera className="w-8 h-8 text-muted-foreground mb-2 opacity-20" />
+                                            <p className="text-sm text-muted-foreground">No free cameras available</p>
+                                            <p className="text-xs text-muted-foreground/60 mt-1">All cameras are already assigned to other groups.</p>
+                                        </div>
+                                    );
+                                }
+
+                                return availableCameras.map(cam => (
+                                    <label key={cam.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors">
+                                        <div className="flex items-center space-x-3">
+                                            <Camera className="w-4 h-4 text-muted-foreground" />
+                                            <span className="font-medium">{cam.name}</span>
+                                        </div>
+                                        <div className={`w-5 h-5 rounded border flex items-center justify-center ${selectedCameraIds.includes(cam.id) ? 'bg-primary border-primary text-primary-foreground' : 'border-input'}`}>
+                                            {selectedCameraIds.includes(cam.id) && <Check className="w-3 h-3" />}
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            className="hidden"
+                                            checked={selectedCameraIds.includes(cam.id)}
+                                            onChange={() => {
+                                                if (selectedCameraIds.includes(cam.id)) {
+                                                    setSelectedCameraIds(prev => prev.filter(id => id !== cam.id));
+                                                } else {
+                                                    setSelectedCameraIds(prev => [...prev, cam.id]);
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                ));
+                            })()}
                         </div>
                         <div className="flex justify-end space-x-2 pt-4 border-t border-border">
                             <button onClick={() => setManagingGroup(null)} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md">Cancel</button>
