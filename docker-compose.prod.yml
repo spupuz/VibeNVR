@@ -4,8 +4,6 @@
 services:
   frontend:
     image: spupuz/vibenvr-frontend:latest
-    build:
-      context: ./frontend
     container_name: vibenvr-frontend
     ports:
       - "8080:80"
@@ -14,8 +12,6 @@ services:
 
   backend:
     image: spupuz/vibenvr-backend:latest
-    build:
-      context: ./backend
     container_name: vibenvr-backend
     ports:
       - "127.0.0.1:5000:5000"
@@ -32,8 +28,6 @@ services:
 
   engine:
     image: spupuz/vibenvr-engine:latest
-    build:
-      context: ./engine
     container_name: vibenvr-engine
     ports:
       - "127.0.0.1:8000:8000"
