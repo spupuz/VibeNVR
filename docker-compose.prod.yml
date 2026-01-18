@@ -6,7 +6,7 @@ services:
     image: spupuz/vibenvr-frontend:latest
     container_name: vibenvr-frontend
     ports:
-      - "127.0.0.1:8080:80"
+      - "8080:80"
     user: "1000:1000"
     restart: always
 

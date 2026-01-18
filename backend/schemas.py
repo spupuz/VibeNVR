@@ -98,6 +98,9 @@ class CameraBase(BaseModel):
     schedule_sunday_start: Optional[str] = "00:00"
     schedule_sunday_end: Optional[str] = "23:59"
 
+    class Config:
+        from_attributes = True
+
 class CameraCreate(CameraBase):
     pass
 
