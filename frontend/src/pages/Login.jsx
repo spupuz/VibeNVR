@@ -14,7 +14,7 @@ export const Login = () => {
     useEffect(() => {
         const checkSetup = async () => {
             try {
-                const res = await fetch('http://' + window.location.hostname + ':5000/auth/status');
+                const res = await fetch('/api/auth/status');
                 if (res.ok) {
                     const data = await res.json();
                     if (data.setup_required) {
@@ -37,14 +37,14 @@ export const Login = () => {
             formData.append('username', username);
             formData.append('password', password);
 
-            const res = await fetch('http://' + window.location.hostname + ':5000/auth/login', {
+            const res = await fetch('/api/auth/login', {
                 method: 'POST',
                 body: formData,
             });
 
             if (res.ok) {
                 const data = await res.json();
-                const userRes = await fetch('http://' + window.location.hostname + ':5000/auth/me', {
+                const userRes = await fetch('/api/auth/me', {
                     headers: { Authorization: `Bearer ${data.access_token}` }
                 });
                 if (userRes.ok) {

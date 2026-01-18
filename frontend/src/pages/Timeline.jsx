@@ -98,7 +98,7 @@ const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl, onDele
                 <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-90 transition-opacity z-10">
                     {/* Download */}
                     <a
-                        href={`http://${window.location.hostname}:5000/events/${event.id}/download`}
+                        href={`/api/events/${event.id}/download`}
                         download
                         onClick={(e) => e.stopPropagation()}
                         className="p-1 bg-black/50 hover:bg-black/70 text-white rounded backdrop-blur-sm transition-colors"
@@ -179,7 +179,7 @@ const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl, onDele
     );
 };
 
-const API_BASE = `http://${window.location.hostname}:5000`;
+const API_BASE = `/api`;
 
 export const Timeline = () => {
     const { token } = useAuth();
@@ -568,7 +568,7 @@ export const Timeline = () => {
                                 <div className="w-px h-6 bg-border mx-1"></div>
 
                                 <a
-                                    href={`http://${window.location.hostname}:5000/events/${selectedEvent.id}/download`}
+                                    href={`/api/events/${selectedEvent.id}/download`}
                                     download
                                     className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors"
                                 >

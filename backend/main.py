@@ -8,7 +8,7 @@ import motion_service
 import database
 import auth_service
 
-app = FastAPI(title="VibeNVR API", version="1.6.4")
+app = FastAPI(title="VibeNVR API", version="1.7.0")
 
 @app.on_event("startup")
 async def startup_event():

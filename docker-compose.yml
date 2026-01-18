@@ -4,7 +4,7 @@ services:
       context: ./frontend
     container_name: vibenvr-frontend
     ports:
-      - "127.0.0.1:8080:80"
+      - "8080:80"
     user: "1000:1000"
     restart: always
 
@@ -19,11 +19,12 @@ services:
       - vibenvr_data:/data
       - ./motion:/etc/motion
     environment:
-      - DATABASE_URL=postgresql://vibenvr:${POSTGRES_PASSWORD:-vibenvrpass}@db:5432/vibenvr
+      - DATABASE_URL=postgresql://vibenvr:vibenvrpass@db:5432/vibenvr
       - TZ=Europe/Rome
       - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: always
 
   engine:
@@ -59,10 +60,15 @@ services:
     container_name: vibenvr-db
     environment:
       - POSTGRES_USER=vibenvr
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-vibenvrpass}
+      - POSTGRES_PASSWORD=vibenvrpass
       - POSTGRES_DB=vibenvr
     volumes:
       - vibenvr_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U vibenvr" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: always
 
 volumes:
