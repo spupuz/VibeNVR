@@ -13,7 +13,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.post("/", response_model=schemas.Camera)
+@router.post("", response_model=schemas.Camera)
 def create_camera(camera: schemas.CameraCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     # Auto-detect resolution if passthrough is enabled
     # Auto-detect resolution if enabled
@@ -31,7 +31,7 @@ def create_camera(camera: schemas.CameraCreate, db: Session = Depends(database.g
     motion_service.generate_motion_config(db)
     return new_camera
 
-@router.get("/", response_model=List[schemas.Camera])
+@router.get("", response_model=List[schemas.Camera])
 def read_cameras(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
     cameras = crud.get_cameras(db, skip=skip, limit=limit)
     return cameras
