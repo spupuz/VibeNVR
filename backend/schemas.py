@@ -27,6 +27,7 @@ class CameraBase(BaseModel):
     # Movies
     movie_file_name: Optional[str] = "%Y-%m-%d/%H-%M-%S"
     movie_quality: Optional[int] = 75
+    movie_passthrough: Optional[bool] = False
     recording_mode: Optional[str] = "Motion Triggered"
     max_movie_length: Optional[int] = 0
     preserve_movies: Optional[str] = "For One Week"

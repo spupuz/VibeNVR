@@ -17,6 +17,7 @@ This software is currently in active beta development. The database schema is st
 | 🎨 **Customizable Dashboard** | Toggle widgets and graphs to suit your monitoring needs. |
 | 🛡️ **Secure by Design** | Full JWT authentication for API, streams, and static media. No unauthorized access. |
 | 📷 **Advanced Video Engine** | Custom Python engine using OpenCV & FFmpeg for RTSP streaming and processing. |
+| ⚡ **Passthrough Recording** | Direct Stream Copy support for near-zero CPU usage recording (experimental). |
 | 🎯 **Smart Motion Detection** | Native motion detection with adjustable sensitivity, gap, and pre/post-capture buffers. |
 | 📅 **Event Timeline** | Unified browser for movie recordings and high-res snapshots with instant filters. |
 | 💾 **Storage Management** | Automated background cleanup (FIFO) and **Bulk Deletion** tools. |

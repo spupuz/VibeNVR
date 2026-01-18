@@ -935,6 +935,18 @@ export const Cameras = () => {
                                             onChange={(val) => setNewCamera({ ...newCamera, recording_mode: val })}
                                             options={['Motion Triggered', 'Continuous', 'Off']}
                                         />
+                                        <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/50 p-3 rounded-lg text-xs mb-4">
+                                            <Toggle
+                                                label="Passthrough Recording (CPU Saver)"
+                                                checked={!!newCamera.movie_passthrough}
+                                                onChange={(val) => setNewCamera({ ...newCamera, movie_passthrough: val })}
+                                            />
+                                            <p className="mt-1 text-muted-foreground ml-1">
+                                                Directly saves the video stream without re-encoding. <br />
+                                                <span className="font-semibold text-green-600 dark:text-green-400">Pros:</span> Near-zero CPU usage, original quality. <br />
+                                                <span className="font-semibold text-red-600 dark:text-red-400">Cons:</span> No Text Overylays, potential start delay, MP4 container only.
+                                            </p>
+                                        </div>
                                         <Slider
                                             label="Movie Quality"
                                             value={newCamera.movie_quality}
