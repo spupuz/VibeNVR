@@ -159,6 +159,7 @@ class CameraThread(threading.Thread):
         self.is_recording = False
         self.recording_filename = None
         self.passthrough_active = False
+        self.passthrough_error_count = 0 # Track consecutive failures
         
         # Metrics
         self.fps = 0
@@ -434,6 +435,7 @@ class CameraThread(threading.Thread):
                  logger.error(f"Camera {self.config.get('name')}: Passthrough recording process died unexpectedly (code {self.recording_process.poll()}). Aborting motion event.")
                  self.stop_recording()
                  self.motion_detected = False # Prevent immediate restart loop
+                 self.passthrough_error_count += 1
                  return
 
         if self.is_recording and self.recording_process and not self.passthrough_active:
@@ -473,10 +475,16 @@ class CameraThread(threading.Thread):
         
         logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Start Recording to {full_path}")
         
-        self.passthrough_active = self.config.get('movie_passthrough', False)
+        # Passthrough Logic with Fallback
+        if self.passthrough_error_count > 3:
+             if self.passthrough_error_count == 4:
+                 logger.warning(f"Camera {self.config.get('name')}: Passthrough failed too many times ({self.passthrough_error_count}). Falling back to Encoding.")
+             self.passthrough_active = False
+        else:
+             self.passthrough_active = self.config.get('movie_passthrough', False)
         
         if self.passthrough_active:
-            # PASSTHROUGH MODE: Direct Stream Copy
+             # PASSTHROUGH MODE: Direct Stream Copy
             # Note: No overlays, no resize, no pre-capture buffer
             command = [
                 'ffmpeg',
@@ -517,6 +525,7 @@ class CameraThread(threading.Thread):
                 logger.error(f"Camera {self.config.get('name')}: Failed to start Passthrough ffmpeg: {e}")
                 self.passthrough_active = False # Fallback? No, just fail
                 self.is_recording = False
+                self.passthrough_error_count += 1
                 return
 
         # ENCODING MODE (Standard)
