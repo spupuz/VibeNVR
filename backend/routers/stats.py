@@ -70,7 +70,7 @@ def start_resource_collector():
 # Start the collector on module load
 start_resource_collector()
 
-@router.get("/")
+@router.get("")
 def get_stats(db: Session = Depends(database.get_db)):
     from sqlalchemy import func
     
