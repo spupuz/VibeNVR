@@ -34,7 +34,7 @@ def collect_resource_stats():
         engine_cpu = 0
         engine_mem_mb = 0
         try:
-            engine_resp = requests.get("http://vibenvr-engine:8000/stats", timeout=2)
+            engine_resp = requests.get("http://engine:8000/stats", timeout=2)
             if engine_resp.status_code == 200:
                 engine_data = engine_resp.json()
                 engine_cpu = engine_data.get("cpu_percent", 0)
