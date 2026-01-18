@@ -428,6 +428,14 @@ class CameraThread(threading.Thread):
             if not self.motion_detected and (time.time() - self.last_motion_time > post_cap):
                  self.stop_recording()
 
+        # Check for Passthrough crash
+        if self.is_recording and self.passthrough_active and self.recording_process:
+             if self.recording_process.poll() is not None:
+                 logger.error(f"Camera {self.config.get('name')}: Passthrough recording process died unexpectedly (code {self.recording_process.poll()}). Aborting motion event.")
+                 self.stop_recording()
+                 self.motion_detected = False # Prevent immediate restart loop
+                 return
+
         if self.is_recording and self.recording_process and not self.passthrough_active:
             try:
                 self.recording_process.stdin.write(frame.tobytes())
