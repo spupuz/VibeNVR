@@ -14,6 +14,11 @@ RUN npm run build
 # Production Stage
 FROM nginx:alpine
 
+# Create necessary directories and set permissions for unprivileged execution if needed
+# Although we removed 'user' from compose, it's good practice
+RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx && \
+    chmod -R 777 /var/cache/nginx /var/run /var/log/nginx
+
 # Remove default nginx static assets
 RUN rm -rf /usr/share/nginx/html/*
 
