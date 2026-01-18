@@ -456,6 +456,8 @@ class CameraThread(threading.Thread):
                 'ffmpeg',
                 '-y',
                 '-rtsp_transport', 'tcp',
+                '-hide_banner',      # Hide build/version info
+                '-loglevel', 'error', # Suppress info logs that show input URL (credentials)
                 '-i', self.config['rtsp_url'],
                 '-c:v', 'copy',
                 '-an',  # Disable audio to prevent MP4 container errors with PCM codecs
