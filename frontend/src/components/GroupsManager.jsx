@@ -245,7 +245,14 @@ export const GroupsManager = ({ cameras }) => {
                     <div className="bg-card p-6 rounded-xl w-full max-w-lg border border-border max-h-[80vh] flex flex-col">
                         <h3 className="text-lg font-bold mb-4">Manage Group: {managingGroup.name}</h3>
                         <div className="flex-1 overflow-y-auto min-h-0 space-y-2 mb-4 pr-2">
-                            {cameras.map(cam => (
+                            {cameras.filter(cam => {
+                                // A camera is available if it's NOT in any other group
+                                const isInOtherGroup = groups.some(g =>
+                                    g.id !== managingGroup.id &&
+                                    g.cameras.some(gc => gc.id === cam.id)
+                                );
+                                return !isInOtherGroup;
+                            }).map(cam => (
                                 <label key={cam.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors">
                                     <div className="flex items-center space-x-3">
                                         <Camera className="w-4 h-4 text-muted-foreground" />

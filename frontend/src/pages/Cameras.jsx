@@ -184,7 +184,7 @@ export const Cameras = () => {
 
     const fetchStats = async () => {
         try {
-            const res = await fetch('/api/stats/', {
+            const res = await fetch('/api/stats', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) setStats(await res.json());
