@@ -9,6 +9,17 @@ logger = logging.getLogger(__name__)
 # Backend URL for webhooks
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://vibenvr-backend:5000")
 
+def mask_config(config):
+    """Hide sensitive data in camera config for logging"""
+    if not isinstance(config, dict):
+        return config
+    masked = config.copy()
+    if 'rtsp_url' in masked:
+        import re
+        # Mask rtsp://user:pass@host
+        masked['rtsp_url'] = re.sub(r'(rtsp://)([^:]+):([^@]+)(@)', r'\1\2:****\4', masked['rtsp_url'])
+    return masked
+
 class CameraManager:
     def __init__(self):
         self.cameras = {} # id -> CameraThread
@@ -21,7 +32,7 @@ class CameraManager:
             return
 
         name = config.get('name', 'Unknown')
-        logger.info(f"Starting camera {name} (ID: {camera_id}) with config: {config}")
+        logger.info(f"Starting camera {name} (ID: {camera_id}) with config: {mask_config(config)}")
         thread = CameraThread(camera_id, config, event_callback=self.handle_event)
         thread.start()
         self.cameras[camera_id] = thread
