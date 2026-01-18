@@ -467,9 +467,13 @@ class CameraThread(threading.Thread):
             ]
             
             try:
-                # No stdin pipe for passthrough, allows ffmpeg to pull from RTSP directly
-                # stderr=None allows ffmpeg errors to show in container logs
-                self.recording_process = subprocess.Popen(command, stdin=None, stderr=None)
+                # Use PIPE for stderr to trap and mask logs
+                self.recording_process = subprocess.Popen(command, stdin=None, stderr=subprocess.PIPE)
+                
+                # Start background thread to monitor logs and mask credentials
+                log_thread = threading.Thread(target=self._monitor_ffmpeg_logs, args=(self.recording_process,), daemon=True)
+                log_thread.start()
+                
                 self.is_recording = True
                 self.recording_filename = full_path
                 self.recording_start_time = time.time()
@@ -488,6 +492,24 @@ class CameraThread(threading.Thread):
                 self.passthrough_active = False # Fallback? No, just fail
                 self.is_recording = False
                 return
+
+    def _monitor_ffmpeg_logs(self, process):
+        """Read stderr from ffmpeg, mask credentials, and log"""
+        try:
+            # Iterate lines until stderr is closed
+            for line in iter(process.stderr.readline, b''):
+                if not line: break
+                
+                msg = line.decode('utf-8', errors='replace').strip()
+                if not msg: continue
+                
+                masked_msg = self._mask_url(msg)
+                
+                # If using -loglevel error, practically everything here is important
+                logger.error(f"FFmpeg [{self.config.get('name')}]: {masked_msg}")
+        except Exception as e:
+            # Process probably died
+            pass
 
         # ENCODING MODE (Standard)
         # Map quality (0-100) to CRF (51-18)
