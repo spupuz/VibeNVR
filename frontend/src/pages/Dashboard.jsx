@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Camera, HardDrive, ShieldAlert, Film, Image, CalendarClock, Cpu, MemoryStick } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const StatCard = ({ title, value, subtext, icon: Icon, trend }) => (
     <div className="p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group">
@@ -35,6 +35,7 @@ export const Dashboard = () => {
     const [recentEvents, setRecentEvents] = useState([]);
     const [cameraMap, setCameraMap] = useState({});
     const [graphData, setGraphData] = useState([]);
+    const [resourceHistory, setResourceHistory] = useState([]);
 
     useEffect(() => {
         if (!token) return;
@@ -91,13 +92,36 @@ export const Dashboard = () => {
             }
         };
 
+        const fetchResourceHistory = async () => {
+            try {
+                const res = await fetch('http://localhost:5000/stats/resources-history', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    // Format for chart
+                    const formatted = data.map(item => ({
+                        time: new Date(item.timestamp).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+                        cpu: item.cpu_percent,
+                        memory: Math.round(item.memory_mb / 1024 * 10) / 10  // Convert to GB
+                    }));
+                    setResourceHistory(formatted);
+                }
+            } catch (err) {
+                console.error("Error fetching resource history", err);
+            }
+        };
+
         fetchStats();
         fetchEvents();
         fetchCameras();
         fetchGraphData();
+        fetchResourceHistory();
+
         const interval = setInterval(() => {
             fetchStats();
             fetchEvents();
+            fetchResourceHistory();
         }, 30000);
         return () => clearInterval(interval);
     }, [token]);
@@ -199,6 +223,76 @@ export const Dashboard = () => {
                 <StatCard title="CPU Usage" value={`${stats.resources?.cpu_percent || 0}%`} subtext={`Engine: ${stats.resources?.engine_cpu || 0}% | API: ${stats.resources?.backend_cpu || 0}%`} icon={Cpu} />
                 <StatCard title="Memory" value={`${Math.round(stats.resources?.memory_mb || 0)} MB`} subtext={`Engine: ${Math.round(stats.resources?.engine_mem_mb || 0)} | API: ${Math.round(stats.resources?.backend_mem_mb || 0)} MB`} icon={MemoryStick} />
                 <StatCard title="System Status" value={stats.system_status} subtext={`Uptime: ${stats.uptime}`} icon={ShieldAlert} trend="positive" />
+            </div>
+
+            {/* Resource Usage History Graph */}
+            <div className="bg-card rounded-xl border border-border p-6">
+                <h3 className="text-lg font-semibold mb-4">Resource Usage (Last Hour)</h3>
+                <div className="h-[200px] w-full">
+                    {resourceHistory.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={resourceHistory} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" opacity={0.2} />
+                                <XAxis
+                                    dataKey="time"
+                                    stroke="#888888"
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                />
+                                <YAxis
+                                    yAxisId="cpu"
+                                    stroke="#3b82f6"
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickFormatter={value => `${value}%`}
+                                    domain={[0, 'auto']}
+                                />
+                                <YAxis
+                                    yAxisId="mem"
+                                    orientation="right"
+                                    stroke="#10b981"
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickFormatter={value => `${value}GB`}
+                                    domain={[0, 'auto']}
+                                />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}
+                                    formatter={(value, name) => [
+                                        name === 'cpu' ? `${value}%` : `${value} GB`,
+                                        name === 'cpu' ? 'CPU' : 'Memory'
+                                    ]}
+                                />
+                                <Legend />
+                                <Line
+                                    yAxisId="cpu"
+                                    type="monotone"
+                                    dataKey="cpu"
+                                    name="CPU %"
+                                    stroke="#3b82f6"
+                                    strokeWidth={2}
+                                    dot={false}
+                                />
+                                <Line
+                                    yAxisId="mem"
+                                    type="monotone"
+                                    dataKey="memory"
+                                    name="Memory GB"
+                                    stroke="#10b981"
+                                    strokeWidth={2}
+                                    dot={false}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                            <p>Collecting data... (updates every minute)</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

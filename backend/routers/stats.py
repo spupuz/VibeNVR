@@ -5,7 +5,9 @@ import time
 import os
 import psutil
 import requests
+import threading
 from datetime import datetime, timedelta
+from collections import deque
 from sqlalchemy import func
 import crud, database, schemas, models
 
@@ -15,6 +17,58 @@ router = APIRouter(
 )
 
 START_TIME = time.time()
+
+# In-memory storage for resource history (last 60 minutes)
+RESOURCE_HISTORY = deque(maxlen=60)
+RESOURCE_HISTORY_LOCK = threading.Lock()
+
+def collect_resource_stats():
+    """Collect CPU/RAM stats and store in history. Called every minute."""
+    try:
+        # Backend stats
+        backend_process = psutil.Process(os.getpid())
+        backend_cpu = backend_process.cpu_percent(interval=0.1)
+        backend_mem_mb = backend_process.memory_info().rss / (1024 * 1024)
+        
+        # Engine stats
+        engine_cpu = 0
+        engine_mem_mb = 0
+        try:
+            engine_resp = requests.get("http://vibenvr-engine:8000/stats", timeout=2)
+            if engine_resp.status_code == 200:
+                engine_data = engine_resp.json()
+                engine_cpu = engine_data.get("cpu_percent", 0)
+                engine_mem_mb = engine_data.get("memory_mb", 0)
+        except:
+            pass
+        
+        data_point = {
+            "timestamp": datetime.now().isoformat(),
+            "cpu_percent": round(backend_cpu + engine_cpu, 1),
+            "memory_mb": round(backend_mem_mb + engine_mem_mb, 1),
+            "backend_cpu": round(backend_cpu, 1),
+            "engine_cpu": engine_cpu,
+            "backend_mem_mb": round(backend_mem_mb, 1),
+            "engine_mem_mb": engine_mem_mb
+        }
+        
+        with RESOURCE_HISTORY_LOCK:
+            RESOURCE_HISTORY.append(data_point)
+    except Exception as e:
+        print(f"Error collecting resource stats: {e}")
+
+def start_resource_collector():
+    """Background thread to collect stats every minute"""
+    def collector_loop():
+        while True:
+            collect_resource_stats()
+            time.sleep(60)  # Collect every minute
+    
+    thread = threading.Thread(target=collector_loop, daemon=True)
+    thread.start()
+
+# Start the collector on module load
+start_resource_collector()
 
 @router.get("/")
 def get_stats(db: Session = Depends(database.get_db)):
@@ -251,3 +305,12 @@ def get_stats_history(db: Session = Depends(database.get_db)):
     except Exception as e:
         print(f"Error generating history stats: {e}")
         return []
+
+@router.get("/resources-history")
+def get_resources_history():
+    """
+    Returns CPU and memory usage history for the last hour (up to 60 data points).
+    Data is collected every minute by a background thread.
+    """
+    with RESOURCE_HISTORY_LOCK:
+        return list(RESOURCE_HISTORY)
