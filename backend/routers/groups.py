@@ -9,11 +9,11 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("/", response_model=List[schemas.CameraGroup])
+@router.get("", response_model=List[schemas.CameraGroup])
 def read_groups(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
     return crud.get_groups(db, skip=skip, limit=limit)
 
-@router.post("/", response_model=schemas.CameraGroup)
+@router.post("", response_model=schemas.CameraGroup)
 def create_group(group: schemas.CameraGroupCreate, db: Session = Depends(database.get_db)):
     return crud.create_group(db, group=group)
 
