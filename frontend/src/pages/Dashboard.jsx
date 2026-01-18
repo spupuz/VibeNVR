@@ -99,7 +99,7 @@ export const Dashboard = () => {
 
         const fetchGraphData = async () => {
             try {
-                const res = await fetch('/api/stats/history', {
+                const res = await fetch('/api/stats/history/', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -114,7 +114,7 @@ export const Dashboard = () => {
 
         const fetchResourceHistory = async () => {
             try {
-                const res = await fetch('/api/stats/resources-history', {
+                const res = await fetch('/api/stats/resources-history/', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (res.ok) {
