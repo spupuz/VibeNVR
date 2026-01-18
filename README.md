@@ -44,63 +44,23 @@ VibeNVR is built with security as a priority. Recent updates have hardened the s
 
 ### 📦 Installation via Docker (Recommended)
 
-1.  Create a `docker-compose.yml` file (or clone the repo):
-
-    ```yaml
-    services:
-      frontend:
-        image: spupuz/vibenvr-frontend:latest
-        container_name: vibenvr-frontend
-        ports:
-          - "127.0.0.1:8080:80" # Bind to localhost ONLY for security
-        restart: always
-
-      backend:
-        image: spupuz/vibenvr-backend:latest
-        container_name: vibenvr-backend
-        ports:
-          - "127.0.0.1:5000:5000" # Internal API, shielded from public
-        volumes:
-          - ./data/recordings:/data
-        environment:
-          - DATABASE_URL=postgresql://vibenvr:CHANGE_THIS_PASSWORD@db:5432/vibenvr
-          - SECRET_KEY=CHANGE_THIS_TO_A_LONG_RANDOM_STRING # <--- CRITICAL FOR SECURITY
-          - TZ=Europe/Rome
-        depends_on:
-          - db
-        restart: always
-
-      engine:
-        image: spupuz/vibenvr-engine:latest
-        container_name: vibenvr-engine
-        ports:
-          - "127.0.0.1:8000:8000" # Internal, shielded
-        volumes:
-          - ./data/recordings:/var/lib/vibe/recordings
-        environment:
-          - TZ=Europe/Rome
-          - HW_ACCEL=false # Set to true for hardware acceleration (Intel/NVIDIA)
-        restart: always
-
-      db:
-        image: postgres:15-alpine
-        container_name: vibenvr-db
-        environment:
-          - POSTGRES_USER=vibenvr
-          - POSTGRES_PASSWORD=CHANGE_THIS_PASSWORD
-          - POSTGRES_DB=vibenvr
-        volumes:
-          - ./data/db:/var/lib/postgresql/data
-        restart: always
+1.  Download the **[docker-compose.prod.yml](docker-compose.prod.yml)** file.
+    
+    *Alternatively, clone the repository to get all files:*
+    ```bash
+    git clone https://github.com/spupuz/VibeNVR.git
+    cd VibeNVR
     ```
 
-2.  **CRITICAL SECURITY STEP**: 
-    - Change `POSTGRES_PASSWORD` to a strong password.
-    - Change `SECRET_KEY` to a long, random string. This key signs your authentication tokens. If you leave it default, your system is vulnerable.
+2.  **Configuration**:
+    Open the file and optionally update:
+    - `POSTGRES_PASSWORD`: Set a strong password.
+    - `SECRET_KEY`: Generate a secure random string (crucial for auth).
+    - `HW_ACCEL`: Set to `true` if you have a GPU (check comments in file for device mapping).
 
 3.  Start the service:
     ```bash
-    docker compose up -d
+    docker compose -f docker-compose.prod.yml up -d
     ```
 
 ---
