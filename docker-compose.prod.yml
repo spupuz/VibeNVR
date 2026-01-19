@@ -1,4 +1,3 @@
-```yaml
 # Production Docker Compose - Uses pre-built images from Docker Hub
 # Use this when you want to run VibeNVR without building from source
 
