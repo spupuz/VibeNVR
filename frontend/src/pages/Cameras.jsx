@@ -387,6 +387,8 @@ export const Cameras = () => {
                 body: JSON.stringify(newCamera)
             });
             if (res.ok) {
+                const savedCamera = await res.json();
+
                 if (shouldClose) {
                     setShowAddModal(false);
                     setNewCamera({
@@ -439,6 +441,10 @@ export const Cameras = () => {
                     });
                     setEditingId(null);
                 } else {
+                    // Update state to reflect that we are now editing an existing camera
+                    // This prevents creating a duplicate if the user clicks "Save" later
+                    setEditingId(savedCamera.id);
+                    setNewCamera(savedCamera);
                     showToast("Settings saved successfully.", "success");
                 }
                 fetchCameras();
