@@ -505,7 +505,7 @@ export const Cameras = () => {
                     <h2 className="text-3xl font-bold tracking-tight">Cameras</h2>
                     <p className="text-muted-foreground mt-2">Manage your video sources.</p>
                 </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     {user?.role === 'admin' && view === 'cameras' && (
                         <>
                             <button
