@@ -529,420 +529,428 @@ export const Settings = () => {
             )}
 
             {/* Storage Settings */}
-            <div className={'bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
-                <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                    <div className="p-2 bg-green-500/10 rounded-lg text-green-500">
-                        <HardDrive className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-lg">Storage Management</h3>
-                        <p className="text-sm text-muted-foreground">Control disk space usage for recordings</p>
-                    </div>
-                </div>
-                {user?.role !== 'admin' && <div className="text-red-500 text-sm mb-2 font-bold">Read Only (Admin required)</div>}
-
-                <div className="space-y-4">
-                    {/* Storage Occupation Display */}
-                    <div className="bg-muted/30 rounded-lg p-4 mb-4 border border-border/50">
-                        <div className="flex justify-between items-end mb-2">
-                            <span className="text-sm font-medium">Storage Occupation</span>
-                            <span className="text-xs text-muted-foreground">
-                                {storageStats.used_gb} GB / {globalSettings.max_global_storage_gb > 0 ? globalSettings.max_global_storage_gb : storageStats.total_gb} GB
-                                ({Math.round(occupationPercent)}%)
-                            </span>
+            {user?.role === 'admin' && (
+                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6">
+                    <div className="flex items-center space-x-3 pb-4 border-b border-border">
+                        <div className="p-2 bg-green-500/10 rounded-lg text-green-500">
+                            <HardDrive className="w-6 h-6" />
                         </div>
-                        <div className="w-full h-3 bg-background rounded-full border border-border overflow-hidden">
-                            <div
-                                className={'h-full transition-all duration-500 rounded-full ' +
-                                    (occupationPercent > 90 ? 'bg-red-500' : occupationPercent > 70 ? 'bg-amber-500' : 'bg-green-500')
-                                }
-                                style={{ width: Math.min(occupationPercent, 100) + '%' }}
+                        <div>
+                            <h3 className="font-semibold text-lg">Storage Management</h3>
+                            <p className="text-sm text-muted-foreground">Control disk space usage for recordings</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {/* Storage Occupation Display */}
+                        <div className="bg-muted/30 rounded-lg p-4 mb-4 border border-border/50">
+                            <div className="flex justify-between items-end mb-2">
+                                <span className="text-sm font-medium">Storage Occupation</span>
+                                <span className="text-xs text-muted-foreground">
+                                    {storageStats.used_gb} GB / {globalSettings.max_global_storage_gb > 0 ? globalSettings.max_global_storage_gb : storageStats.total_gb} GB
+                                    ({Math.round(occupationPercent)}%)
+                                </span>
+                            </div>
+                            <div className="w-full h-3 bg-background rounded-full border border-border overflow-hidden">
+                                <div
+                                    className={'h-full transition-all duration-500 rounded-full ' +
+                                        (occupationPercent > 90 ? 'bg-red-500' : occupationPercent > 70 ? 'bg-amber-500' : 'bg-green-500')
+                                    }
+                                    style={{ width: Math.min(occupationPercent, 100) + '%' }}
+                                />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-2 italic">
+                                {globalSettings.max_global_storage_gb > 0
+                                    ? 'Currently using ' + storageStats.used_gb + ' GB of your ' + globalSettings.max_global_storage_gb + ' GB limit.'
+                                    : 'Total disk usage. No global limit set.'}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Maximum Global Storage (GB)</label>
+                            <input
+                                type="number"
+                                value={globalSettings.max_global_storage_gb}
+                                onChange={(e) => setGlobalSettings({ ...globalSettings, max_global_storage_gb: parseFloat(e.target.value) || 0 })}
+                                className="w-full max-w-xs bg-background border border-input rounded-lg px-3 py-2"
+                                min="0"
+                                step="1"
                             />
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Set total storage limit for all cameras. 0 = unlimited. When exceeded, oldest recordings are deleted.
+                            </p>
                         </div>
-                        <p className="text-[10px] text-muted-foreground mt-2 italic">
-                            {globalSettings.max_global_storage_gb > 0
-                                ? 'Currently using ' + storageStats.used_gb + ' GB of your ' + globalSettings.max_global_storage_gb + ' GB limit.'
-                                : 'Total disk usage. No global limit set.'}
-                        </p>
+
+                        <div className="flex items-center justify-between max-w-xs">
+                            <label className="text-sm font-medium">Enable Automatic Cleanup</label>
+                            <button
+                                type="button"
+                                onClick={() => setGlobalSettings({ ...globalSettings, cleanup_enabled: !globalSettings.cleanup_enabled })}
+                                className={'relative inline-flex h-6 w-11 items-center rounded-full transition-colors ' +
+                                    (globalSettings.cleanup_enabled ? 'bg-primary' : 'bg-muted')
+                                }
+                            >
+                                <span className={'inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ' +
+                                    (globalSettings.cleanup_enabled ? 'translate-x-6' : 'translate-x-1')
+                                } />
+                            </button>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Cleanup Interval (Hours)</label>
+                            <select
+                                value={globalSettings.cleanup_interval_hours}
+                                onChange={(e) => setGlobalSettings({ ...globalSettings, cleanup_interval_hours: parseInt(e.target.value) })}
+                                className="w-full max-w-xs bg-background border border-input rounded-lg px-3 py-2"
+                            >
+                                <option value="1">Every Hour</option>
+                                <option value="6">Every 6 Hours</option>
+                                <option value="12">Every 12 Hours</option>
+                                <option value="24">Every 24 Hours</option>
+                                <option value="48">Every 2 Days</option>
+                                <option value="168">Every Week</option>
+                            </select>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                How often to check and clean up old recordings
+                            </p>
+                        </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium mb-2">Maximum Global Storage (GB)</label>
-                        <input
-                            type="number"
-                            value={globalSettings.max_global_storage_gb}
-                            onChange={(e) => setGlobalSettings({ ...globalSettings, max_global_storage_gb: parseFloat(e.target.value) || 0 })}
-                            className="w-full max-w-xs bg-background border border-input rounded-lg px-3 py-2"
-                            min="0"
-                            step="1"
-                            disabled={user?.role !== 'admin'}
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Set total storage limit for all cameras. 0 = unlimited. When exceeded, oldest recordings are deleted.
-                        </p>
-                    </div>
+                    {/* Bulk Delete Section */}
+                    {user?.role === 'admin' && (
+                        <div className="pt-4 border-t border-border mt-4">
+                            <h4 className="text-sm font-semibold mb-3">Bulk Deletion</h4>
+                            <div className="flex flex-wrap gap-3">
+                                <Button
+                                    variant="outline"
+                                    className="border-red-500/50 text-red-500 hover:bg-red-500/10"
+                                    onClick={() => setConfirmConfig({
+                                        isOpen: true,
+                                        title: 'Delete All Videos',
+                                        message: 'Are you sure you want to delete ALL video recordings? This action cannot be undone and will free up disk space.',
+                                        onConfirm: async () => {
+                                            try {
+                                                const res = await fetch('/api/events/bulk/all?event_type=video', {
+                                                    method: 'DELETE',
+                                                    headers: { Authorization: 'Bearer ' + token }
+                                                });
+                                                const data = await res.json();
+                                                showToast(`Deleted ${data.deleted_count} videos (${data.deleted_size_mb} MB)`, 'success');
+                                                fetchStats();
+                                            } catch (e) {
+                                                showToast('Failed to delete videos', 'error');
+                                            }
+                                            setConfirmConfig({ isOpen: false });
+                                        }
+                                    })}
+                                >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete All Videos
+                                </Button>
 
-                    <div className="flex items-center justify-between max-w-xs">
-                        <label className="text-sm font-medium">Enable Automatic Cleanup</label>
-                        <button
-                            type="button"
-                            disabled={user?.role !== 'admin'}
-                            onClick={() => setGlobalSettings({ ...globalSettings, cleanup_enabled: !globalSettings.cleanup_enabled })}
-                            className={'relative inline-flex h-6 w-11 items-center rounded-full transition-colors ' +
-                                (globalSettings.cleanup_enabled ? 'bg-primary' : 'bg-muted')
-                            }
-                        >
-                            <span className={'inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ' +
-                                (globalSettings.cleanup_enabled ? 'translate-x-6' : 'translate-x-1')
-                            } />
-                        </button>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium mb-2">Cleanup Interval (Hours)</label>
-                        <select
-                            value={globalSettings.cleanup_interval_hours}
-                            disabled={user?.role !== 'admin'}
-                            onChange={(e) => setGlobalSettings({ ...globalSettings, cleanup_interval_hours: parseInt(e.target.value) })}
-                            className="w-full max-w-xs bg-background border border-input rounded-lg px-3 py-2"
-                        >
-                            <option value="1">Every Hour</option>
-                            <option value="6">Every 6 Hours</option>
-                            <option value="12">Every 12 Hours</option>
-                            <option value="24">Every 24 Hours</option>
-                            <option value="48">Every 2 Days</option>
-                            <option value="168">Every Week</option>
-                        </select>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            How often to check and clean up old recordings
-                        </p>
-                    </div>
+                                <Button
+                                    variant="outline"
+                                    className="border-red-500/50 text-red-500 hover:bg-red-500/10"
+                                    onClick={() => setConfirmConfig({
+                                        isOpen: true,
+                                        title: 'Delete All Pictures',
+                                        message: 'Are you sure you want to delete ALL picture snapshots? This action cannot be undone.',
+                                        onConfirm: async () => {
+                                            try {
+                                                const res = await fetch('/api/events/bulk/all?event_type=picture', {
+                                                    method: 'DELETE',
+                                                    headers: { Authorization: 'Bearer ' + token }
+                                                });
+                                                const data = await res.json();
+                                                showToast(`Deleted ${data.deleted_count} pictures (${data.deleted_size_mb} MB)`, 'success');
+                                                fetchStats();
+                                            } catch (e) {
+                                                showToast('Failed to delete pictures', 'error');
+                                            }
+                                            setConfirmConfig({ isOpen: false });
+                                        }
+                                    })}
+                                >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete All Pictures
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
-
-                {/* Bulk Delete Section */}
-                {user?.role === 'admin' && (
-                    <div className="pt-4 border-t border-border mt-4">
-                        <h4 className="text-sm font-semibold mb-3">Bulk Deletion</h4>
-                        <div className="flex flex-wrap gap-3">
-                            <Button
-                                variant="outline"
-                                className="border-red-500/50 text-red-500 hover:bg-red-500/10"
-                                onClick={() => setConfirmConfig({
-                                    isOpen: true,
-                                    title: 'Delete All Videos',
-                                    message: 'Are you sure you want to delete ALL video recordings? This action cannot be undone and will free up disk space.',
-                                    onConfirm: async () => {
-                                        try {
-                                            const res = await fetch('/api/events/bulk/all?event_type=video', {
-                                                method: 'DELETE',
-                                                headers: { Authorization: 'Bearer ' + token }
-                                            });
-                                            const data = await res.json();
-                                            showToast(`Deleted ${data.deleted_count} videos (${data.deleted_size_mb} MB)`, 'success');
-                                            fetchStats();
-                                        } catch (e) {
-                                            showToast('Failed to delete videos', 'error');
-                                        }
-                                        setConfirmConfig({ isOpen: false });
-                                    }
-                                })}
-                            >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete All Videos
-                            </Button>
-
-                            <Button
-                                variant="outline"
-                                className="border-red-500/50 text-red-500 hover:bg-red-500/10"
-                                onClick={() => setConfirmConfig({
-                                    isOpen: true,
-                                    title: 'Delete All Pictures',
-                                    message: 'Are you sure you want to delete ALL picture snapshots? This action cannot be undone.',
-                                    onConfirm: async () => {
-                                        try {
-                                            const res = await fetch('/api/events/bulk/all?event_type=picture', {
-                                                method: 'DELETE',
-                                                headers: { Authorization: 'Bearer ' + token }
-                                            });
-                                            const data = await res.json();
-                                            showToast(`Deleted ${data.deleted_count} pictures (${data.deleted_size_mb} MB)`, 'success');
-                                            fetchStats();
-                                        } catch (e) {
-                                            showToast('Failed to delete pictures', 'error');
-                                        }
-                                        setConfirmConfig({ isOpen: false });
-                                    }
-                                })}
-                            >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete All Pictures
-                            </Button>
-                        </div>
-                    </div>
-                )}
-            </div>
+            )}
 
 
             {/* Live View Settings */}
-            <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6">
-                <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                    <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                        <Monitor className="w-6 h-6" />
+            {user?.role === 'admin' && (
+                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6">
+                    <div className="flex items-center space-x-3 pb-4 border-b border-border">
+                        <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                            <Monitor className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-lg">Live View Layout</h3>
+                            <p className="text-sm text-muted-foreground">Customize how cameras are displayed</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="font-semibold text-lg">Live View Layout</h3>
-                        <p className="text-sm text-muted-foreground">Customize how cameras are displayed</p>
+
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Grid Columns</label>
+                            <select
+                                value={liveViewColumns}
+                                onChange={(e) => setLiveViewColumns(e.target.value)}
+                                className="w-full max-w-xs bg-background border border-input rounded-lg px-3 py-2"
+                            >
+                                <option value="auto">Auto (Based on camera count)</option>
+                                <option value="1">1 Column</option>
+                                <option value="2">2 Columns</option>
+                                <option value="3">3 Columns</option>
+                                <option value="4">4 Columns</option>
+                            </select>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Choose how many columns to display in the Live View grid
+                            </p>
+                        </div>
                     </div>
                 </div>
+            )}
 
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-2">Grid Columns</label>
+            {/* General Preferences */}
+            {user?.role === 'admin' && (
+                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6">
+                    <div className="flex items-center space-x-3 pb-4 border-b border-border">
+                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                            <SettingsIcon className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-lg">General Preferences</h3>
+                            <p className="text-sm text-muted-foreground">Configure global application defaults</p>
+                        </div>
+                    </div>
+
+                    <div className="max-w-xs">
+                        <label className="block text-sm font-medium mb-1">Default Landing Page</label>
                         <select
-                            value={liveViewColumns}
-                            onChange={(e) => setLiveViewColumns(e.target.value)}
-                            className="w-full max-w-xs bg-background border border-input rounded-lg px-3 py-2"
+                            className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm"
+                            value={globalSettings.default_landing_page}
+                            onChange={(e) => setGlobalSettings({ ...globalSettings, default_landing_page: e.target.value })}
                         >
-                            <option value="auto">Auto (Based on camera count)</option>
-                            <option value="1">1 Column</option>
-                            <option value="2">2 Columns</option>
-                            <option value="3">3 Columns</option>
-                            <option value="4">4 Columns</option>
+                            <option value="dashboard">Dashboard</option>
+                            <option value="live">Live View</option>
+                            <option value="timeline">Timeline</option>
                         </select>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Choose how many columns to display in the Live View grid
+                        <p className="text-[10px] text-muted-foreground mt-1">Which page to show first when opening the application</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Notification Settings */}
+            {user?.role === 'admin' && (
+                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6">
+                    <div className="flex items-center space-x-3 pb-4 border-b border-border">
+                        <div className="p-2 bg-yellow-500/10 rounded-lg text-yellow-500">
+                            <Bell className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-lg">Notification Settings</h3>
+                            <p className="text-sm text-muted-foreground">Configure global Email and Telegram credentials</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        {/* SMTP Section */}
+                        <div>
+                            <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">SMTP (Email) Configuration</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="col-span-2 md:col-span-1">
+                                    <label className="block text-xs font-medium mb-1">SMTP Server</label>
+                                    <input
+                                        type="text"
+                                        placeholder="smtp.gmail.com"
+                                        className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
+                                        value={globalSettings.smtp_server}
+                                        onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_server: e.target.value })}
+                                    />
+                                </div>
+                                <div className="col-span-2 md:col-span-1">
+                                    <label className="block text-xs font-medium mb-1">SMTP Port</label>
+                                    <input
+                                        type="text"
+                                        placeholder="587"
+                                        className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
+                                        value={globalSettings.smtp_port}
+                                        onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_port: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium mb-1">Username</label>
+                                    <input
+                                        type="text"
+                                        placeholder="user@example.com"
+                                        className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
+                                        value={globalSettings.smtp_username}
+                                        onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_username: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium mb-1">Password</label>
+                                    <input
+                                        type="password"
+                                        placeholder="App Password"
+                                        className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
+                                        value={globalSettings.smtp_password}
+                                        onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_password: e.target.value })}
+                                    />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-medium mb-1">Sender Email ("From")</label>
+                                    <input
+                                        type="email"
+                                        placeholder="nvr@yourdomain.com"
+                                        className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
+                                        value={globalSettings.smtp_from_email}
+                                        onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_from_email: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Telegram Section */}
+                        <div className="pt-4 border-t border-border/50">
+                            <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Telegram Configuration</h4>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-medium mb-1">Bot Token</label>
+                                    <input
+                                        type="password"
+                                        placeholder="123456:ABC-DEF..."
+                                        className="w-full bg-background border border-input rounded px-3 py-2 text-sm font-mono"
+                                        value={globalSettings.telegram_bot_token}
+                                        onChange={(e) => setGlobalSettings({ ...globalSettings, telegram_bot_token: e.target.value })}
+                                    />
+                                    <p className="text-[10px] text-muted-foreground mt-1">Get this from @BotFather</p>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium mb-1">Global Chat ID</label>
+                                    <input
+                                        type="text"
+                                        placeholder="-100123456789"
+                                        className="w-full bg-background border border-input rounded px-3 py-2 text-sm font-mono"
+                                        value={globalSettings.telegram_chat_id}
+                                        onChange={(e) => setGlobalSettings({ ...globalSettings, telegram_chat_id: e.target.value })}
+                                    />
+                                    <p className="text-[10px] text-muted-foreground mt-1">Default chat/channel for notifications</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Defaults section inside Notifications */}
+                        <div className="pt-4 border-t border-border/50">
+                            <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Notification Defaults</h4>
+                            <div className="max-w-md">
+                                <label className="block text-xs font-medium mb-1">Default Email Recipient</label>
+                                <input
+                                    type="email"
+                                    placeholder="admin@example.com"
+                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
+                                    value={globalSettings.notify_email_recipient}
+                                    onChange={(e) => setGlobalSettings({ ...globalSettings, notify_email_recipient: e.target.value })}
+                                />
+                                <p className="text-[10px] text-muted-foreground mt-1">Used if a camera doesn't specify a recipient</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {user?.role === 'admin' && (
+                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4">
+                    <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500">
+                            <Trash2 className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-lg">Maintenance</h3>
+                            <p className="text-sm text-muted-foreground">Manual system maintenance tasks</p>
+                        </div>
+                    </div>
+                    <div>
+                        <button
+                            onClick={async () => {
+                                setConfirmConfig({
+                                    isOpen: true,
+                                    title: 'Manual Cleanup',
+                                    message: 'Are you sure you want to trigger storage cleanup now? This will scan all camera folders and delete recordings that exceed set limits.',
+                                    onConfirm: async () => {
+                                        try {
+                                            await fetch('/api/settings/cleanup', {
+                                                method: 'POST',
+                                                headers: { Authorization: `Bearer ${token}` }
+                                            });
+                                            showToast('Cleanup triggered successfully!', 'success');
+                                            fetchStats();
+                                        } catch (err) {
+                                            showToast('Failed to trigger cleanup: ' + err.message, 'error');
+                                        }
+                                        setConfirmConfig({ isOpen: false });
+                                    },
+                                    onCancel: () => setConfirmConfig({ isOpen: false })
+                                });
+                            }}
+                            className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-amber-500 text-white px-4 py-3 rounded-lg hover:bg-amber-600 transition-colors"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Clean Up Storage Now</span>
+                        </button>
+                        <p className="text-xs text-muted-foreground mt-2">
+                            This will force an immediate check and deletion of recordings that exceed your storage limits or retention periods.
                         </p>
                     </div>
                 </div>
-            </div>
-
-            {/* General Preferences */}
-            <div className={'bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
-                <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                    <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
-                        <SettingsIcon className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-lg">General Preferences</h3>
-                        <p className="text-sm text-muted-foreground">Configure global application defaults</p>
-                    </div>
-                </div>
-
-                <div className="max-w-xs">
-                    <label className="block text-sm font-medium mb-1">Default Landing Page</label>
-                    <select
-                        className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm"
-                        value={globalSettings.default_landing_page}
-                        onChange={(e) => setGlobalSettings({ ...globalSettings, default_landing_page: e.target.value })}
-                    >
-                        <option value="dashboard">Dashboard</option>
-                        <option value="live">Live View</option>
-                        <option value="timeline">Timeline</option>
-                    </select>
-                    <p className="text-[10px] text-muted-foreground mt-1">Which page to show first when opening the application</p>
-                </div>
-            </div>
-
-            {/* Notification Settings */}
-            <div className={'bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
-                <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                    <div className="p-2 bg-yellow-500/10 rounded-lg text-yellow-500">
-                        <Bell className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-lg">Notification Settings</h3>
-                        <p className="text-sm text-muted-foreground">Configure global Email and Telegram credentials</p>
-                    </div>
-                </div>
-
-                <div className="space-y-6">
-                    {/* SMTP Section */}
-                    <div>
-                        <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">SMTP (Email) Configuration</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="col-span-2 md:col-span-1">
-                                <label className="block text-xs font-medium mb-1">SMTP Server</label>
-                                <input
-                                    type="text"
-                                    placeholder="smtp.gmail.com"
-                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
-                                    value={globalSettings.smtp_server}
-                                    onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_server: e.target.value })}
-                                />
-                            </div>
-                            <div className="col-span-2 md:col-span-1">
-                                <label className="block text-xs font-medium mb-1">SMTP Port</label>
-                                <input
-                                    type="text"
-                                    placeholder="587"
-                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
-                                    value={globalSettings.smtp_port}
-                                    onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_port: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium mb-1">Username</label>
-                                <input
-                                    type="text"
-                                    placeholder="user@example.com"
-                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
-                                    value={globalSettings.smtp_username}
-                                    onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_username: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium mb-1">Password</label>
-                                <input
-                                    type="password"
-                                    placeholder="App Password"
-                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
-                                    value={globalSettings.smtp_password}
-                                    onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_password: e.target.value })}
-                                />
-                            </div>
-                            <div className="col-span-2">
-                                <label className="block text-xs font-medium mb-1">Sender Email ("From")</label>
-                                <input
-                                    type="email"
-                                    placeholder="nvr@yourdomain.com"
-                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
-                                    value={globalSettings.smtp_from_email}
-                                    onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_from_email: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Telegram Section */}
-                    <div className="pt-4 border-t border-border/50">
-                        <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Telegram Configuration</h4>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-medium mb-1">Bot Token</label>
-                                <input
-                                    type="password"
-                                    placeholder="123456:ABC-DEF..."
-                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm font-mono"
-                                    value={globalSettings.telegram_bot_token}
-                                    onChange={(e) => setGlobalSettings({ ...globalSettings, telegram_bot_token: e.target.value })}
-                                />
-                                <p className="text-[10px] text-muted-foreground mt-1">Get this from @BotFather</p>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium mb-1">Global Chat ID</label>
-                                <input
-                                    type="text"
-                                    placeholder="-100123456789"
-                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm font-mono"
-                                    value={globalSettings.telegram_chat_id}
-                                    onChange={(e) => setGlobalSettings({ ...globalSettings, telegram_chat_id: e.target.value })}
-                                />
-                                <p className="text-[10px] text-muted-foreground mt-1">Default chat/channel for notifications</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Defaults section inside Notifications */}
-                    <div className="pt-4 border-t border-border/50">
-                        <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Notification Defaults</h4>
-                        <div className="max-w-md">
-                            <label className="block text-xs font-medium mb-1">Default Email Recipient</label>
-                            <input
-                                type="email"
-                                placeholder="admin@example.com"
-                                className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
-                                value={globalSettings.notify_email_recipient}
-                                onChange={(e) => setGlobalSettings({ ...globalSettings, notify_email_recipient: e.target.value })}
-                            />
-                            <p className="text-[10px] text-muted-foreground mt-1">Used if a camera doesn't specify a recipient</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div className={'bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
-                <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500">
-                        <Trash2 className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-lg">Maintenance</h3>
-                        <p className="text-sm text-muted-foreground">Manual system maintenance tasks</p>
-                    </div>
-                </div>
-                <div>
-                    <button
-                        onClick={async () => {
-                            setConfirmConfig({
-                                isOpen: true,
-                                title: 'Manual Cleanup',
-                                message: 'Are you sure you want to trigger storage cleanup now? This will scan all camera folders and delete recordings that exceed set limits.',
-                                onConfirm: async () => {
-                                    try {
-                                        await fetch('/api/settings/cleanup', {
-                                            method: 'POST',
-                                            headers: { Authorization: `Bearer ${token}` }
-                                        });
-                                        showToast('Cleanup triggered successfully!', 'success');
-                                        fetchStats();
-                                    } catch (err) {
-                                        showToast('Failed to trigger cleanup: ' + err.message, 'error');
-                                    }
-                                    setConfirmConfig({ isOpen: false });
-                                },
-                                onCancel: () => setConfirmConfig({ isOpen: false })
-                            });
-                        }}
-                        className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-amber-500 text-white px-4 py-3 rounded-lg hover:bg-amber-600 transition-colors"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                        <span>Clean Up Storage Now</span>
-                    </button>
-                    <p className="text-xs text-muted-foreground mt-2">
-                        This will force an immediate check and deletion of recordings that exceed your storage limits or retention periods.
-                    </p>
-                </div>
-            </div>
+            )}
 
             {/* Backup & Restore */}
-            <div className={'bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
-                <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
-                        <HardDrive className="w-6 h-6" />
+            {user?.role === 'admin' && (
+                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4">
+                    <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                            <HardDrive className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-lg">Backup & Restore</h3>
+                            <p className="text-sm text-muted-foreground">Export or Import system configuration (Settings, Cameras, Groups)</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="font-semibold text-lg">Backup & Restore</h3>
-                        <p className="text-sm text-muted-foreground">Export or Import system configuration (Settings, Cameras, Groups)</p>
-                    </div>
-                </div>
-                <div className="flex flex-col sm:flex-row flex-wrap gap-4 pt-2">
-                    <button
-                        onClick={handleExport}
-                        className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors"
-                    >
-                        <Download className="w-4 h-4" />
-                        <span>Export Configuration</span>
-                    </button>
-
-                    <div className="relative w-full sm:w-auto">
-                        <input
-                            type="file"
-                            accept=".json"
-                            onChange={handleImport}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-4 pt-2">
                         <button
-                            className="w-full h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors pointer-events-none"
+                            onClick={handleExport}
+                            className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors"
                         >
-                            <Upload className="w-4 h-4" />
-                            <span>Import Configuration</span>
+                            <Download className="w-4 h-4" />
+                            <span>Export Configuration</span>
                         </button>
-                    </div>
 
-                    <p className="text-xs text-muted-foreground w-full mt-1">
-                        * Export includes all cameras, groups, and system settings. Import will merge or overwrite existing configurations.
-                    </p>
+                        <div className="relative w-full sm:w-auto">
+                            <input
+                                type="file"
+                                accept=".json"
+                                onChange={handleImport}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            />
+                            <button
+                                className="w-full h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors pointer-events-none"
+                            >
+                                <Upload className="w-4 h-4" />
+                                <span>Import Configuration</span>
+                            </button>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground w-full mt-1">
+                            * Export includes all cameras, groups, and system settings. Import will merge or overwrite existing configurations.
+                        </p>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Save Button */}
             {
