@@ -11,7 +11,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-def send_notifications(camera: models.Camera, event_type: str, details: dict):
+def send_notifications(camera_id: int, event_type: str, details: dict):
     """Async wrapper for sending notifications using Global + Camera settings"""
     def _send():
         import smtplib
@@ -19,9 +19,15 @@ def send_notifications(camera: models.Camera, event_type: str, details: dict):
         from email.mime.multipart import MIMEMultipart
         from email.mime.image import MIMEImage
         
-        # Open a new DB session for this thread to fetch global settings
+        # Open a new DB session for this thread
         db_notify = database.SessionLocal()
         try:
+            # Re-fetch camera to avoid DetachedInstanceError
+            camera = db_notify.query(models.Camera).filter(models.Camera.id == camera_id).first()
+            if not camera:
+                print(f"[NOTIFY] Camera {camera_id} not found, aborting notification.")
+                return
+
             # Helper to get setting
             def get_conf(key):
                 s = db_notify.query(models.SystemSettings).filter(models.SystemSettings.key == key).first()
@@ -39,8 +45,6 @@ def send_notifications(camera: models.Camera, event_type: str, details: dict):
             global_email_recipient = get_conf("notify_email_recipient")
 
             # Resolve effective config (Camera overrides Global?)
-            # Usually Notifications are ON/OFF per camera, but credentials might be global.
-            # Logic: If camera has specific config, use it. Else use global.
             
             tg_token = camera.notify_telegram_token or global_tg_token
             tg_chat = camera.notify_telegram_chat_id or global_tg_chat
@@ -48,7 +52,6 @@ def send_notifications(camera: models.Camera, event_type: str, details: dict):
             email_recipient = camera.notify_email_address or global_email_recipient
             
             # Prepare Attachment (Snapshot)
-            # Try to find a valid image file
             file_path = details.get("file_path")
             image_path = None
             
@@ -56,22 +59,37 @@ def send_notifications(camera: models.Camera, event_type: str, details: dict):
             if file_path:
                 # If it's a video, try to find the timestamp-based thumb or .jpg replacement
                 if file_path.endswith(".mp4") or file_path.endswith(".mkv"):
-                    # active event might not have mp4 yet, usually event_start sends a jpg if 'picture_output on'
-                    # Try swapping extension
                     possible_jpg = file_path.rsplit('.', 1)[0] + ".jpg"
-                    if os.path.exists(possible_jpg):
-                        image_path = possible_jpg
+                    # Check if exists (need to map path first)
+                    # We defer check until path mapping is done
+                    image_path = possible_jpg
                 elif file_path.endswith(".jpg"):
-                    if os.path.exists(file_path):
-                        image_path = file_path
+                    image_path = file_path
                         
-            # Fix path if it is internal /var/lib/motion vs backend /data
-            if image_path and image_path.startswith("/var/lib/motion"):
-                 image_path = image_path.replace("/var/lib/motion", "/data", 1)
+            # Fix path mapping (Internal Container -> Backend /data volume)
+            def map_path(p):
+                if not p: return None
+                if p.startswith("/var/lib/motion"):
+                    return p.replace("/var/lib/motion", "/data", 1)
+                elif p.startswith("/var/lib/vibe/recordings"):
+                    return p.replace("/var/lib/vibe/recordings", "/data", 1)
+                return p
+
+            if image_path:
+                image_path = map_path(image_path)
+                if not os.path.exists(image_path):
+                    # If derived jpg doesn't exist, try original file if it was a jpg
+                    if file_path.endswith(".jpg"):
+                         orig_mapped = map_path(file_path)
+                         if os.path.exists(orig_mapped):
+                             image_path = orig_mapped
+                         else:
+                             image_path = None
+                    else:
+                        image_path = None
             
-            if image_path and not os.path.exists(image_path):
-                print(f"[NOTIFY] Image not found at {image_path}, sending text only.")
-                image_path = None
+            if image_path:
+                 print(f"[NOTIFY] Attaching image: {image_path}")
 
             # ---------------------------------------------------------
             # 1. Telegram Notification
@@ -314,14 +332,14 @@ async def webhook_event(payload: dict, db: Session = Depends(database.get_db)):
             crud.create_event(db, event_data)
             print(f"[WEBHOOK] Event saved successfully")
             # Notification for movie end (if configured)
-            send_notifications(camera, "movie_end", payload)
+            send_notifications(camera.id, "movie_end", payload)
         except Exception as e:
             print(f"[WEBHOOK] ERROR saving event: {e}")
             
     elif event_type == "event_start":
         print(f"[WEBHOOK] Motion event started for camera {camera.name} (ID: {camera_id})")
         ACTIVE_CAMERAS[camera_id] = payload.get("timestamp")
-        send_notifications(camera, "event_start", payload)
+        send_notifications(camera.id, "event_start", payload)
         
     elif event_type == "picture_save":
         file_path = payload.get("file_path")
