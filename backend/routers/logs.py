@@ -55,47 +55,68 @@ async def get_logs(
     if user.role != 'admin':
         raise HTTPException(status_code=403, detail="Admin access required")
         
-    if service not in FILES_MAP:
+    log_files = []
+    if service == 'all':
+        for svc_name, filename in FILES_MAP.items():
+            log_files.append((svc_name, filename))
+    elif service in FILES_MAP:
+        log_files.append((service, FILES_MAP[service]))
+    else:
         raise HTTPException(status_code=400, detail="Invalid service name")
         
-    filepath = os.path.join(LOG_DIR, FILES_MAP[service])
-    if not os.path.exists(filepath):
-        return ["Log file not found or empty yet."]
-        
-    # Read file efficiently
-    try:
-        # Use simple reading for now. For huge files, `tail` equivalent is better.
-        with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
-            # If requesting huge lines, maybe seek? But simple readlines is safer for now.
-            # reading all lines can be heavy.
-            # Optimization: Seek to end and read backwards? Too complex for python text I/O.
-            # Using deque is standard for 'tail'.
-            from collections import deque
-            all_lines = deque(f, maxlen=2000) # Read last 2000 lines max to memory
+    all_logs = []
+    
+    # Simple timestamp regex for sorting: 202Y-MM-DD HH:MM:SS
+    # Captures: 2026-01-19 22:23:20
+    ts_pattern = re.compile(r'^(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})')
+
+    from collections import deque
+    
+    for svc_name, filename in log_files:
+        filepath = os.path.join(LOG_DIR, filename)
+        if not os.path.exists(filepath):
+            continue
             
-        processed_lines = []
-        # Filter and Redact (in reverse order roughly if we want newest first? No, logs usually displayed old->new)
-        # Deque is old->new.
-        
-        # We need to take the LAST 'lines' requested.
-        # If search is enabled, we might need to search deeper than 'lines'.
-        # But for performance let's stick to the window.
-        
-        final_list = list(all_lines)
-        if search:
-            # If searching, filter first
-            final_list = [l for l in final_list if search.lower() in l.lower()]
-            
-        # Slice to requested limit
-        final_list = final_list[-lines:]
-        
-        for line in final_list:
-            processed_lines.append(redact_line(line.strip()))
-            
-        return processed_lines
-        
-    except Exception as e:
-        return [f"Error reading logs: {str(e)}"]
+        try:
+            with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
+                # Read last 'lines' for each file if 'all' is selected, 
+                # or just 'lines' total? slightly ambiguous.
+                # Let's read 'lines' from each to ensure we get recent data from all.
+                file_lines = deque(f, maxlen=lines)
+                
+            for line in file_lines:
+                clean_line = line.strip()
+                if not clean_line:
+                    continue
+                
+                # Prefix if displaying all
+                display_line = f"[{svc_name.upper()}] {clean_line}" if service == 'all' else clean_line
+                redacted = redact_line(display_line)
+                
+                # Extract timestamp for sorting
+                match = ts_pattern.search(clean_line)
+                # Fallback for Uvicorn/Nginx logs if they don't match the simple ISO-like format
+                # We simply store them as (timestamp_str, line_content)
+                # If no timestamp, use "0" to put them at start, or rely on python's stable sort?
+                # Using a default sort key "z" to put them at end might be better, or "0" for start.
+                # Let's try to maintain relative order.
+                ts_key = match.group(1) if match else "0000-00-00 00:00:00"
+                
+                all_logs.append({
+                    "time": ts_key,
+                    "line": redacted
+                })
+                
+        except Exception as e:
+            all_logs.append({"time": "0000-00-00 00:00:00", "line": f"[{svc_name.upper()}] Error reading file: {str(e)}"})
+
+    # If 'all', sort by timestamp. If single service, they are already ordered by file read (chronological).
+    if service == 'all':
+        # Sort by timestamp
+        all_logs.sort(key=lambda x: x['time'])
+    
+    # Return just the lines
+    return [item['line'] for item in all_logs]
 
 @router.get("/download")
 async def download_all_logs(user: dict = Depends(get_current_user)):

@@ -17,6 +17,7 @@ export const Logs = () => {
 
     // Services map
     const services = [
+        { id: 'all', label: 'All Services (Aggregated)' },
         { id: 'backend', label: 'Backend API' },
         { id: 'engine', label: 'Video Engine' },
         { id: 'frontend_access', label: 'Frontend Access' },
