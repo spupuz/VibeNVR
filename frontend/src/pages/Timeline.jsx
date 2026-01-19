@@ -59,6 +59,7 @@ const HourTimeline = ({ events, onHourClick, selectedHour }) => {
 };
 
 const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl, onDelete }) => {
+    const { user } = useAuth();
     const [imgError, setImgError] = useState(false);
     const time = new Date(event.timestamp_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const date = new Date(event.timestamp_start).toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -109,16 +110,18 @@ const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl, onDele
                     </a>
 
                     {/* Delete */}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(event.id);
-                        }}
-                        className="p-1 bg-black/50 hover:bg-red-500/80 text-white rounded backdrop-blur-sm transition-colors"
-                        title="Delete"
-                    >
-                        <Trash2 className="w-3 h-3" />
-                    </button>
+                    {user?.role === 'admin' && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(event.id);
+                            }}
+                            className="p-1 bg-black/50 hover:bg-red-500/80 text-white rounded backdrop-blur-sm transition-colors"
+                            title="Delete"
+                        >
+                            <Trash2 className="w-3 h-3" />
+                        </button>
+                    )}
                 </div>
 
                 {/* Type badge */}
@@ -183,7 +186,7 @@ const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl, onDele
 const API_BASE = `/api`;
 
 export const Timeline = () => {
-    const { token } = useAuth();
+    const { token, user } = useAuth();
     const [events, setEvents] = useState([]);
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [cameraMap, setCameraMap] = useState({});
@@ -589,12 +592,14 @@ export const Timeline = () => {
                                 >
                                     <Download className="w-4 h-4" />
                                 </a>
-                                <button
-                                    onClick={() => handleDelete(selectedEvent.id)}
-                                    className="p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-lg transition-colors"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
+                                {user?.role === 'admin' && (
+                                    <button
+                                        onClick={() => handleDelete(selectedEvent.id)}
+                                        className="p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-lg transition-colors"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                )}
                             </div>
                         </div>
 
