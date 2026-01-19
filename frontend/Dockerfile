@@ -17,7 +17,8 @@ FROM nginx:alpine
 # Create necessary directories and set permissions for unprivileged execution if needed
 # Although we removed 'user' from compose, it's good practice
 RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx && \
-    chmod -R 777 /var/cache/nginx /var/run /var/log/nginx
+    chmod -R 777 /var/cache/nginx /var/run /var/log/nginx && \
+    apk add --no-cache netcat-openbsd
 
 # Remove default nginx static assets
 RUN rm -rf /usr/share/nginx/html/*
@@ -28,6 +29,9 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Copy nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/entrypoint.sh"]
