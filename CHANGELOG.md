@@ -2,6 +2,12 @@
 
 All notable changes to the VibeNVR project will be documented in this file.
 
+## [1.9.6] - 2026-01-19
+
+### 🧹 Maintenance
+*   **Code Cleanup**: Removed obsolete `motion/` directory and related Docker configurations.
+*   **Docker Compose**: Updated default compose file to remove unused volumes.
+
 ## [1.9.5] - 2026-01-19
 
 ### 🔒 Security & Privacy

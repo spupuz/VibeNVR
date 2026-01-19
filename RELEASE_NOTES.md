@@ -1,3 +1,12 @@
+# VibeNVR v1.9.6 - Legacy Cleanup
+
+## 🧹 Housekeeping
+
+*   **Removed Legacy Motion Code**: Deleted the obsolete `motion/` directory and removed unused volume mounts from `docker-compose.yml`. The system now relies entirely on the new Python-based **VibeEngine**.
+*   **Repo Hygiene**: Cleaned up `.gitignore` and project structure.
+
+---
+
 # VibeNVR v1.9.5 - Security Hardening & Cleanup
 
 ## 🔒 Security Enhancements
