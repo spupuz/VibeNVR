@@ -27,7 +27,7 @@ services:
       db:
         condition: service_healthy
     restart: always
-    command: sh -c "mkdir -p /var/log/vibenvr && uvicorn main:app --host 0.0.0.0 --port 5000 2>&1 | tee -a /var/log/vibenvr/backend.log" # Command updated to reflect new log path
+    command: sh -c "mkdir -p /data/logs && chmod 777 /data/logs && touch /data/logs/backend.log && uvicorn main:app --host 0.0.0.0 --port 5000 2>&1 | tee -a /data/logs/backend.log"
 
   engine:
     image: spupuz/vibenvr-engine:latest

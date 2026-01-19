@@ -26,13 +26,16 @@ services:
       - vibenvr_data:/data
       - /etc/localtime:/etc/localtime:ro
     environment:
-      - DB_URL=sqlite:////data/vibe_nvr.db
+      - DATABASE_URL=postgresql://vibenvr:vibenvrpass@db:5432/vibenvr
+      - TZ=Europe/Rome
+      - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
     command: >
       sh -c "mkdir -p /data/logs && chmod 777 /data/logs && touch /data/logs/backend.log && python main.py 2>&1 | tee -a /data/logs/backend.log"
     networks:
       - vibe-network
     depends_on:
       - engine
+      - db
 
   engine:
     build:
@@ -84,5 +87,6 @@ services:
 
 volumes:
   vibenvr_data:
+  vibenvr_db_data:
   vibenvr_db_data:
   vibenvr_logs:
