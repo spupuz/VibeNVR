@@ -1,5 +1,9 @@
 import os
 import requests
+import threading
+import time
+import threading
+import time
 from sqlalchemy.orm import Session
 from models import Camera
 
@@ -123,3 +127,16 @@ def stop_camera(camera_id: int):
     except Exception as e:
         print(f"Error stopping camera {camera_id}: {e}", flush=True)
         return False
+
+def start_check_loop():
+    """
+    Background loop to check backend/engine health or other periodic tasks.
+    Currently just a placeholder for future monitoring features if needed.
+    """
+    def _loop():
+        # placeholder loop
+        while True:
+            time.sleep(60)
+
+    t = threading.Thread(target=_loop, daemon=True, name="MotionCheckThread")
+    t.start()

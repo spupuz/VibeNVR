@@ -2,6 +2,18 @@
 
 All notable changes to the VibeNVR project will be documented in this file.
 
+## [1.9.8] - 2026-01-19
+
+### 🚀 Improvements & Features
+*   **PostgreSQL**: Restored PostgreSQL as the default database for improved reliability and performance.
+*   **Flexible Configuration**: Introduced `.env` support for configuring `VIBENVR_DATA` and `VIBENVR_DB_DATA` paths.
+*   **Startup Stability**: Improved service dependency handling (Frontend now waits for Engine & Backend) and updated backend startup to use lifespan events.
+
+### 🐛 Fixed
+*   **Docker Volumes**: Consolidated log storage to `/data/logs` and removed duplicate/unused volume definitions.
+*   **Compose Alignment**: Aligned `docker-compose.prod.yml` with development configuration.
+*   **Backend Startup**: Fixed indentation error and missing imports in service modules.
+
 ## [1.9.7] - 2026-01-19
 
 ### 🐛 Fixed

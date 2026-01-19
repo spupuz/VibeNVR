@@ -8,7 +8,7 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-      - vibenvr_data:/data
+      - ${VIBENVR_DATA:-vibenvr_data}:/data
     networks:
       - vibe-network
     depends_on:
@@ -23,14 +23,14 @@ services:
       - "5000:5000"
     volumes:
       - ./backend:/app
-      - vibenvr_data:/data
+      - ${VIBENVR_DATA:-vibenvr_data}:/data
       - /etc/localtime:/etc/localtime:ro
     environment:
       - DATABASE_URL=postgresql://vibenvr:vibenvrpass@db:5432/vibenvr
       - TZ=Europe/Rome
       - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
     command: >
-      sh -c "mkdir -p /data/logs && chmod 777 /data/logs && touch /data/logs/backend.log && python main.py 2>&1 | tee -a /data/logs/backend.log"
+      sh -c "mkdir -p /data/logs && chmod 777 /data/logs && touch /data/logs/backend.log && uvicorn main:app --host 0.0.0.0 --port 5000 2>&1 | tee -a /data/logs/backend.log"
     networks:
       - vibe-network
     depends_on:
@@ -46,7 +46,7 @@ services:
       - "5001:5001"
     volumes:
       - ./engine:/app
-      - vibenvr_data:/var/lib/vibe/recordings
+      - ${VIBENVR_DATA:-vibenvr_data}:/var/lib/vibe/recordings
       - /etc/localtime:/etc/localtime:ro
     environment:
       - BACKEND_URL=http://vibenvr-backend:5000
@@ -68,6 +68,8 @@ services:
     #           capabilities: [gpu]
     command: >
       sh -c "mkdir -p /var/lib/vibe/recordings/logs && touch /var/lib/vibe/recordings/logs/engine.log && python -u main.py 2>&1 | grep --line-buffered -v 'SEI type 764' | tee -a /var/lib/vibe/recordings/logs/engine.log"
+    networks:
+      - vibe-network
 
   db:
     image: postgres:15-alpine
@@ -77,16 +79,21 @@ services:
       - POSTGRES_PASSWORD=vibenvrpass
       - POSTGRES_DB=vibenvr
     volumes:
-      - vibenvr_db_data:/var/lib/postgresql/data
+      - ${VIBENVR_DB_DATA:-vibenvr_db_data}:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U vibenvr" ]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - vibe-network
     restart: always
 
 volumes:
   vibenvr_data:
   vibenvr_db_data:
-  vibenvr_db_data:
-  vibenvr_logs:
+
+
+networks:
+  vibe-network:
+    driver: bridge
