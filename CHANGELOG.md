@@ -2,6 +2,13 @@
 
 All notable changes to the VibeNVR project will be documented in this file.
 
+## [1.9.9] - 2026-01-19
+
+### 🚀 Improvements & Features
+*   **Env Configuration**: Added `VIBENVR_FRONTEND_PORT` and `VIBENVR_BACKEND_PORT` support to `.env` to easily configure external ports without modifying compose files.
+*   **Production Defaults**: Changed default backend port in `docker-compose.prod.yml` to `5005` (via fallback) to avoid common conflicts on port 5000.
+*   **Deployment**: Validated deployment workflow updates.
+
 ## [1.9.8] - 2026-01-19
 
 ### 🚀 Improvements & Features
