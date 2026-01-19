@@ -102,7 +102,7 @@ class Camera(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    events = relationship("Event", back_populates="camera")
+    events = relationship("Event", back_populates="camera", cascade="all, delete-orphan")
     
     # Groups (Many-to-Many)
     groups = relationship("CameraGroup", secondary="camera_group_association", back_populates="cameras")
@@ -110,8 +110,8 @@ class Camera(Base):
 # Association Table
 class CameraGroupAssociation(Base):
     __tablename__ = "camera_group_association"
-    camera_id = Column(Integer, ForeignKey("cameras.id"), primary_key=True)
-    group_id = Column(Integer, ForeignKey("camera_groups.id"), primary_key=True)
+    camera_id = Column(Integer, ForeignKey("cameras.id", ondelete="CASCADE"), primary_key=True)
+    group_id = Column(Integer, ForeignKey("camera_groups.id", ondelete="CASCADE"), primary_key=True)
 
 class CameraGroup(Base):
     __tablename__ = "camera_groups"
@@ -126,7 +126,7 @@ class Event(Base):
     __tablename__ = "events"
 
     id = Column(Integer, primary_key=True, index=True)
-    camera_id = Column(Integer, ForeignKey("cameras.id"), index=True)
+    camera_id = Column(Integer, ForeignKey("cameras.id", ondelete="CASCADE"), index=True, nullable=False)
     timestamp_start = Column(DateTime(timezone=True), nullable=False, index=True)
     timestamp_end = Column(DateTime(timezone=True), nullable=True)
     type = Column(String) # video | snapshot
