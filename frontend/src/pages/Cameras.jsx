@@ -505,7 +505,7 @@ export const Cameras = () => {
                     <h2 className="text-3xl font-bold tracking-tight">Cameras</h2>
                     <p className="text-muted-foreground mt-2">Manage your video sources.</p>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                     {user?.role === 'admin' && view === 'cameras' && (
                         <>
                             <button
@@ -564,20 +564,20 @@ export const Cameras = () => {
                                     });
                                     setShowAddModal(true);
                                 }}
-                                className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                                className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 bg-primary text-primary-foreground px-4 h-10 rounded-lg hover:bg-primary/90 transition-colors whitespace-nowrap text-sm font-medium"
                             >
-                                <Plus className="w-5 h-5" />
+                                <Plus className="w-4 h-4" />
                                 <span>Add Camera</span>
                             </button>
                             <button
                                 onClick={() => window.open('/api/cameras/export/all', '_blank')}
-                                className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md"
+                                className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 h-10 rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md whitespace-nowrap text-sm font-medium"
                                 title="Export all cameras to JSON"
                             >
                                 <Download className="w-4 h-4" />
                                 <span>Export All</span>
                             </button>
-                            <label className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md cursor-pointer" title="Import cameras from JSON file">
+                            <label className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 h-10 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md cursor-pointer whitespace-nowrap text-sm font-medium" title="Import cameras from JSON file">
                                 <Upload className="w-4 h-4" />
                                 <span>Import</span>
                                 <input
