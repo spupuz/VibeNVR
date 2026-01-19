@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { Terminal, Download, Search, Pause, Play, RefreshCw, FileText } from 'lucide-react';
+import { Terminal, Download, Search, Pause, Play, RefreshCw, FileText, Settings as SettingsIcon } from 'lucide-react';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 
 export const Logs = () => {
@@ -14,6 +14,7 @@ export const Logs = () => {
     const [autoScroll, setAutoScroll] = useState(true);
     const [loading, setLoading] = useState(false);
     const [confirmConfig, setConfirmConfig] = useState({ isOpen: false });
+    const [showSettings, setShowSettings] = useState(false);
 
     // Services map
     const services = [
@@ -185,6 +186,13 @@ export const Logs = () => {
                     >
                         <RefreshCw className="w-4 h-4" />
                     </button>
+                    <button
+                        onClick={() => setShowSettings(true)}
+                        className="p-2 rounded-md hover:bg-accent text-muted-foreground"
+                        title="Log Settings"
+                    >
+                        <SettingsIcon className="w-4 h-4" />
+                    </button>
                 </div>
             </div>
 
@@ -240,6 +248,135 @@ export const Logs = () => {
             </p>
 
             <ConfirmModal {...confirmConfig} />
+            <LogSettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} token={token} showToast={showToast} />
         </div>
     );
 };
+
+// Sub-component for Settings Modal
+const LogSettingsModal = ({ isOpen, onClose, token, showToast }) => {
+    const [settings, setSettings] = useState({
+        log_max_size_mb: '50',
+        log_backup_count: '5',
+        log_rotation_check_minutes: '60'
+    });
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        // Fetch current settings
+        const fetchSettings = async () => {
+            setLoading(true);
+            try {
+                // We fetch individually or we could update the bulk endpoint to support fetching? No, GET /settings is all.
+                const res = await fetch('/api/settings', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setSettings({
+                        log_max_size_mb: data.log_max_size_mb?.value || '50',
+                        log_backup_count: data.log_backup_count?.value || '5',
+                        log_rotation_check_minutes: data.log_rotation_check_minutes?.value || '60'
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to load settings', 'error');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchSettings();
+    }, [isOpen, token]);
+
+    const handleSave = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/settings/bulk', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(settings)
+            });
+
+            if (res.ok) {
+                showToast('Log settings saved', 'success');
+                onClose();
+            } else {
+                showToast('Failed to save settings', 'error');
+            }
+        } catch (err) {
+            showToast('Error saving: ' + err.message, 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-card border border-border rounded-lg shadow-lg w-full max-w-md p-6 space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <SettingsIcon className="w-5 h-5" />
+                    Log Rotation Settings
+                </h3>
+
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Max Log Size (MB)</label>
+                        <input
+                            type="number"
+                            className="w-full bg-background border border-input rounded px-3 py-2"
+                            value={settings.log_max_size_mb}
+                            onChange={e => setSettings({ ...settings, log_max_size_mb: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">If a file exceeds this size, it will be rotated.</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Backup Count</label>
+                        <input
+                            type="number"
+                            className="w-full bg-background border border-input rounded px-3 py-2"
+                            value={settings.log_backup_count}
+                            onChange={e => setSettings({ ...settings, log_backup_count: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Number of old log files to keep (e.g. 5 = keep .1 to .5).</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Check Interval (Minutes)</label>
+                        <input
+                            type="number"
+                            className="w-full bg-background border border-input rounded px-3 py-2"
+                            value={settings.log_rotation_check_minutes}
+                            onChange={e => setSettings({ ...settings, log_rotation_check_minutes: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">How often the system checks for large files.</p>
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 rounded text-sm font-medium hover:bg-accent"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        disabled={loading}
+                        className="px-4 py-2 rounded text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                    >
+                        {loading ? 'Saving...' : 'Save Changes'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+```
