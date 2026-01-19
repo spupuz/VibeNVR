@@ -1,3 +1,14 @@
+# VibeNVR v1.9.7 - Stability & Bug Fixes
+
+## 🐛 Bug Fixes & Stability
+
+*   **Startup Reliability**: Fixed a race condition where the Frontend container would crash if the Backend wasn't ready yet. Added a smart entrypoint that waits for the backend service.
+*   **Notification Engine**: Resolved a critical "DetachedInstanceError" that caused email and Telegram notifications to fail sporadically.
+*   **Image Attachments**: Fixed an issue where snapshots and video thumbnails were not attaching correctly to notifications due to path resolution errors.
+*   **Camera Management**: Fixed a UI bug where hitting "Apply" would duplicate the camera instead of updating it.
+
+---
+
 # VibeNVR v1.9.6 - Legacy Cleanup
 
 ## 🧹 Housekeeping
