@@ -29,46 +29,46 @@ const CameraCard = ({ camera, onDelete, onEdit, onToggleActive }) => {
                         </div>
                     </div>
                 </div>
-                <div onClick={(e) => e.stopPropagation()}>
-                    <Toggle
-                        checked={camera.is_active}
-                        onChange={() => onToggleActive(camera)}
-                        compact={true}
-                    />
-                </div>
+                {user?.role === 'admin' && (
+                    <div onClick={(e) => e.stopPropagation()}>
+                        <Toggle
+                            checked={camera.is_active}
+                            onChange={() => onToggleActive(camera)}
+                            compact={true}
+                        />
+                    </div>
+                )}
             </div>
 
-            <div className="space-y-2 text-sm text-muted-foreground mb-4">
-                <p className="truncate">
-                    <span className="font-medium text-foreground">RTSP:</span> {(() => {
-                        try {
-                            // Check if URL has credentials (contains @)
-                            if (camera.rtsp_url && camera.rtsp_url.includes('@')) {
-                                const parts = camera.rtsp_url.split('@');
-                                // parts[1] contains host:port/path
-                                // parts[0] contains protocol://user:pass
-                                // We want protocol from parts[0] and everything from parts[1]
-                                const protocol = parts[0].split('://')[0] + '://';
-                                return protocol + parts[1];
+            {user?.role === 'admin' && (
+                <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                    <p className="truncate">
+                        <span className="font-medium text-foreground">RTSP:</span> {(() => {
+                            try {
+                                if (camera.rtsp_url && camera.rtsp_url.includes('@')) {
+                                    const parts = camera.rtsp_url.split('@');
+                                    const protocol = parts[0].split('://')[0] + '://';
+                                    return protocol + parts[1];
+                                }
+                                return camera.rtsp_url;
+                            } catch (e) {
+                                return camera.rtsp_url;
                             }
-                            return camera.rtsp_url;
-                        } catch (e) {
-                            return camera.rtsp_url;
-                        }
-                    })()}
-                </p>
-            </div>
+                        })()}
+                    </p>
+                </div>
+            )}
 
             <div className="flex justify-end pt-4 border-t border-border space-x-2">
-                <button
-                    onClick={() => window.open(`/api/cameras/${camera.id}/export`, '_blank')}
-                    className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                    title="Export Camera Settings"
-                >
-                    <Download className="w-5 h-5" />
-                </button>
                 {user?.role === 'admin' && (
                     <>
+                        <button
+                            onClick={() => window.open(`/api/cameras/${camera.id}/export`, '_blank')}
+                            className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                            title="Export Camera Settings"
+                        >
+                            <Download className="w-5 h-5" />
+                        </button>
                         <button
                             onClick={() => onEdit(camera)}
                             className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
