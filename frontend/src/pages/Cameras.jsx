@@ -240,7 +240,7 @@ export const Cameras = () => {
         setConfirmConfig({
             isOpen: true,
             title: 'Delete Camera',
-            message: 'Are you sure you want to delete this camera? All associated recordings will be kept on disk but the camera configuration will be removed.',
+            message: 'Are you sure you want to delete this camera? This will PERMANENTLY delete all associated recordings, events, and configuration. This action cannot be undone.',
             onConfirm: async () => {
                 try {
                     await fetch(`/api/cameras/${id}`, {
