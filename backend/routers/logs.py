@@ -52,7 +52,7 @@ async def get_logs(
     search: Optional[str] = None,
     user: dict = Depends(get_current_user)
 ):
-    if user['role'] != 'admin':
+    if user.role != 'admin':
         raise HTTPException(status_code=403, detail="Admin access required")
         
     if service not in FILES_MAP:
@@ -102,7 +102,7 @@ async def download_all_logs(user: dict = Depends(get_current_user)):
     """
     Generate a sanitized tar.gz/zip of all log files.
     """
-    if user['role'] != 'admin':
+    if user.role != 'admin':
         raise HTTPException(status_code=403, detail="Admin access required")
 
     # Create in-memory zip
