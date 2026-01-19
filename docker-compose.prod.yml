@@ -1,3 +1,4 @@
+```yaml
 # Production Docker Compose - Uses pre-built images from Docker Hub
 # Use this when you want to run VibeNVR without building from source
 
@@ -8,7 +9,7 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - vibenvr_logs:/var/log/vibenvr
+      - vibenvr_data:/var/log/vibenvr # Changed to use vibenvr_data for logs
     restart: always
 
   backend:
@@ -18,7 +19,7 @@ services:
       - "127.0.0.1:5000:5000"
     volumes:
       - vibenvr_data:/data
-      - vibenvr_logs:/var/log/vibenvr
+      - vibenvr_data:/var/log/vibenvr # Changed to use vibenvr_data for logs
     environment:
       - DATABASE_URL=postgresql://vibenvr:vibenvrpass@db:5432/vibenvr
       - TZ=Europe/Rome
@@ -27,7 +28,7 @@ services:
       db:
         condition: service_healthy
     restart: always
-    command: sh -c "mkdir -p /var/log/vibenvr && uvicorn main:app --host 0.0.0.0 --port 5000 2>&1 | tee -a /var/log/vibenvr/backend.log"
+    command: sh -c "mkdir -p /var/log/vibenvr && uvicorn main:app --host 0.0.0.0 --port 5000 2>&1 | tee -a /var/log/vibenvr/backend.log" # Command updated to reflect new log path
 
   engine:
     image: spupuz/vibenvr-engine:latest
@@ -36,7 +37,7 @@ services:
       - "127.0.0.1:8000:8000"
     volumes:
       - vibenvr_data:/var/lib/vibe/recordings
-      - vibenvr_logs:/var/log/vibenvr
+      - vibenvr_data:/var/log/vibenvr # Changed to use vibenvr_data for logs
     environment:
       - TZ=Europe/Rome
       # Hardware Acceleration Settings

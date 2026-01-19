@@ -6,39 +6,47 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - vibenvr_logs:/var/log/vibenvr
-    restart: always
+      - ./frontend:/app
+      - /app/node_modules
+      - vibenvr_data:/data
+    networks:
+      - vibe-network
+    depends_on:
+      - backend
 
   backend:
     build:
       context: ./backend
     container_name: vibenvr-backend
+    restart: unless-stopped
     ports:
-      - "127.0.0.1:5000:5000"
+      - "5000:5000"
     volumes:
       - ./backend:/app
       - vibenvr_data:/data
-      - vibenvr_logs:/var/log/vibenvr
+      - /etc/localtime:/etc/localtime:ro
     environment:
-      - DATABASE_URL=postgresql://vibenvr:vibenvrpass@db:5432/vibenvr
-      - TZ=Europe/Rome
-      - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
+      - DB_URL=sqlite:////data/vibe_nvr.db
+    command: >
+      sh -c "mkdir -p /data/logs && chmod 777 /data/logs && touch /data/logs/backend.log && python main.py 2>&1 | tee -a /data/logs/backend.log"
+    networks:
+      - vibe-network
     depends_on:
-      db:
-        condition: service_healthy
-    restart: always
-    command: sh -c "mkdir -p /var/log/vibenvr && uvicorn main:app --host 0.0.0.0 --port 5000 --reload 2>&1 | tee -a /var/log/vibenvr/backend.log"
+      - engine
 
   engine:
     build:
       context: ./engine
     container_name: vibenvr-engine
+    restart: unless-stopped
     ports:
-      - "127.0.0.1:8000:8000"
+      - "5001:5001"
     volumes:
+      - ./engine:/app
       - vibenvr_data:/var/lib/vibe/recordings
-      - vibenvr_logs:/var/log/vibenvr
+      - /etc/localtime:/etc/localtime:ro
     environment:
+      - BACKEND_URL=http://vibenvr-backend:5000
       - TZ=Europe/Rome
       # Hardware Acceleration Settings
       - HW_ACCEL=${HW_ACCEL:-false} # Set to 'true' on Linux with GPU access
