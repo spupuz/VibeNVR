@@ -2,9 +2,10 @@
 
 All notable changes to the VibeNVR project will be documented in this file.
 
-## [1.9.4] - 2026-01-19
+## [1.9.5] - 2026-01-19
 
 ### 🔒 Security & Privacy
+*   **Security Cleanup**: Removed sensitive log files (`engine_logs.txt`, `backend_logs.txt`) and credential-leakage risks from the repository.
 *   **Enhanced Token Security**: Removed JWT tokens from query parameters in Live View requests. Tokens are now sent via secure HTTP Authorization headers.
 *   **Log Redaction**: Implemented a `TokenRedactingFilter` in the backend that automatically masks `token=...` strings in access logs, preventing sensitive information leakage.
 

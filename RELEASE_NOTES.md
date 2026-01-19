@@ -1,4 +1,4 @@
-# VibeNVR v1.9.4 - Security Hardening & Log Redaction
+# VibeNVR v1.9.5 - Security Hardening & Cleanup
 
 ## 🔒 Security Enhancements
 
