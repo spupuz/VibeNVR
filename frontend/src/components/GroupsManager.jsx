@@ -111,10 +111,24 @@ export const GroupsManager = ({ cameras }) => {
     };
 
     const handleAction = async (groupId, action, sourceId = null) => {
+        let message = 'Are you sure? This will update all cameras in the group.';
+        let title = 'Group Action';
+
+        if (action === 'enable_motion') {
+            title = 'Enable Group Motion';
+            message = 'This will enable motion detection and recording for all cameras in this group. Continue?';
+        } else if (action === 'disable_motion') {
+            title = 'Disable Group Motion';
+            message = 'This will disable motion detection and recording for all cameras in this group. Continue?';
+        } else if (action === 'copy_settings') {
+            title = 'Copy Settings';
+            message = 'This will overwrite settings for all cameras in this group with settings from the source camera. Continue?';
+        }
+
         setConfirmConfig({
             isOpen: true,
-            title: 'Group Action',
-            message: 'Are you sure? This will update all cameras in the group.',
+            title,
+            message,
             onConfirm: async () => {
                 try {
                     const body = { action };
