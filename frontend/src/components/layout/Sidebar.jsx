@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Camera, Film, History, Settings, LogOut, Moon, Sun, X, Info } from 'lucide-react';
+import { LayoutDashboard, Camera, Film, History, Settings, LogOut, Moon, Sun, X, Info, FileText } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
@@ -17,13 +17,15 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
 );
 
 export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, onClose }) => {
-    const { logout } = useAuth();
+    const { user, logout } = useAuth();
+
     const menuItems = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'cameras', label: 'Cameras', icon: Camera },
         { id: 'live', label: 'Live View', icon: Film },
         { id: 'timeline', label: 'Timeline', icon: History },
         { id: 'settings', label: 'Settings', icon: Settings },
+        ...(user?.role === 'admin' ? [{ id: 'logs', label: 'System Logs', icon: FileText }] : []),
         { id: 'about', label: 'About', icon: Info },
     ];
 
