@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Calendar, Filter, Play, Image as ImageIcon, Trash2, Download, Video, Camera } from 'lucide-react';
+import { Calendar, Filter, Play, Image as ImageIcon, Trash2, Download, Video, Camera, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
@@ -339,8 +339,22 @@ export const Timeline = () => {
     }, [filteredEvents]);
 
     const videoRef = React.useRef(null);
-    const [autoplayNext, setAutoplayNext] = useState(true);
-    const [playbackSpeed2x, setPlaybackSpeed2x] = useState(false);
+    const [autoplayNext, setAutoplayNext] = useState(() => {
+        const saved = localStorage.getItem('vibe_autoplay_next');
+        return saved !== null ? JSON.parse(saved) : true;
+    });
+    const [playbackSpeed2x, setPlaybackSpeed2x] = useState(() => {
+        const saved = localStorage.getItem('vibe_playback_speed_2x');
+        return saved !== null ? JSON.parse(saved) : false;
+    });
+
+    useEffect(() => {
+        localStorage.setItem('vibe_autoplay_next', JSON.stringify(autoplayNext));
+    }, [autoplayNext]);
+
+    useEffect(() => {
+        localStorage.setItem('vibe_playback_speed_2x', JSON.stringify(playbackSpeed2x));
+    }, [playbackSpeed2x]);
 
     useEffect(() => {
         if (videoRef.current) {
@@ -376,12 +390,24 @@ export const Timeline = () => {
                                 {new Date(selectedEvent.timestamp_start).toLocaleString()}
                             </p>
                         </div>
-                        <button
-                            onClick={() => setSelectedEvent(null)}
-                            className="ml-2 p-1 hover:bg-accent rounded text-muted-foreground"
-                        >
-                            ✕
-                        </button>
+                        <div className="flex items-center space-x-2">
+                            {/* Mobile Auto-next */}
+                            <label className="flex items-center space-x-1.5 px-2 py-1 bg-muted/50 rounded-lg cursor-pointer transition-all active:scale-95">
+                                <input
+                                    type="checkbox"
+                                    checked={autoplayNext}
+                                    onChange={(e) => setAutoplayNext(e.target.checked)}
+                                    className="w-3.5 h-3.5 rounded border-gray-400 text-primary focus:ring-primary"
+                                />
+                                <span className="text-[10px] font-bold text-foreground/80 uppercase tracking-tighter">Auto-next</span>
+                            </label>
+                            <button
+                                onClick={() => setSelectedEvent(null)}
+                                className="p-1 hover:bg-accent rounded-lg text-muted-foreground transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
                     <div className="aspect-video bg-black rounded-lg overflow-hidden relative">
                         {selectedEvent.type === 'video' ? (
@@ -392,6 +418,7 @@ export const Timeline = () => {
                                 className="w-full h-full object-contain"
                                 src={getMediaUrl(selectedEvent.file_path)}
                                 onEnded={handleVideoEnded}
+                                onLoadedMetadata={(e) => e.target.playbackRate = playbackSpeed2x ? 2.0 : 1.0}
                             />
                         ) : (
                             <img
@@ -404,7 +431,10 @@ export const Timeline = () => {
                         {selectedEvent.type === 'video' && (
                             <button
                                 onClick={() => setPlaybackSpeed2x(!playbackSpeed2x)}
-                                className={`absolute bottom-10 right-2 px-2 py-1 rounded text-xs font-bold backdrop-blur-md ${playbackSpeed2x ? 'bg-primary text-white' : 'bg-black/50 text-white'}`}
+                                className={`absolute top-2 right-2 px-2.5 py-1 rounded-md text-xs font-black backdrop-blur-md transition-all shadow-lg active:scale-90 ${playbackSpeed2x
+                                    ? 'bg-primary text-white scale-110'
+                                    : 'bg-black/40 text-white/90 border border-white/20'
+                                    }`}
                             >
                                 2x
                             </button>
@@ -576,7 +606,9 @@ export const Timeline = () => {
                                 {selectedEvent.type === 'video' && (
                                     <button
                                         onClick={() => setPlaybackSpeed2x(!playbackSpeed2x)}
-                                        className={`px-2 py-1 rounded text-xs font-bold transition-all ${playbackSpeed2x ? 'bg-primary text-white shadow-lg' : 'bg-muted hover:bg-muted/80'}`}
+                                        className={`px-2.5 py-1 rounded-md text-xs font-black transition-all shadow-sm ${playbackSpeed2x
+                                            ? 'bg-primary text-white scale-110 shadow-primary/20'
+                                            : 'bg-muted hover:bg-muted/80 text-muted-foreground'}`}
                                         title="Toggle 2x Speed"
                                     >
                                         2x
@@ -612,6 +644,7 @@ export const Timeline = () => {
                                     className="max-w-full max-h-full object-contain"
                                     src={getMediaUrl(selectedEvent.file_path)}
                                     onEnded={handleVideoEnded}
+                                    onLoadedMetadata={(e) => e.target.playbackRate = playbackSpeed2x ? 2.0 : 1.0}
                                 >
                                     Your browser does not support video.
                                 </video>
