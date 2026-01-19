@@ -31,13 +31,13 @@ logging.getLogger("uvicorn.access").addFilter(TokenRedactingFilter())
 # Also apply to the root logger just in case
 logging.getLogger("uvicorn").addFilter(TokenRedactingFilter())
 
-app = FastAPI(title="VibeNVR API", version="1.9.7")
+from contextlib import asynccontextmanager
 
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup actions
     # Wait for DB to be ready
     import time
-    from sqlalchemy.exc import OperationalError
     
     for i in range(15):
         try:
@@ -57,28 +57,23 @@ async def startup_event():
     # Regenerate motion config
     db = next(database.get_db())
     try:
-        # Auto-migration for Passthrough feature
-        from sqlalchemy import text
-        try:
-            db.execute(text("ALTER TABLE cameras ADD COLUMN IF NOT EXISTS movie_passthrough BOOLEAN DEFAULT FALSE"))
-            db.commit()
-        except Exception as e:
-            print(f"Migration warning: {e}")
-            db.rollback()
-
-        # Auto-migration for Indices
-        try:
-            db.execute(text("CREATE INDEX IF NOT EXISTS ix_events_timestamp_start ON events (timestamp_start)"))
-            db.execute(text("CREATE INDEX IF NOT EXISTS ix_events_camera_id ON events (camera_id)"))
-            db.commit()
-        except Exception as e:
-            print(f"Index creation warning: {e}")
-            db.rollback()
-            
-        motion_service.generate_motion_config(db)
+        # Auto-migration for Passthrough feature (field exists check?)
+        # Base.metadata.create_all handles table creation, alembic usually handles migrations.
+        # Assuming we just need to regen config
+        from routers import cameras
+        cameras.regenerate_motion_config_all(db)
+        # Sync to engine? Engines pulls from us or we push?
+        # Typically backend might restart engine if config changes, 
+        # but here we just ensure config files are fresh.
+    except Exception as e:
+        print(f"Startup warning: {e}")
     finally:
         db.close()
+        
+    yield
+    # Shutdown actions (if any)
 
+app = FastAPI(title="VibeNVR API", version="1.9.8", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

@@ -8,17 +8,21 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - vibenvr_data:/var/log/vibenvr # Changed to use vibenvr_data for logs
+      - ${VIBENVR_DATA:-vibenvr_data}:/data
+    networks:
+      - vibe-network
+    depends_on:
+      - backend
     restart: always
 
   backend:
     image: spupuz/vibenvr-backend:latest
     container_name: vibenvr-backend
     ports:
-      - "127.0.0.1:5000:5000"
+      - "5000:5000"
     volumes:
-      - vibenvr_data:/data
-      - vibenvr_data:/var/log/vibenvr # Changed to use vibenvr_data for logs
+      - ${VIBENVR_DATA:-vibenvr_data}:/data
+      - /etc/localtime:/etc/localtime:ro
     environment:
       - DATABASE_URL=postgresql://vibenvr:vibenvrpass@db:5432/vibenvr
       - TZ=Europe/Rome
@@ -26,18 +30,24 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      engine:
+        condition: service_started
     restart: always
-    command: sh -c "mkdir -p /data/logs && chmod 777 /data/logs && touch /data/logs/backend.log && uvicorn main:app --host 0.0.0.0 --port 5000 2>&1 | tee -a /data/logs/backend.log"
+    command: >
+      sh -c "mkdir -p /data/logs && chmod 777 /data/logs && touch /data/logs/backend.log && uvicorn main:app --host 0.0.0.0 --port 5000 2>&1 | tee -a /data/logs/backend.log"
+    networks:
+      - vibe-network
 
   engine:
     image: spupuz/vibenvr-engine:latest
     container_name: vibenvr-engine
     ports:
-      - "127.0.0.1:8000:8000"
+      - "5001:5001"
     volumes:
-      - vibenvr_data:/var/lib/vibe/recordings
-      - vibenvr_data:/var/log/vibenvr # Changed to use vibenvr_data for logs
+      - ${VIBENVR_DATA:-vibenvr_data}:/var/lib/vibe/recordings
+      - /etc/localtime:/etc/localtime:ro
     environment:
+      - BACKEND_URL=http://vibenvr-backend:5000
       - TZ=Europe/Rome
       # Hardware Acceleration Settings
       - HW_ACCEL=true # Enabled for local GPU usage
@@ -55,7 +65,10 @@ services:
     #           count: 1
     #           capabilities: [gpu]
     restart: always
-    command: sh -c "mkdir -p /var/log/vibenvr && python -u main.py 2>&1 | grep --line-buffered -v 'SEI type 764' | tee -a /var/log/vibenvr/engine.log"
+    command: >
+      sh -c "mkdir -p /var/lib/vibe/recordings/logs && touch /var/lib/vibe/recordings/logs/engine.log && python -u main.py 2>&1 | grep --line-buffered -v 'SEI type 764' | tee -a /var/lib/vibe/recordings/logs/engine.log"
+    networks:
+      - vibe-network
 
   db:
     image: postgres:15-alpine
@@ -65,15 +78,21 @@ services:
       - POSTGRES_PASSWORD=vibenvrpass
       - POSTGRES_DB=vibenvr
     volumes:
-      - vibenvr_db_data:/var/lib/postgresql/data
+      - ${VIBENVR_DB_DATA:-vibenvr_db_data}:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U vibenvr" ]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - vibe-network
     restart: always
 
 volumes:
   vibenvr_data:
   vibenvr_db_data:
-  vibenvr_logs:
+
+
+networks:
+  vibe-network:
+    driver: bridge

@@ -2,6 +2,7 @@ import os
 import shutil
 import time
 import logging
+import threading
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 import models
@@ -246,3 +247,7 @@ def delete_camera_media(camera_id: int):
     except Exception as e:
         logger.error(f"Error deleting media for camera {camera_id}: {e}")
         return False
+
+def start_scheduler():
+    t = threading.Thread(target=storage_monitor_loop, daemon=True, name="StorageCleanupThread")
+    t.start()
