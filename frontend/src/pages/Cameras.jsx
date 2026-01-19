@@ -577,38 +577,76 @@ export const Cameras = () => {
                                 <Download className="w-4 h-4" />
                                 <span>Export All</span>
                             </button>
-                            <label className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 h-10 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md cursor-pointer whitespace-nowrap text-sm font-medium" title="Import cameras from JSON file">
-                                <Upload className="w-4 h-4" />
-                                <span>Import</span>
-                                <input
-                                    type="file"
-                                    accept=".json"
-                                    className="hidden"
-                                    onChange={async (e) => {
-                                        const file = e.target.files?.[0];
-                                        if (!file) return;
-                                        const formData = new FormData();
-                                        formData.append('file', file);
-                                        try {
-                                            const res = await fetch('/api/cameras/import', {
-                                                method: 'POST',
-                                                body: formData
-                                            });
-                                            if (res.ok) {
-                                                const data = await res.json();
-                                                showToast(data.message, 'success');
-                                                fetchCameras();
-                                            } else {
-                                                const err = await res.json();
-                                                showToast('Import failed: ' + err.detail, 'error');
+                            <div className="flex-1 sm:flex-initial flex gap-1">
+                                <label className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 h-10 rounded-l-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md cursor-pointer whitespace-nowrap text-sm font-medium border-r border-white/20" title="Import cameras from VibeNVR JSON">
+                                    <Upload className="w-4 h-4" />
+                                    <span>Import</span>
+                                    <input
+                                        type="file"
+                                        accept=".json"
+                                        className="hidden"
+                                        onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+                                            const formData = new FormData();
+                                            formData.append('file', file);
+                                            try {
+                                                const res = await fetch('/api/cameras/import', {
+                                                    method: 'POST',
+                                                    body: formData,
+                                                    headers: { Authorization: `Bearer ${token}` }
+                                                });
+                                                if (res.ok) {
+                                                    const data = await res.json();
+                                                    showToast(data.message, 'success');
+                                                    fetchCameras();
+                                                } else {
+                                                    const err = await res.json();
+                                                    showToast('Import failed: ' + err.detail, 'error');
+                                                }
+                                            } catch (err) {
+                                                showToast('Import failed: ' + err.message, 'error');
                                             }
-                                        } catch (err) {
-                                            showToast('Import failed: ' + err.message, 'error');
-                                        }
-                                        e.target.value = '';
-                                    }}
-                                />
-                            </label>
+                                            e.target.value = '';
+                                        }}
+                                    />
+                                </label>
+                                <label className="flex-1 sm:flex-initial flex items-center justify-center px-4 h-10 bg-indigo-600 text-white rounded-r-lg hover:bg-indigo-700 transition-all shadow-sm hover:shadow-md cursor-pointer whitespace-nowrap text-sm font-medium" title="Import from MotionEye backup (.tar.gz)">
+                                    <div className="flex flex-col items-center leading-tight">
+                                        <span className="text-[10px] opacity-70">from</span>
+                                        <span className="text-xs">MotionEye</span>
+                                    </div>
+                                    <input
+                                        type="file"
+                                        accept=".tar.gz"
+                                        className="hidden"
+                                        onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+                                            const formData = new FormData();
+                                            formData.append('file', file);
+                                            try {
+                                                const res = await fetch('/api/cameras/import/motioneye', {
+                                                    method: 'POST',
+                                                    body: formData,
+                                                    headers: { Authorization: `Bearer ${token}` }
+                                                });
+                                                if (res.ok) {
+                                                    const data = await res.json();
+                                                    showToast(data.message, 'success');
+                                                    fetchCameras();
+                                                } else {
+                                                    const err = await res.json();
+                                                    showToast('MotionEye Import failed: ' + err.detail, 'error');
+                                                }
+                                            } catch (err) {
+                                                showToast('Import error: ' + err.message, 'error');
+                                            }
+                                            e.target.value = '';
+                                        }}
+                                    />
+                                </label>
+                            </div>
                         </>
                     )}
                 </div>

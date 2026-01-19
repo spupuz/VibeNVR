@@ -4,7 +4,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from typing import List
 import crud, schemas, database, motion_service, storage_service, probe_service, auth_service, models
-import json, asyncio
+import json, asyncio, tarfile, io, re
 from typing import Optional
 
 router = APIRouter(
@@ -264,6 +264,78 @@ async def import_cameras(file: UploadFile = File(...), db: Session = Depends(dat
         raise HTTPException(status_code=400, detail="Invalid JSON file")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/import/motioneye")
+async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """Import cameras from MotionEye backup (.tar.gz)"""
+    if not file.filename.endswith('.tar.gz'):
+        raise HTTPException(status_code=400, detail="File must be a .tar.gz backup from MotionEye")
+    
+    try:
+        content = await file.read()
+        tar_stream = io.BytesIO(content)
+        imported_count = 0
+        
+        with tarfile.open(fileobj=tar_stream, mode='r:gz') as tar:
+            for member in tar.getmembers():
+                if member.name.endswith('.conf') and member.name.startswith('camera-'):
+                    f = tar.extractfile(member)
+                    if f:
+                        conf_text = f.read().decode('utf-8', errors='ignore')
+                        
+                        # Parsing Logic
+                        # Extract basic info using regex
+                        cam_name_match = re.search(r'^camera_name\s+(.*)', conf_text, re.MULTILINE)
+                        url_match = re.search(r'^netcam_url\s+(.*)', conf_text, re.MULTILINE)
+                        userpass_match = re.search(r'^netcam_userpass\s+(.*)', conf_text, re.MULTILINE)
+                        width_match = re.search(r'^width\s+(\d+)', conf_text, re.MULTILINE)
+                        height_match = re.search(r'^height\s+(\d+)', conf_text, re.MULTILINE)
+                        fps_match = re.search(r'^framerate\s+(\d+)', conf_text, re.MULTILINE)
+                        rotation_match = re.search(r'^rotate\s+(\d+)', conf_text, re.MULTILINE)
+                        
+                        if not url_match:
+                            continue
+                            
+                        # Build VibeNVR Schema
+                        name = cam_name_match.group(1).strip() if cam_name_match else f"Imported {member.name}"
+                        rtsp_url = url_match.group(1).strip()
+                        
+                        # Handle userpass injection if present in netcam_userpass but not in URL
+                        if userpass_match and '@' not in rtsp_url:
+                            userpass = userpass_match.group(1).strip()
+                            if '://' in rtsp_url:
+                                proto, rest = rtsp_url.split('://', 1)
+                                rtsp_url = f"{proto}://{userpass}@{rest}"
+                        
+                        # Create Camera
+                        new_cam = schemas.CameraCreate(
+                            name=name,
+                            rtsp_url=rtsp_url,
+                            resolution_width=int(width_match.group(1)) if width_match else 800,
+                            resolution_height=int(height_match.group(1)) if height_match else 600,
+                            framerate=int(fps_match.group(1)) if fps_match else 15,
+                            rotation=int(rotation_match.group(1)) if rotation_match else 0,
+                            auto_resolution=True if not (width_match and height_match) else False
+                        )
+                        
+                        # Additional detections from MotionEye comments
+                        if '# @enabled off' in conf_text:
+                            new_cam.is_active = False
+                        
+                        if 'movie_output on' in conf_text or 'movie_output_motion on' in conf_text:
+                            new_cam.recording_mode = "Motion Triggered"
+                        else:
+                            new_cam.recording_mode = "Off"
+                            
+                        crud.create_camera(db, new_cam)
+                        imported_count += 1
+        
+        motion_service.generate_motion_config(db)
+        return {"message": f"Successfully imported {imported_count} camera(s) from MotionEye backup", "count": imported_count}
+
+    except Exception as e:
+        print(f"MotionEye Import Error: {e}", flush=True)
+        raise HTTPException(status_code=400, detail=f"Failed to parse MotionEye backup: {str(e)}")
 
 @router.post("/{camera_id}/cleanup")
 def cleanup_camera(camera_id: int, type: Optional[str] = None, db: Session = Depends(database.get_db)):
