@@ -19,7 +19,7 @@ services:
     image: spupuz/vibenvr-backend:latest
     container_name: vibenvr-backend
     ports:
-      - "5000:5000"
+      - "5005:5000"
     volumes:
       - ${VIBENVR_DATA:-vibenvr_data}:/data
       - /etc/localtime:/etc/localtime:ro
