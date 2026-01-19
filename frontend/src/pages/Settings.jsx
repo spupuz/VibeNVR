@@ -762,6 +762,9 @@ export const Settings = () => {
                         {/* SMTP Section */}
                         <div>
                             <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">SMTP (Email) Configuration</h4>
+                            <p className="text-xs text-muted-foreground mb-4 bg-muted/30 p-2 rounded-lg border border-border/50">
+                                <span className="font-semibold text-primary">Note:</span> These global credentials will be used for all cameras unless a camera specifically overrides them in its own settings.
+                            </p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="col-span-2 md:col-span-1">
                                     <label className="block text-xs font-medium mb-1">SMTP Server</label>
@@ -829,7 +832,7 @@ export const Settings = () => {
                                         value={globalSettings.telegram_bot_token}
                                         onChange={(e) => setGlobalSettings({ ...globalSettings, telegram_bot_token: e.target.value })}
                                     />
-                                    <p className="text-[10px] text-muted-foreground mt-1">Get this from @BotFather</p>
+                                    <p className="text-[10px] text-muted-foreground mt-1">Global Default. Can be overridden per camera.</p>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium mb-1">Global Chat ID</label>
@@ -840,7 +843,7 @@ export const Settings = () => {
                                         value={globalSettings.telegram_chat_id}
                                         onChange={(e) => setGlobalSettings({ ...globalSettings, telegram_chat_id: e.target.value })}
                                     />
-                                    <p className="text-[10px] text-muted-foreground mt-1">Default chat/channel for notifications</p>
+                                    <p className="text-[10px] text-muted-foreground mt-1">Default destination for all cameras. Specific cameras can override this.</p>
                                 </div>
                             </div>
                         </div>
