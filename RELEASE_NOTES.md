@@ -1,3 +1,12 @@
+# VibeNVR v1.9.4 - Security Hardening & Log Redaction
+
+## 🔒 Security Enhancements
+
+*   **Auth Token Privacy**: Moved the authentication token from query parameters to HTTP Authorization headers for Live View frames. This prevents tokens from appearing in Nginx and backend access logs.
+*   **Automatic Log Masking**: Added a backend logging filter that automatically redacts any `token=` parameters from logs (via `TokenRedactingFilter`). This provides a second layer of security for media requests that still require query params.
+
+---
+
 # VibeNVR v1.7.0 - Architectural Overhaul & Proxy Implementation
 
 ## 🚀 Major Updates

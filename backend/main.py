@@ -8,7 +8,30 @@ import motion_service
 import database
 import auth_service
 
-app = FastAPI(title="VibeNVR API", version="1.9.3")
+import logging
+import re
+
+class TokenRedactingFilter(logging.Filter):
+    def filter(self, record):
+        # Redact token from the message itself
+        if isinstance(record.msg, str) and "token=" in record.msg:
+            record.msg = re.sub(r"token=[^&\s]*", "token=REDACTED", record.msg)
+        
+        # Redact token from uvicorn access log arguments (client, method, path, etc)
+        if hasattr(record, "args") and record.args:
+            new_args = list(record.args)
+            for i, arg in enumerate(new_args):
+                if isinstance(arg, str) and "token=" in arg:
+                    new_args[i] = re.sub(r"token=[^&\s]*", "token=REDACTED", arg)
+            record.args = tuple(new_args)
+        return True
+
+# Apply the filter to uvicorn access logs
+logging.getLogger("uvicorn.access").addFilter(TokenRedactingFilter())
+# Also apply to the root logger just in case
+logging.getLogger("uvicorn").addFilter(TokenRedactingFilter())
+
+app = FastAPI(title="VibeNVR API", version="1.9.4")
 
 @app.on_event("startup")
 async def startup_event():
