@@ -60,8 +60,8 @@ async def lifespan(app: FastAPI):
         # Auto-migration for Passthrough feature (field exists check?)
         # Base.metadata.create_all handles table creation, alembic usually handles migrations.
         # Assuming we just need to regen config
-        from routers import cameras
-        cameras.regenerate_motion_config_all(db)
+        # Sync to engine directly using motion_service
+        motion_service.generate_motion_config(db)
         # Sync to engine? Engines pulls from us or we push?
         # Typically backend might restart engine if config changes, 
         # but here we just ensure config files are fresh.
