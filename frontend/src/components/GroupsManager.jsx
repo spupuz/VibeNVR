@@ -6,7 +6,7 @@ import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 
 export const GroupsManager = ({ cameras }) => {
-    const { token } = useAuth();
+    const { token, user } = useAuth();
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -206,14 +206,16 @@ export const GroupsManager = ({ cameras }) => {
                                     />
                                 </div>
                             </div>
-                            <button
-                                onClick={() => setCopyingGroup(group)}
-                                className="flex flex-col items-center justify-center p-2 text-xs bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 rounded-lg transition-colors border border-blue-500/20"
-                                title="Copy Settings"
-                            >
-                                <Copy className="w-4 h-4 mb-1" />
-                                Copy Settings
-                            </button>
+                            {user?.role === 'admin' && (
+                                <button
+                                    onClick={() => setCopyingGroup(group)}
+                                    className="flex flex-col items-center justify-center p-2 text-xs bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 rounded-lg transition-colors border border-blue-500/20"
+                                    title="Copy Settings"
+                                >
+                                    <Copy className="w-4 h-4 mb-1" />
+                                    Copy Settings
+                                </button>
+                            )}
                         </div>
                     </div>
                 ))}
