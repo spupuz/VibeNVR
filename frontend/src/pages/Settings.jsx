@@ -24,7 +24,8 @@ export const Settings = () => {
         smtp_from_email: '',
         telegram_bot_token: '',
         telegram_chat_id: '',
-        notify_email_recipient: ''
+        notify_email_recipient: '',
+        default_landing_page: 'live'
     });
     const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0, percent: 0 });
     const [loading, setLoading] = useState(true);
@@ -190,7 +191,8 @@ export const Settings = () => {
                     smtp_from_email: data.smtp_from_email?.value || '',
                     telegram_bot_token: data.telegram_bot_token?.value || '',
                     telegram_chat_id: data.telegram_chat_id?.value || '',
-                    notify_email_recipient: data.notify_email_recipient?.value || ''
+                    notify_email_recipient: data.notify_email_recipient?.value || '',
+                    default_landing_page: data.default_landing_page?.value || 'live'
                 });
             }
         } catch (err) {
@@ -228,7 +230,8 @@ export const Settings = () => {
                     smtp_from_email: globalSettings.smtp_from_email,
                     telegram_bot_token: globalSettings.telegram_bot_token,
                     telegram_chat_id: globalSettings.telegram_chat_id,
-                    notify_email_recipient: globalSettings.notify_email_recipient
+                    notify_email_recipient: globalSettings.notify_email_recipient,
+                    default_landing_page: globalSettings.default_landing_page
                 })
             });
             showToast('Settings saved successfully!', 'success');
@@ -825,6 +828,19 @@ export const Settings = () => {
                                 onChange={(e) => setGlobalSettings({ ...globalSettings, notify_email_recipient: e.target.value })}
                             />
                             <p className="text-[10px] text-muted-foreground mt-1">Used if a camera doesn't specify a recipient</p>
+                        </div>
+                        <div className="mt-4">
+                            <label className="block text-xs font-medium mb-1">Default Landing Page</label>
+                            <select
+                                className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
+                                value={globalSettings.default_landing_page}
+                                onChange={(e) => setGlobalSettings({ ...globalSettings, default_landing_page: e.target.value })}
+                            >
+                                <option value="dashboard">Dashboard</option>
+                                <option value="live">Live View</option>
+                                <option value="timeline">Timeline</option>
+                            </select>
+                            <p className="text-[10px] text-muted-foreground mt-1">Which page to show first when opening the application</p>
                         </div>
                     </div>
                 </div>
