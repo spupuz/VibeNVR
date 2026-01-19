@@ -65,6 +65,7 @@ const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl, onDele
 
     return (
         <div
+            id={`event-${event.id}`}
             className={`flex items-stretch bg-card border rounded-xl overflow-hidden cursor-pointer transition-all hover:shadow-lg group
                 ${isSelected ? 'ring-2 ring-primary border-primary' : 'border-border hover:border-primary/50'}
             `}
@@ -198,6 +199,7 @@ export const Timeline = () => {
     const cameraId = searchParams.get('camera');
     const type = searchParams.get('type');
     const urlDate = searchParams.get('date');
+    const eventId = searchParams.get('event_id');
 
     useEffect(() => {
         if (urlDate) setSelectedDate(urlDate);
@@ -223,6 +225,19 @@ export const Timeline = () => {
                 .then(data => {
                     console.log(`Fetched ${data.length} events`);
                     setEvents(data);
+
+                    // Auto-select event if ID is in URL
+                    if (eventId) {
+                        const targetEvent = data.find(e => e.id === parseInt(eventId));
+                        if (targetEvent) {
+                            setSelectedEvent(targetEvent);
+                            // Scroll to event list entry if possible
+                            setTimeout(() => {
+                                const element = document.getElementById(`event-${targetEvent.id}`);
+                                if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 500);
+                        }
+                    }
                 })
                 .catch(err => console.error(err));
         };

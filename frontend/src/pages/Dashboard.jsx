@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Activity, Camera, HardDrive, ShieldAlert, Film, Image, CalendarClock, Cpu, MemoryStick, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -20,6 +21,7 @@ const StatCard = ({ title, value, subtext, icon: Icon, trend }) => (
 
 export const Dashboard = () => {
     const { token } = useAuth();
+    const navigate = useNavigate();
     const [stats, setStats] = useState({
         active_cameras: 0,
         total_events: 0,
@@ -435,13 +437,20 @@ export const Dashboard = () => {
                                 <p className="text-sm text-muted-foreground text-center py-4">No recent events</p>
                             ) : (
                                 recentEvents.map((evt) => (
-                                    <div key={evt.id} className="flex items-center space-x-4 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
-                                        <div className={`w-2 h-2 rounded-full ${evt.type === 'video' ? 'bg-blue-500' : 'bg-green-500'}`} />
+                                    <div
+                                        key={evt.id}
+                                        onClick={() => {
+                                            const eventDate = new Date(evt.timestamp_start).toLocaleDateString('en-CA');
+                                            navigate(`/timeline?event_id=${evt.id}&date=${eventDate}`);
+                                        }}
+                                        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
+                                    >
+                                        <div className={`w-1.5 h-1.5 rounded-full ${evt.type === 'video' ? 'bg-blue-500' : 'bg-green-500'} group-hover:scale-125 transition-transform`} />
                                         <div className="overflow-hidden flex-1">
-                                            <p className="text-sm font-medium truncate">Motion - {getCameraName(evt.camera_id)}</p>
-                                            <p className="text-xs text-muted-foreground">{new Date(evt.timestamp_start).toLocaleString()}</p>
+                                            <p className="text-xs font-semibold truncate">Motion - {getCameraName(evt.camera_id)}</p>
+                                            <p className="text-[10px] text-muted-foreground">{new Date(evt.timestamp_start).toLocaleTimeString()}</p>
                                         </div>
-                                        <span className={`text-xs px-2 py-0.5 rounded ${evt.type === 'video' ? 'bg-blue-500/10 text-blue-500' : 'bg-green-500/10 text-green-500'}`}>
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${evt.type === 'video' ? 'bg-blue-500/10 text-blue-500' : 'bg-green-500/10 text-green-500'}`}>
                                             {evt.type === 'video' ? 'Video' : 'Image'}
                                         </span>
                                     </div>
