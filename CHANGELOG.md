@@ -2,6 +2,14 @@
 
 All notable changes to the VibeNVR project will be documented in this file.
 
+## [1.9.7] - 2026-01-19
+
+### 🐛 Fixed
+*   **Startup**: Added wait-for-backend check in frontend container to prevent startup crash loop.
+*   **Notifications**: Fixed database session error in background notification thread.
+*   **Attachments**: Corrected file path resolution for notification images (Telegram/Email).
+*   **UI**: Fixed duplicate camera creation when clicking "Apply" in camera settings.
+
 ## [1.9.6] - 2026-01-19
 
 ### 🧹 Maintenance

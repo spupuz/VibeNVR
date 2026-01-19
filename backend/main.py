@@ -31,7 +31,7 @@ logging.getLogger("uvicorn.access").addFilter(TokenRedactingFilter())
 # Also apply to the root logger just in case
 logging.getLogger("uvicorn").addFilter(TokenRedactingFilter())
 
-app = FastAPI(title="VibeNVR API", version="1.9.6")
+app = FastAPI(title="VibeNVR API", version="1.9.7")
 
 @app.on_event("startup")
 async def startup_event():
