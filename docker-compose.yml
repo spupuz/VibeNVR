@@ -63,8 +63,8 @@ services:
     #         - driver: nvidia
     #           count: 1
     #           capabilities: [gpu]
-    restart: always
-    command: sh -c "mkdir -p /var/log/vibenvr && python -u main.py 2>&1 | grep --line-buffered -v 'SEI type 764' | tee -a /var/log/vibenvr/engine.log"
+    command: >
+      sh -c "mkdir -p /var/lib/vibe/recordings/logs && touch /var/lib/vibe/recordings/logs/engine.log && python -u main.py 2>&1 | grep --line-buffered -v 'SEI type 764' | tee -a /var/lib/vibe/recordings/logs/engine.log"
 
   db:
     image: postgres:15-alpine
