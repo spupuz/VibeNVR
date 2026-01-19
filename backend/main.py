@@ -48,9 +48,11 @@ async def startup_event():
             print(f"Waiting for Database ({i+1}/15)...")
             time.sleep(2)
 
-    # Start storage monitor in background
-    thread = threading.Thread(target=storage_service.storage_monitor_loop, daemon=True)
-    thread.start()
+    # Start background tasks
+    storage_service.start_scheduler()
+    motion_service.start_check_loop()
+    import log_service
+    log_service.start_scheduler()
     
     # Regenerate motion config
     db = next(database.get_db())

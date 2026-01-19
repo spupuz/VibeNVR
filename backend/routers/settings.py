@@ -84,6 +84,11 @@ DEFAULT_SETTINGS = {
     "telegram_chat_id": {"value": "", "description": "Telegram Chat ID for global notifications"},
     "notify_email_recipient": {"value": "", "description": "Default recipient for email notifications"},
     "default_landing_page": {"value": "live", "description": "Default page when opening the app (dashboard, timeline, live)"},
+    
+    # Log Settings
+    "log_max_size_mb": {"value": "50", "description": "Maximum size of a log file before rotation (MB)"},
+    "log_backup_count": {"value": "5", "description": "Number of rotated log files to keep"},
+    "log_rotation_check_minutes": {"value": "60", "description": "How often to check for log rotation (minutes)"},
 }
 
 @router.post("/init-defaults")
