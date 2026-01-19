@@ -42,6 +42,9 @@ def get_setting_by_key(key: str, db: Session = Depends(database.get_db), current
     """Get a specific setting by key"""
     setting = db.query(models.SystemSettings).filter(models.SystemSettings.key == key).first()
     if not setting:
+        # Fallback to DEFAULT_SETTINGS if available
+        if key in DEFAULT_SETTINGS:
+            return {"key": key, "value": DEFAULT_SETTINGS[key]["value"], "description": DEFAULT_SETTINGS[key]["description"]}
         return {"key": key, "value": None, "description": None}
     return {"key": setting.key, "value": setting.value, "description": setting.description}
 
@@ -80,6 +83,7 @@ DEFAULT_SETTINGS = {
     "telegram_bot_token": {"value": "", "description": "Telegram Bot Token for global notifications"},
     "telegram_chat_id": {"value": "", "description": "Telegram Chat ID for global notifications"},
     "notify_email_recipient": {"value": "", "description": "Default recipient for email notifications"},
+    "default_landing_page": {"value": "live", "description": "Default page when opening the app (dashboard, timeline, live)"},
 }
 
 @router.post("/init-defaults")

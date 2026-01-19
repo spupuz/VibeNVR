@@ -21,7 +21,7 @@ const ProtectedRoute = ({ children }) => {
 function AppContent() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { isAuthenticated, loading } = useAuth();
+    const { isAuthenticated, loading, token } = useAuth();
 
     // Theme logic
     const [theme, setTheme] = useState(() => {
@@ -51,9 +51,41 @@ function AppContent() {
     };
     const activeTab = pathToTab[location.pathname] || 'dashboard';
 
+    const [defaultLandingPage, setDefaultLandingPage] = useState('live');
+
+    useEffect(() => {
+        if (isAuthenticated && token) {
+            fetch('/api/settings/default_landing_page', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.value) {
+                        setDefaultLandingPage(data.value);
+                    }
+                })
+                .catch(err => console.error('Failed to fetch landing page setting', err));
+        }
+    }, [isAuthenticated, token]);
+
+    // Redirect root to default landing page
+    useEffect(() => {
+        if (isAuthenticated && location.pathname === '/') {
+            const pageToPath = {
+                'dashboard': '/dashboard',
+                'live': '/live',
+                'timeline': '/timeline'
+            };
+            const targetPath = pageToPath[defaultLandingPage] || '/live';
+            if (location.pathname !== targetPath) {
+                navigate(targetPath, { replace: true });
+            }
+        }
+    }, [isAuthenticated, location.pathname, defaultLandingPage, navigate]);
+
     const handleTabChange = (tab) => {
         const tabToPath = {
-            'dashboard': '/',
+            'dashboard': '/dashboard',
             'live': '/live',
             'cameras': '/cameras',
             'timeline': '/timeline',
@@ -61,7 +93,7 @@ function AppContent() {
             'settings': '/settings',
             'about': '/about'
         };
-        navigate(tabToPath[tab] || '/');
+        navigate(tabToPath[tab] || '/dashboard');
     };
 
     if (loading) return <div className="flex items-center justify-center h-screen bg-background"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
