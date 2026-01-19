@@ -2,6 +2,12 @@
 
 All notable changes to the VibeNVR project will be documented in this file.
 
+## [1.9.4] - 2026-01-19
+
+### 🔒 Security & Privacy
+*   **Enhanced Token Security**: Removed JWT tokens from query parameters in Live View requests. Tokens are now sent via secure HTTP Authorization headers.
+*   **Log Redaction**: Implemented a `TokenRedactingFilter` in the backend that automatically masks `token=...` strings in access logs, preventing sensitive information leakage.
+
 ## [1.8.0] - 2026-01-19
 
 ### 🚀 Improvements & New Features
