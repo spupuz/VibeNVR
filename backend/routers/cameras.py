@@ -4,7 +4,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from typing import List
 import crud, schemas, database, motion_service, storage_service, probe_service, auth_service, models
-import json, asyncio, tarfile, io, re
+import json, asyncio, tarfile, io, re, os
 from typing import Optional
 
 router = APIRouter(
