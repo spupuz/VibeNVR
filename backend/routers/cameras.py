@@ -221,6 +221,8 @@ def export_all_cameras(db: Session = Depends(database.get_db)):
     for cam in cameras:
         # Pydantic v2 validation (excludes relationships and system fields like ID automatically)
         cam_data = jsonable_encoder(schemas.CameraCreate.model_validate(cam))
+        # Include group names in export
+        cam_data["groups"] = [g.name for g in cam.groups]
         export_data.append(cam_data)
     
     return Response(
@@ -240,6 +242,8 @@ def export_single_camera(camera_id: int, db: Session = Depends(database.get_db))
     
     # Use schema to serialize without relationships
     filtered_data = jsonable_encoder(schemas.CameraCreate.model_validate(cam))
+    # Include group names in export
+    filtered_data["groups"] = [g.name for g in cam.groups]
     
     return Response(
         content=json.dumps({"camera": filtered_data, "version": "1.1"}, indent=2),
@@ -260,9 +264,26 @@ async def import_cameras(file: UploadFile = File(...), db: Session = Depends(dat
         for cam_data in cameras_data:
             if cam_data is None:
                 continue
+            
+            # Extract and remove groups to avoid schema validation error
+            group_names = cam_data.pop("groups", [])
+            
             # Create new camera with imported settings
             new_camera = schemas.CameraCreate(**cam_data)
-            crud.create_camera(db, new_camera)
+            db_camera = crud.create_camera(db, new_camera)
+            
+            # Handle group associations
+            for g_name in group_names:
+                db_group = db.query(models.CameraGroup).filter(models.CameraGroup.name == g_name).first()
+                if not db_group:
+                    db_group = models.CameraGroup(name=g_name)
+                    db.add(db_group)
+                    db.flush()
+                
+                # Double check association
+                if db_camera not in db_group.cameras:
+                    db_group.cameras.append(db_camera)
+            
             imported_count += 1
         
         motion_service.generate_motion_config(db)

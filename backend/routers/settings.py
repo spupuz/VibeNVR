@@ -110,7 +110,7 @@ def export_backup(db: Session = Depends(database.get_db), current_user: models.U
         "settings": jsonable_encoder(db.query(models.SystemSettings).all()),
         "cameras": jsonable_encoder([schemas.Camera.model_validate(c) for c in db.query(models.Camera).all()]),
         "groups": jsonable_encoder([schemas.CameraGroup.model_validate(g) for g in db.query(models.CameraGroup).all()]),
-        "associations": jsonable_encoder(db.query(models.CameraGroupAssociation).all())
+        "associations": [{"camera_id": a.camera_id, "group_id": a.group_id} for a in db.query(models.CameraGroupAssociation).all()]
     }
     
     filename = f"vibenvr_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
@@ -193,16 +193,20 @@ async def import_backup(
         # Wipe existing associations for robustness or merge?
         # Merging is safer.
         if "associations" in data:
-            # Clear old associations? Maybe too aggressive.
-            # Just add missing.
+            print(f"[BACKUP] Restoring {len(data['associations'])} camera-group associations", flush=True)
             for a in data["associations"]:
                  cam_id = a.get("camera_id")
                  grp_id = a.get("group_id")
                  if cam_id and grp_id:
-                     exists = db.query(models.CameraGroupAssociation).filter_by(camera_id=cam_id, group_id=grp_id).first()
-                     if not exists:
-                         assoc = models.CameraGroupAssociation(camera_id=cam_id, group_id=grp_id)
-                         db.add(assoc)
+                     # Verify both exist before associating
+                     cam_exists = db.query(models.Camera).filter_by(id=cam_id).first()
+                     grp_exists = db.query(models.CameraGroup).filter_by(id=grp_id).first()
+                     
+                     if cam_exists and grp_exists:
+                         exists = db.query(models.CameraGroupAssociation).filter_by(camera_id=cam_id, group_id=grp_id).first()
+                         if not exists:
+                             assoc = models.CameraGroupAssociation(camera_id=cam_id, group_id=grp_id)
+                             db.add(assoc)
 
         db.commit()
         return {"message": "Backup imported successfully. Please refresh the page."}
