@@ -231,3 +231,18 @@ def storage_monitor_loop():
         except Exception as e:
             logger.error(f"Error in storage monitor loop: {e}")
             time.sleep(300) # Wait 5 mins on error
+
+def delete_camera_media(camera_id: int):
+    """Delete all media files on disk for a specific camera"""
+    try:
+        # VibeEngine stores in /data/Camera{id}
+        camera_dir = f"/data/Camera{camera_id}"
+        if os.path.exists(camera_dir):
+            shutil.rmtree(camera_dir, ignore_errors=True)
+            logger.info(f"Deleted media directory for camera {camera_id}: {camera_dir}")
+        else:
+            logger.warning(f"Media directory for camera {camera_id} not found: {camera_dir}")
+        return True
+    except Exception as e:
+        logger.error(f"Error deleting media for camera {camera_id}: {e}")
+        return False

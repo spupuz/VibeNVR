@@ -119,11 +119,19 @@ def toggle_camera_recording(camera_id: int, db: Session = Depends(database.get_d
     return db_camera
 
 @router.delete("/{camera_id}", response_model=schemas.Camera)
-def delete_camera(camera_id: int, db: Session = Depends(database.get_db)):
+def delete_camera(camera_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    # 1. Stop the camera if running
+    motion_service.stop_camera(camera_id)
+    
+    # 2. Delete media from disk
+    storage_service.delete_camera_media(camera_id)
+    
+    # 3. Delete from DB (Cascade handles associated events)
     db_camera = crud.delete_camera(db, camera_id=camera_id)
     if db_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
     
+    # 4. Sync engine config
     motion_service.generate_motion_config(db)
     return db_camera
 
@@ -277,28 +285,39 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
         imported_count = 0
         
         with tarfile.open(fileobj=tar_stream, mode='r:gz') as tar:
-            for member in tar.getmembers():
-                if member.name.endswith('.conf') and member.name.startswith('camera-'):
+            members = tar.getmembers()
+            print(f"[IMPORT] Tar contains {len(members)} entries", flush=True)
+            
+            for member in members:
+                filename = os.path.basename(member.name)
+                print(f"[IMPORT] Checking member: {member.name} (file: {filename})", flush=True)
+                
+                # Check for camera-X.conf or camera_X.conf
+                if filename.endswith('.conf') and (filename.startswith('camera-') or filename.startswith('camera_')):
+                    print(f"[IMPORT] Parsing config: {member.name}", flush=True)
                     f = tar.extractfile(member)
                     if f:
                         conf_text = f.read().decode('utf-8', errors='ignore')
                         
                         # Parsing Logic
-                        # Extract basic info using regex
-                        cam_name_match = re.search(r'^camera_name\s+(.*)', conf_text, re.MULTILINE)
-                        url_match = re.search(r'^netcam_url\s+(.*)', conf_text, re.MULTILINE)
-                        userpass_match = re.search(r'^netcam_userpass\s+(.*)', conf_text, re.MULTILINE)
-                        width_match = re.search(r'^width\s+(\d+)', conf_text, re.MULTILINE)
-                        height_match = re.search(r'^height\s+(\d+)', conf_text, re.MULTILINE)
-                        fps_match = re.search(r'^framerate\s+(\d+)', conf_text, re.MULTILINE)
-                        rotation_match = re.search(r'^rotate\s+(\d+)', conf_text, re.MULTILINE)
+                        # Extract basic info using regex - case insensitive for robustness
+                        cam_name_match = re.search(r'^camera_name\s+(.*)', conf_text, re.MULTILINE | re.IGNORECASE)
+                        url_match = re.search(r'^netcam_url\s+(.*)', conf_text, re.MULTILINE | re.IGNORECASE)
+                        userpass_match = re.search(r'^netcam_userpass\s+(.*)', conf_text, re.MULTILINE | re.IGNORECASE)
+                        width_match = re.search(r'^width\s+(\d+)', conf_text, re.MULTILINE | re.IGNORECASE)
+                        height_match = re.search(r'^height\s+(\d+)', conf_text, re.MULTILINE | re.IGNORECASE)
+                        fps_match = re.search(r'^framerate\s+(\d+)', conf_text, re.MULTILINE | re.IGNORECASE)
+                        rotation_match = re.search(r'^rotate\s+(\d+)', conf_text, re.MULTILINE | re.IGNORECASE)
                         
                         if not url_match:
+                            print(f"[IMPORT] No netcam_url found in {member.name}, skipping.", flush=True)
                             continue
                             
                         # Build VibeNVR Schema
-                        name = cam_name_match.group(1).strip() if cam_name_match else f"Imported {member.name}"
+                        name = cam_name_match.group(1).strip() if cam_name_match else f"Imported {filename}"
                         rtsp_url = url_match.group(1).strip()
+                        
+                        print(f"[IMPORT] Found camera: {name} with URL: {rtsp_url}", flush=True)
                         
                         # Handle userpass injection if present in netcam_userpass but not in URL
                         if userpass_match and '@' not in rtsp_url:
@@ -330,6 +349,7 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
                         crud.create_camera(db, new_cam)
                         imported_count += 1
         
+        print(f"[IMPORT] Total imported: {imported_count}", flush=True)
         motion_service.generate_motion_config(db)
         return {"message": f"Successfully imported {imported_count} camera(s) from MotionEye backup", "count": imported_count}
 
