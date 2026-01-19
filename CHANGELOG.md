@@ -2,6 +2,11 @@
 
 All notable changes to the VibeNVR project will be documented in this file.
 
+## [1.9.10] - 2026-01-20
+
+### 🚀 Improvements & Features
+*   **Startup Stability**: Fixed an issue where cameras wouldn't automatically start/sync with the Engine on backend startup. This ensures that after a system reboot, all enabled cameras resume streaming without manual intervention.
+
 ## [1.9.9] - 2026-01-19
 
 ### 🚀 Improvements & Features
