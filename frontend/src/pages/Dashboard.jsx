@@ -432,7 +432,7 @@ export const Dashboard = () => {
                 <div className="grid grid-cols-1 gap-8">
                     <div className="bg-card rounded-xl border border-border p-6 h-[400px]">
                         <h3 className="text-lg font-semibold mb-4">Recent Events</h3>
-                        <div className="space-y-4 overflow-y-auto max-h-[320px]">
+                        <div className="space-y-1 overflow-y-auto max-h-[320px]">
                             {recentEvents.length === 0 ? (
                                 <p className="text-sm text-muted-foreground text-center py-4">No recent events</p>
                             ) : (
@@ -443,7 +443,7 @@ export const Dashboard = () => {
                                             const eventDate = new Date(evt.timestamp_start).toLocaleDateString('en-CA');
                                             navigate(`/timeline?event_id=${evt.id}&date=${eventDate}`);
                                         }}
-                                        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
+                                        className="flex items-center space-x-3 p-1 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
                                     >
                                         <div className={`w-1.5 h-1.5 rounded-full ${evt.type === 'video' ? 'bg-blue-500' : 'bg-green-500'} group-hover:scale-125 transition-transform`} />
                                         <div className="overflow-hidden flex-1">
