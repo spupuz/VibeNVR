@@ -6,7 +6,7 @@ services:
     image: spupuz/vibenvr-frontend:latest
     container_name: vibenvr-frontend
     ports:
-      - "8080:80"
+      - "${VIBENVR_FRONTEND_PORT:-8080}:80"
     volumes:
       - ${VIBENVR_DATA:-vibenvr_data}:/data
     networks:
@@ -19,7 +19,7 @@ services:
     image: spupuz/vibenvr-backend:latest
     container_name: vibenvr-backend
     ports:
-      - "5005:5000"
+      - "${VIBENVR_BACKEND_PORT:-5005}:5000"
     volumes:
       - ${VIBENVR_DATA:-vibenvr_data}:/data
       - /etc/localtime:/etc/localtime:ro

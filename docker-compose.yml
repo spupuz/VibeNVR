@@ -4,7 +4,7 @@ services:
       context: ./frontend
     container_name: vibenvr-frontend
     ports:
-      - "8080:80"
+      - "${VIBENVR_FRONTEND_PORT:-8080}:80"
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -20,7 +20,7 @@ services:
     container_name: vibenvr-backend
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "${VIBENVR_BACKEND_PORT:-5005}:5000"
     volumes:
       - ./backend:/app
       - ${VIBENVR_DATA:-vibenvr_data}:/data
