@@ -728,31 +728,18 @@ export const Settings = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Default Landing Page</label>
-                        <select
-                            className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm"
-                            value={globalSettings.default_landing_page}
-                            onChange={(e) => setGlobalSettings({ ...globalSettings, default_landing_page: e.target.value })}
-                        >
-                            <option value="dashboard">Dashboard</option>
-                            <option value="live">Live View</option>
-                            <option value="timeline">Timeline</option>
-                        </select>
-                        <p className="text-[10px] text-muted-foreground mt-1">Which page to show first when opening the application</p>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Default Email Recipient</label>
-                        <input
-                            type="email"
-                            placeholder="admin@example.com"
-                            className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm"
-                            value={globalSettings.notify_email_recipient}
-                            onChange={(e) => setGlobalSettings({ ...globalSettings, notify_email_recipient: e.target.value })}
-                        />
-                        <p className="text-[10px] text-muted-foreground mt-1">Used if a camera doesn't specify a recipient</p>
-                    </div>
+                <div className="max-w-xs">
+                    <label className="block text-sm font-medium mb-1">Default Landing Page</label>
+                    <select
+                        className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm"
+                        value={globalSettings.default_landing_page}
+                        onChange={(e) => setGlobalSettings({ ...globalSettings, default_landing_page: e.target.value })}
+                    >
+                        <option value="dashboard">Dashboard</option>
+                        <option value="live">Live View</option>
+                        <option value="timeline">Timeline</option>
+                    </select>
+                    <p className="text-[10px] text-muted-foreground mt-1">Which page to show first when opening the application</p>
                 </div>
             </div>
 
@@ -855,10 +842,23 @@ export const Settings = () => {
                         </div>
                     </div>
 
+                    {/* Defaults section inside Notifications */}
+                    <div className="pt-4 border-t border-border/50">
+                        <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Notification Defaults</h4>
+                        <div className="max-w-md">
+                            <label className="block text-xs font-medium mb-1">Default Email Recipient</label>
+                            <input
+                                type="email"
+                                placeholder="admin@example.com"
+                                className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
+                                value={globalSettings.notify_email_recipient}
+                                onChange={(e) => setGlobalSettings({ ...globalSettings, notify_email_recipient: e.target.value })}
+                            />
+                            <p className="text-[10px] text-muted-foreground mt-1">Used if a camera doesn't specify a recipient</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            {/* Clean Up Button */}
             <div className={'bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4 ' + (user?.role !== 'admin' ? 'opacity-50 pointer-events-none' : '')}>
                 <div className="flex items-center space-x-3">
                     <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500">
