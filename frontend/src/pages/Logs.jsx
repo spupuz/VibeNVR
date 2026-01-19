@@ -34,7 +34,7 @@ export const Logs = () => {
             });
             if (search) params.append('search', search);
 
-            const res = await fetch(`/api/logs?${params.toString()}`, {
+            const res = await fetch(`/api/logs/?${params.toString()}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 

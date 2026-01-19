@@ -72,7 +72,7 @@ def get_stats():
 
 @app.post("/cameras/{camera_id}/start")
 def start_camera(camera_id: int, config: CameraConfig):
-    manager.start_camera(camera_id, config.dict())
+    manager.start_camera(camera_id, config.model_dump())
     return {"status": "started", "camera_id": camera_id}
 
 @app.post("/cameras/{camera_id}/stop")
@@ -82,7 +82,7 @@ def stop_camera(camera_id: int):
 
 @app.put("/cameras/{camera_id}/config")
 def update_config(camera_id: int, config: CameraConfig):
-    manager.update_camera(camera_id, config.dict())
+    manager.update_camera(camera_id, config.model_dump())
     return {"status": "updated", "camera_id": camera_id}
     
 @app.post("/cameras/{camera_id}/snapshot")
