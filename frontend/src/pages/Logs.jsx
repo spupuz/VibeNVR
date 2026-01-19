@@ -379,4 +379,3 @@ const LogSettingsModal = ({ isOpen, onClose, token, showToast }) => {
         </div>
     );
 };
-```

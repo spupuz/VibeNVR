@@ -13,7 +13,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-LOG_DIR = "/var/log/vibenvr"
+LOG_DIR = "/data/logs"
 FILES_MAP = {
     "backend": "backend.log",
     "engine": "engine.log",
