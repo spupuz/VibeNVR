@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
-from routers import cameras, events, stats, settings, auth, users, groups
+from routers import cameras, events, stats, settings, auth, users, groups, logs
 import threading
 import storage_service
 import motion_service
@@ -93,6 +93,7 @@ app.include_router(settings.router)
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(groups.router)
+app.include_router(logs.router)
 
 from fastapi.responses import FileResponse
 import os

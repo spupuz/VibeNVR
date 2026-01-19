@@ -5,6 +5,8 @@ services:
     container_name: vibenvr-frontend
     ports:
       - "8080:80"
+    volumes:
+      - vibenvr_logs:/var/log/vibenvr
     restart: always
 
   backend:
@@ -16,6 +18,7 @@ services:
     volumes:
       - ./backend:/app
       - vibenvr_data:/data
+      - vibenvr_logs:/var/log/vibenvr
     environment:
       - DATABASE_URL=postgresql://vibenvr:vibenvrpass@db:5432/vibenvr
       - TZ=Europe/Rome
@@ -24,6 +27,7 @@ services:
       db:
         condition: service_healthy
     restart: always
+    command: sh -c "mkdir -p /var/log/vibenvr && uvicorn main:app --host 0.0.0.0 --port 5000 --reload 2>&1 | tee -a /var/log/vibenvr/backend.log"
 
   engine:
     build:
@@ -33,6 +37,7 @@ services:
       - "127.0.0.1:8000:8000"
     volumes:
       - vibenvr_data:/var/lib/vibe/recordings
+      - vibenvr_logs:/var/log/vibenvr
     environment:
       - TZ=Europe/Rome
       # Hardware Acceleration Settings
@@ -51,7 +56,7 @@ services:
     #           count: 1
     #           capabilities: [gpu]
     restart: always
-    command: sh -c "python -u main.py 2>&1 | grep --line-buffered -v 'SEI type 764'"
+    command: sh -c "mkdir -p /var/log/vibenvr && python -u main.py 2>&1 | grep --line-buffered -v 'SEI type 764' | tee -a /var/log/vibenvr/engine.log"
 
   db:
     image: postgres:15-alpine
@@ -72,3 +77,4 @@ services:
 volumes:
   vibenvr_data:
   vibenvr_db_data:
+  vibenvr_logs:
