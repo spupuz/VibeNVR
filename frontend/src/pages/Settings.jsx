@@ -37,7 +37,38 @@ export const Settings = () => {
     // User Management State
     const [users, setUsers] = useState([]);
     const [newUser, setNewUser] = useState({ username: '', password: '', role: 'viewer', email: '' });
+
     const [isCreatingUser, setIsCreatingUser] = useState(false);
+
+    // Orphan Sync State
+    const [orphanSyncStatus, setOrphanSyncStatus] = useState({ isSyncing: false, status: 'idle' });
+    const [syncResultModal, setSyncResultModal] = useState({ isOpen: false, data: null });
+
+    // Poll for status when syncing
+    useEffect(() => {
+        let interval;
+        if (orphanSyncStatus.isSyncing) {
+            interval = setInterval(async () => {
+                try {
+                    const res = await fetch('/api/settings/sync-orphans/status', {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        // Only update if status changes or completes
+                        if (data.status === 'completed' || data.status === 'error') {
+                            setOrphanSyncStatus({ isSyncing: false, status: data.status });
+                            setSyncResultModal({ isOpen: true, data: data.result });
+                            clearInterval(interval);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Polling error", err);
+                }
+            }, 2000);
+        }
+        return () => clearInterval(interval);
+    }, [orphanSyncStatus.isSyncing, token]);
 
     // Password Change State
     const [pwdModalOpen, setPwdModalOpen] = useState(false);
@@ -966,7 +997,8 @@ export const Settings = () => {
                                                     const data = await res.json();
                                                     showToast(data.detail, 'error');
                                                 } else if (res.ok) {
-                                                    showToast('Orphan recovery completed! Check server logs for details.', 'success');
+                                                    showToast('Recovery started in background. Please wait...', 'success');
+                                                    setOrphanSyncStatus({ isSyncing: true, status: 'running' });
                                                 } else {
                                                     const data = await res.json();
                                                     showToast('Recovery failed: ' + data.detail, 'error');
@@ -979,10 +1011,15 @@ export const Settings = () => {
                                         onCancel: () => setConfirmConfig({ isOpen: false })
                                     });
                                 }}
-                                className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-colors"
+
+                                disabled={orphanSyncStatus.isSyncing}
+                                className={`w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 px-4 py-3 rounded-lg transition-colors ${orphanSyncStatus.isSyncing
+                                    ? "bg-blue-400 cursor-not-allowed opacity-75"
+                                    : "bg-blue-500 hover:bg-blue-600"
+                                    } text-white`}
                             >
-                                <HardDrive className="w-4 h-4" />
-                                <span>Recover Orphaned Recordings</span>
+                                <HardDrive className={`w-4 h-4 ${orphanSyncStatus.isSyncing ? "animate-pulse" : ""}`} />
+                                <span>{orphanSyncStatus.isSyncing ? "Scanning..." : "Recover Orphaned Recordings"}</span>
                             </button>
                             <p className="text-xs text-muted-foreground mt-2">
                                 Scans for video files on disk that aren't in the database and imports them into the timeline.
@@ -990,50 +1027,53 @@ export const Settings = () => {
                         </div>
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* Backup & Restore */}
-            {user?.role === 'admin' && (
-                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4">
-                    <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
-                            <HardDrive className="w-6 h-6" />
+            {
+                user?.role === 'admin' && (
+                    <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4">
+                        <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                                <HardDrive className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-lg">Backup & Restore</h3>
+                                <p className="text-sm text-muted-foreground">Export or Import system configuration (Settings, Cameras, Groups)</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="font-semibold text-lg">Backup & Restore</h3>
-                            <p className="text-sm text-muted-foreground">Export or Import system configuration (Settings, Cameras, Groups)</p>
-                        </div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row flex-wrap gap-4 pt-2">
-                        <button
-                            onClick={handleExport}
-                            className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors"
-                        >
-                            <Download className="w-4 h-4" />
-                            <span>Export Configuration</span>
-                        </button>
-
-                        <div className="relative w-full sm:w-auto">
-                            <input
-                                type="file"
-                                accept=".json"
-                                onChange={handleImport}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            />
+                        <div className="flex flex-col sm:flex-row flex-wrap gap-4 pt-2">
                             <button
-                                className="w-full h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors pointer-events-none"
+                                onClick={handleExport}
+                                className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors"
                             >
-                                <Upload className="w-4 h-4" />
-                                <span>Import Configuration</span>
+                                <Download className="w-4 h-4" />
+                                <span>Export Configuration</span>
                             </button>
-                        </div>
 
-                        <p className="text-xs text-muted-foreground w-full mt-1">
-                            * Export includes all cameras, groups, and system settings. Import will merge or overwrite existing configurations.
-                        </p>
+                            <div className="relative w-full sm:w-auto">
+                                <input
+                                    type="file"
+                                    accept=".json"
+                                    onChange={handleImport}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                />
+                                <button
+                                    className="w-full h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors pointer-events-none"
+                                >
+                                    <Upload className="w-4 h-4" />
+                                    <span>Import Configuration</span>
+                                </button>
+                            </div>
+
+                            <p className="text-xs text-muted-foreground w-full mt-1">
+                                * Export includes all cameras, groups, and system settings. Import will merge or overwrite existing configurations.
+                            </p>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Save Button */}
             {
@@ -1053,6 +1093,88 @@ export const Settings = () => {
                 {...confirmConfig}
                 onCancel={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
             />
+
+            {/* Sync Result Modal */}
+            {syncResultModal.isOpen && syncResultModal.data && (
+                <div className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+                    <div className="relative bg-background border rounded-lg shadow-lg max-w-lg w-full p-6 animate-in fade-in zoom-in duration-200">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold flex items-center gap-2">
+                                <HardDrive className="w-5 h-5 text-blue-500" />
+                                Recovery Complete
+                            </h3>
+                            <button
+                                onClick={() => setSyncResultModal({ isOpen: false, data: null })}
+                                className="text-muted-foreground hover:text-foreground"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {syncResultModal.data.error ? (
+                                <div className="p-4 bg-red-500/10 text-red-500 rounded-lg">
+                                    <p className="font-semibold">Error Occurred</p>
+                                    <p className="text-sm">{syncResultModal.data.error}</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3 text-sm">
+                                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                                        <span className="font-medium">Recovered Recordings</span>
+                                        <span className="font-bold text-green-600 bg-green-100 px-2 py-1 rounded">{syncResultModal.data.imported}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center p-2 border-b">
+                                        <span className="text-muted-foreground">Skipped (Already in DB)</span>
+                                        <span className="font-medium">{syncResultModal.data.skipped}</span>
+                                    </div>
+
+                                    {(syncResultModal.data.thumbnails_generated > 0) && (
+                                        <div className="flex justify-between items-center p-2 border-b">
+                                            <span>Thumbnails Generated</span>
+                                            <span className="font-medium text-blue-500">{syncResultModal.data.thumbnails_generated}</span>
+                                        </div>
+                                    )}
+
+                                    {(syncResultModal.data.corrupted_deleted > 0) && (
+                                        <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20 mt-2">
+                                            <div className="flex items-center gap-2 mb-1 text-amber-700 font-medium">
+                                                <Trash2 className="w-3 h-3" />
+                                                <span>Corrupted Files Removed</span>
+                                            </div>
+                                            <div className="flex justify-between text-xs text-amber-600/80 pl-5">
+                                                <span>Count: {syncResultModal.data.corrupted_deleted}</span>
+                                                <span> Freed: {syncResultModal.data.corrupted_size_mb} MB</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {(syncResultModal.data.orphaned_deleted > 0) && (
+                                        <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20 mt-2">
+                                            <div className="flex items-center gap-2 mb-1 text-red-700 font-medium">
+                                                <Trash2 className="w-3 h-3" />
+                                                <span>Deleted Camera Files Cleaned</span>
+                                            </div>
+                                            <div className="flex justify-between text-xs text-red-600/80 pl-5">
+                                                <span>Count: {syncResultModal.data.orphaned_deleted}</span>
+                                                <span> Freed: {syncResultModal.data.orphaned_size_mb} MB</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-6 flex justify-end">
+                            <Button
+                                onClick={() => setSyncResultModal({ isOpen: false, data: null })}
+                                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                            >
+                                Close
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 };

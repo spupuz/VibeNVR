@@ -234,22 +234,45 @@ async def import_backup(
 # Rate limiting for orphan sync (prevent abuse)
 _last_orphan_sync_time = None
 
+from fastapi import BackgroundTasks
+
+# State for orphan sync background task
+_sync_state = {
+    "status": "idle",
+    "result": None,
+    "started_at": None,
+    "completed_at": None
+}
+
+@router.get("/sync-orphans/status")
+def get_orphan_sync_status(current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """Get the status of the orphan sync background task"""
+    return _sync_state
+
 @router.post("/sync-orphans")
 def sync_orphan_recordings(
+    background_tasks: BackgroundTasks,
     current_user: models.User = Depends(auth_service.get_current_active_admin)
 ):
     """
     Manually trigger orphan recording recovery.
     Scans /data/ for recordings not in the database and imports them.
     Admin-only with 5-minute cooldown to prevent abuse.
+    Runs in background.
     """
     import time
-    global _last_orphan_sync_time
+    global _last_orphan_sync_time, _sync_state
     
     # Rate limit: 5 minutes between runs
     if _last_orphan_sync_time:
         elapsed = time.time() - _last_orphan_sync_time
-        if elapsed < 300:  # 5 minutes
+        if elapsed < 300:  # 5 minutes, but allow retry if error or complete
+            # If currently running, definitely block
+            if _sync_state["status"] == "running":
+                 raise HTTPException(status_code=409, detail="Sync already in progress")
+            
+            # If recently completed, enforce limit? 
+            # User wants to run it. Let's enforce rate limit to prevent disk thrashing.
             remaining = int(300 - elapsed)
             raise HTTPException(
                 status_code=429, 
@@ -258,12 +281,32 @@ def sync_orphan_recordings(
     
     _last_orphan_sync_time = time.time()
     
-    try:
-        import sync_recordings
-        # Run in dry-run first to get count
-        print(f"[Admin] User {current_user.username} triggered orphan sync", flush=True)
-        sync_recordings.sync_recordings(dry_run=False)
-        return {"message": "Orphan recording sync completed. Check logs for details."}
-    except Exception as e:
-        print(f"[Admin] Orphan sync error: {e}", flush=True)
-        raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")
+    # Reset state
+    _sync_state["status"] = "running"
+    _sync_state["result"] = None
+    _sync_state["started_at"] = time.time()
+    _sync_state["completed_at"] = None
+    
+    def run_sync_task():
+        global _sync_state
+        try:
+            import sync_recordings
+            print(f"[Admin] User {current_user.username} triggered orphan sync (Background Task Started)", flush=True)
+            stats = sync_recordings.sync_recordings(dry_run=False)
+            
+            _sync_state["result"] = stats
+            _sync_state["status"] = "completed"
+            
+            if "error" in stats: # Check if script returned error dict
+                 _sync_state["status"] = "error"
+
+            print(f"[Admin] Orphan sync background task finished.", flush=True)
+        except Exception as e:
+            print(f"[Admin] Orphan sync error: {e}", flush=True)
+            _sync_state["status"] = "error"
+            _sync_state["result"] = {"error": str(e)}
+        finally:
+            _sync_state["completed_at"] = time.time()
+
+    background_tasks.add_task(run_sync_task)
+    return {"message": "Orphan recording recovery started in background."}
