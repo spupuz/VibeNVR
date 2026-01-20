@@ -66,8 +66,8 @@ VibeNVR is built with security as a priority. Recent updates have hardened the s
     ```properties
     # .env content example
     # ENV Configuration
-    SECRET_KEY=change_this_to_a_long_random_string  # CRITICAL: Secures sessions and defaults for internal webhook trust
-    # WEBHOOK_SECRET=optional_override_secret       # Optional: Override internal webhook secret (defaults to SECRET_KEY)
+    SECRET_KEY=change_this_to_a_long_random_string  # CRITICAL: Security key. Must be set and identical on all services.
+    WEBHOOK_SECRET=change_this_to_a_long_random_string # REQUIRED: Validates engine->backend communication. Set SAME as SECRET_KEY.
     # POSTGRES_PASSWORD=vibenvrpass
 
     # Storage & Paths
