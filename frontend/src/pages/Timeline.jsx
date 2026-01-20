@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Calendar, Filter, Play, Image as ImageIcon, Trash2, Download, Video, Camera, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -352,6 +352,15 @@ export const Timeline = () => {
         localStorage.setItem('vibe_autoplay_next', JSON.stringify(autoplayNext));
     }, [autoplayNext]);
 
+    const [autoplayDirection, setAutoplayDirection] = useState(() => {
+        const saved = localStorage.getItem('vibe_autoplay_direction');
+        return saved !== null ? saved : 'desc'; // 'desc' = Newest -> Oldest (default)
+    });
+
+    useEffect(() => {
+        localStorage.setItem('vibe_autoplay_direction', autoplayDirection);
+    }, [autoplayDirection]);
+
     useEffect(() => {
         localStorage.setItem('vibe_playback_speed_2x', JSON.stringify(playbackSpeed2x));
     }, [playbackSpeed2x]);
@@ -362,21 +371,52 @@ export const Timeline = () => {
         }
     }, [playbackSpeed2x, selectedEvent]);
 
-    const handleVideoEnded = () => {
-        if (!autoplayNext || !selectedEvent) return;
+    const goToNextEvent = useCallback(() => {
+        if (!selectedEvent) return;
 
         // Flatten grouped events to get a linear list
         const allEvents = filteredEvents;
         const currentIndex = allEvents.findIndex(e => e.id === selectedEvent.id);
-        // Find next event (Newest -> Oldest)
-        if (currentIndex < allEvents.length - 1) {
-            // Go to index + 1 (Older event)
-            const nextEvent = allEvents[currentIndex + 1];
-            if (nextEvent.type === 'video') {
-                setSelectedEvent(nextEvent);
+
+        if (currentIndex === -1) return;
+
+        let nextIndex = -1;
+
+        if (autoplayDirection === 'desc') {
+            // Newest -> Oldest (Forward in array items, assuming list is Newest first)
+            if (currentIndex < allEvents.length - 1) {
+                nextIndex = currentIndex + 1;
+            }
+        } else {
+            // Oldest -> Newest (Backward in array items)
+            if (currentIndex > 0) {
+                nextIndex = currentIndex - 1;
             }
         }
+
+        if (nextIndex !== -1) {
+            setSelectedEvent(allEvents[nextIndex]);
+        }
+    }, [autoplayDirection, selectedEvent, filteredEvents]);
+
+    const handleVideoEnded = () => {
+        if (autoplayNext) {
+            goToNextEvent();
+        }
     };
+
+    // Auto-advance for images/snapshots
+    useEffect(() => {
+        let timer;
+        if (autoplayNext && selectedEvent && selectedEvent.type === 'snapshot') {
+            timer = setTimeout(() => {
+                goToNextEvent();
+            }, 5000);
+        }
+        return () => {
+            if (timer) clearTimeout(timer);
+        };
+    }, [autoplayNext, selectedEvent, goToNextEvent]);
 
     return (
         <div className="min-h-[calc(100vh-8rem)] lg:h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-4">
@@ -600,6 +640,18 @@ export const Timeline = () => {
                                         className="rounded border-gray-400 text-primary focus:ring-primary"
                                     />
                                     <label htmlFor="autoplayNext" className="text-xs font-medium cursor-pointer select-none">Auto-next</label>
+
+                                    {autoplayNext && (
+                                        <select
+                                            value={autoplayDirection}
+                                            onChange={(e) => setAutoplayDirection(e.target.value)}
+                                            className="ml-1 h-5 text-[10px] bg-transparent border-none focus:ring-0 cursor-pointer text-muted-foreground hover:text-foreground p-0 pr-1 pl-1"
+                                            title="Playback Order"
+                                        >
+                                            <option value="desc">Newest → Oldest</option>
+                                            <option value="asc">Oldest → Newest</option>
+                                        </select>
+                                    )}
                                 </div>
 
                                 {/* Speed Toggle */}

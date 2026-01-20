@@ -2,7 +2,15 @@
 
 All notable changes to the VibeNVR project will be documented in this file.
 
-## [1.9.10] - 2026-01-20
+## [1.10.0] - 2026-01-20
+
+### 🚀 Improvements & Features
+*   **Smart Timeline Auto-Next**: 
+    *   **Playback Direction**: Added a new dropdown in the Timeline to choose playback order: **Newest → Oldest** (default) or **Oldest → Newest**.
+    *   **Image Support**: "Auto-next" now supports snapshots. Images are displayed for 5 seconds before automatically advancing to the next event.
+    *   **Mixed Media**: The player now seamlessly cycles through both videos and images in your selected order.
+
+## [1.9.11] - 2026-01-20
 
 ### 🚀 Improvements & Features
 *   **Startup Stability**: Fixed an issue where cameras wouldn't automatically start/sync with the Engine on backend startup. This ensures that after a system reboot, all enabled cameras resume streaming without manual intervention.

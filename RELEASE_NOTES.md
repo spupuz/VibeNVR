@@ -1,3 +1,14 @@
+# VibeNVR v1.10.0 - Enhanced Timeline Playback
+
+## 🚀 Features
+
+*   **Timeline Auto-Next Upgrade**: 
+    *   You can now control the **playback direction** (Oldest → Newest or Newest → Oldest).
+    *   **Images** are now part of the auto-play loop (displayed for 5 seconds).
+    *   A seamless mixed-media experience for reviewing events.
+
+---
+
 # VibeNVR v1.9.7 - Stability & Bug Fixes
 
 ## 🐛 Bug Fixes & Stability
