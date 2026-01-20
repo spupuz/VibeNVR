@@ -440,6 +440,22 @@ export const Timeline = () => {
                                     className="w-3.5 h-3.5 rounded border-gray-400 text-primary focus:ring-primary"
                                 />
                                 <span className="text-[10px] font-bold text-foreground/80 uppercase tracking-tighter">Auto-next</span>
+                                {autoplayNext && (
+                                    <select
+                                        value={autoplayDirection}
+                                        onChange={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setAutoplayDirection(e.target.value);
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="ml-1 h-3.5 text-[9px] bg-transparent border-none focus:ring-0 cursor-pointer text-muted-foreground hover:text-foreground p-0 pr-1 pl-1"
+                                        title="Playback Order"
+                                    >
+                                        <option value="desc">Newest → Oldest</option>
+                                        <option value="asc">Oldest → Newest</option>
+                                    </select>
+                                )}
                             </label>
                             <button
                                 onClick={() => setSelectedEvent(null)}
