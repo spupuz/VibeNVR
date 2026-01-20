@@ -71,8 +71,8 @@ def is_safe_path(file_path):
     """Ensure file path is within allowed data directories"""
     try:
         abs_path = os.path.abspath(file_path)
-        # return abs_path.startswith('/data')
-        return '/data' in abs_path # slightly looser but covers the mount
+        # Strict check for data directory
+        return abs_path.startswith('/data') or abs_path.startswith('/var/lib/vibe/recordings')
     except:
         return False
 
