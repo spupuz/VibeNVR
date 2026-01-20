@@ -85,6 +85,20 @@ async def lifespan(app: FastAPI):
         print(f"Startup warning: {e}")
     finally:
         db.close()
+    
+    # Background orphan recovery (delayed to not overload startup)
+    def run_orphan_recovery():
+        import time
+        time.sleep(30)  # Wait 30 seconds after startup
+        print("[Startup] Running automatic orphan recording recovery...")
+        try:
+            import sync_recordings
+            sync_recordings.sync_recordings(dry_run=False)
+        except Exception as e:
+            print(f"[Startup] Orphan recovery warning: {e}")
+    
+    orphan_thread = threading.Thread(target=run_orphan_recovery, daemon=True, name="OrphanRecovery")
+    orphan_thread.start()
         
     yield
     # Shutdown actions (if any)

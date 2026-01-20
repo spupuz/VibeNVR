@@ -916,37 +916,78 @@ export const Settings = () => {
                             <p className="text-sm text-muted-foreground">Manual system maintenance tasks</p>
                         </div>
                     </div>
-                    <div>
-                        <button
-                            onClick={async () => {
-                                setConfirmConfig({
-                                    isOpen: true,
-                                    title: 'Manual Cleanup',
-                                    message: 'Are you sure you want to trigger storage cleanup now? This will scan all camera folders and delete recordings that exceed set limits.',
-                                    onConfirm: async () => {
-                                        try {
-                                            await fetch('/api/settings/cleanup', {
-                                                method: 'POST',
-                                                headers: { Authorization: `Bearer ${token}` }
-                                            });
-                                            showToast('Cleanup triggered successfully!', 'success');
-                                            fetchStats();
-                                        } catch (err) {
-                                            showToast('Failed to trigger cleanup: ' + err.message, 'error');
-                                        }
-                                        setConfirmConfig({ isOpen: false });
-                                    },
-                                    onCancel: () => setConfirmConfig({ isOpen: false })
-                                });
-                            }}
-                            className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-amber-500 text-white px-4 py-3 rounded-lg hover:bg-amber-600 transition-colors"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            <span>Clean Up Storage Now</span>
-                        </button>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            This will force an immediate check and deletion of recordings that exceed your storage limits or retention periods.
-                        </p>
+                    <div className="space-y-4">
+                        <div>
+                            <button
+                                onClick={async () => {
+                                    setConfirmConfig({
+                                        isOpen: true,
+                                        title: 'Manual Cleanup',
+                                        message: 'Are you sure you want to trigger storage cleanup now? This will scan all camera folders and delete recordings that exceed set limits.',
+                                        onConfirm: async () => {
+                                            try {
+                                                await fetch('/api/settings/cleanup', {
+                                                    method: 'POST',
+                                                    headers: { Authorization: `Bearer ${token}` }
+                                                });
+                                                showToast('Cleanup triggered successfully!', 'success');
+                                                fetchStats();
+                                            } catch (err) {
+                                                showToast('Failed to trigger cleanup: ' + err.message, 'error');
+                                            }
+                                            setConfirmConfig({ isOpen: false });
+                                        },
+                                        onCancel: () => setConfirmConfig({ isOpen: false })
+                                    });
+                                }}
+                                className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-amber-500 text-white px-4 py-3 rounded-lg hover:bg-amber-600 transition-colors"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                <span>Clean Up Storage Now</span>
+                            </button>
+                            <p className="text-xs text-muted-foreground mt-2">
+                                This will force an immediate check and deletion of recordings that exceed your storage limits or retention periods.
+                            </p>
+                        </div>
+                        <div>
+                            <button
+                                onClick={async () => {
+                                    setConfirmConfig({
+                                        isOpen: true,
+                                        title: 'Recover Orphaned Recordings',
+                                        message: 'This will scan all camera folders for recordings that exist on disk but are missing from the database, and import them into the timeline. This is useful after system updates or migration.',
+                                        onConfirm: async () => {
+                                            try {
+                                                const res = await fetch('/api/settings/sync-orphans', {
+                                                    method: 'POST',
+                                                    headers: { Authorization: `Bearer ${token}` }
+                                                });
+                                                if (res.status === 429) {
+                                                    const data = await res.json();
+                                                    showToast(data.detail, 'error');
+                                                } else if (res.ok) {
+                                                    showToast('Orphan recovery completed! Check server logs for details.', 'success');
+                                                } else {
+                                                    const data = await res.json();
+                                                    showToast('Recovery failed: ' + data.detail, 'error');
+                                                }
+                                            } catch (err) {
+                                                showToast('Failed to trigger recovery: ' + err.message, 'error');
+                                            }
+                                            setConfirmConfig({ isOpen: false });
+                                        },
+                                        onCancel: () => setConfirmConfig({ isOpen: false })
+                                    });
+                                }}
+                                className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-colors"
+                            >
+                                <HardDrive className="w-4 h-4" />
+                                <span>Recover Orphaned Recordings</span>
+                            </button>
+                            <p className="text-xs text-muted-foreground mt-2">
+                                Scans for video files on disk that aren't in the database and imports them into the timeline.
+                            </p>
+                        </div>
                     </div>
                 </div>
             )}

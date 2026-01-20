@@ -230,3 +230,40 @@ async def import_backup(
         print(f"Import Error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to import backup: {str(e)}")
 
+
+# Rate limiting for orphan sync (prevent abuse)
+_last_orphan_sync_time = None
+
+@router.post("/sync-orphans")
+def sync_orphan_recordings(
+    current_user: models.User = Depends(auth_service.get_current_active_admin)
+):
+    """
+    Manually trigger orphan recording recovery.
+    Scans /data/ for recordings not in the database and imports them.
+    Admin-only with 5-minute cooldown to prevent abuse.
+    """
+    import time
+    global _last_orphan_sync_time
+    
+    # Rate limit: 5 minutes between runs
+    if _last_orphan_sync_time:
+        elapsed = time.time() - _last_orphan_sync_time
+        if elapsed < 300:  # 5 minutes
+            remaining = int(300 - elapsed)
+            raise HTTPException(
+                status_code=429, 
+                detail=f"Please wait {remaining} seconds before running again"
+            )
+    
+    _last_orphan_sync_time = time.time()
+    
+    try:
+        import sync_recordings
+        # Run in dry-run first to get count
+        print(f"[Admin] User {current_user.username} triggered orphan sync", flush=True)
+        sync_recordings.sync_recordings(dry_run=False)
+        return {"message": "Orphan recording sync completed. Check logs for details."}
+    except Exception as e:
+        print(f"[Admin] Orphan sync error: {e}", flush=True)
+        raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")

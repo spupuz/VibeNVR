@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     libglib2.0-0 \
     curl \
+    tzdata \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

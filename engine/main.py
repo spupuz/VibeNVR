@@ -32,7 +32,7 @@ class CameraConfig(BaseModel):
     post_capture: int = 0
     movie_quality: int = 75
     movie_passthrough: bool = True
-    max_movie_length: int = 0
+    max_movie_length: int = 120  # Default 2 minutes (60-300 range)
     movie_file_name: str = "%Y-%m-%d/%H-%M-%S"
     picture_quality: int = 75
     picture_file_name: str = "%Y-%m-%d/%H-%M-%S-%q"
