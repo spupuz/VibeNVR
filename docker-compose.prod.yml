@@ -27,7 +27,7 @@ services:
       - DATABASE_URL=postgresql://vibenvr:vibenvrpass@db:5432/vibenvr
       - TZ=Europe/Rome
       - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
-      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-${SECRET_KEY}}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-vibe_secure_key_9823748923748923_change_in_prod}
     depends_on:
       db:
         condition: service_healthy
@@ -53,7 +53,7 @@ services:
       # Hardware Acceleration Settings
       - HW_ACCEL=true # Enabled for local GPU usage
       - HW_ACCEL_TYPE=${HW_ACCEL_TYPE:-auto} # auto, nvidia, intel, amd
-      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-${SECRET_KEY}}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-vibe_secure_key_9823748923748923_change_in_prod}
     # GPU Device Passthrough (uncomment what applies to your system)
     # For Intel/AMD (VAAPI) on Linux:
     devices:
