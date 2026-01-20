@@ -43,6 +43,10 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
             global_tg_token = get_conf("telegram_bot_token")
             global_tg_chat = get_conf("telegram_chat_id")
             global_email_recipient = get_conf("notify_email_recipient")
+            
+            # Global Attach Settings (Default to True if not set)
+            global_attach_email = get_conf("global_attach_image_email") != "false"
+            global_attach_telegram = get_conf("global_attach_image_telegram") != "false"
 
             # Resolve effective config (Camera overrides Global?)
             
@@ -98,7 +102,8 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                 try:
                     caption = f"🚨 *Motion Detected!*\n📷 Camera: {camera.name}\n⏰ Time: {details.get('timestamp')}"
                     
-                    if image_path:
+                    # Check both Camera setting AND Global setting (Master switch logic)
+                    if image_path and camera.notify_attach_image_telegram and global_attach_telegram:
                         # Send Photo
                         url = f"https://api.telegram.org/bot{tg_token}/sendPhoto"
                         with open(image_path, 'rb') as f:
@@ -134,7 +139,11 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                     """
                     msg.attach(MIMEText(body, 'html'))
 
-                    if image_path:
+                    msg.attach(MIMEText(body, 'html'))
+
+                    msg.attach(MIMEText(body, 'html'))
+
+                    if image_path and camera.notify_attach_image_email and global_attach_email:
                         with open(image_path, 'rb') as f:
                             img = MIMEImage(f.read())
                             img.add_header('Content-Disposition', 'attachment', filename=os.path.basename(image_path))

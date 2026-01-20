@@ -343,12 +343,26 @@ class CameraThread(threading.Thread):
                 if not self.motion_detected:
                     self.motion_detected = True
                     logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Motion START")
-                    if self.event_callback:
-                        self.event_callback(self.camera_id, 'motion_start')
+                    snap_path = None
                     
-                    # Take snapshot if mode is Motion Triggered
-                    if self.config.get('picture_recording_mode') == 'Motion Triggered':
-                        self.save_snapshot(frame)
+                    snap_path = None
+                    
+                    # Take snapshot logic
+                    pic_mode = self.config.get('picture_recording_mode', 'Manual')
+                    vid_mode = self.config.get('recording_mode', 'Off')
+                    
+                    if pic_mode == 'Motion Triggered':
+                        # Permanent save (DB event)
+                        snap_path = self.save_snapshot(frame, is_temp=False)
+                    elif vid_mode != 'Off':
+                        # Temporary save for notification only (No DB event)
+                        snap_path = self.save_snapshot(frame, is_temp=True)
+
+                    if self.event_callback:
+                        payload = {}
+                        if snap_path:
+                            payload['file_path'] = snap_path
+                        self.event_callback(self.camera_id, 'motion_start', payload)
         else:
             self.consecutive_still_frames += 1
             self.consecutive_motion_frames = 0
@@ -370,29 +384,34 @@ class CameraThread(threading.Thread):
             font_scale = (base_scale / 10.0) * (w / 1920.0) * 2.5
             thickness = max(1, int(font_scale * 2))
             
-            # Text Right (Timestamp)
+            cam_name = self.config.get('name', 'Camera')
+
+            def process_text(text):
+                if not text: return ""
+                # Handle Motion-style camera name token (%$) and custom %N
+                text = text.replace('%$', cam_name).replace('%N', cam_name)
+                
+                # DateTime formatting (only if % is present to avoid overhead)
+                if '%' in text: 
+                    try:
+                        text = datetime.now().strftime(text)
+                    except:
+                        pass # Ignore formatting errors
+                return text
+
+            # Text Right (Bottom Right)
             text_right = self.config.get('text_right', '')
-            if '%Y' in text_right or '%m' in text_right: 
-                text_right = datetime.now().strftime(text_right)
+            text_right = process_text(text_right)
                 
             if text_right:
                 (ts_w, ts_h), _ = cv2.getTextSize(text_right, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
                 cv2.rectangle(frame, (w - ts_w - 20, h - ts_h - 20), (w, h), (0, 0, 0), -1)
                 cv2.putText(frame, text_right, (w - ts_w - 10, h - 10), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (255, 255, 255), thickness)
 
-            # Text Left (Camera Name)
+            # Text Left (Top Left)
             text_left = self.config.get('text_left', '')
-            cam_name = self.config.get('name', 'Camera')
+            text_left = process_text(text_left)
             
-            text_left = text_left.replace('$', '').strip()
-            if text_left == '%' or text_left == '%N' or not text_left:
-                text_left = cam_name
-            else:
-                text_left = text_left.replace('%N', cam_name)
-            
-            if '%Y' in text_left or '%m' in text_left or '%d' in text_left:
-                 text_left = datetime.now().strftime(text_left)
-                 
             if text_left:
                 (nm_w, nm_h), _ = cv2.getTextSize(text_left, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
                 cv2.rectangle(frame, (0, 0), (nm_w + 20, nm_h + 20), (0, 0, 0), -1)
@@ -646,8 +665,8 @@ class CameraThread(threading.Thread):
                 return None
             return self.latest_frame_jpeg
 
-    def save_snapshot(self, frame=None):
-        """Save a single snapshot"""
+    def save_snapshot(self, frame=None, is_temp=False):
+        """Save a single snapshot. is_temp=True means for notification only (no DB event)"""
         try:
             if frame is not None:
                 ret, jpeg = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
@@ -664,22 +683,29 @@ class CameraThread(threading.Thread):
             format_str = format_str.replace('%q', '00') 
             
             timestamp_path = datetime.now().strftime(format_str)
-            output_dir = f"/var/lib/vibe/recordings/{self.camera_id}"
             
-            filepath = os.path.join(output_dir, f"{timestamp_path}.jpg")
+            if is_temp:
+                # Save to shared volume temp directory so backend can access it
+                output_dir = f"/var/lib/vibe/recordings/temp_snaps/{self.camera_id}"
+                filepath = os.path.join(output_dir, f"{timestamp_path}.jpg")
+            else:
+                # Save to persistent storage
+                output_dir = f"/var/lib/vibe/recordings/{self.camera_id}"
+                filepath = os.path.join(output_dir, f"{timestamp_path}.jpg")
+            
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             
             with open(filepath, "wb") as f:
                 f.write(jpeg_bytes)
             
-            logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Snapshot saved to {filepath}")
-
-            if self.event_callback:
-                self.event_callback(self.camera_id, "snapshot_save", {
-                    "file_path": filepath,
-                    "width": self.width,
-                    "height": self.height
-                })
+            if not is_temp:
+                logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Snapshot saved to {filepath}")
+                if self.event_callback:
+                    self.event_callback(self.camera_id, "snapshot_save", {
+                        "file_path": filepath,
+                        "width": self.width,
+                        "height": self.height
+                    })
             return filepath
         except Exception as e:
             logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Failed to save snapshot: {e}")

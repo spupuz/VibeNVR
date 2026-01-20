@@ -66,6 +66,9 @@ class Camera(Base):
     notify_start_command = Column(Boolean, default=False)
     notify_end_webhook = Column(Boolean, default=False)
     notify_end_command = Column(Boolean, default=False)
+    
+    notify_attach_image_email = Column(Boolean, default=True)
+    notify_attach_image_telegram = Column(Boolean, default=True)
 
 
     # Schedule

@@ -82,6 +82,9 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "notify_start_command", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "notify_end_webhook", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "notify_end_command", "BOOLEAN", False)
+    
+    add_column_if_not_exists(engine, "cameras", "notify_attach_image_email", "BOOLEAN", True)
+    add_column_if_not_exists(engine, "cameras", "notify_attach_image_telegram", "BOOLEAN", True)
 
     # Schedule
     # Schedule

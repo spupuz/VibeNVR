@@ -63,6 +63,9 @@ class CameraBase(BaseModel):
     notify_start_command: Optional[bool] = False
     notify_end_webhook: Optional[bool] = False
     notify_end_command: Optional[bool] = False
+    
+    notify_attach_image_email: Optional[bool] = True
+    notify_attach_image_telegram: Optional[bool] = True
 
 
 

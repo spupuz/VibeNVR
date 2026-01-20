@@ -43,6 +43,15 @@ async def lifespan(app: FastAPI):
         try:
             Base.metadata.create_all(bind=engine)
             print("Database connection established.")
+            
+            # Auto-migrate schema updates
+            try:
+                import migrate_db
+                print("Checking for schema migrations...")
+                migrate_db.migrate()
+            except Exception as e:
+                print(f"Migration warning: {e}")
+                
             break
         except Exception as e:
             print(f"Waiting for Database ({i+1}/15)...")

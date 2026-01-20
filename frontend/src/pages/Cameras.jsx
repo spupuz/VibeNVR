@@ -437,7 +437,9 @@ export const Cameras = () => {
                         picture_recording_mode: 'Manual',
                         preserve_pictures: 'Forever',
                         max_pictures_storage_gb: 0,
-                        enable_manual_snapshots: true
+                        enable_manual_snapshots: true,
+                        notify_attach_image_email: true,
+                        notify_attach_image_telegram: true
                     });
                     setEditingId(null);
                 } else {
@@ -566,7 +568,9 @@ export const Cameras = () => {
                                         picture_recording_mode: 'Manual',
                                         preserve_pictures: 'Forever',
                                         max_pictures_storage_gb: 0,
-                                        enable_manual_snapshots: true
+                                        enable_manual_snapshots: true,
+                                        notify_attach_image_email: true,
+                                        notify_attach_image_telegram: true
                                     });
                                     setShowAddModal(true);
                                 }}
@@ -1403,11 +1407,31 @@ export const Cameras = () => {
                                             checked={newCamera.notify_start_email}
                                             onChange={(val) => setNewCamera({ ...newCamera, notify_start_email: val })}
                                         />
+                                        {newCamera.notify_start_email && (
+                                            <div className="ml-6 mt-2 mb-4">
+                                                <Toggle
+                                                    label="Attach Snapshot Image to Email"
+                                                    checked={newCamera.notify_attach_image_email !== false}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, notify_attach_image_email: val })}
+                                                    compact={true}
+                                                />
+                                            </div>
+                                        )}
                                         <Toggle
-                                            label="Send Telegram on Start"
+                                            label="Send Telegram Message"
                                             checked={newCamera.notify_start_telegram}
                                             onChange={(val) => setNewCamera({ ...newCamera, notify_start_telegram: val })}
                                         />
+                                        {newCamera.notify_start_telegram && (
+                                            <div className="ml-6 mt-2 mb-4">
+                                                <Toggle
+                                                    label="Attach Snapshot Image to Telegram"
+                                                    checked={newCamera.notify_attach_image_telegram !== false}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, notify_attach_image_telegram: val })}
+                                                    compact={true}
+                                                />
+                                            </div>
+                                        )}
                                         <Toggle
                                             label="Call Webhook on Start"
                                             checked={newCamera.notify_start_webhook}
