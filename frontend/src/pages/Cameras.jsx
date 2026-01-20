@@ -112,7 +112,7 @@ export const Cameras = () => {
         movie_passthrough: true,
         movie_quality: 75,
         recording_mode: 'Motion Triggered',
-        max_movie_length: 0,
+        max_movie_length: 120,
         preserve_movies: 'For One Week',
         auto_threshold_tuning: true,
         auto_noise_detection: true,
@@ -408,7 +408,7 @@ export const Cameras = () => {
                         movie_passthrough: true,
                         movie_quality: 75,
                         recording_mode: 'Motion Triggered',
-                        max_movie_length: 0,
+                        max_movie_length: 120,
                         preserve_movies: 'For One Week',
                         max_storage_gb: 0,
                         auto_threshold_tuning: true,
@@ -539,7 +539,7 @@ export const Cameras = () => {
                                         movie_passthrough: true,
                                         movie_quality: 75,
                                         recording_mode: 'Motion Triggered',
-                                        max_movie_length: 0,
+                                        max_movie_length: 120,
                                         preserve_movies: 'For One Week',
                                         max_storage_gb: 0,
                                         auto_threshold_tuning: true,
@@ -725,7 +725,7 @@ export const Cameras = () => {
                                             const sourceId = parseInt(e.target.value);
                                             const sourceCam = cameras.find(c => c.id === sourceId);
                                             if (sourceCam) {
-                                                // Clone everything but unique identity fields
+                                                // Clone everything but unique identity fields and active status
                                                 setNewCamera(prev => ({
                                                     ...sourceCam,
                                                     id: undefined,
@@ -733,6 +733,7 @@ export const Cameras = () => {
                                                     rtsp_url: prev.rtsp_url, // Keep current input
                                                     stream_url: prev.stream_url,
                                                     location: prev.location,
+                                                    is_active: prev.is_active, // Don't overwrite active status
                                                     created_at: undefined
                                                 }));
                                             }
@@ -1061,14 +1062,16 @@ export const Cameras = () => {
                                             unit="%"
                                             marks={['10%', '25%', '50%', '75%', '100%']}
                                         />
-                                        <InputField
+                                        <Slider
                                             label="Maximum Movie Length"
-                                            type="number"
-                                            value={newCamera.max_movie_length}
+                                            value={newCamera.max_movie_length || 120}
                                             onChange={(val) => setNewCamera({ ...newCamera, max_movie_length: val })}
-                                            unit="seconds"
-                                            placeholder="0 = infinite"
-                                            help="Segment length for continuous recording or max length for motion events"
+                                            min={60}
+                                            max={300}
+                                            step={30}
+                                            unit=" sec"
+                                            marks={['1m', '2m', '3m', '4m', '5m']}
+                                            help="Recording segments will be split at this length"
                                         />
                                         <SectionHeader title="File Naming" />
                                         <InputField

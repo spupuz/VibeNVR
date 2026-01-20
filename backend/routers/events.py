@@ -261,10 +261,11 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
     event_type = payload.get("type") # event_start, picture_save, movie_end
     print(f"[WEBHOOK] Received: {event_type} for camera {camera.name} (ID: {camera_id})")
 
-    # Check schedule
-    if not is_within_schedule(camera):
-        print(f"[WEBHOOK] Ignored due to schedule: {camera.name}")
-        return {"status": "ignored", "reason": "outside schedule"}
+    # Check schedule (Log but don't block - avoid orphaned files)
+    in_schedule = is_within_schedule(camera)
+    if not in_schedule:
+        print(f"[WEBHOOK] Event outside schedule: {camera.name}. Saving anyway to prevent orphans.")
+        # return {"status": "ignored", "reason": "outside schedule"}
 
     if event_type == "movie_end":
         file_path = payload.get("file_path")
@@ -358,15 +359,17 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
         try:
             crud.create_event(db, event_data)
             print(f"[WEBHOOK] Event saved successfully")
-            # Notification for movie end (if configured)
-            send_notifications(camera.id, "movie_end", payload)
+            # Notification for movie end (if configured and within schedule)
+            if in_schedule:
+                send_notifications(camera.id, "movie_end", payload)
         except Exception as e:
             print(f"[WEBHOOK] ERROR saving event: {e}")
             
     elif event_type == "event_start":
         print(f"[WEBHOOK] Motion event started for camera {camera.name} (ID: {camera_id})")
         ACTIVE_CAMERAS[camera_id] = payload.get("timestamp")
-        send_notifications(camera.id, "event_start", payload)
+        if in_schedule:
+            send_notifications(camera.id, "event_start", payload)
         
     elif event_type == "picture_save":
         file_path = payload.get("file_path")
@@ -441,12 +444,16 @@ def delete_event(event_id: int, db: Session = Depends(database.get_db), current_
             # Delete thumbnail if exists
             if event.thumbnail_path:
                 thumb_path = event.thumbnail_path
-            if thumb_path.startswith("/var/lib/motion"):
-                thumb_path = thumb_path.replace("/var/lib/motion", "/data", 1)
-            elif thumb_path.startswith("/var/lib/vibe/recordings"):
-                thumb_path = thumb_path.replace("/var/lib/vibe/recordings", "/data", 1)
-                if os.path.exists(thumb_path):
-                    os.remove(thumb_path)
+                if thumb_path.startswith("/var/lib/motion"):
+                    thumb_path = thumb_path.replace("/var/lib/motion", "/data", 1)
+                elif thumb_path.startswith("/var/lib/vibe/recordings"):
+                    thumb_path = thumb_path.replace("/var/lib/vibe/recordings", "/data", 1)
+                
+                try:
+                    if os.path.exists(thumb_path):
+                        os.remove(thumb_path)
+                except Exception as e:
+                    print(f"Error deleting thumbnail {thumb_path}: {e}")
                     
         except Exception as e:
             print(f"Error deleting file {file_path}: {e}")

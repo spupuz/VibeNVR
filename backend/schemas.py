@@ -29,7 +29,7 @@ class CameraBase(BaseModel):
     movie_quality: Optional[int] = 75
     movie_passthrough: Optional[bool] = False
     recording_mode: Optional[str] = "Motion Triggered"
-    max_movie_length: Optional[int] = 0
+    max_movie_length: Optional[int] = 120  # Default 2 minutes, range 60-300 (1-5 min)
     preserve_movies: Optional[str] = "For One Week"
     max_storage_gb: Optional[float] = 0  # 0 = unlimited
 
@@ -100,6 +100,15 @@ class CameraBase(BaseModel):
     schedule_sunday: Optional[bool] = True
     schedule_sunday_start: Optional[str] = "00:00"
     schedule_sunday_end: Optional[str] = "23:59"
+
+    @field_validator('max_movie_length')
+    @classmethod
+    def validate_max_movie_length(cls, v: Optional[int]) -> Optional[int]:
+        if v is None or v == 0 or v > 300:
+            return 300  # Cap at 5 minutes max
+        if v < 60:
+            return 60   # Minimum 1 minute
+        return v
 
     @field_validator('movie_file_name', 'picture_file_name')
     @classmethod
