@@ -82,10 +82,12 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown actions (if any)
 
-# Read version
+# Read version from package.json
+import json
 try:
-    with open("VERSION", "r") as f:
-        VERSION = f.read().strip()
+    with open("package.json", "r") as f:
+        data = json.load(f)
+        VERSION = data.get("version", "1.0.0")
 except:
     VERSION = "1.0.0"
 

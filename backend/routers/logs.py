@@ -57,12 +57,14 @@ def generate_debug_report():
     # 2. Application Config
     report.append("\n--- VibeNVR Config ---")
     
-    # Try to read version from file
-    version = "v1.9.10"
-    if os.path.exists("VERSION"):
+    # Try to read version from package.json
+    version = "1.0.0"
+    if os.path.exists("package.json"):
         try:
-            with open("VERSION", "r") as f:
-                version = f.read().strip()
+            with open("package.json", "r") as f:
+                import json
+                data = json.load(f)
+                version = data.get("version", "1.0.0")
         except:
             pass
     report.append(f"Version: {version}")
