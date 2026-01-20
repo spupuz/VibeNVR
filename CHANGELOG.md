@@ -2,6 +2,11 @@
 
 All notable changes to the VibeNVR project will be documented in this file.
 
+## [1.10.2] - 2026-01-20
+
+### 🐛 Bug Fixes
+*   **Mobile UI**: Added the missing "Playback Direction" selector to the mobile view.
+
 ## [1.10.1] - 2026-01-20
 
 ### 🧹 Maintenance & Refactoring

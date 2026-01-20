@@ -1,3 +1,11 @@
+# VibeNVR v1.10.2 - Mobile Polish
+
+## 🐛 Fixes
+
+*   **Mobile Playback Control**: Fixed an issue where the timeline direction selector (Oldest → Newest) was hidden on mobile devices.
+
+---
+
 # VibeNVR v1.10.1 - Structural Improvements
 
 ## 🧹 Maintenance
