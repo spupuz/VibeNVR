@@ -55,6 +55,15 @@ export const Settings = () => {
                     });
                     if (res.ok) {
                         const data = await res.json();
+
+                        // Handle server restart case (status went back to idle unexpectedly)
+                        if (data.status === 'idle') {
+                            setOrphanSyncStatus({ isSyncing: false, status: 'idle' });
+                            showToast('Sync task interrupted (server restart). Please try again.', 'error');
+                            clearInterval(interval);
+                            return;
+                        }
+
                         // Only update if status changes or completes
                         if (data.status === 'completed' || data.status === 'error') {
                             setOrphanSyncStatus({ isSyncing: false, status: data.status });
