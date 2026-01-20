@@ -6,6 +6,125 @@ from typing import List, Optional
 import zipfile
 import io
 from auth_service import get_current_user
+import psutil
+import platform
+import subprocess
+from datetime import datetime
+import database
+import models
+from sqlalchemy import func
+
+def generate_debug_report():
+    """Generate a sanitized system report for debugging"""
+    report = []
+    report.append("=== VibeNVR System Report ===")
+    report.append(f"Date: {datetime.now().isoformat()}")
+    report.append(f"OS: {platform.system()} {platform.release()}")
+    
+    # 1. System Resources
+    report.append("\n--- Resources ---")
+    try:
+        cpu_usage = psutil.cpu_percent(interval=None)
+        mem = psutil.virtual_memory()
+        disk = psutil.disk_usage('/data')
+        
+        report.append(f"CPU Usage: {cpu_usage}%")
+        report.append(f"Memory: {mem.used / (1024**3):.2f}GB / {mem.total / (1024**3):.2f}GB ({mem.percent}%)")
+        report.append(f"Disk (/data): {disk.used / (1024**3):.2f}GB / {disk.total / (1024**3):.2f}GB ({disk.percent}%)")
+    except Exception as e:
+        report.append(f"Error reading resources: {e}")
+
+    # 1.5 HW Acceleration Check
+    report.append("\n--- Hardware Acceleration ---")
+    hw_status = []
+    # Check NVIDIA
+    try:
+        if subprocess.run(['which', 'nvidia-smi'], stdout=subprocess.DEVNULL).returncode == 0:
+            hw_status.append("NVIDIA GPU: Detected (nvidia-smi found)")
+        else:
+            hw_status.append("NVIDIA GPU: Not Detected")
+    except:
+         hw_status.append("NVIDIA GPU: Check Failed")
+    
+    # Check VAAPI/Intel
+    if os.path.exists('/dev/dri/renderD128'):
+        hw_status.append("VAAPI/Intel: Detected (/dev/dri/renderD128 found)")
+    else:
+        hw_status.append("VAAPI/Intel: Not Detected")
+        
+    report.extend(hw_status)
+
+    # 2. Application Config
+    report.append("\n--- VibeNVR Config ---")
+    
+    # Try to read version from file
+    version = "v1.9.10"
+    if os.path.exists("VERSION"):
+        try:
+            with open("VERSION", "r") as f:
+                version = f.read().strip()
+        except:
+            pass
+    report.append(f"Version: {version}")
+
+    db = next(database.get_db())
+    try:
+        # Camera Summary
+        cameras = db.query(models.Camera).all()
+        report.append(f"Total Cameras: {len(cameras)}")
+        for cam in cameras:
+            # Sanitize URL: rtsp://user:pass@ip:port/path -> rtsp://***:***@ip:port/path
+            # We already have _mask_url logic in camera_thread but let's do simple regex here or just hide it fully
+            safe_url = re.sub(r'://.*@', '://***:***@', cam.rtsp_url) if cam.rtsp_url else "N/A"
+            safe_url = re.sub(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', 'XXX.XXX.XXX.XXX', safe_url)
+            
+            report.append(f"  - Camera ID {cam.id} ({cam.name}):")
+            report.append(f"    Mode: {cam.recording_mode}, Picture Mode: {cam.picture_recording_mode}")
+            report.append(f"    Resolution: {cam.resolution_width}x{cam.resolution_height} @ {cam.framerate}fps")
+            report.append(f"    Storage Limit: {cam.max_storage_gb}GB")
+            report.append(f"    Movie Passthrough: {cam.movie_passthrough}")
+            report.append(f"    URL Structure: {safe_url}")
+            report.append(f"    Enabled: {cam.is_active}")
+
+        # Global Settings
+        settings = db.query(models.SystemSettings).all()
+        report.append("\n--- Global Settings ---")
+        for s in settings:
+            # Redact sensitive settings
+            val = s.value
+            if any(k in s.key for k in ['password', 'token', 'secret', 'key']):
+                val = "***REDACTED***"
+            report.append(f"  {s.key}: {val}")
+
+        # 3. Database Stats
+        report.append("\n--- Database Stats ---")
+        try:
+            total_videos = db.query(models.Event).filter(models.Event.type == 'video').count()
+            total_images = db.query(models.Event).filter(models.Event.type == 'image').count() # or snapshot?
+            # Check models.Event types. Usually 'video' and 'snapshot' or 'image'. 
+            # Let's check actual data.
+            # Assuming 'video' and 'snapshot' based on other files.
+            total_snapshots = db.query(models.Event).filter(models.Event.type == 'snapshot').count()
+            
+            report.append(f"Total Video Events: {total_videos}")
+            report.append(f"Total Snapshot Events: {total_snapshots}")
+            
+            # Oldest Event
+            oldest = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).first()
+            if oldest:
+                report.append(f"Oldest Event: {oldest.timestamp_start}")
+            else:
+                 report.append("Oldest Event: None")
+                 
+        except Exception as e:
+            report.append(f"Error querying DB stats: {e}")
+
+    except Exception as e:
+        report.append(f"Error generating config report: {e}")
+    finally:
+        db.close()
+
+    return "\n".join(report)
 
 router = APIRouter(
     prefix="/logs",
@@ -143,6 +262,13 @@ async def download_all_logs(user: dict = Depends(get_current_user)):
                     zip_file.writestr(f"sanitized_{filename}", "".join(sanitized_content))
                 except Exception as e:
                     zip_file.writestr(f"error_{service}.txt", str(e))
+        
+        # Add System Info Report
+        try:
+            report = generate_debug_report()
+            zip_file.writestr("system_report.txt", report)
+        except Exception as e:
+            zip_file.writestr("report_error.txt", f"Failed to generate report: {str(e)}")
     
     zip_buffer.seek(0)
     
