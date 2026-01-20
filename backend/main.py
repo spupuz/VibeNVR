@@ -82,7 +82,14 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown actions (if any)
 
-app = FastAPI(title="VibeNVR API", version="1.9.9", lifespan=lifespan)
+# Read version
+try:
+    with open("VERSION", "r") as f:
+        VERSION = f.read().strip()
+except:
+    VERSION = "1.0.0"
+
+app = FastAPI(title="VibeNVR API", version=VERSION, lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
