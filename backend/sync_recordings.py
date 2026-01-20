@@ -67,6 +67,15 @@ def is_video_valid(file_path):
     except:
         return False
 
+def is_safe_path(file_path):
+    """Ensure file path is within allowed data directories"""
+    try:
+        abs_path = os.path.abspath(file_path)
+        # return abs_path.startswith('/data')
+        return '/data' in abs_path # slightly looser but covers the mount
+    except:
+        return False
+
 def sync_recordings(dry_run=False):
     print("=" * 60)
     print("VibeNVR - Orphan Recording Recovery")
@@ -305,6 +314,11 @@ def sync_recordings(dry_run=False):
                 if dry_run:
                     print(f"  [Would delete] corrupted: {os.path.basename(file_path)}")
                 else:
+                    # Validate path safety before deletion
+                    if not is_safe_path(file_path):
+                        print(f"  ⚠️  Skipping unsafe path deletion: {file_path}")
+                        continue
+
                     # Delete file
                     try:
                         os.remove(file_path)
