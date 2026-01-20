@@ -16,13 +16,15 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: vibenvr-backend
     restart: unless-stopped
     ports:
       - "${VIBENVR_BACKEND_PORT:-5005}:5000"
     volumes:
       - ./backend:/app
+      - ./frontend/package.json:/app/package.json
       - ${VIBENVR_DATA:-vibenvr_data}:/data
       - /etc/localtime:/etc/localtime:ro
     environment:
