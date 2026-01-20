@@ -343,9 +343,9 @@ export const Timeline = () => {
         const saved = localStorage.getItem('vibe_autoplay_next');
         return saved !== null ? JSON.parse(saved) : true;
     });
-    const [playbackSpeed2x, setPlaybackSpeed2x] = useState(() => {
-        const saved = localStorage.getItem('vibe_playback_speed_2x');
-        return saved !== null ? JSON.parse(saved) : false;
+    const [playbackSpeed, setPlaybackSpeed] = useState(() => {
+        const saved = localStorage.getItem('vibe_playback_speed');
+        return saved !== null ? Number(saved) : 1.0;
     });
 
     useEffect(() => {
@@ -362,14 +362,14 @@ export const Timeline = () => {
     }, [autoplayDirection]);
 
     useEffect(() => {
-        localStorage.setItem('vibe_playback_speed_2x', JSON.stringify(playbackSpeed2x));
-    }, [playbackSpeed2x]);
+        localStorage.setItem('vibe_playback_speed', playbackSpeed);
+    }, [playbackSpeed]);
 
     useEffect(() => {
         if (videoRef.current) {
-            videoRef.current.playbackRate = playbackSpeed2x ? 2.0 : 1.0;
+            videoRef.current.playbackRate = playbackSpeed;
         }
-    }, [playbackSpeed2x, selectedEvent]);
+    }, [playbackSpeed, selectedEvent]);
 
     const goToNextEvent = useCallback(() => {
         if (!selectedEvent) return;
@@ -474,7 +474,7 @@ export const Timeline = () => {
                                 className="w-full h-full object-contain"
                                 src={getMediaUrl(selectedEvent.file_path)}
                                 onEnded={handleVideoEnded}
-                                onLoadedMetadata={(e) => e.target.playbackRate = playbackSpeed2x ? 2.0 : 1.0}
+                                onLoadedMetadata={(e) => e.target.playbackRate = playbackSpeed}
                             />
                         ) : (
                             <img
@@ -483,17 +483,20 @@ export const Timeline = () => {
                                 className="w-full h-full object-contain"
                             />
                         )}
-                        {/* Mobile Speed Overlay */}
+                        {/* Mobile Speed Overlay - Consistent with Desktop */}
                         {selectedEvent.type === 'video' && (
-                            <button
-                                onClick={() => setPlaybackSpeed2x(!playbackSpeed2x)}
-                                className={`absolute top-2 right-2 px-2.5 py-1 rounded-md text-xs font-black backdrop-blur-md transition-all shadow-lg active:scale-90 ${playbackSpeed2x
-                                    ? 'bg-primary text-white scale-110'
-                                    : 'bg-black/40 text-white/90 border border-white/20'
-                                    }`}
-                            >
-                                2x
-                            </button>
+                            <div className="absolute top-2 right-2 px-2.5 py-1 rounded-md backdrop-blur-md shadow-lg bg-black/40 border border-white/20 active:scale-90 transition-all">
+                                <select
+                                    value={playbackSpeed}
+                                    onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
+                                    className="bg-transparent text-xs font-black text-white/90 border-none focus:ring-0 cursor-pointer p-0 text-center w-8 appearance-none"
+                                    title="Playback Speed"
+                                >
+                                    <option value={1} className="text-black">1x</option>
+                                    <option value={2} className="text-black">2x</option>
+                                    <option value={3} className="text-black">3x</option>
+                                </select>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -670,17 +673,20 @@ export const Timeline = () => {
                                     )}
                                 </div>
 
-                                {/* Speed Toggle */}
+                                {/* Speed Selection */}
                                 {selectedEvent.type === 'video' && (
-                                    <button
-                                        onClick={() => setPlaybackSpeed2x(!playbackSpeed2x)}
-                                        className={`px-2.5 py-1 rounded-md text-xs font-black transition-all shadow-sm ${playbackSpeed2x
-                                            ? 'bg-primary text-white scale-110 shadow-primary/20'
-                                            : 'bg-muted hover:bg-muted/80 text-muted-foreground'}`}
-                                        title="Toggle 2x Speed"
-                                    >
-                                        2x
-                                    </button>
+                                    <div className="flex items-center space-x-1 bg-muted/50 hover:bg-muted rounded-lg px-2 py-1 transition-colors border border-transparent hover:border-border">
+                                        <select
+                                            value={playbackSpeed}
+                                            onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
+                                            className="bg-transparent text-xs font-bold text-foreground border-none focus:ring-0 cursor-pointer p-0 text-center w-12 appearance-none"
+                                            title="Playback Speed"
+                                        >
+                                            <option value={1}>1x</option>
+                                            <option value={2}>2x</option>
+                                            <option value={3}>3x</option>
+                                        </select>
+                                    </div>
                                 )}
 
                                 <div className="w-px h-6 bg-border mx-1"></div>
@@ -712,7 +718,7 @@ export const Timeline = () => {
                                     className="max-w-full max-h-full object-contain"
                                     src={getMediaUrl(selectedEvent.file_path)}
                                     onEnded={handleVideoEnded}
-                                    onLoadedMetadata={(e) => e.target.playbackRate = playbackSpeed2x ? 2.0 : 1.0}
+                                    onLoadedMetadata={(e) => e.target.playbackRate = playbackSpeed}
                                 >
                                     Your browser does not support video.
                                 </video>

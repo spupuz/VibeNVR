@@ -36,6 +36,13 @@ from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup actions
+    # Check for Default Secret Key (Security Warning)
+    if auth_service.SECRET_KEY == "vibenvr-super-secret-key-change-me":
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("!! SECURITY WARNING: You are using the default SECRET_KEY.                      !!")
+        print("!! Please set a secure SECRET_KEY in your .env file for production use.       !!")
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
     # Wait for DB to be ready
     import time
     
@@ -117,11 +124,19 @@ from fastapi import HTTPException, Depends
 # Secure media serving
 @app.get("/media/{file_path:path}")
 async def get_secure_media(file_path: str, user=Depends(auth_service.get_current_user_from_query)):
-    # Prevent directory traversal
-    if ".." in file_path:
-        raise HTTPException(status_code=400, detail="Invalid path")
+    # Security Validation: Ensure path is within /data/
+    # Normalize path to prevent traversals like /data/../etc/passwd
+    full_path = os.path.normpath(f"/data/{file_path}")
     
-    full_path = f"/data/{file_path}"
+    if not full_path.startswith("/data/"):
+         # For Windows dev environment compatibility (if /data is mapped to c:\...)
+         # In docker linux /data is absolute.
+         # But let's be strict for /data prefix.
+         # Actually os.path.normpath on windows might flip slashes.
+         # The container IS linux.
+         print(f"Security Alert (Media): Attempted access to {full_path}")
+         raise HTTPException(status_code=403, detail="Access denied")
+
     if not os.path.exists(full_path):
         raise HTTPException(status_code=404, detail="File not found")
         

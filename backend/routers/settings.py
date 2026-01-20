@@ -92,7 +92,7 @@ DEFAULT_SETTINGS = {
 }
 
 @router.post("/init-defaults")
-def init_default_settings(db: Session = Depends(database.get_db)):
+def init_default_settings(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Initialize default settings if they don't exist"""
     created = 0
     for key, data in DEFAULT_SETTINGS.items():
@@ -173,10 +173,19 @@ async def import_backup(
                     existing_cam = models.Camera(id=cam_id)
                     db.add(existing_cam)
                 
-                for k, v in c.items():
-                    if k == "events" or k == "groups": continue # Skip relationships
-                    if hasattr(existing_cam, k):
-                        setattr(existing_cam, k, v)
+                # Validate data using schema to enforce security (path traversal checks)
+                try:
+                    # Remove ID if present as it's not in Create schema
+                    cam_data = {k: v for k, v in c.items() if k != 'id' and k != 'events' and k != 'groups'}
+                    clean_cam = schemas.CameraCreate(**cam_data)
+                    
+                    # Apply validated fields
+                    for k, v in clean_cam.model_dump(exclude_unset=True).items():
+                         if hasattr(existing_cam, k):
+                             setattr(existing_cam, k, v)
+                except Exception as e:
+                     print(f"[BACKUP] Security Warning: Skipping invalid camera config for ID {cam_id}: {e}", flush=True)
+                     continue
 
         # 4. Restore Groups
         if "groups" in data:

@@ -9,7 +9,7 @@ import threading
 from datetime import datetime, timedelta
 from collections import deque
 from sqlalchemy import func
-import crud, database, schemas, models
+import crud, database, schemas, models, auth_service
 
 router = APIRouter(
     prefix="/stats",
@@ -71,7 +71,7 @@ def start_resource_collector():
 start_resource_collector()
 
 @router.get("")
-def get_stats(db: Session = Depends(database.get_db)):
+def get_stats(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
     from sqlalchemy import func
     
     # 1. Active Cameras
@@ -246,7 +246,7 @@ def get_stats(db: Session = Depends(database.get_db)):
     }
 
 @router.get("/history")
-def get_stats_history(db: Session = Depends(database.get_db)):
+def get_stats_history(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
     """
     Returns hourly event counts for the last 24 hours.
     """
@@ -307,7 +307,7 @@ def get_stats_history(db: Session = Depends(database.get_db)):
         return []
 
 @router.get("/resources-history")
-def get_resources_history():
+def get_resources_history(current_user: models.User = Depends(auth_service.get_current_user)):
     """
     Returns CPU and memory usage history for the last hour (up to 60 data points).
     Data is collected every minute by a background thread.

@@ -76,8 +76,12 @@ def generate_debug_report():
         report.append(f"Total Cameras: {len(cameras)}")
         for cam in cameras:
             # Sanitize URL: rtsp://user:pass@ip:port/path -> rtsp://***:***@ip:port/path
-            # We already have _mask_url logic in camera_thread but let's do simple regex here or just hide it fully
-            safe_url = re.sub(r'://.*@', '://***:***@', cam.rtsp_url) if cam.rtsp_url else "N/A"
+            # Sanitize URL: rtsp://user:pass@ip:port/path -> rtsp://user:***@ip:port/path
+            # Mask password only, show username for debugging context
+            safe_url = "N/A"
+            if cam.rtsp_url:
+                safe_url = re.sub(r'(rtsp://[^:]+):([^@]+)@', r'\1:***@', cam.rtsp_url) 
+                
             safe_url = re.sub(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', 'XXX.XXX.XXX.XXX', safe_url)
             
             report.append(f"  - Camera ID {cam.id} ({cam.name}):")

@@ -235,7 +235,7 @@ export const Settings = () => {
                     telegram_bot_token: globalSettings.telegram_bot_token,
                     telegram_chat_id: globalSettings.telegram_chat_id,
                     notify_email_recipient: globalSettings.notify_email_recipient,
-                    notify_email_recipient: globalSettings.notify_email_recipient,
+
                     default_landing_page: globalSettings.default_landing_page,
                     global_attach_image_email: globalSettings.global_attach_image_email.toString(),
                     global_attach_image_telegram: globalSettings.global_attach_image_telegram.toString()

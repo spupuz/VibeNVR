@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import datetime
 
@@ -100,6 +100,67 @@ class CameraBase(BaseModel):
     schedule_sunday: Optional[bool] = True
     schedule_sunday_start: Optional[str] = "00:00"
     schedule_sunday_end: Optional[str] = "23:59"
+
+    @field_validator('movie_file_name', 'picture_file_name')
+    @classmethod
+    def prevent_path_traversal(cls, v: Optional[str]) -> Optional[str]:
+        if v and ('..' in v or v.strip().startswith('/') or v.strip().startswith('\\')):
+            raise ValueError('Path traversal characters (.., /) are not allowed')
+        return v
+
+    @field_validator('rtsp_url')
+    @classmethod
+    def validate_rtsp_url(cls, v: str) -> str:
+        if v and v.strip().lower().startswith('file://'):
+            raise ValueError('Local file access via file:// is not allowed')
+        return v
+
+    @field_validator('notify_webhook_url')
+    @classmethod
+    def validate_webhook_url(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return v
+            
+        import socket
+        from urllib.parse import urlparse
+        import ipaddress
+
+        try:
+            parsed = urlparse(v)
+            if parsed.scheme not in ('http', 'https'):
+                raise ValueError('Webhook must be http or https')
+            
+            hostname = parsed.hostname
+            if not hostname:
+                raise ValueError('Invalid webhook hostname')
+
+            # Block localhost strings
+            if hostname.lower() in ['localhost', 'loopback', '::1', '127.0.0.1']:
+                 raise ValueError('Webhook cannot target localhost')
+
+            # Resolve IP to check for private networks (Basic SSRF protection)
+            # Note: This has race conditions (DNS rebinding) but good for "Vibe Coding" level
+            try:
+                ip_str = socket.gethostbyname(hostname)
+                ip = ipaddress.ip_address(ip_str)
+                if ip.is_loopback or ip.is_private or ip.is_reserved:
+                    # Allow docker internal if user REALLY wants? 
+                    # Usually we want to BLOCK access to other containers like 'engine' or 'db'
+                    # But user might want to webhook to Home Assistant on same LAN.
+                    # This is tricky. Let's block Loopback and Link Local.
+                    # Blocking Private (192.168.x) might break Home Assistant integration.
+                    # Compromise: Block Loopback, 127.0.0.0/8
+                    if ip.is_loopback:
+                        raise ValueError('Webhook cannot target loopback IP')
+            except socket.gaierror:
+                pass # DNS fail - might be unreachable, but let requests handle it?
+                
+        except ValueError as e:
+            raise e
+        except Exception:
+             # If parsing fails, it's likely invalid
+             pass
+        return v
 
     class Config:
         from_attributes = True
