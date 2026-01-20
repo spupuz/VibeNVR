@@ -237,6 +237,9 @@ _last_orphan_sync_time = None
 from fastapi import BackgroundTasks
 
 # State for orphan sync background task
+# NOTE: This uses in-memory global state. This limits the application to running with
+# a single worker process (default for uvicorn). If multiple workers are used (e.g. gunicorn),
+# this state will not be shared, and status polling will fail.
 _sync_state = {
     "status": "idle",
     "result": None,
