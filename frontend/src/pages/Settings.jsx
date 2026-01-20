@@ -25,7 +25,9 @@ export const Settings = () => {
         telegram_bot_token: '',
         telegram_chat_id: '',
         notify_email_recipient: '',
-        default_landing_page: 'live'
+        default_landing_page: 'live',
+        global_attach_image_email: true,
+        global_attach_image_telegram: true
     });
     const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0, percent: 0 });
     const [loading, setLoading] = useState(true);
@@ -192,7 +194,9 @@ export const Settings = () => {
                     telegram_bot_token: data.telegram_bot_token?.value || '',
                     telegram_chat_id: data.telegram_chat_id?.value || '',
                     notify_email_recipient: data.notify_email_recipient?.value || '',
-                    default_landing_page: data.default_landing_page?.value || 'live'
+                    default_landing_page: data.default_landing_page?.value || 'live',
+                    global_attach_image_email: data.global_attach_image_email?.value !== 'false',
+                    global_attach_image_telegram: data.global_attach_image_telegram?.value !== 'false'
                 });
             }
         } catch (err) {
@@ -231,7 +235,10 @@ export const Settings = () => {
                     telegram_bot_token: globalSettings.telegram_bot_token,
                     telegram_chat_id: globalSettings.telegram_chat_id,
                     notify_email_recipient: globalSettings.notify_email_recipient,
-                    default_landing_page: globalSettings.default_landing_page
+                    notify_email_recipient: globalSettings.notify_email_recipient,
+                    default_landing_page: globalSettings.default_landing_page,
+                    global_attach_image_email: globalSettings.global_attach_image_email.toString(),
+                    global_attach_image_telegram: globalSettings.global_attach_image_telegram.toString()
                 })
             });
             showToast('Settings saved successfully!', 'success');
@@ -861,6 +868,38 @@ export const Settings = () => {
                                     onChange={(e) => setGlobalSettings({ ...globalSettings, notify_email_recipient: e.target.value })}
                                 />
                                 <p className="text-[10px] text-muted-foreground mt-1">Used if a camera doesn't specify a recipient</p>
+                            </div>
+
+                            <div className="mt-4 space-y-4">
+                                <div className="flex items-center justify-between max-w-sm">
+                                    <label className="text-sm font-medium">Attach Snapshot to Email (Global)</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setGlobalSettings({ ...globalSettings, global_attach_image_email: !globalSettings.global_attach_image_email })}
+                                        className={'relative inline-flex h-6 w-11 items-center rounded-full transition-colors ' +
+                                            (globalSettings.global_attach_image_email ? 'bg-primary' : 'bg-muted')
+                                        }
+                                    >
+                                        <span className={'inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ' +
+                                            (globalSettings.global_attach_image_email ? 'translate-x-6' : 'translate-x-1')
+                                        } />
+                                    </button>
+                                </div>
+                                <div className="flex items-center justify-between max-w-sm">
+                                    <label className="text-sm font-medium">Attach Snapshot to Telegram (Global)</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setGlobalSettings({ ...globalSettings, global_attach_image_telegram: !globalSettings.global_attach_image_telegram })}
+                                        className={'relative inline-flex h-6 w-11 items-center rounded-full transition-colors ' +
+                                            (globalSettings.global_attach_image_telegram ? 'bg-primary' : 'bg-muted')
+                                        }
+                                    >
+                                        <span className={'inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ' +
+                                            (globalSettings.global_attach_image_telegram ? 'translate-x-6' : 'translate-x-1')
+                                        } />
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground">Default behavior for image attachments in notifications</p>
                             </div>
                         </div>
                     </div>

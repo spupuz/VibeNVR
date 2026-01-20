@@ -76,6 +76,11 @@ class CameraManager:
 
         if event_type == "motion_start":
             webhook_type = "event_start"
+            if payload:
+                if isinstance(payload, dict):
+                    data["file_path"] = payload.get("file_path")
+                else:
+                    data["file_path"] = payload
         elif event_type == "recording_end":
             webhook_type = "movie_end"
             if payload:

@@ -168,6 +168,28 @@ def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None):
                     delete_event_media(e, db, reason="Retention Time (Snapshot)")
                 db.commit()
 
+def cleanup_temp_files():
+    """Delete usage-dependent temporary files (e.g. notification snapshots) older than 1 hour"""
+    try:
+        temp_root = "/data/temp_snaps"
+        if not os.path.exists(temp_root):
+            return
+            
+        cutoff = time.time() - 3600 # 1 hour ago
+        
+        for dirpath, _, filenames in os.walk(temp_root):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                try:
+                     if os.path.getmtime(fp) < cutoff:
+                         os.remove(fp)
+                         # Try removing empty dir? Maybe later.
+                except OSError:
+                    pass
+        logger.info("Cleaned up temporary snapshots.")
+    except Exception as e:
+        logger.error(f"Error cleaning temp files: {e}")
+
 def run_cleanup():
     """Main cleanup task to be run periodically"""
     logger.info("Starting storage cleanup task...")
@@ -207,7 +229,11 @@ def run_cleanup():
                     # Recalculate or subtract? Subtracting is faster but less accurate.
                     # Let's subtract for speed in loop
                     current_used_gb -= size_gb
+                    current_used_gb -= size_gb
                     logger.debug(f"Deleted old event to free space. Remaining est: {current_used_gb:.2f}GB")
+        
+        # Priority 3: Cleanup Temp Files
+        cleanup_temp_files()
 
     except Exception as e:
         logger.error(f"Error during cleanup: {e}")
