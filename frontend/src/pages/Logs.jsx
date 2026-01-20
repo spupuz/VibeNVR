@@ -75,7 +75,7 @@ export const Logs = () => {
         setConfirmConfig({
             isOpen: true,
             title: 'Download Sanitized Logs',
-            message: 'You are about to download a system report containing logs from all containers. Steps will be taken to redact sensitive information (tokens, passwords, external IPs), but please review the files before sharing.',
+            message: 'You are about to download a system report and logs archive. This includes VibeNVR system information, resource usage, configuration summaries, and sanitized application logs. Sensitive data (tokens, passwords, IPs) is redacted.',
             onConfirm: async () => {
                 try {
                     const res = await fetch('/api/logs/download', {
