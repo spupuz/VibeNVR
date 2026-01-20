@@ -64,6 +64,15 @@ def delete_event_media(event, db: Session, reason="Unknown"):
         file_path = translate_path(event.file_path)
         thumb_path = translate_path(event.thumbnail_path)
 
+        # Security Check: Ensure we only delete files inside /data
+        if file_path and not os.path.abspath(file_path).startswith("/data/"):
+             logger.warning(f"Security blocked deletion of unsafe path: {file_path}")
+             file_path = None
+        
+        if thumb_path and not os.path.abspath(thumb_path).startswith("/data/"):
+             logger.warning(f"Security blocked deletion of unsafe path: {thumb_path}")
+             thumb_path = None
+
         if file_path and os.path.exists(file_path):
             os.remove(file_path)
             logger.info(f"[{reason}] Deleted files for event {event.id}: {file_path}")

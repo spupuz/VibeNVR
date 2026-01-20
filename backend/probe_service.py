@@ -19,6 +19,11 @@ def probe_stream(rtsp_url: str):
         rtsp_url
     ]
 
+    # Security: Ensure URL doesn't start with - to prevent flag injection
+    if rtsp_url.strip().startswith("-"):
+         logger.error("Invalid RTSP URL: Cannot start with -")
+         return None
+
     try:
         # Run ffprobe with a timeout to prevent hanging
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)

@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 import logging
 import sys
 import psutil
@@ -36,6 +36,20 @@ class CameraConfig(BaseModel):
     movie_file_name: str = "%Y-%m-%d/%H-%M-%S"
     picture_quality: int = 75
     picture_file_name: str = "%Y-%m-%d/%H-%M-%S-%q"
+
+    @field_validator('movie_file_name', 'picture_file_name')
+    @classmethod
+    def prevent_path_traversal(cls, v: str) -> str:
+        if v and ('..' in v or v.strip().startswith('/') or v.strip().startswith('\\')):
+             raise ValueError('Path traversal in filename is not allowed')
+        return v
+        
+    @field_validator('rtsp_url')
+    @classmethod
+    def validate_url(cls, v: str) -> str:
+        if v and v.strip().lower().startswith('file://'):
+            raise ValueError('Local file access via file:// is not allowed')
+        return v
     show_motion_box: bool = False
     min_motion_frames: int = 2
     auto_threshold_tuning: bool = True

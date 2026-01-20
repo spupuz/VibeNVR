@@ -2,6 +2,8 @@
 
 VibeNVR is a modern, modular, and containerized video surveillance system designed to manage IP cameras, recordings, motion detection, and a unified event timeline. It features a custom high-performance video engine (VibeEngine) built for efficiency and reliability, wrapped in a premium React-based interface.
 
+> **Project Status**: This is a **Vibe Coding Project**. Extensive testing has been performed to ensure stability, but we are always **open to new help** and contributions from the community!
+
 ---
 ## ⚠️ Beta Disclaimer
 
@@ -45,21 +47,44 @@ VibeNVR is built with security as a priority. Recent updates have hardened the s
 
 ### 📦 Installation via Docker (Recommended)
 
-1.  Download the **[docker-compose.prod.yml](docker-compose.prod.yml)** file.
+1.  **Get the files**:
+    Download the **[docker-compose.prod.yml](docker-compose.prod.yml)** file.
     
-    *Alternatively, clone the repository to get all files:*
+    *Alternatively, clone the repository to get all files (recommended for easier updates):*
     ```bash
     git clone https://github.com/spupuz/VibeNVR.git
     cd VibeNVR
     ```
 
-2.  **Configuration**:
-    Open the file and optionally update:
-    - `POSTGRES_PASSWORD`: Set a strong password.
-    - `SECRET_KEY`: Generate a secure random string (crucial for auth).
-    - `HW_ACCEL`: Set to `true` if you have a GPU (check comments in file for device mapping).
+2.  **Configuration (.env)**:
+    VibeNVR is configured using a `.env` file. 
+    
+    *   If you cloned the repo, you can use the included `.env` file as a base.
+    *   If you just downloaded the compose file, create a file named `.env` in the same directory.
+    
+    **Important: Update your `.env` with secure values:**
+    ```properties
+    # .env content example
+    # ENV Configuration
+    SECRET_KEY=change_this_to_a_long_random_string  # CRITICAL: Secures sessions and defaults for internal webhook trust
+    # WEBHOOK_SECRET=optional_override_secret       # Optional: Override internal webhook secret (defaults to SECRET_KEY)
+    # POSTGRES_PASSWORD=vibenvrpass
 
-3.  Start the service:
+    # Storage & Paths
+    # VIBENVR_DATA=./viben_data             # Where recordings and logs are stored
+    # VIBENVR_DB_DATA=./viben_db_data       # Database persistence path
+
+    # Ports
+    # VIBENVR_FRONTEND_PORT=8080            # Frontend Access Port
+    # VIBENVR_BACKEND_PORT=5005             # Backend API Port
+
+    # Hardware Acceleration
+    # HW_ACCEL=true                         # Enable Hardware Acceleration (true/false)
+    # HW_ACCEL_TYPE=auto                    # auto, nvidia, intel, amd
+    ```
+    *See the `.env` file in the repo for all available options.*
+
+3.  **Start the service**:
     ```bash
     docker compose -f docker-compose.prod.yml up -d
     ```

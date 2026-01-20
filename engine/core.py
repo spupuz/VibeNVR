@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 # Backend URL for webhooks
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://vibenvr-backend:5000")
+WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET")
 
 def mask_config(config):
     """Hide sensitive data in camera config for logging"""
@@ -108,7 +109,11 @@ class CameraManager:
         def send_webhook():
             try:
                 url = f"{BACKEND_URL}/events/webhook"
-                requests.post(url, json=data, timeout=5)
+                headers = {}
+                if WEBHOOK_SECRET:
+                    headers['X-Webhook-Secret'] = WEBHOOK_SECRET
+                
+                requests.post(url, json=data, timeout=5, headers=headers)
                 logger.info(f"Sent webhook {webhook_type} to {url}")
             except Exception as e:
                 logger.error(f"Failed to send webhook: {e}")

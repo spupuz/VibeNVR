@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-import crud, schemas, database, models, motion_service
+import crud, schemas, database, models, motion_service, auth_service
 
 router = APIRouter(
     prefix="/groups",
@@ -10,36 +10,36 @@ router = APIRouter(
 )
 
 @router.get("", response_model=List[schemas.CameraGroup])
-def read_groups(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
+def read_groups(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
     return crud.get_groups(db, skip=skip, limit=limit)
 
 @router.post("", response_model=schemas.CameraGroup)
-def create_group(group: schemas.CameraGroupCreate, db: Session = Depends(database.get_db)):
+def create_group(group: schemas.CameraGroupCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     return crud.create_group(db, group=group)
 
 @router.get("/{group_id}", response_model=schemas.CameraGroup)
-def read_group(group_id: int, db: Session = Depends(database.get_db)):
+def read_group(group_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
     db_group = crud.get_group(db, group_id=group_id)
     if db_group is None:
         raise HTTPException(status_code=404, detail="Group not found")
     return db_group
 
 @router.delete("/{group_id}")
-def delete_group(group_id: int, db: Session = Depends(database.get_db)):
+def delete_group(group_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     deleted = crud.delete_group(db, group_id=group_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Group not found")
     return {"message": "Group deleted"}
 
 @router.post("/{group_id}/cameras", response_model=schemas.CameraGroup)
-def update_group_cameras_endpoint(group_id: int, camera_ids: List[int], db: Session = Depends(database.get_db)):
+def update_group_cameras_endpoint(group_id: int, camera_ids: List[int], db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     group = crud.update_group_cameras(db, group_id, camera_ids)
     if not group:
          raise HTTPException(status_code=404, detail="Group not found")
     return group
 
 @router.post("/{group_id}/action")
-def perform_group_action(group_id: int, action: schemas.GroupAction, db: Session = Depends(database.get_db)):
+def perform_group_action(group_id: int, action: schemas.GroupAction, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     group = crud.get_group(db, group_id)
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")

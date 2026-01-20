@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
-import crud, schemas, database, os, requests, threading, models, subprocess
+import crud, schemas, database, os, requests, threading, models, subprocess, auth_service
 from datetime import datetime
 
 router = APIRouter(
@@ -184,7 +184,7 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
     threading.Thread(target=_send, daemon=True).start()
 
 @router.post("", response_model=schemas.Event)
-def create_event(event: schemas.EventCreate, db: Session = Depends(database.get_db)):
+def create_event(event: schemas.EventCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     return crud.create_event(db=db, event=event)
 
 
@@ -195,7 +195,8 @@ def read_events(
     camera_id: Optional[int] = None, 
     type: Optional[str] = None, 
     date: Optional[str] = None,
-    db: Session = Depends(database.get_db)
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_user)
 ):
     events = crud.get_events(db, skip=skip, limit=limit, camera_id=camera_id, type=type, date=date)
     return events
@@ -204,7 +205,7 @@ def read_events(
 ACTIVE_CAMERAS = {}
 
 @router.get("/status")
-def get_motion_status():
+def get_motion_status(current_user: models.User = Depends(auth_service.get_current_user)):
     """Returns list of camera IDs currently detecting motion"""
     return {"active_ids": list(ACTIVE_CAMERAS.keys())}
 
@@ -238,7 +239,18 @@ def is_within_schedule(camera: models.Camera):
         return current_time_str >= start_str or current_time_str <= end_str
 
 @router.post("/webhook")
-async def webhook_event(payload: dict, db: Session = Depends(database.get_db)):
+async def webhook_event(request: Request, payload: dict, db: Session = Depends(database.get_db)):
+    # Verify Secret
+    secret_header = request.headers.get("X-Webhook-Secret")
+    # Use dedicated WEBHOOK_SECRET if set, otherwise fallback to SECRET_KEY
+    expected_secret = os.getenv("WEBHOOK_SECRET", auth_service.SECRET_KEY)
+    
+    if secret_header != expected_secret:
+        # Avoid leaking existence or details, but allow local debugging if needed? 
+        # Strict security: 401.
+        print(f"[WEBHOOK] Unauthorized access attempt (Invalid Secret).")
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
     camera_id = payload.get("camera_id")
     # Fetch camera for settings
     camera = crud.get_camera(db, camera_id)
@@ -283,6 +295,12 @@ async def webhook_event(payload: dict, db: Session = Depends(database.get_db)):
 
         # Get Duration using ffprobe
         ts_end = None
+        if local_path and os.path.exists(local_path):
+            # Security: Prevent argument injection if filename starts with -
+            if os.path.basename(local_path).startswith("-"):
+                 print(f"[WEBHOOK] Skipped processing unsafe filename: {local_path}")
+                 local_path = None
+            
         if local_path and os.path.exists(local_path):
             try:
                 cmd = [
@@ -392,7 +410,7 @@ async def webhook_event(payload: dict, db: Session = Depends(database.get_db)):
     return {"status": "received"}
 
 @router.delete("/{event_id}", response_model=schemas.Event)
-def delete_event(event_id: int, db: Session = Depends(database.get_db)):
+def delete_event(event_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     # 1. Delete from DB
     event = crud.delete_event(db, event_id)
     if not event:
@@ -436,7 +454,7 @@ def delete_event(event_id: int, db: Session = Depends(database.get_db)):
     return event
 
 @router.get("/{event_id}/download")
-def download_event(event_id: int, db: Session = Depends(database.get_db)):
+def download_event(event_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user_mixed)):
     """Download event file with proper headers for cross-origin support"""
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
@@ -455,6 +473,11 @@ def download_event(event_id: int, db: Session = Depends(database.get_db)):
     elif file_path.startswith("/var/lib/vibe/recordings"):
         file_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
     
+    # Security Validation: Path must be within /data/
+    if not os.path.abspath(file_path).startswith("/data/"):
+        print(f"Security Alert: Attempted access to {file_path}")
+        raise HTTPException(status_code=403, detail="Access denied: File outside storage directory")
+
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found on disk")
     
@@ -472,7 +495,7 @@ def download_event(event_id: int, db: Session = Depends(database.get_db)):
     )
 
 @router.delete("/bulk/all")
-def delete_all_events(event_type: Optional[str] = None, db: Session = Depends(database.get_db)):
+def delete_all_events(event_type: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """
     Delete all events. 
     - event_type=video: Delete only video events

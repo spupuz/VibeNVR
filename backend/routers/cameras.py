@@ -211,7 +211,7 @@ async def stream_camera(camera_id: int, db: Session = Depends(database.get_db), 
 # ============ IMPORT/EXPORT ENDPOINTS ============
 
 @router.get("/export/all")
-def export_all_cameras(db: Session = Depends(database.get_db)):
+def export_all_cameras(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Export all cameras settings as JSON"""
     cameras = crud.get_cameras(db)
     export_data = []
@@ -232,7 +232,7 @@ def export_all_cameras(db: Session = Depends(database.get_db)):
     )
 
 @router.get("/{camera_id}/export")
-def export_single_camera(camera_id: int, db: Session = Depends(database.get_db)):
+def export_single_camera(camera_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Export single camera settings as JSON"""
     cam = crud.get_camera(db, camera_id)
     if cam is None:
@@ -252,7 +252,7 @@ def export_single_camera(camera_id: int, db: Session = Depends(database.get_db))
     )
 
 @router.post("/import")
-async def import_cameras(file: UploadFile = File(...), db: Session = Depends(database.get_db)):
+async def import_cameras(file: UploadFile = File(...), db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Import cameras from JSON file"""
     try:
         content = await file.read()
@@ -338,7 +338,9 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
                         name = cam_name_match.group(1).strip() if cam_name_match else f"Imported {filename}"
                         rtsp_url = url_match.group(1).strip()
                         
-                        print(f"[IMPORT] Found camera: {name} with URL: {rtsp_url}", flush=True)
+                        # Check for sensitive info in URL and mask it for logs
+                        safe_url_log = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', rtsp_url)
+                        print(f"[IMPORT] Found camera: {name} with URL: {safe_url_log}", flush=True)
                         
                         # Handle userpass injection if present in netcam_userpass but not in URL
                         if userpass_match and '@' not in rtsp_url:
@@ -367,8 +369,16 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
                         else:
                             new_cam.recording_mode = "Off"
                             
-                        crud.create_camera(db, new_cam)
-                        imported_count += 1
+                        # Validate using Pydantic Schema to enforce security (Path traversal etc)
+                        try:
+                            # Re-validate created object through schema
+                            # This ensures field validators in schemas.py are triggered (e.g. rtsp_url file:// check)
+                            validated_cam = schemas.CameraCreate.model_validate(new_cam)
+                            crud.create_camera(db, validated_cam)
+                            imported_count += 1
+                        except Exception as e:
+                             print(f"[IMPORT] Security/Validation Error for {filename}: {e}", flush=True)
+                             continue
         
         print(f"[IMPORT] Total imported: {imported_count}", flush=True)
         motion_service.generate_motion_config(db)
@@ -379,7 +389,7 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
         raise HTTPException(status_code=400, detail=f"Failed to parse MotionEye backup: {str(e)}")
 
 @router.post("/{camera_id}/cleanup")
-def cleanup_camera(camera_id: int, type: Optional[str] = None, db: Session = Depends(database.get_db)):
+def cleanup_camera(camera_id: int, type: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     db_camera = crud.get_camera(db, camera_id=camera_id)
     if db_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
@@ -391,7 +401,7 @@ def cleanup_camera(camera_id: int, type: Optional[str] = None, db: Session = Dep
     return {"status": "success", "message": f"Cleanup triggered for camera {db_camera.name} (type={type})"}
 
 @router.post("/{camera_id}/snapshot")
-def manual_snapshot(camera_id: int, db: Session = Depends(database.get_db)):
+def manual_snapshot(camera_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     db_camera = crud.get_camera(db, camera_id=camera_id)
     if db_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
