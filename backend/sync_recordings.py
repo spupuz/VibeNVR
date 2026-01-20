@@ -324,29 +324,42 @@ def sync_recordings(dry_run=False):
         if not dry_run and corrupted_count > 0:
             db.commit()
         
+        # Prepare result stats
+        stats = {
+            "imported": added_count,
+            "skipped": skipped_count,
+            "thumbnails_generated": thumb_fixed,
+            "corrupted_deleted": corrupted_count,
+            "corrupted_size_mb": round(corrupted_size / (1024 * 1024), 2),
+            "orphaned_deleted": unknown_camera_files,
+            "orphaned_size_mb": round(unknown_camera_size / (1024 * 1024), 2),
+            "dry_run": dry_run
+        }
+        
         print()
         print("=" * 60)
         print("Summary:")
-        print(f"  {'Would import' if dry_run else 'Imported'}: {added_count} recordings")
-        print(f"  Already in DB (skipped): {skipped_count}")
-        if thumb_fixed > 0 or (dry_run and len(events_without_thumbs) > 0):
-            count = len(events_without_thumbs) if dry_run else thumb_fixed
+        print(f"  {'Would import' if dry_run else 'Imported'}: {stats['imported']} recordings")
+        print(f"  Already in DB (skipped): {stats['skipped']}")
+        if stats['thumbnails_generated'] > 0 or (dry_run and len(events_without_thumbs) > 0):
+            count = len(events_without_thumbs) if dry_run else stats['thumbnails_generated']
             action = "Would generate" if dry_run else "Generated"
             print(f"  🖼️  {action} {count} missing thumbnails")
-        if corrupted_count > 0:
-            size_mb = round(corrupted_size / (1024 * 1024), 2)
+        if stats['corrupted_deleted'] > 0:
             action = "Would delete" if dry_run else "Deleted"
-            print(f"  ⚠️  {action} {corrupted_count} corrupted/incomplete videos ({size_mb} MB)")
-        if unknown_camera_files > 0:
-            size_mb = round(unknown_camera_size / (1024 * 1024), 2)
+            print(f"  ⚠️  {action} {stats['corrupted_deleted']} corrupted/incomplete videos ({stats['corrupted_size_mb']} MB)")
+        if stats['orphaned_deleted'] > 0:
             action = "Would delete" if dry_run else "Deleted"
-            print(f"  🗑️  {action} {unknown_camera_files} orphaned files ({size_mb} MB) from deleted cameras")
+            print(f"  🗑️  {action} {stats['orphaned_deleted']} orphaned files ({stats['orphaned_size_mb']} MB) from deleted cameras")
         print("=" * 60)
+        
+        return stats
         
     except Exception as e:
         print(f"Error: {e}")
         import traceback
         traceback.print_exc()
+        return {"error": str(e)}
     finally:
         db.close()
 
