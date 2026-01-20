@@ -2,6 +2,11 @@
 
 All notable changes to the VibeNVR project will be documented in this file.
 
+## [1.10.1] - 2026-01-20
+
+### 🧹 Maintenance & Refactoring
+*   **Versioning**: Consolidated version management. The version is now defined solely in `package.json` and automatically reflected reflecting in the Backend, Frontend, and System Reports.
+
 ## [1.10.0] - 2026-01-20
 
 ### 🚀 Improvements & Features

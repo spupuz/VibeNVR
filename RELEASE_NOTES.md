@@ -1,3 +1,11 @@
+# VibeNVR v1.10.1 - Structural Improvements
+
+## 🧹 Maintenance
+
+*   **Single Source of Truth**: We've updated the build system to read the version number directly from `package.json`. This eliminates inconsistencies and simplifies the development process.
+
+---
+
 # VibeNVR v1.10.0 - Enhanced Timeline Playback
 
 ## 🚀 Features
