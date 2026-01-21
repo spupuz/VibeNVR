@@ -4,15 +4,47 @@ import threading
 import time
 import threading
 import time
-from sqlalchemy.orm import Session
-from models import Camera
+from sqlalchemy.orm import Session, object_session
+from models import Camera, SystemSettings
 
 # VibeEngine Control URL
 ENGINE_BASE_URL = "http://engine:8000"
 
-def camera_to_config(cam: Camera) -> dict:
+def get_optimization_settings(db: Session) -> dict:
+    """Read optimization settings from DB with defaults (if not initialized yet)"""
+    # Defaults must match routers/settings.py
+    defaults = {
+        "opt_live_view_fps_throttle": 2,
+        "opt_motion_fps_throttle": 3,
+        "opt_live_view_height_limit": 720,
+        "opt_motion_analysis_height": 180,
+        "opt_live_view_quality": 60,
+        "opt_snapshot_quality": 90,
+        "opt_ffmpeg_preset": "ultrafast"
+    }
+    
+    try:
+        settings = db.query(SystemSettings).filter(SystemSettings.key.startswith("opt_")).all()
+        for s in settings:
+            # Most are integers, preset is string
+            if s.key == "opt_ffmpeg_preset":
+                defaults[s.key] = s.value
+            else:
+                try:
+                    defaults[s.key] = int(s.value)
+                except:
+                    pass # Keep default if invalid
+    except Exception as e:
+        print(f"Error reading optimization settings: {e}")
+        
+    return defaults
+
+def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
     """ Convert DB Camera model to VibeEngine config dict """
-    return {
+    if opt_settings is None:
+        opt_settings = {}
+        
+    config = {
         "rtsp_url": cam.rtsp_url,
         "name": cam.name,
         "width": cam.resolution_width or 1920, # Fallback if 0/None
@@ -37,8 +69,14 @@ def camera_to_config(cam: Camera) -> dict:
         "show_motion_box": cam.show_frame_changes if cam.show_frame_changes is not None else True,
         "min_motion_frames": cam.min_motion_frames or 2,
         "despeckle_filter": cam.despeckle_filter if cam.despeckle_filter is not None else False,
-        "detect_motion_mode": cam.detect_motion_mode or "Always"
+        "detect_motion_mode": cam.detect_motion_mode or "Always",
     }
+    
+    # Inject Global Optimizations
+    # These keys must match what engine/camera_thread.py expects
+    config.update(opt_settings)
+    
+    return config
 
 def generate_motion_config(db: Session):
     """
@@ -49,6 +87,7 @@ def generate_motion_config(db: Session):
     print("Syncing cameras to VibeEngine...", flush=True)
     cameras = db.query(Camera).filter(Camera.is_active == True).all()
     
+    # Check for engine availability
     import time
     max_retries = 5
     for i in range(max_retries):
@@ -63,11 +102,15 @@ def generate_motion_config(db: Session):
             print(f"Waiting for VibeEngine... (Retry {i+1}/{max_retries})")
             time.sleep(5)
 
+    # Fetch global optimizations once
+    opt_settings = get_optimization_settings(db)
+    print(f"Applying optimizations: {opt_settings}", flush=True)
+
     # 1. Start/Update all active cameras
     active_ids = []
     for cam in cameras:
         active_ids.append(cam.id)
-        config = camera_to_config(cam)
+        config = camera_to_config(cam, opt_settings)
         try:
             resp = requests.post(f"{ENGINE_BASE_URL}/cameras/{cam.id}/start", json=config, timeout=5)
             if resp.status_code == 200:
@@ -86,7 +129,15 @@ def update_camera_runtime(camera: Camera):
     Updates configuration for a single camera.
     Uses /start endpoint which handles update if camera is already running.
     """
-    config = camera_to_config(camera)
+    opt_settings = {}
+    try:
+        db = object_session(camera)
+        if db:
+            opt_settings = get_optimization_settings(db)
+    except Exception:
+        pass # Fallback to defaults or nothing
+        
+    config = camera_to_config(camera, opt_settings)
     try:
         resp = requests.post(f"{ENGINE_BASE_URL}/cameras/{camera.id}/start", json=config, timeout=5)
         if resp.status_code == 200:

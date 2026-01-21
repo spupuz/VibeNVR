@@ -102,6 +102,20 @@ def generate_debug_report():
                 val = "***REDACTED***"
             report.append(f"  {s.key}: {val}")
 
+        # Optimization Status
+        report.append("\n--- Optimization Status ---")
+        opt_keys = [
+            "opt_live_view_fps_throttle", "opt_motion_fps_throttle", 
+            "opt_live_view_height_limit", "opt_motion_analysis_height",
+            "opt_live_view_quality", "opt_snapshot_quality", "opt_ffmpeg_preset"
+        ]
+        # Create a lookup from the already fetched settings
+        settings_map = {s.key: s.value for s in settings}
+        
+        for k in opt_keys:
+            val = settings_map.get(k, "Not Set (Using Default)")
+            report.append(f"  {k}: {val}")
+
         # 3. Database Stats
         report.append("\n--- Database Stats ---")
         try:
@@ -219,13 +233,39 @@ async def get_logs(
                 redacted = redact_line(display_line)
                 
                 # Extract timestamp for sorting
+                # Extract timestamp for sorting
+                # 1. Standard (Python logging): 2026-01-19 22:23:20
                 match = ts_pattern.search(clean_line)
-                # Fallback for Uvicorn/Nginx logs if they don't match the simple ISO-like format
-                # We simply store them as (timestamp_str, line_content)
-                # If no timestamp, use "0" to put them at start, or rely on python's stable sort?
-                # Using a default sort key "z" to put them at end might be better, or "0" for start.
-                # Let's try to maintain relative order.
-                ts_key = match.group(1) if match else "0000-00-00 00:00:00"
+                
+                # 2. Uvicorn/FastAPI sometimes: INFO:     172.18.0.5:46074 - "GET ...
+                # These don't have timestamps by default in console output, but file might if configured?
+                # If reading direct stdout redirection, they lack it unless we configure uvicorn log config.
+                
+                # 3. Nginx Access Log default: [21/Jan/2026:10:33:57 +0000]
+                nginx_match = re.search(r'\[(\d{2}/[A-Za-z]{3}/\d{4}:\d{2}:\d{2}:\d{2})', clean_line)
+                
+                ts_key = "0000-00-00 00:00:00"
+                if match:
+                    ts_key = match.group(1)
+                elif nginx_match:
+                    # Convert Nginx format to sortable string? Or just use "z" to append?
+                    # Nginx: 21/Jan/2026:10:33:57
+                    try:
+                        dt = datetime.strptime(nginx_match.group(1), "%d/%b/%Y:%H:%M:%S")
+                        ts_key = dt.strftime("%Y-%m-%d %H:%M:%S")
+                    except:
+                        pass
+                
+                # Uvicorn lines without timestamp -> Assign current time or file mod time? 
+                # Impossible to know exactly. We'll use a special prefix "z_" + line_index to keep relative order
+                # if mixed with timestamped logs this will be messy.
+                # BETTER: If 'all' is requested, we really want sortable keys.
+                # If we fail to parse, we might look at the *previous* parsed timestamp in this file context?
+                
+                if ts_key == "0000-00-00 00:00:00":
+                     # Attempt to grab trailing Uvicorn access log? No, it's prefix.
+                     # Let's just leave it as 0000-00-00. They will appear at the top.
+                     pass
                 
                 all_logs.append({
                     "time": ts_key,
