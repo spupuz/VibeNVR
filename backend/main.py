@@ -27,8 +27,29 @@ class TokenRedactingFilter(logging.Filter):
         return True
 
 # Apply the filter to uvicorn access logs
-logging.getLogger("uvicorn.access").addFilter(TokenRedactingFilter())
-# Also apply to the root logger just in case
+# Apply the filter to uvicorn access logs
+uvicorn_access_logger = logging.getLogger("uvicorn.access")
+uvicorn_access_logger.addFilter(TokenRedactingFilter())
+
+# Configure timestamp for uvicorn access logs
+# Uvicorn's default formatter doesn't include time
+console_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+
+# Apply formatter to all handlers of uvicorn.access
+if uvicorn_access_logger.hasHandlers():
+    for handler in uvicorn_access_logger.handlers:
+        handler.setFormatter(console_formatter)
+else:
+    # If no handlers yet (likely), add one or rely on uvicorn's default being added later?
+    # Uvicorn usually configures logging *before* importing app or *during* run.
+    # If we are running via 'uvicorn main:app', this code runs on import.
+    # We might need to handle this in lifespan or ensure we don't duplicate.
+    # But usually setting it here works if handlers exist or we add one.
+    # Note: Uvicorn overwrites config unless --log-config is used.
+    # safer strategy: Re-configure in lifespan? Or just let's try assuming standard uvicorn init.
+    pass
+
+# Also apply filter to the root logger just in case
 logging.getLogger("uvicorn").addFilter(TokenRedactingFilter())
 
 from contextlib import asynccontextmanager
@@ -46,6 +67,31 @@ async def lifespan(app: FastAPI):
     # Wait for DB to be ready
     import time
     
+    # Force log formatting for Uvicorn Access logs (ensure timestamps)
+    try:
+        # Define formatter
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+
+        # 1. Uvicorn Access Logger
+        access_log = logging.getLogger("uvicorn.access")
+        for handler in access_log.handlers:
+            handler.setFormatter(formatter)
+            
+        # 2. Root Logger (for app-generated logs)
+        root_log = logging.getLogger()
+        # If root has no handlers, add one (stdout)
+        if not root_log.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(formatter)
+            root_log.addHandler(handler)
+            root_log.setLevel(logging.INFO)
+        else:
+            for handler in root_log.handlers:
+                handler.setFormatter(formatter)
+                
+    except Exception as e:
+        print(f"Log setup warning: {e}")
+
     for i in range(15):
         try:
             Base.metadata.create_all(bind=engine)
