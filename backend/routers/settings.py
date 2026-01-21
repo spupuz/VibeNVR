@@ -17,8 +17,43 @@ def get_setting(db: Session, key: str) -> Optional[str]:
     setting = db.query(models.SystemSettings).filter(models.SystemSettings.key == key).first()
     return setting.value if setting else None
 
+
+# Validation Constants
+VALID_FFMPEG_PRESETS = {
+    "ultrafast", "superfast", "veryfast", "faster", "fast", 
+    "medium", "slow", "slower", "veryslow"
+}
+
+def validate_setting(key: str, value: str):
+    """Validate setting values to prevent invalid configuration"""
+    try:
+        if key == "opt_ffmpeg_preset":
+            if value not in VALID_FFMPEG_PRESETS:
+                raise ValueError(f"Invalid preset. Must be one of: {', '.join(VALID_FFMPEG_PRESETS)}")
+        
+        elif key in ["opt_live_view_fps_throttle", "opt_motion_fps_throttle"]:
+            v = int(value)
+            if v < 1: raise ValueError("Throttle must be >= 1")
+            
+        elif key == "opt_live_view_height_limit":
+            v = int(value)
+            if v < 144: raise ValueError("Height limit must be >= 144")
+            
+        elif key == "opt_motion_analysis_height":
+            v = int(value)
+            if v < 64: raise ValueError("Motion analysis height must be >= 64")
+            
+        elif key in ["opt_live_view_quality", "opt_snapshot_quality"]:
+            v = int(value)
+            if v < 1 or v > 100: raise ValueError("Quality must be between 1 and 100")
+            
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid value for {key}: {str(e)}")
+
 def set_setting(db: Session, key: str, value: str, description: str = None):
     """Set a setting value, create if doesn't exist"""
+    validate_setting(key, value)
+    
     setting = db.query(models.SystemSettings).filter(models.SystemSettings.key == key).first()
     if setting:
         setting.value = value
@@ -89,6 +124,15 @@ DEFAULT_SETTINGS = {
     "log_max_size_mb": {"value": "50", "description": "Maximum size of a log file before rotation (MB)"},
     "log_backup_count": {"value": "5", "description": "Number of rotated log files to keep"},
     "log_rotation_check_minutes": {"value": "60", "description": "How often to check for log rotation (minutes)"},
+
+    # Optimization Settings (Advanced)
+    "opt_live_view_fps_throttle": {"value": "2", "description": "Process every Nth frame for Live View (higher = less CPU)"},
+    "opt_motion_fps_throttle": {"value": "3", "description": "Process every Nth frame for Motion Detection (higher = less CPU)"},
+    "opt_live_view_height_limit": {"value": "720", "description": "Max height for live stream (downscales if larger)"},
+    "opt_motion_analysis_height": {"value": "180", "description": "Height for motion analysis resizing (smaller = faster)"},
+    "opt_live_view_quality": {"value": "60", "description": "JPEG Quality for live stream (1-100)"},
+    "opt_snapshot_quality": {"value": "90", "description": "JPEG Quality for snapshots (1-100)"},
+    "opt_ffmpeg_preset": {"value": "ultrafast", "description": "FFmpeg preset for transcoding (ultrafast, superfast, veryfast, faster, fast, medium)"},
 }
 
 @router.post("/init-defaults")
@@ -146,6 +190,15 @@ async def import_backup(
                 # DB merge requires an object
                 # Filter out nulls if needed, or just overwrite
                 existing = db.query(models.SystemSettings).filter(models.SystemSettings.key == s["key"]).first()
+                
+                # OPTIMIZATION: Validate optimization settings during import
+                if s["key"].startswith("opt_"):
+                    try:
+                        validate_setting(s["key"], str(s["value"]))
+                    except HTTPException as e:
+                        print(f"[BACKUP] Skipping invalid optimization setting {s['key']}: {e.detail}")
+                        continue
+                
                 if existing:
                     existing.value = s["value"]
                     existing.description = s.get("description")
@@ -310,6 +363,17 @@ def sync_orphan_recordings(
             _sync_state["result"] = {"error": str(e)}
         finally:
             _sync_state["completed_at"] = time.time()
+            # Also log purely for visibility if needed, though script prints it too.
+            # But the script print might be inside the function.
+            # Since we imported sync_recordings, its print goes to stdout.
+            # We already added the print inside sync_recordings.py, so it should be fine.
+            # However, if we want to be 100% sure the return value (result) is also logged in format:
+            try:
+                import json
+                if _sync_state["result"]:
+                     print(f"JSON_SUMMARY:{json.dumps(_sync_state['result'])}")
+            except:
+                pass
 
     background_tasks.add_task(run_sync_task)
     return {"message": "Orphan recording recovery started in background."}

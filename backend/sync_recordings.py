@@ -16,6 +16,13 @@ sys.path.append('/app')
 
 from database import SessionLocal
 from models import Event, Camera
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# Basic config for standalone run checks
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Get timezone from environment
 TZ_NAME = os.environ.get('TZ', 'Europe/Rome')
@@ -77,12 +84,11 @@ def is_safe_path(file_path):
         return False
 
 def sync_recordings(dry_run=False):
-    print("=" * 60)
-    print("VibeNVR - Orphan Recording Recovery")
-    print("=" * 60)
-    print(f"Timezone: {TZ_NAME}")
-    print(f"Mode: {'DRY RUN (no changes)' if dry_run else 'LIVE (will import)'}")
-    print()
+    logger.info("=" * 60)
+    logger.info("VibeNVR - Orphan Recording Recovery")
+    logger.info("=" * 60)
+    logger.info(f"Timezone: {TZ_NAME}")
+    logger.info(f"Mode: {'DRY RUN (no changes)' if dry_run else 'LIVE (will import)'}")
     
     db = SessionLocal()
     data_root = "/data"
@@ -91,14 +97,13 @@ def sync_recordings(dry_run=False):
         # Get all cameras
         cameras = {str(c.id): c for c in db.query(Camera).all()}
         if not cameras:
-            print("WARNING: No cameras found in database!")
-            print("This script can only import files for existing cameras.")
+            logger.warning("WARNING: No cameras found in database!")
+            logger.warning("This script can only import files for existing cameras.")
             return
             
-        print(f"Found {len(cameras)} cameras in database:")
+        logger.info(f"Found {len(cameras)} cameras in database:")
         for cam_id, cam in cameras.items():
-            print(f"  - ID {cam_id}: {cam.name}")
-        print()
+            logger.info(f"  - ID {cam_id}: {cam.name}")
         
         # Scan for orphans
         added_count = 0
@@ -139,7 +144,7 @@ def sync_recordings(dry_run=False):
                                 file_count += 1
                                 deleted_size += file_size
                         except Exception as e:
-                            print(f"  ⚠️  Failed to delete {file_path}: {e}")
+                            logger.warning(f"  ⚠️  Failed to delete {file_path}: {e}")
                 
                 # Remove empty directories
                 if not dry_run:
@@ -147,18 +152,18 @@ def sync_recordings(dry_run=False):
                         import shutil
                         shutil.rmtree(entry_path)
                     except Exception as e:
-                        print(f"  ⚠️  Failed to remove folder {entry_path}: {e}")
+                        logger.warning(f"  ⚠️  Failed to remove folder {entry_path}: {e}")
                 
                 if file_count > 0:
                     size_mb = round(deleted_size / (1024 * 1024), 2)
                     unknown_camera_files += file_count
                     unknown_camera_size += deleted_size
                     action = "Would delete" if dry_run else "Deleted"
-                    print(f"🗑️  {action} {file_count} orphaned files ({size_mb} MB) from deleted camera ID {camera_id_str}")
+                    logger.info(f"🗑️  {action} {file_count} orphaned files ({size_mb} MB) from deleted camera ID {camera_id_str}")
                 continue
             
             camera = cameras[camera_id_str]
-            print(f"Scanning Camera {camera_id_str} ({camera.name})...")
+            logger.info(f"Scanning Camera {camera_id_str} ({camera.name})...")
             
             # Walk through date folders
             for root, dirs, files in os.walk(entry_path):
@@ -194,7 +199,7 @@ def sync_recordings(dry_run=False):
                         timestamp_start = timestamp_start.replace(tzinfo=LOCAL_TZ)
                         
                     except (ValueError, IndexError) as e:
-                        print(f"  ⚠️  Could not parse date from {f}, using file mtime")
+                        logger.warning(f"  ⚠️  Could not parse date from {f}, using file mtime")
                         mtime = os.path.getmtime(full_path)
                         timestamp_start = datetime.fromtimestamp(mtime, tz=LOCAL_TZ)
                     
@@ -218,7 +223,7 @@ def sync_recordings(dry_run=False):
                             thumb_db_path = f"/var/lib/vibe/recordings/{thumb_rel}"
                     
                     if dry_run:
-                        print(f"  [Would Import] {rel_path}")
+                        logger.info(f"  [Would Import] {rel_path}")
                     else:
                         # Create Event
                         new_event = Event(
@@ -233,21 +238,20 @@ def sync_recordings(dry_run=False):
                             motion_score=0.0
                         )
                         db.add(new_event)
-                        print(f"  ✅ Imported: {rel_path}")
+                        logger.info(f"  ✅ Imported: {rel_path}")
                     
                     added_count += 1
                     
                     # Commit every 50 to avoid memory issues
                     if not dry_run and added_count % 50 == 0:
                         db.commit()
-                        print(f"  ... committed {added_count} events")
+                        logger.info(f"  ... committed {added_count} events")
         
         if not dry_run:
             db.commit()
         
         # Step 2: Fix missing thumbnails for existing events
-        print()
-        print("Checking for missing thumbnails...")
+        logger.info("Checking for missing thumbnails...")
         thumb_fixed = 0
         events_without_thumbs = db.query(Event).filter(
             Event.thumbnail_path == None, 
@@ -275,14 +279,13 @@ def sync_recordings(dry_run=False):
                 event.thumbnail_path = db_thumb_path
                 thumb_fixed += 1
             elif dry_run:
-                print(f"  [Would generate] thumbnail for {os.path.basename(file_path)}")
+                logger.info(f"  [Would generate] thumbnail for {os.path.basename(file_path)}")
         
         if not dry_run and thumb_fixed > 0:
             db.commit()
         
         # Step 3: Clean up corrupted/incomplete videos
-        print()
-        print("Checking for corrupted/incomplete videos...")
+        logger.info("Checking for corrupted/incomplete videos...")
         corrupted_count = 0
         corrupted_size = 0
         all_video_events = db.query(Event).filter(Event.type == "video").all()
@@ -303,7 +306,7 @@ def sync_recordings(dry_run=False):
                 if not dry_run:
                     db.delete(event)
                 corrupted_count += 1
-                print(f"  🗑️  Missing file, removing DB entry: {os.path.basename(event.file_path)}")
+                logger.info(f"  🗑️  Missing file, removing DB entry: {os.path.basename(event.file_path)}")
                 continue
             
             # Check if video is valid
@@ -312,11 +315,11 @@ def sync_recordings(dry_run=False):
                 corrupted_size += file_size
                 
                 if dry_run:
-                    print(f"  [Would delete] corrupted: {os.path.basename(file_path)}")
+                    logger.info(f"  [Would delete] corrupted: {os.path.basename(file_path)}")
                 else:
                     # Validate path safety before deletion
                     if not is_safe_path(file_path):
-                        print(f"  ⚠️  Skipping unsafe path deletion: {file_path}")
+                        logger.warning(f"  ⚠️  Skipping unsafe path deletion: {file_path}")
                         continue
 
                     # Delete file
@@ -327,11 +330,11 @@ def sync_recordings(dry_run=False):
                         if os.path.exists(thumb_path):
                             os.remove(thumb_path)
                     except Exception as e:
-                        print(f"  ⚠️  Failed to delete file: {e}")
+                        logger.warning(f"  ⚠️  Failed to delete file: {e}")
                     
                     # Delete DB entry
                     db.delete(event)
-                    print(f"  🗑️  Deleted corrupted: {os.path.basename(file_path)}")
+                    logger.info(f"  🗑️  Deleted corrupted: {os.path.basename(file_path)}")
                 
                 corrupted_count += 1
         
@@ -351,26 +354,30 @@ def sync_recordings(dry_run=False):
         }
         
         print()
-        print("=" * 60)
-        print("Summary:")
-        print(f"  {'Would import' if dry_run else 'Imported'}: {stats['imported']} recordings")
-        print(f"  Already in DB (skipped): {stats['skipped']}")
+        logger.info("=" * 60)
+        logger.info("Summary:")
+        logger.info(f"  {'Would import' if dry_run else 'Imported'}: {stats['imported']} recordings")
+        logger.info(f"  Already in DB (skipped): {stats['skipped']}")
         if stats['thumbnails_generated'] > 0 or (dry_run and len(events_without_thumbs) > 0):
             count = len(events_without_thumbs) if dry_run else stats['thumbnails_generated']
             action = "Would generate" if dry_run else "Generated"
-            print(f"  🖼️  {action} {count} missing thumbnails")
+            logger.info(f"  🖼️  {action} {count} missing thumbnails")
         if stats['corrupted_deleted'] > 0:
             action = "Would delete" if dry_run else "Deleted"
-            print(f"  ⚠️  {action} {stats['corrupted_deleted']} corrupted/incomplete videos ({stats['corrupted_size_mb']} MB)")
+            logger.info(f"  ⚠️  {action} {stats['corrupted_deleted']} corrupted/incomplete videos ({stats['corrupted_size_mb']} MB)")
         if stats['orphaned_deleted'] > 0:
             action = "Would delete" if dry_run else "Deleted"
-            print(f"  🗑️  {action} {stats['orphaned_deleted']} orphaned files ({stats['orphaned_size_mb']} MB) from deleted cameras")
-        print("=" * 60)
+            logger.info(f"  🗑️  {action} {stats['orphaned_deleted']} orphaned files ({stats['orphaned_size_mb']} MB) from deleted cameras")
+        logger.info("=" * 60)
+        
+        # Printing JSON line for Frontend Parsing
+        import json
+        logger.info(f"JSON_SUMMARY:{json.dumps(stats)}") # Explicit prefix for regex
         
         return stats
         
     except Exception as e:
-        print(f"Error: {e}")
+        logger.error(f"Error: {e}")
         import traceback
         traceback.print_exc()
         return {"error": str(e)}

@@ -4,6 +4,9 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import crud, schemas, database, os, requests, threading, models, subprocess, auth_service
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/events",
@@ -25,7 +28,7 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
             # Re-fetch camera to avoid DetachedInstanceError
             camera = db_notify.query(models.Camera).filter(models.Camera.id == camera_id).first()
             if not camera:
-                print(f"[NOTIFY] Camera {camera_id} not found, aborting notification.")
+                logger.warning(f"[NOTIFY] Camera {camera_id} not found, aborting notification.")
                 return
 
             # Helper to get setting
@@ -93,7 +96,7 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                         image_path = None
             
             if image_path:
-                 print(f"[NOTIFY] Attaching image: {image_path}")
+                 logger.info(f"[NOTIFY] Attaching image: {image_path}")
 
             # ---------------------------------------------------------
             # 1. Telegram Notification
@@ -120,6 +123,7 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                         }, timeout=5)
                 except Exception as e:
                     print(f"[NOTIFY] Telegram failed: {e}")
+                    logger.error(f"[NOTIFY] Telegram failed: {e}")
 
             # ---------------------------------------------------------
             # 2. Email Notification
@@ -156,9 +160,9 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                         server.login(smtp_user, smtp_pass)
                     server.send_message(msg)
                     server.quit()
-                    print(f"[NOTIFY] Email sent to {email_recipient}")
+                    logger.info(f"[NOTIFY] Email sent to {email_recipient}")
                 except Exception as e:
-                    print(f"[NOTIFY] Email failed: {e}")
+                    logger.error(f"[NOTIFY] Email failed: {e}")
 
             # ---------------------------------------------------------
             # 3. Webhook (Legacy/Existing)
@@ -174,10 +178,10 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                             "file_path": details.get("file_path")
                         }, timeout=5)
                     except Exception as e:
-                        print(f"[NOTIFY] Webhook failed: {e}")
+                        logger.error(f"[NOTIFY] Webhook failed: {e}")
 
         except Exception as e:
-            print(f"[NOTIFY] General error: {e}")
+            logger.error(f"[NOTIFY] General error: {e}")
         finally:
             db_notify.close()
 
@@ -248,28 +252,28 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
     if secret_header != expected_secret:
         # Avoid leaking existence or details, but allow local debugging if needed? 
         # Strict security: 401.
-        print(f"[WEBHOOK] Unauthorized access attempt (Invalid Secret).")
+        logger.warning(f"[WEBHOOK] Unauthorized access attempt (Invalid Secret).")
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     camera_id = payload.get("camera_id")
     # Fetch camera for settings
     camera = crud.get_camera(db, camera_id)
     if not camera:
-        print(f"[WEBHOOK] Camera ID: {camera_id} not found")
+        logger.warning(f"[WEBHOOK] Camera ID: {camera_id} not found")
         return {"status": "error", "message": "camera not found"}
 
     event_type = payload.get("type") # event_start, picture_save, movie_end
-    print(f"[WEBHOOK] Received: {event_type} for camera {camera.name} (ID: {camera_id})")
+    logger.info(f"[WEBHOOK] Received: {event_type} for camera {camera.name} (ID: {camera_id})")
 
     # Check schedule (Log but don't block - avoid orphaned files)
     in_schedule = is_within_schedule(camera)
     if not in_schedule:
-        print(f"[WEBHOOK] Event outside schedule: {camera.name}. Saving anyway to prevent orphans.")
+        logger.info(f"[WEBHOOK] Event outside schedule: {camera.name}. Saving anyway to prevent orphans.")
         # return {"status": "ignored", "reason": "outside schedule"}
 
     if event_type == "movie_end":
         file_path = payload.get("file_path")
-        print(f"[WEBHOOK] Saving movie event for {camera.name}: {file_path}")
+        logger.info(f"[WEBHOOK] Saving movie event for {camera.name}: {file_path}")
         
         # Calculate file size
         if file_path and file_path.startswith("/var/lib/motion"):
@@ -299,7 +303,7 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
         if local_path and os.path.exists(local_path):
             # Security: Prevent argument injection if filename starts with -
             if os.path.basename(local_path).startswith("-"):
-                 print(f"[WEBHOOK] Skipped processing unsafe filename: {local_path}")
+                 logger.warning(f"[WEBHOOK] Skipped processing unsafe filename: {local_path}")
                  local_path = None
             
         if local_path and os.path.exists(local_path):
@@ -313,9 +317,9 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
                     duration_sec = float(result.stdout.strip())
                     from datetime import timedelta
                     ts_end = ts + timedelta(seconds=duration_sec)
-                    print(f"[WEBHOOK] Video duration: {duration_sec}s")
+                    logger.info(f"[WEBHOOK] Video duration: {duration_sec}s")
             except Exception as e:
-                print(f"[WEBHOOK] Failed to get duration: {e}")
+                logger.error(f"[WEBHOOK] Failed to get duration: {e}")
 
         event_data = schemas.EventCreate(
             camera_id=camera_id,
@@ -352,28 +356,28 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
                 
                 if os.path.exists(local_thumb):
                     event_data.thumbnail_path = db_thumb
-                    print(f"[WEBHOOK] Thumbnail generated: {db_thumb}")
+                    logger.info(f"[WEBHOOK] Thumbnail generated: {db_thumb}")
         except Exception as e:
-            print(f"[WEBHOOK] Failed to generate thumbnail: {e}")
+            logger.error(f"[WEBHOOK] Failed to generate thumbnail: {e}")
 
         try:
             crud.create_event(db, event_data)
-            print(f"[WEBHOOK] Event saved successfully")
+            logger.info(f"[WEBHOOK] Event saved successfully")
             # Notification for movie end (if configured and within schedule)
             if in_schedule:
                 send_notifications(camera.id, "movie_end", payload)
         except Exception as e:
-            print(f"[WEBHOOK] ERROR saving event: {e}")
+            logger.error(f"[WEBHOOK] ERROR saving event: {e}")
             
     elif event_type == "event_start":
-        print(f"[WEBHOOK] Motion event started for camera {camera.name} (ID: {camera_id})")
+        logger.info(f"[WEBHOOK] Motion event started for camera {camera.name} (ID: {camera_id})")
         ACTIVE_CAMERAS[camera_id] = payload.get("timestamp")
         if in_schedule:
             send_notifications(camera.id, "event_start", payload)
         
     elif event_type == "picture_save":
         file_path = payload.get("file_path")
-        print(f"[WEBHOOK] Saving picture event for {camera.name}: {file_path}")
+        logger.info(f"[WEBHOOK] Saving picture event for {camera.name}: {file_path}")
         
         # Calculate file size
         if file_path and file_path.startswith("/var/lib/motion"):
@@ -408,7 +412,7 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
         try:
             crud.create_event(db, event_data)
         except Exception as e:
-            print(f"[WEBHOOK] ERROR saving picture event: {e}")
+            logger.error(f"[WEBHOOK] ERROR saving picture event: {e}")
         
     return {"status": "received"}
 
@@ -439,7 +443,7 @@ def delete_event(event_id: int, db: Session = Depends(database.get_db), current_
             if os.path.exists(file_path):
                 os.remove(file_path)
             else:
-                print(f"File not found: {file_path}")
+                logger.warning(f"File not found: {file_path}")
                 
             # Delete thumbnail if exists
             if event.thumbnail_path:
@@ -453,10 +457,10 @@ def delete_event(event_id: int, db: Session = Depends(database.get_db), current_
                     if os.path.exists(thumb_path):
                         os.remove(thumb_path)
                 except Exception as e:
-                    print(f"Error deleting thumbnail {thumb_path}: {e}")
+                    logger.error(f"Error deleting thumbnail {thumb_path}: {e}")
                     
         except Exception as e:
-            print(f"Error deleting file {file_path}: {e}")
+            logger.error(f"Error deleting file {file_path}: {e}")
             
     return event
 
@@ -482,7 +486,7 @@ def download_event(event_id: int, db: Session = Depends(database.get_db), curren
     
     # Security Validation: Path must be within /data/
     if not os.path.abspath(file_path).startswith("/data/"):
-        print(f"Security Alert: Attempted access to {file_path}")
+        logger.warning(f"Security Alert: Attempted access to {file_path}")
         raise HTTPException(status_code=403, detail="Access denied: File outside storage directory")
 
     if not os.path.exists(file_path):
@@ -533,7 +537,7 @@ def delete_all_events(event_type: Optional[str] = None, db: Session = Depends(da
                     deleted_size += os.path.getsize(file_path)
                     os.remove(file_path)
             except Exception as e:
-                print(f"Error deleting file {file_path}: {e}")
+                logger.error(f"Error deleting file {file_path}: {e}")
         
         # Delete thumbnail
         if event.thumbnail_path:
