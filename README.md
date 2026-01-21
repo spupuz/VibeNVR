@@ -138,21 +138,32 @@ Attackers scanning your public IP will find all ports (5000, 8000) closed. They 
 
 ## 📸 Screenshots
 
-### Login
-![Login](docs/screenshots/login.png)
+### 🎬 Video Demo
+![VibeNVR Demo](docs/screenshots/vibenvr_video.webp)
 
-### Dashboard
-![Dashboard](docs/screenshots/dashboard.png)
+### Desktop Views
 
-### Live View
-![Live View](docs/screenshots/liveview.png)
+| Login | Dashboard |
+|:-----:|:---------:|
+| ![Login](docs/screenshots/login.png) | ![Dashboard](docs/screenshots/dashboard.png) |
 
-### Timeline
-![Timeline](docs/screenshots/timeline.png)
+| Cameras | Camera Settings |
+|:-------:|:---------------:|
+| ![Cameras](docs/screenshots/cameras.png) | ![Camera Settings](docs/screenshots/camera_settings.png) |
 
-### Settings & Bulk Delete
-![Settings](docs/screenshots/settings.png)
-![Storage Management](docs/screenshots/settings_storage.png)
+| Live View | Timeline |
+|:---------:|:--------:|
+| ![Live View](docs/screenshots/liveview.png) | ![Timeline](docs/screenshots/timeline.png) |
+
+| Settings |
+|:--------:|
+| ![Settings](docs/screenshots/settings.png) |
+
+### 📱 Mobile Views
+
+| Dashboard | Live View | Timeline |
+|:---------:|:---------:|:--------:|
+| ![Mobile Dashboard](docs/screenshots/mobile_dashboard.png) | ![Mobile Live View](docs/screenshots/mobile_liveview.png) | ![Mobile Timeline](docs/screenshots/mobile_timeline.png) |
 
 ## 🧱 Architecture
 
