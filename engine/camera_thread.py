@@ -243,17 +243,21 @@ class CameraThread(threading.Thread):
                     self.pre_buffer.append(frame.copy())
 
                 # 7. Update Live View Buffer (Broadcast)
-                # OPTIMIZATION: Only update live view every 2nd frame (reduces JPEG encoding CPU)
+                # OPTIMIZATION: Only update live view every N frames (reduces JPEG encoding CPU)
                 self.live_view_counter += 1
-                if self.live_view_counter % 2 == 0:
-                    # Resize to 720p before JPEG encoding (less CPU, less memory)
+                lv_throttle = self.config.get('opt_live_view_fps_throttle', 2)
+                if self.live_view_counter % lv_throttle == 0:
+                    # Resize to limit height before JPEG encoding (less CPU, less memory)
                     live_frame = frame
-                    if frame.shape[0] > 720:  # If height > 720p
-                        scale = 720 / frame.shape[0]
-                        new_width = int(frame.shape[1] * scale)
-                        live_frame = cv2.resize(frame, (new_width, 720), interpolation=cv2.INTER_NEAREST)
+                    lv_max_h = self.config.get('opt_live_view_height_limit', 720)
                     
-                    ret, jpeg = cv2.imencode('.jpg', live_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 60])
+                    if frame.shape[0] > lv_max_h:
+                        scale = lv_max_h / frame.shape[0]
+                        new_width = int(frame.shape[1] * scale)
+                        live_frame = cv2.resize(frame, (new_width, lv_max_h), interpolation=cv2.INTER_NEAREST)
+                    
+                    lv_qual = self.config.get('opt_live_view_quality', 60)
+                    ret, jpeg = cv2.imencode('.jpg', live_frame, [int(cv2.IMWRITE_JPEG_QUALITY), lv_qual])
                     if ret:
                         with self.lock:
                             self.latest_frame_jpeg = jpeg.tobytes()
@@ -297,13 +301,18 @@ class CameraThread(threading.Thread):
                     self.event_callback(self.camera_id, 'motion_end')
             return
         
-        # OPTIMIZATION: Skip frames for motion detection (process every 3rd frame)
+        # OPTIMIZATION: Skip frames for motion detection
+        motion_throttle = self.config.get('opt_motion_fps_throttle', 3)
         self.motion_frame_counter += 1
-        if self.motion_frame_counter % 3 != 0:
-            return  # Skip frames, process every 3rd
+        if self.motion_frame_counter % motion_throttle != 0:
+            return  # Skip frames
         
         # Resize for faster processing (optimized: smaller resolution + fastest interpolation)
-        small_frame = cv2.resize(frame, (320, 180), interpolation=cv2.INTER_NEAREST)
+        # Calculate width based on target height to maintain aspect ratio
+        motion_h = self.config.get('opt_motion_analysis_height', 180)
+        scale = motion_h / frame.shape[0]
+        motion_w = int(frame.shape[1] * scale)
+        small_frame = cv2.resize(frame, (motion_w, motion_h), interpolation=cv2.INTER_NEAREST)
         
         # Lazy init MOG2 on first use (saves RAM if motion detection disabled)
         if self.fgbg is None:
@@ -569,7 +578,7 @@ class CameraThread(threading.Thread):
             '-r', str(self.config.get('framerate', 15)),
             '-i', '-',
             '-c:v', 'libx264',
-            '-preset', 'ultrafast',
+            '-preset', self.config.get('opt_ffmpeg_preset', 'ultrafast'),
             '-crf', str(crf),
             '-pix_fmt', 'yuv420p',
             full_path
@@ -669,7 +678,8 @@ class CameraThread(threading.Thread):
         """Save a single snapshot. is_temp=True means for notification only (no DB event)"""
         try:
             if frame is not None:
-                ret, jpeg = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
+                snap_qual = self.config.get('opt_snapshot_quality', 90)
+                ret, jpeg = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), snap_qual])
                 if not ret:
                     return False
                 jpeg_bytes = jpeg.tobytes()

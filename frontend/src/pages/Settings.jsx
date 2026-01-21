@@ -27,7 +27,17 @@ export const Settings = () => {
         notify_email_recipient: '',
         default_landing_page: 'live',
         global_attach_image_email: true,
-        global_attach_image_telegram: true
+        global_attach_image_email: true,
+        global_attach_image_telegram: true,
+
+        // Advanced
+        opt_live_view_fps_throttle: 2,
+        opt_motion_fps_throttle: 3,
+        opt_live_view_height_limit: 720,
+        opt_motion_analysis_height: 180,
+        opt_live_view_quality: 60,
+        opt_snapshot_quality: 90,
+        opt_ffmpeg_preset: 'ultrafast'
     });
     const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0, percent: 0 });
     const [loading, setLoading] = useState(true);
@@ -236,7 +246,15 @@ export const Settings = () => {
                     notify_email_recipient: data.notify_email_recipient?.value || '',
                     default_landing_page: data.default_landing_page?.value || 'live',
                     global_attach_image_email: data.global_attach_image_email?.value !== 'false',
-                    global_attach_image_telegram: data.global_attach_image_telegram?.value !== 'false'
+                    global_attach_image_telegram: data.global_attach_image_telegram?.value !== 'false',
+
+                    opt_live_view_fps_throttle: parseInt(data.opt_live_view_fps_throttle?.value) || 2,
+                    opt_motion_fps_throttle: parseInt(data.opt_motion_fps_throttle?.value) || 3,
+                    opt_live_view_height_limit: parseInt(data.opt_live_view_height_limit?.value) || 720,
+                    opt_motion_analysis_height: parseInt(data.opt_motion_analysis_height?.value) || 180,
+                    opt_live_view_quality: parseInt(data.opt_live_view_quality?.value) || 60,
+                    opt_snapshot_quality: parseInt(data.opt_snapshot_quality?.value) || 90,
+                    opt_ffmpeg_preset: data.opt_ffmpeg_preset?.value || 'ultrafast'
                 });
             }
         } catch (err) {
@@ -278,7 +296,15 @@ export const Settings = () => {
 
                     default_landing_page: globalSettings.default_landing_page,
                     global_attach_image_email: globalSettings.global_attach_image_email.toString(),
-                    global_attach_image_telegram: globalSettings.global_attach_image_telegram.toString()
+                    global_attach_image_telegram: globalSettings.global_attach_image_telegram.toString(),
+
+                    opt_live_view_fps_throttle: globalSettings.opt_live_view_fps_throttle.toString(),
+                    opt_motion_fps_throttle: globalSettings.opt_motion_fps_throttle.toString(),
+                    opt_live_view_height_limit: globalSettings.opt_live_view_height_limit.toString(),
+                    opt_motion_analysis_height: globalSettings.opt_motion_analysis_height.toString(),
+                    opt_live_view_quality: globalSettings.opt_live_view_quality.toString(),
+                    opt_snapshot_quality: globalSettings.opt_snapshot_quality.toString(),
+                    opt_ffmpeg_preset: globalSettings.opt_ffmpeg_preset
                 })
             });
             showToast('Settings saved successfully!', 'success');
@@ -1038,6 +1064,198 @@ export const Settings = () => {
                 </div>
             )
             }
+
+            {/* Advanced Optimization Section */}
+            {user?.role === 'admin' && (
+                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6">
+                    <div className="flex items-center space-x-3 pb-4 border-b border-border">
+                        <div className="p-2 bg-red-500/10 rounded-lg text-red-500">
+                            <SettingsIcon className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-lg">Advanced Optimization</h3>
+                            <p className="text-sm text-muted-foreground">Fine-tune performance parameters for CPU and Bandwidth control.</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-amber-500/10 border border-amber-500/20 text-amber-700 p-4 rounded-lg text-sm">
+                        <strong className="flex items-center gap-2">WARNING:</strong>
+                        Changing these values can significantly impact system stability and resource usage.
+                        Only modify these if you are experiencing performance issues or running on low-end hardware.
+                        Incorrect settings may cause video lag, broken streams, or high CPU usage.
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-6">
+                        {/* Live View Throttling */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
+                            <div className="col-span-1">
+                                <label className="block text-sm font-medium mb-1">Live View FPS Throttle (Nth Frame)</label>
+                                <p className="text-xs text-muted-foreground">
+                                    Controls how often the Live View stream is updated.
+                                    Setting this to <strong>2</strong> means only every 2nd frame is processed for the browser (effective 15fps if camera is 30fps).
+                                    <br /><br />
+                                    <strong>Higher value = Less CPU usage</strong>, but choppier live video.
+                                </p>
+                            </div>
+                            <div className="col-span-2">
+                                <input
+                                    type="number"
+                                    min="1" max="10"
+                                    className="w-full max-w-[150px] bg-background border border-input rounded px-3 py-2 text-sm"
+                                    value={globalSettings.opt_live_view_fps_throttle}
+                                    onChange={e => setGlobalSettings({ ...globalSettings, opt_live_view_fps_throttle: parseInt(e.target.value) })}
+                                />
+                                <p className="text-[10px] text-muted-foreground mt-1">Default: 2 (Process 50% of frames)</p>
+                            </div>
+                        </div>
+
+                        {/* Motion Throttling */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
+                            <div className="col-span-1">
+                                <label className="block text-sm font-medium mb-1">Motion Detection FPS Throttle</label>
+                                <p className="text-xs text-muted-foreground">
+                                    Controls how often the motion detection algorithm runs.
+                                    Setting this to <strong>3</strong> means motion is only checked every 3rd frame.
+                                    <br /><br />
+                                    <strong>Higher value = Much Less CPU usage</strong>.
+                                    Too high (e.g. &gt; 5) might miss very fast moving objects.
+                                </p>
+                            </div>
+                            <div className="col-span-2">
+                                <input
+                                    type="number"
+                                    min="1" max="10"
+                                    className="w-full max-w-[150px] bg-background border border-input rounded px-3 py-2 text-sm"
+                                    value={globalSettings.opt_motion_fps_throttle}
+                                    onChange={e => setGlobalSettings({ ...globalSettings, opt_motion_fps_throttle: parseInt(e.target.value) })}
+                                />
+                                <p className="text-[10px] text-muted-foreground mt-1">Default: 3 (Process 33% of frames)</p>
+                            </div>
+                        </div>
+
+                        {/* Live View Height */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
+                            <div className="col-span-1">
+                                <label className="block text-sm font-medium mb-1">Live View Resolution Limit (Height)</label>
+                                <p className="text-xs text-muted-foreground">
+                                    If a camera's resolution is higher than this (e.g. 1080p), it will be downscaled for the Live View stream in the browser.
+                                    Recording quality is NOT affected.
+                                    <br /><br />
+                                    <strong>Lower value (e.g. 480 or 720) = Much Lower Bandwidth & CPU</strong>.
+                                </p>
+                            </div>
+                            <div className="col-span-2">
+                                <input
+                                    type="number"
+                                    min="240" max="2160" step="2"
+                                    className="w-full max-w-[150px] bg-background border border-input rounded px-3 py-2 text-sm"
+                                    value={globalSettings.opt_live_view_height_limit}
+                                    onChange={e => setGlobalSettings({ ...globalSettings, opt_live_view_height_limit: parseInt(e.target.value) })}
+                                />
+                                <p className="text-[10px] text-muted-foreground mt-1">Default: 720 (720p)</p>
+                            </div>
+                        </div>
+
+                        {/* Motion Analysis Height */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
+                            <div className="col-span-1">
+                                <label className="block text-sm font-medium mb-1">Motion Analysis Resolution (Height)</label>
+                                <p className="text-xs text-muted-foreground">
+                                    Internal resolution used <i>strictly</i> for detecting motion. Does not affect recording or live view.
+                                    The engine resizes the frame to this height before comparing pixels.
+                                    <br /><br />
+                                    <strong>Smaller = Faster CPU processing</strong>.
+                                    180px is usually enough for human detection.
+                                </p>
+                            </div>
+                            <div className="col-span-2">
+                                <input
+                                    type="number"
+                                    min="64" max="1080" step="2"
+                                    className="w-full max-w-[150px] bg-background border border-input rounded px-3 py-2 text-sm"
+                                    value={globalSettings.opt_motion_analysis_height}
+                                    onChange={e => setGlobalSettings({ ...globalSettings, opt_motion_analysis_height: parseInt(e.target.value) })}
+                                />
+                                <p className="text-[10px] text-muted-foreground mt-1">Default: 180 (Very Low Res)</p>
+                            </div>
+                        </div>
+
+                        {/* Live View Quality */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
+                            <div className="col-span-1">
+                                <label className="block text-sm font-medium mb-1">Live View JPEG Quality</label>
+                                <p className="text-xs text-muted-foreground">
+                                    Compression level for the specific Live View stream.
+                                    <br /><br />
+                                    <strong>Lower (e.g. 50-60) = Less Bandwidth</strong>, faster loading.
+                                    <strong>Higher (90+) = Better looking live view</strong> but higher bandwidth.
+                                </p>
+                            </div>
+                            <div className="col-span-2">
+                                <input
+                                    type="number"
+                                    min="10" max="100"
+                                    className="w-full max-w-[150px] bg-background border border-input rounded px-3 py-2 text-sm"
+                                    value={globalSettings.opt_live_view_quality}
+                                    onChange={e => setGlobalSettings({ ...globalSettings, opt_live_view_quality: parseInt(e.target.value) })}
+                                />
+                                <p className="text-[10px] text-muted-foreground mt-1">Default: 60 (Balanced)</p>
+                            </div>
+                        </div>
+
+                        {/* Snapshot Quality */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
+                            <div className="col-span-1">
+                                <label className="block text-sm font-medium mb-1">Events Snapshot Quality</label>
+                                <p className="text-xs text-muted-foreground">
+                                    Quality of the static JPEG images saved during motion events.
+                                    <br /><br />
+                                    <strong>Higher = Clearer images</strong> for identification.
+                                </p>
+                            </div>
+                            <div className="col-span-2">
+                                <input
+                                    type="number"
+                                    min="10" max="100"
+                                    className="w-full max-w-[150px] bg-background border border-input rounded px-3 py-2 text-sm"
+                                    value={globalSettings.opt_snapshot_quality}
+                                    onChange={e => setGlobalSettings({ ...globalSettings, opt_snapshot_quality: parseInt(e.target.value) })}
+                                />
+                                <p className="text-[10px] text-muted-foreground mt-1">Default: 90 (High Quality)</p>
+                            </div>
+                        </div>
+
+                        {/* FFMPEG Preset */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="col-span-1">
+                                <label className="block text-sm font-medium mb-1">FFMPEG Transcoding Preset</label>
+                                <p className="text-xs text-muted-foreground">
+                                    Determines how much CPU FFMPEG uses to compress video when transcoding is required (not using Passthrough).
+                                    <br /><br />
+                                    <strong>Ultrafast = Lowest CPU usage</strong>, but larger file sizes or lower quality.
+                                    <strong>Medium = High CPU usage</strong>, smaller file sizes.
+                                </p>
+                            </div>
+                            <div className="col-span-2">
+                                <select
+                                    className="w-full max-w-[200px] bg-background border border-input rounded px-3 py-2 text-sm"
+                                    value={globalSettings.opt_ffmpeg_preset}
+                                    onChange={e => setGlobalSettings({ ...globalSettings, opt_ffmpeg_preset: e.target.value })}
+                                >
+                                    <option value="ultrafast">Ultrafast (Best for CPU)</option>
+                                    <option value="superfast">Superfast</option>
+                                    <option value="veryfast">Veryfast</option>
+                                    <option value="faster">Faster</option>
+                                    <option value="fast">Fast</option>
+                                    <option value="medium">Medium (Standard)</option>
+                                    <option value="slow">Slow (High CPU)</option>
+                                </select>
+                                <p className="text-[10px] text-muted-foreground mt-1">Default: Ultrafast</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Backup & Restore */}
             {
