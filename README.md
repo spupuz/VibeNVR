@@ -2,6 +2,9 @@
 
 VibeNVR is a modern, modular, and containerized video surveillance system designed to manage IP cameras, recordings, motion detection, and a unified event timeline. It features a custom high-performance video engine (VibeEngine) built for efficiency and reliability, wrapped in a premium React-based interface.
 
+### 🎬 Video Demo
+![VibeNVR Demo](docs/screenshots/vibenvr_video.webp)
+
 > **Project Status**: This is a **Vibe Coding Project**. Extensive testing has been performed to ensure stability, but we are always **open to new help** and contributions from the community!
 
 ---
@@ -137,9 +140,6 @@ Attackers scanning your public IP will find all ports (5000, 8000) closed. They 
 ---
 
 ## 📸 Screenshots
-
-### 🎬 Video Demo
-![VibeNVR Demo](docs/screenshots/vibenvr_video.webp)
 
 ### Desktop Views
 
