@@ -178,11 +178,19 @@ VibeNVR is split into four main microservices:
 
 ## 🌟 Support & Star History
 
-If you find VibeNVR useful, please consider giving it a star or buying me a coffee! Your support helps me maintain and improve the project.
-
-<a href="https://www.buymeacoffee.com/spupuz" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="60" width="217"></a>
-
-[![Star History Chart](https://api.star-history.com/svg?repos=spupuz/VibeNVR&type=Date)](https://star-history.com/#spupuz/VibeNVR&Date)
+<p align="center">
+  If you find VibeNVR useful, please consider giving it a star or buying me a coffee! Your support helps me maintain and improve the project.
+  <br>
+  <br>
+  <a href="https://www.buymeacoffee.com/spupuz" target="_blank">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="60" width="217">
+  </a>
+  <br>
+  <br>
+  <a href="https://star-history.com/#spupuz/VibeNVR&Date">
+    <img src="https://api.star-history.com/svg?repos=spupuz/VibeNVR&type=Date" alt="Star History Chart">
+  </a>
+</p>
 
 ---
 
