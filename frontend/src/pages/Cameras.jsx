@@ -11,7 +11,7 @@ const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSe
     const { user } = useAuth();
     return (
         <div
-            className={`bg-card border-2 rounded-xl p-6 hover:shadow-lg transition-all duration-300 group relative 
+            className={`bg-card border-2 rounded-xl flex flex-col hover:shadow-lg transition-all duration-300 group relative overflow-hidden
                 ${!camera.is_active ? 'opacity-70 grayscale-[0.5]' : ''}
                 ${isSelected ? 'border-primary ring-1 ring-primary/20' : 'border-border'}
             `}
@@ -30,55 +30,57 @@ const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSe
                 </div>
             )}
 
-            <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center space-x-3 ml-2">
-                    <div className={`p-2 rounded-lg transition-colors ${isSelected ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
-                        <Camera className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-lg flex items-center gap-2">
-                            {camera.name}
-                            <span className="text-xs font-mono bg-muted/50 px-1.5 py-0.5 rounded text-muted-foreground border border-border">
-                                ID: {camera.id}
-                            </span>
-                        </h3>
-                        <div className="flex items-center text-xs text-muted-foreground mt-1">
-                            <MapPin className="w-3 h-3 mr-1" />
-                            {camera.location || 'Unknown Location'}
+            <div className="p-6 flex-1">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center space-x-3 ml-2">
+                        <div className={`p-2 rounded-lg transition-colors ${isSelected ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                            <Camera className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-lg flex items-center gap-2">
+                                {camera.name}
+                                <span className="text-xs font-mono bg-muted/50 px-1.5 py-0.5 rounded text-muted-foreground border border-border">
+                                    ID: {camera.id}
+                                </span>
+                            </h3>
+                            <div className="flex items-center text-xs text-muted-foreground mt-1">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                {camera.location || 'Unknown Location'}
+                            </div>
                         </div>
                     </div>
+                    {user?.role === 'admin' && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                            <Toggle
+                                checked={camera.is_active}
+                                onChange={() => onToggleActive(camera)}
+                                compact={true}
+                            />
+                        </div>
+                    )}
                 </div>
+
                 {user?.role === 'admin' && (
-                    <div onClick={(e) => e.stopPropagation()}>
-                        <Toggle
-                            checked={camera.is_active}
-                            onChange={() => onToggleActive(camera)}
-                            compact={true}
-                        />
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                        <p className="truncate">
+                            <span className="font-medium text-foreground">RTSP:</span> {(() => {
+                                try {
+                                    if (camera.rtsp_url && camera.rtsp_url.includes('@')) {
+                                        const parts = camera.rtsp_url.split('@');
+                                        const protocol = parts[0].split('://')[0] + '://';
+                                        return protocol + parts[1];
+                                    }
+                                    return camera.rtsp_url;
+                                } catch (e) {
+                                    return camera.rtsp_url;
+                                }
+                            })()}
+                        </p>
                     </div>
                 )}
             </div>
 
-            {user?.role === 'admin' && (
-                <div className="space-y-2 text-sm text-muted-foreground mb-4">
-                    <p className="truncate">
-                        <span className="font-medium text-foreground">RTSP:</span> {(() => {
-                            try {
-                                if (camera.rtsp_url && camera.rtsp_url.includes('@')) {
-                                    const parts = camera.rtsp_url.split('@');
-                                    const protocol = parts[0].split('://')[0] + '://';
-                                    return protocol + parts[1];
-                                }
-                                return camera.rtsp_url;
-                            } catch (e) {
-                                return camera.rtsp_url;
-                            }
-                        })()}
-                    </p>
-                </div>
-            )}
-
-            <div className="flex justify-end pt-4 border-t border-border space-x-2">
+            <div className="flex justify-end p-4 bg-muted/10 border-t border-border space-x-2">
                 {user?.role === 'admin' && (
                     <>
                         <button
@@ -105,21 +107,21 @@ const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSe
                                     alert('Export error: ' + e.message);
                                 }
                             }}
-                            className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                            className="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40 rounded-lg transition-colors"
                             title="Export Camera Settings"
                         >
                             <Download className="w-5 h-5" />
                         </button>
                         <button
                             onClick={() => onEdit(camera)}
-                            className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-colors"
                             title="Edit Camera"
                         >
                             <Edit className="w-5 h-5" />
                         </button>
                         <button
                             onClick={() => onDelete(camera.id)}
-                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
                             title="Delete Camera"
                         >
                             <Trash2 className="w-5 h-5" />
