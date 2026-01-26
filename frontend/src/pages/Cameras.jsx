@@ -7,13 +7,32 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 
-const CameraCard = ({ camera, onDelete, onEdit, onToggleActive }) => {
+const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSelect }) => {
     const { user } = useAuth();
     return (
-        <div className={`bg-card border border-border rounded-xl p-6 hover:shadow-lg transition-all duration-300 group ${!camera.is_active ? 'opacity-70 grayscale-[0.5]' : ''}`}>
+        <div
+            className={`bg-card border-2 rounded-xl p-6 hover:shadow-lg transition-all duration-300 group relative 
+                ${!camera.is_active ? 'opacity-70 grayscale-[0.5]' : ''}
+                ${isSelected ? 'border-primary ring-1 ring-primary/20' : 'border-border'}
+            `}
+        >
+            {/* Selection Checkbox */}
+            {user?.role === 'admin' && (
+                <div
+                    className={`absolute top-4 left-4 z-10 w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer ${isSelected ? 'bg-primary border-primary' : 'bg-background/80 border-border group-hover:border-primary/50'
+                        }`}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect?.(camera.id);
+                    }}
+                >
+                    {isSelected && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
+                </div>
+            )}
+
             <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                <div className="flex items-center space-x-3 ml-2">
+                    <div className={`p-2 rounded-lg transition-colors ${isSelected ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
                         <Camera className="w-6 h-6" />
                     </div>
                     <div>
@@ -193,6 +212,9 @@ export const Cameras = () => {
     const [editingId, setEditingId] = useState(null);
     const [view, setView] = useState('cameras');
     const { showToast } = useToast();
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [processingMessage, setProcessingMessage] = useState({ title: 'Processing', text: 'Please wait...' });
+    const [selectedCameraIds, setSelectedCameraIds] = useState([]);
     const [confirmConfig, setConfirmConfig] = useState({ isOpen: false });
 
     const [searchParams, setSearchParams] = useSearchParams();
@@ -262,22 +284,72 @@ export const Cameras = () => {
         setConfirmConfig({
             isOpen: true,
             title: 'Delete Camera',
-            message: 'Are you sure you want to delete this camera? This will PERMANENTLY delete all associated recordings, events, and configuration. This action cannot be undone.',
+            message: 'Are you sure you want to delete this camera? This will stop its recording process and remove its configuration.',
             onConfirm: async () => {
                 try {
-                    await fetch(`/api/cameras/${id}`, {
+                    const res = await fetch(`/api/cameras/${id}`, {
                         method: 'DELETE',
                         headers: { Authorization: `Bearer ${token}` }
                     });
-                    fetchCameras();
-                    showToast('Camera deleted successfully', 'success');
+                    if (res.ok) {
+                        setCameras(prev => prev.filter(c => c.id !== id));
+                        setSelectedCameraIds(prev => prev.filter(sid => sid !== id));
+                        showToast('Camera deleted', 'success');
+                    }
                 } catch (err) {
-                    showToast('Failed to delete: ' + err.message, 'error');
+                    showToast('Failed to delete camera', 'error');
                 }
                 setConfirmConfig({ isOpen: false });
             },
             onCancel: () => setConfirmConfig({ isOpen: false })
         });
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedCameraIds.length === 0) return;
+
+        setConfirmConfig({
+            isOpen: true,
+            title: 'Bulk Delete',
+            message: `Are you sure you want to delete ${selectedCameraIds.length} camera(s)? This action is permanent and will stop all related processes and delete media files.`,
+            onConfirm: async () => {
+                setProcessingMessage({
+                    title: 'Deleting Cameras',
+                    text: `Removing ${selectedCameraIds.length} camera(s) and their associated data...`
+                });
+                setIsProcessing(true);
+                setConfirmConfig({ isOpen: false });
+                try {
+                    const res = await fetch('/api/cameras/bulk-delete', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`
+                        },
+                        body: JSON.stringify(selectedCameraIds)
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        setCameras(prev => prev.filter(c => !selectedCameraIds.includes(c.id)));
+                        setSelectedCameraIds([]);
+                        showToast(data.message, 'success');
+                    } else {
+                        showToast('Bulk delete failed', 'error');
+                    }
+                } catch (err) {
+                    showToast('Failed to perform bulk delete: ' + err.message, 'error');
+                } finally {
+                    setIsProcessing(false);
+                }
+            },
+            onCancel: () => setConfirmConfig({ isOpen: false })
+        });
+    };
+
+    const handleSelectCamera = (id) => {
+        setSelectedCameraIds(prev =>
+            prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
+        );
     };
 
     const handleEdit = (camera) => {
@@ -468,7 +540,44 @@ export const Cameras = () => {
                     // Update state to reflect that we are now editing an existing camera
                     // This prevents creating a duplicate if the user clicks "Save" later
                     setEditingId(savedCamera.id);
-                    setNewCamera(savedCamera);
+
+                    // Re-parse RTSP URL into components for the UI
+                    let user = '', pass = '', host = savedCamera.rtsp_url;
+                    const match = savedCamera.rtsp_url.match(/^(rtsp|http|https|rtmp):\/\/([^:]+)(?::([^@]+))?@(.+)$/);
+                    if (match) {
+                        const withoutProto = savedCamera.rtsp_url.replace(/^(rtsp|http|https|rtmp):\/\//, '');
+                        if (withoutProto.includes('@')) {
+                            const [auth, ...rest] = withoutProto.split('@');
+                            host = rest.join('@');
+                            const [u, p] = auth.split(':');
+                            user = u;
+                            pass = p;
+                        } else {
+                            host = withoutProto;
+                        }
+                    } else if (savedCamera.rtsp_url && savedCamera.rtsp_url.includes('://')) {
+                        const withoutProto = savedCamera.rtsp_url.split('://')[1];
+                        if (withoutProto.includes('@')) {
+                            const [auth, h] = withoutProto.split('@');
+                            host = h;
+                            if (auth.includes(':')) {
+                                const [u, p] = auth.split(':');
+                                user = u;
+                                pass = p;
+                            } else {
+                                user = auth;
+                            }
+                        } else {
+                            host = withoutProto;
+                        }
+                    }
+
+                    setNewCamera({
+                        ...savedCamera,
+                        rtsp_username: user,
+                        rtsp_password: pass,
+                        rtsp_host: host
+                    });
                     showToast("Settings saved successfully.", "success");
                 }
                 fetchCameras();
@@ -638,9 +747,13 @@ export const Cameras = () => {
                                         type="file"
                                         accept=".json"
                                         className="hidden"
+                                        disabled={isProcessing}
                                         onChange={async (e) => {
                                             const file = e.target.files?.[0];
                                             if (!file) return;
+                                            setProcessingMessage({ title: 'Importing Cameras', text: 'Uploading and processing VibeNVR configuration...' });
+                                            setIsProcessing(true);
+                                            showToast('Importing cameras...', 'info');
                                             const formData = new FormData();
                                             formData.append('file', file);
                                             try {
@@ -655,10 +768,12 @@ export const Cameras = () => {
                                                     fetchCameras();
                                                 } else {
                                                     const err = await res.json();
-                                                    showToast('Import failed: ' + err.detail, 'error');
+                                                    showToast('Import failed: ' + (err.detail || 'Unknown error'), 'error');
                                                 }
                                             } catch (err) {
                                                 showToast('Import failed: ' + err.message, 'error');
+                                            } finally {
+                                                setIsProcessing(false);
                                             }
                                             e.target.value = '';
                                         }}
@@ -673,9 +788,13 @@ export const Cameras = () => {
                                         type="file"
                                         accept=".tar.gz"
                                         className="hidden"
+                                        disabled={isProcessing}
                                         onChange={async (e) => {
                                             const file = e.target.files?.[0];
                                             if (!file) return;
+                                            setProcessingMessage({ title: 'MotionEye Import', text: 'Extracting backup and configuring cameras...' });
+                                            setIsProcessing(true);
+                                            showToast('Importing from MotionEye...', 'info');
                                             const formData = new FormData();
                                             formData.append('file', file);
                                             try {
@@ -690,10 +809,12 @@ export const Cameras = () => {
                                                     fetchCameras();
                                                 } else {
                                                     const err = await res.json();
-                                                    showToast('MotionEye Import failed: ' + err.detail, 'error');
+                                                    showToast('MotionEye Import failed: ' + (err.detail || 'Unknown error'), 'error');
                                                 }
                                             } catch (err) {
                                                 showToast('Import error: ' + err.message, 'error');
+                                            } finally {
+                                                setIsProcessing(false);
                                             }
                                             e.target.value = '';
                                         }}
@@ -730,7 +851,15 @@ export const Cameras = () => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {cameras.map(cam => (
-                            <CameraCard key={cam.id} camera={cam} onDelete={handleDelete} onEdit={handleEdit} onToggleActive={handleToggleActive} />
+                            <CameraCard
+                                key={cam.id}
+                                camera={cam}
+                                onDelete={handleDelete}
+                                onEdit={handleEdit}
+                                onToggleActive={handleToggleActive}
+                                isSelected={selectedCameraIds.includes(cam.id)}
+                                onSelect={handleSelectCamera}
+                            />
                         ))}
                         {cameras.length === 0 && (
                             <div className="col-span-full text-center py-12 text-muted-foreground bg-card border border-dashed border-border rounded-xl">
@@ -1631,6 +1760,55 @@ export const Cameras = () => {
                     </div>
                 )
             }
+            {/* Bulk Actions Floating Bar */}
+            {selectedCameraIds.length > 1 && !showAddModal && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div className="bg-card/95 backdrop-blur-md border border-primary/20 shadow-2xl rounded-2xl px-6 py-4 flex items-center space-x-6 text-foreground min-w-[320px]">
+                        <div className="flex-1">
+                            <p className="font-bold text-sm">{selectedCameraIds.length} Camera(s) selected</p>
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Bulk Actions</p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <button
+                                onClick={() => setSelectedCameraIds([])}
+                                className="px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 rounded-lg transition-colors"
+                            >
+                                Clear
+                            </button>
+                            <button
+                                onClick={handleBulkDelete}
+                                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-all flex items-center shadow-lg shadow-red-500/20 active:scale-95"
+                            >
+                                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                Delete Selected
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Global Processing Overlay */}
+            {isProcessing && (
+                <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[100] flex flex-col items-center justify-center animate-in fade-in duration-300">
+                    <div className="bg-card border border-border p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm text-center">
+                        <div className="relative mb-6">
+                            <Activity className="w-16 h-16 text-primary animate-spin" />
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all">
+                                {processingMessage.title.includes('Delete') ? (
+                                    <Trash2 className="w-6 h-6 text-red-500" />
+                                ) : (
+                                    <Upload className="w-6 h-6 text-primary" />
+                                )}
+                            </div>
+                        </div>
+                        <h3 className="text-xl font-bold mb-2">{processingMessage.title}</h3>
+                        <p className="text-muted-foreground text-sm">
+                            {processingMessage.text}
+                        </p>
+                    </div>
+                </div>
+            )}
+
             <ConfirmModal {...confirmConfig} />
         </div >
     );
