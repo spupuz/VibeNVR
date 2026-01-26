@@ -76,12 +76,27 @@ class CameraManager:
         }
 
         if event_type == "motion_start":
+            # Map to specialized webhook types for reactive UI feedback
+            webhook_type = "motion_on"
+            if payload:
+                if isinstance(payload, dict):
+                    data["file_path"] = payload.get("file_path")
+                else:
+                    data["file_path"] = payload
+            # Compatibility: Also trigger the legacy event_start for notifications
+            self.handle_event(camera_id, "legacy_motion_start", payload)
+        
+        elif event_type == "legacy_motion_start":
             webhook_type = "event_start"
             if payload:
                 if isinstance(payload, dict):
                     data["file_path"] = payload.get("file_path")
                 else:
                     data["file_path"] = payload
+
+        elif event_type == "motion_end":
+            webhook_type = "motion_off"
+
         elif event_type == "recording_end":
             webhook_type = "movie_end"
             if payload:

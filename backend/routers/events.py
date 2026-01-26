@@ -207,11 +207,16 @@ def read_events(
 # Track active motion events globally
 # camera_id -> start_timestamp
 ACTIVE_CAMERAS = {}
+# Track PURE motion detection (for UI reactive borders)
+LIVE_MOTION = {}
 
 @router.get("/status")
 def get_motion_status(current_user: models.User = Depends(auth_service.get_current_user)):
-    """Returns list of camera IDs currently detecting motion"""
-    return {"active_ids": list(ACTIVE_CAMERAS.keys())}
+    """Returns list of camera IDs currently detecting motion and/or recording"""
+    return {
+        "active_ids": list(ACTIVE_CAMERAS.keys()),
+        "live_motion_ids": list(LIVE_MOTION.keys())
+    }
 
 def is_within_schedule(camera: models.Camera):
     """Check if motion detection is currently allowed by schedule"""
@@ -374,7 +379,17 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
         ACTIVE_CAMERAS[camera_id] = payload.get("timestamp")
         if in_schedule:
             send_notifications(camera.id, "event_start", payload)
-        
+            
+    elif event_type == "motion_on":
+        # Purely for UI reactive feedback
+        LIVE_MOTION[camera_id] = payload.get("timestamp")
+        return {"status": "motion_on_captured"}
+
+    elif event_type == "motion_off":
+        # Purely for UI reactive feedback
+        if camera_id in LIVE_MOTION:
+            del LIVE_MOTION[camera_id]
+        return {"status": "motion_off_captured"}
     elif event_type == "picture_save":
         file_path = payload.get("file_path")
         logger.info(f"[WEBHOOK] Saving picture event for {camera.name}: {file_path}")

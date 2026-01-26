@@ -7,7 +7,7 @@ import { useToast } from '../contexts/ToastContext';
 
 const API_BASE = `/api`;
 
-const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onToggleRecording, isDetectingMotion }) => {
+const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onToggleRecording, isRecording, isLiveMotion }) => {
     const { token } = useAuth();
     const { showToast } = useToast();
     const [loadState, setLoadState] = useState('loading');
@@ -82,65 +82,97 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
     };
 
     return (
-        <div className={`video-container relative w-full bg-black rounded-xl overflow-hidden aspect-video group border border-border ${isFocused ? 'ring-2 ring-primary' : ''}`}>
-            {/* Header Overlay */}
-            <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/80 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity flex justify-between items-start pointer-events-none">
-                <div className="pointer-events-auto">
-                    <h3 className="text-white font-medium text-sm text-shadow">{camera.name}</h3>
-                    <p className="text-white/70 text-xs">{camera.location || `${camera.resolution_width}x${camera.resolution_height}`}</p>
+        <div className={`video-container relative w-full bg-black rounded-xl overflow-hidden aspect-video group transition-all duration-300 ${isFocused ? 'ring-4 ring-primary z-30' : 'z-10'}`}>
+
+            {/* VIBRANT INTERNAL BORDER (Prevents clipping) */}
+            <div className={`absolute inset-0 rounded-xl pointer-events-none z-50 transition-all duration-300 ${isLiveMotion
+                ? 'border-[4px] border-red-600 shadow-[inset_0_0_20px_rgba(220,38,38,0.4)]'
+                : camera.recording_mode === 'Always'
+                    ? 'border-[4px] border-blue-600 shadow-[inset_0_0_20px_rgba(37,99,235,0.3)]'
+                    : 'border border-white/10'
+                }`}
+            />
+
+            {/* TOP LEFT - STATUS & INFO (Stacked, no overlap) */}
+            <div className="absolute top-2 left-2 z-40 flex flex-col gap-1.5 pointer-events-none">
+                {isLiveMotion ? (
+                    <div className="flex items-center space-x-2 bg-red-600 px-2 py-1 rounded shadow-2xl animate-pulse ring-1 ring-white/40 w-fit">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_white]" />
+                        <span className="text-[10px] font-black text-white tracking-widest uppercase">MOTION</span>
+                    </div>
+                ) : camera.recording_mode === 'Always' ? (
+                    <div className="flex items-center space-x-2 bg-blue-600 px-2.5 py-1 rounded shadow-2xl ring-1 ring-white/20 w-fit">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-200" />
+                        <span className="text-[10px] font-black text-white tracking-widest uppercase">ALWAYS REC</span>
+                    </div>
+                ) : null}
+
+                {/* Camera Information Card (Below badges) */}
+                <div className="bg-black/60 backdrop-blur-md px-2.5 py-2 rounded-lg border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-fit max-w-[200px]">
+                    <h3 className="text-white font-bold text-xs sm:text-sm tracking-tight leading-tight truncate">
+                        {camera.name}
+                    </h3>
+                    <div className="text-white/50 text-[9px] mt-0.5 font-mono">
+                        {camera.resolution_width}x{camera.resolution_height}
+                    </div>
                 </div>
-                <div className="flex space-x-1.5 pointer-events-auto">
-                    {/* Motion Active Indicator */}
-                    {(isDetectingMotion || camera.recording_mode === 'Always') && (
-                        <div className="px-2 py-1 bg-red-600/90 text-white rounded-lg flex items-center space-x-1.5 animate-pulse shadow-lg ring-1 ring-red-400/50">
-                            <div className="w-2 h-2 rounded-full bg-white shadow-sm" />
-                            <span className="text-[10px] font-bold tracking-wider">REC</span>
-                        </div>
-                    )}
-                    <button onClick={() => onFocus(camera.id)} className={`p-1.5 rounded-lg text-white backdrop-blur-sm transition-colors ${isFocused ? 'bg-primary' : 'bg-black/50 hover:bg-white/20'}`} title={isFocused ? "Show All Users" : "Focus Camera"}>
-                        <Square className="w-4 h-4" />
+            </div>
+
+            {/* ACTION BAR - Bottom Centered, clean and accessible */}
+            <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex justify-center pointer-events-none">
+                <div className="flex items-center gap-1 sm:gap-2 bg-black/80 backdrop-blur-xl p-1 sm:p-1.5 rounded-2xl border border-white/10 shadow-3xl pointer-events-auto">
+                    {/* View Controls */}
+                    <button onClick={() => onFocus(camera.id)} className={`p-1.5 sm:p-2 rounded-xl text-white transition-all ${isFocused ? 'bg-primary' : 'hover:bg-white/10'}`} title="Focus">
+                        <Square className="w-4 h-4 sm:w-5 h-5" />
                     </button>
-                    <button onClick={handleFullscreen} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Fullscreen">
-                        <Maximize2 className="w-4 h-4" />
+                    <button onClick={handleFullscreen} className="p-1.5 sm:p-2 text-white hover:bg-white/10 rounded-xl transition-all" title="Fullscreen">
+                        <Maximize2 className="w-4 h-4 sm:w-5 h-5" />
                     </button>
+
+                    <div className="w-px h-6 bg-white/10 mx-0.5 sm:mx-1 self-center" />
+
+                    {/* Snapshot & Media Browser */}
                     <button onClick={() => {
                         fetch(`${API_BASE}/cameras/${camera.id}/snapshot`, {
                             method: 'POST',
                             headers: { Authorization: `Bearer ${token}` }
-                        })
-                            .then(res => {
-                                if (res.ok) showToast(`Snapshot triggered for ${camera.name}`, 'success');
-                                else showToast('Failed to trigger snapshot', 'error');
-                            })
-                            .catch(err => {
-                                console.error(err);
-                                showToast('Error: ' + err.message, 'error');
-                            });
-                    }} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Take Snapshot">
-                        <Camera className="w-4 h-4" />
+                        }).then(res => { if (res.ok) showToast(`Snapshot saved`, 'success'); });
+                    }} className="p-1.5 sm:p-2 text-white hover:bg-white/10 rounded-xl transition-all" title="Take Photo">
+                        <Camera className="w-4 h-4 sm:w-5 h-5" />
                     </button>
-                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=snapshot`)} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Picture Browser">
-                        <ImageIcon className="w-4 h-4" />
+                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=snapshot`)} className="p-1.5 sm:p-2 text-white hover:bg-white/10 rounded-xl transition-all" title="Gallery">
+                        <ImageIcon className="w-4 h-4 sm:w-5 h-5" />
                     </button>
-                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=video`)} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Movie Browser">
-                        <Play className="w-4 h-4" />
+                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=video`)} className="p-1.5 sm:p-2 text-white hover:bg-white/10 rounded-xl transition-all" title="Videos">
+                        <Play className="w-4 h-4 sm:w-5 h-5" />
                     </button>
-                    <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1.5 bg-black/50 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm" title="Settings">
-                        <Settings className="w-4 h-4" />
+
+                    <div className="w-px h-6 bg-white/10 mx-0.5 sm:mx-1 self-center" />
+
+                    {/* Always Record Toggle */}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleRecording(camera);
+                        }}
+                        className={`p-1.5 sm:p-2 rounded-xl transition-all ${camera.recording_mode === 'Always' ? 'bg-red-600 text-white animate-pulse shadow-[0_0_15px_rgba(220,38,38,0.6)]' : 'text-white hover:bg-red-600/50'}`}
+                        title={camera.recording_mode === 'Always' ? "Stop Always Recording" : "Start Always Recording"}
+                    >
+                        <Disc className="w-4 h-4 sm:w-5 h-5" />
+                    </button>
+
+                    <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1.5 sm:p-2 text-primary-foreground bg-primary hover:bg-primary/80 rounded-xl transition-all" title="Settings">
+                        <Settings className="w-4 h-4 sm:w-5 h-5" />
                     </button>
                 </div>
             </div>
 
-            {/* Video Content Layer - Absolute Inset for stability */}
+            {/* Video Content Layer */}
             {loadState === 'error' ? (
                 <div className="absolute inset-0 w-full h-full">
-                    <img
-                        src="/no-signal.png"
-                        alt="No Signal"
-                        className="w-full h-full object-cover"
-                    />
+                    <img src="/no-signal.png" alt="No Signal" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="bg-black/80 text-white px-3 py-1 rounded text-sm font-mono tracking-widest border border-white/20">NO SIGNAL</span>
+                        <span className="bg-black/80 text-white px-3 py-1 rounded text-[10px] font-mono tracking-widest border border-white/20">NO SIGNAL</span>
                     </div>
                 </div>
             ) : frameSrc ? (
@@ -154,24 +186,6 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                     <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                 </div>
             )}
-
-            {/* Status Footer */}
-            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-between items-end z-10">
-                <div className="flex items-center space-x-2">
-                    <div className={`px-2 py-1 rounded-full text-[10px] font-medium backdrop-blur-sm border border-white/10 flex items-center space-x-1 ${camera.recording_mode !== 'Off' ? 'bg-blue-500/20 text-blue-200 border-blue-500/30' : 'bg-black/40 text-muted-foreground'}`}>
-                        {camera.recording_mode !== 'Off' && <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
-                        <span>Mode: {camera.recording_mode}</span>
-                    </div>
-                </div>
-
-                <button
-                    onClick={() => onToggleRecording(camera)}
-                    className={`p-2 rounded-full backdrop-blur-sm transition-all ${camera.recording_mode === 'Always' ? 'bg-red-500 text-white scale-110' : 'bg-white/10 text-white hover:bg-red-500/50'}`}
-                    title={camera.recording_mode === 'Always' ? "Stop Recording" : "Start Recording"}
-                >
-                    <Disc className="w-5 h-5" />
-                </button>
-            </div>
         </div>
     );
 };
@@ -180,6 +194,7 @@ export const LiveView = () => {
     const { token } = useAuth();
     const [cameras, setCameras] = useState([]);
     const [activeMotionIds, setActiveMotionIds] = useState([]);
+    const [liveMotionIds, setLiveMotionIds] = useState([]);
     const [focusCameraId, setFocusCameraId] = useState(null);
     const [columnSetting, setColumnSetting] = useState(() => {
         return localStorage.getItem('liveViewColumns') || 'auto';
@@ -201,6 +216,7 @@ export const LiveView = () => {
             .then(res => res.json())
             .then(data => {
                 setActiveMotionIds(data.active_ids || []);
+                setLiveMotionIds(data.live_motion_ids || []);
             })
             .catch(err => console.error("Failed to fetch motion status", err));
     };
@@ -279,7 +295,7 @@ export const LiveView = () => {
         : groupFilteredCameras;
 
     return (
-        <div className="h-full flex flex-col px-4 py-2">
+        <div className="h-full flex flex-col px-4 sm:px-6 py-2">
             <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 px-2 pt-2">
                 <div>
                     <h2 className="text-2xl font-bold flex items-center gap-2">
@@ -394,7 +410,8 @@ export const LiveView = () => {
                                                     isFocused={focusCameraId === cam.id}
                                                     onToggleActive={handleToggleActive}
                                                     onToggleRecording={handleToggleRecording}
-                                                    isDetectingMotion={activeMotionIds.includes(cam.id)}
+                                                    isRecording={activeMotionIds.includes(cam.id)}
+                                                    isLiveMotion={liveMotionIds.includes(cam.id)}
                                                 />
                                             ))}
                                         </div>
@@ -419,7 +436,8 @@ export const LiveView = () => {
                                                     isFocused={focusCameraId === cam.id}
                                                     onToggleActive={handleToggleActive}
                                                     onToggleRecording={handleToggleRecording}
-                                                    isDetectingMotion={activeMotionIds.includes(cam.id)}
+                                                    isRecording={activeMotionIds.includes(cam.id)}
+                                                    isLiveMotion={liveMotionIds.includes(cam.id)}
                                                 />
                                             ))}
                                         </div>
@@ -451,7 +469,8 @@ export const LiveView = () => {
                             isFocused={focusCameraId === cam.id}
                             onToggleActive={handleToggleActive}
                             onToggleRecording={handleToggleRecording}
-                            isDetectingMotion={activeMotionIds.includes(cam.id)}
+                            isRecording={activeMotionIds.includes(cam.id)}
+                            isLiveMotion={liveMotionIds.includes(cam.id)}
                         />
                     ))}
                 </div>

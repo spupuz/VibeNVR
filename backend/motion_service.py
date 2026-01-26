@@ -66,7 +66,7 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
         "picture_quality": cam.picture_quality or 75,
         "picture_recording_mode": cam.picture_recording_mode or "Manual",
         "picture_file_name": cam.picture_file_name or "%Y-%m-%d/%H-%M-%S-%q",
-        "show_motion_box": cam.show_frame_changes if cam.show_frame_changes is not None else True,
+        "show_motion_box": False, # Disabled as requested by user
         "min_motion_frames": cam.min_motion_frames or 2,
         "despeckle_filter": cam.despeckle_filter if cam.despeckle_filter is not None else False,
         "detect_motion_mode": cam.detect_motion_mode or "Always",
