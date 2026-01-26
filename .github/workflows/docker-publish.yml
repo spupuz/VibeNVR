@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
   push:
+    branches:
+      - main
+      - dev
     tags:
       - 'v*'
   workflow_dispatch:
@@ -53,8 +56,8 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.event_name == 'release' }}
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
