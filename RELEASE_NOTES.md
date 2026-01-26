@@ -1,3 +1,23 @@
+# VibeNVR v1.14.0 - UI Redesign & Smart Feedback
+
+## 🚀 Major Features
+
+*   **Reactive Borders**: Added surgical visual feedback for cameras.
+    *   **RED Border**: Instant feedback when live motion is detected.
+    *   **BLUE Border**: Indicates a camera is in "Always Record" mode.
+    *   **Clean Cooldown**: Unlike before, the blue REC indicators are now hidden during the motion recording "cooldown" phase, providing a much cleaner and intuitive monitoring experience.
+*   **Overlay Redesign**:
+    *   **Anti-Overlap**: Redesigned badges and camera info cards to ensure they never cover the camera name or vital parts of the stream.
+    *   **Information Card**: Camera resolution and technical details now live in a beautiful, translucent card that appears on hover/touch.
+*   **Unified Action Bar**:
+    *   Grouped all camera controls (Focus, Fullscreen, Photo, Gallery, Settings) into a single, centered, and translucent bar at the bottom.
+    *   The **Always Record** toggle is now integrated directly into the action bar for instant access.
+*   **Production Hardening**:
+    *   **Clean Recordings**: Forcefully disabled internal motion debug boxes (red squares) from the video stream. These are now purely virtual and handled by the UI, ensuring your recordings are clean for later review.
+    *   **CI/CD Automation**: Implemented a professional branch-based tagging system. Pushing to `dev` updates `:dev` images, while pushing to `main` updates `:latest` and versioned images.
+
+---
+
 # VibeNVR v1.10.2 - Mobile Polish
 
 ## 🐛 Fixes
