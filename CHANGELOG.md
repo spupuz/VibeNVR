@@ -2,6 +2,23 @@
 
 All notable changes to the VibeNVR project will be documented in this file.
 
+## [1.14.0] - 2026-01-26
+
+### 🚀 Major Improvements & Features
+*   **Reactive UI Borders**: 
+    *   **Live Motion Red Border**: Real-time visual feedback when motion is detected.
+    *   **Always Record Blue Border**: Constant visual confirmation for 24/7 recording cameras.
+    *   **Smarter Indicators**: Removed recording indicators during post-motion "cooldown" to reduce visual clutter.
+*   **Live View Overlay Redesign**:
+    *   Redesigned camera info cards to prevent text/badge overlap.
+    *   Unified, centered action bar for better desktop and mobile usability.
+*   **Production Reliability**:
+    *   **Clean Recordings**: Internal motion debug boxes are now hidden in the saved video files.
+    *   **Webhooks**: Enabled real-time motion status broadcasting in the core engine.
+*   **DevOps & Automation**:
+    *   Automated CI/CD with branch-based tagging (main ➔ :latest, dev ➔ :dev).
+    *   Unified versioning across all components.
+
 ## [1.10.2] - 2026-01-20
 
 ### 🐛 Bug Fixes
