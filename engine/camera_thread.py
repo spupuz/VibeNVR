@@ -389,12 +389,26 @@ class CameraThread(threading.Thread):
             h, w = frame.shape[:2]
             
             # Resilient Scaling Logic
-            base_scale = self.config.get('text_scale', 1.0)
-            # Adjust scaling factor for better visibility on small screens (640x480)
-            font_scale = (w / 1000.0) * base_scale * 0.8
-            # Minimum scale for 480p/720p visibility
-            font_scale = max(0.6, font_scale)
-            thickness = max(1, int(font_scale * 2.2))
+            # user_scale_param is typically 1.0 (default) to 10.0 from UI slider? 
+            # Actually frontend slider might save raw 1.0. Let's assume standard is around 1.0
+            user_preference = self.config.get('text_scale', 1.0)
+            
+            # Base logic: Scale strictly by width. 
+            # 1920px -> scale 1.0 * user_pref
+            # 640px  -> scale 0.33 * user_pref
+            # This keeps text relative size constant across resolutions
+            
+            # Use 1200 as base width reference (middle ground)
+            base_font_scale = 1.0
+            
+            # Calculate dynamic scale based on WIDTH ratio
+            font_scale = (w / 1200.0) * user_preference * base_font_scale
+            
+            # Safety floor: never go below 0.4 or it becomes unreadable artifacts
+            font_scale = max(0.4, font_scale)
+            
+            # Thickness scales with font size for visibility
+            thickness = max(1, int(font_scale * 2.0))
             
             cam_name = self.config.get('name', 'Camera')
 
