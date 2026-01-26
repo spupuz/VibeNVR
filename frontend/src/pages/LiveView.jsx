@@ -8,7 +8,7 @@ import { useToast } from '../contexts/ToastContext';
 const API_BASE = `/api`;
 
 const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onToggleRecording, isRecording, isLiveMotion }) => {
-    const { token } = useAuth();
+    const { token, user } = useAuth();
     const { showToast } = useToast();
     const [loadState, setLoadState] = useState('loading');
     const [frameSrc, setFrameSrc] = useState('');
@@ -161,9 +161,12 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                         <Disc className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
 
-                    <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1 text-primary-foreground bg-primary hover:bg-primary/80 rounded-md transition-all shrink-0" title="Settings">
-                        <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </button>
+                    {/* Settings Button - Admin Only */}
+                    {user?.role === 'admin' && (
+                        <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1 text-primary-foreground bg-primary hover:bg-primary/80 rounded-md transition-all shrink-0" title="Settings">
+                            <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        </button>
+                    )}
                 </div>
             </div>
 

@@ -2,7 +2,27 @@
 
 All notable changes to the VibeNVR project will be documented in this file.
 
-## [1.14.0] - 2026-01-26
+## [1.15.0] - 2026-01-26
+
+### 🎨 UI & UX Improvements
+*   **Camera Card Redesign**:
+    *   **Refactored Layout**: Decoupled the header (Icon/Status) from camera details to prevent text truncation on smaller screens.
+    *   **Dedicated Footer**: Moved action buttons (Edit, Export, Delete) to a full-width footer for better accessibility and touch targets.
+    *   **Responsive**: Improved card behavior on mobile devices.
+*   **Group Card Redesign**:
+    *   Aligned Group Cards with the new Camera Card aesthetic.
+    *   Separated layout for controls and information.
+*   **Live View**:
+    *   Added a quick "Settings" button to the video player overlay (Admin only).
+
+### 🔒 Security & RBAC
+*   **Group Management**:
+    *   Restricted **Create**, **Edit**, and **Delete** group actions to Administrators only.
+    *   Non-admin "Viewer" users can now strictly only toggle "Motion Detection" on existing groups but cannot modify the group structure.
+*   **Live View**:
+    *   Hidden the overlay "Settings" button for non-admin users.
+
+## [1.14.2] - 2026-01-26
 
 ### 🚀 Major Improvements & Features
 *   **Reactive UI Borders**: 
