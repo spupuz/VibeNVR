@@ -63,10 +63,14 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, db: Session = De
     if existing_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
     
-    # Only probe if auto_resolution is enabled AND RTSP URL changed
+    # Proactive probing: 
+    # Trigger if: 1. URL changed OR 2. Auto-Res was just toggled ON OR 3. Res is currently default/missing but Auto-Res is ON
     rtsp_changed = existing_camera.rtsp_url != camera.rtsp_url
-    if camera.auto_resolution and camera.rtsp_url and rtsp_changed:
-        print(f"Probing stream for camera {camera.name} (URL changed)...", flush=True)
+    auto_res_just_enabled = camera.auto_resolution and not existing_camera.auto_resolution
+    is_res_default = existing_camera.resolution_width in (0, 1920) and existing_camera.resolution_height in (0, 1080)
+    
+    if camera.auto_resolution and camera.rtsp_url and (rtsp_changed or auto_res_just_enabled or is_res_default):
+        print(f"Probing stream for camera {camera.name} (Trigger: {'URL Change' if rtsp_changed else 'Auto-Res Enabled/Default'})...", flush=True)
         dims = probe_service.probe_stream(camera.rtsp_url)
         if dims:
             print(f"Detected resolution: {dims['width']}x{dims['height']}", flush=True)

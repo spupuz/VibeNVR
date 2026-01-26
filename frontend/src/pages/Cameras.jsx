@@ -131,6 +131,38 @@ const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSe
     );
 };
 
+const parseRtspUrl = (url) => {
+    let user = '', pass = '', host = url || '';
+    if (!url) return { user, pass, host };
+
+    try {
+        // Handle various formats: 
+        // 1. rtsp://user:pass@host:port/path
+        // 2. rtsp://user@host:port/path
+        // 3. rtsp://host:port/path
+        const withoutProto = url.replace(/^(rtsp|http|https|rtmp):\/\//, '');
+
+        if (withoutProto.includes('@')) {
+            const atIndex = withoutProto.lastIndexOf('@');
+            const authPart = withoutProto.substring(0, atIndex);
+            host = withoutProto.substring(atIndex + 1);
+
+            if (authPart.includes(':')) {
+                const colonIndex = authPart.indexOf(':');
+                user = authPart.substring(0, colonIndex);
+                pass = authPart.substring(colonIndex + 1);
+            } else {
+                user = authPart;
+            }
+        } else {
+            host = withoutProto;
+        }
+    } catch (e) {
+        console.error("URL parsing error", e);
+    }
+    return { user, pass, host };
+};
+
 export const Cameras = () => {
     const { user, token } = useAuth();
     const [cameras, setCameras] = useState([]);
@@ -243,7 +275,13 @@ export const Cameras = () => {
         if (editId && cameras.length > 0) {
             const camera = cameras.find(c => c.id === parseInt(editId));
             if (camera) {
-                setNewCamera(camera);
+                const { user, pass, host } = parseRtspUrl(camera.rtsp_url);
+                setNewCamera({
+                    ...camera,
+                    rtsp_username: user,
+                    rtsp_password: pass,
+                    rtsp_host: host
+                });
                 setEditingId(camera.id);
                 setShowAddModal(true);
                 // Clear the URL parameter after opening modal
@@ -353,44 +391,7 @@ export const Cameras = () => {
     };
 
     const handleEdit = (camera) => {
-        // Parse RTSP URL into components
-        let user = '', pass = '', host = camera.rtsp_url;
-        const match = camera.rtsp_url.match(/^(rtsp|http|https|rtmp):\/\/([^:]+)(?::([^@]+))?@(.+)$/);
-
-        if (match) {
-            // match[1] protocol, match[2] user, match[3] pass, match[4] host
-            // Simple approach: remove protocol
-            const withoutProto = camera.rtsp_url.replace(/^(rtsp|http|https|rtmp):\/\//, '');
-            // Check if user/pass exists
-            if (withoutProto.includes('@')) {
-                const [auth, ...rest] = withoutProto.split('@');
-                host = rest.join('@');
-                const [u, p] = auth.split(':');
-                user = u;
-                pass = p;
-            } else {
-                host = withoutProto;
-            }
-        } else {
-            // Fallback helper if regex fails or simple URL
-            if (camera.rtsp_url && camera.rtsp_url.includes('://')) {
-                const withoutProto = camera.rtsp_url.split('://')[1];
-                if (withoutProto.includes('@')) {
-                    const [auth, h] = withoutProto.split('@');
-                    host = h;
-                    if (auth.includes(':')) {
-                        const [u, p] = auth.split(':');
-                        user = u;
-                        pass = p;
-                    } else {
-                        user = auth;
-                    }
-                } else {
-                    host = withoutProto;
-                }
-            }
-        }
-
+        const { user, pass, host } = parseRtspUrl(camera.rtsp_url);
         setNewCamera({
             ...camera,
             rtsp_username: user,
@@ -538,40 +539,8 @@ export const Cameras = () => {
                     setEditingId(null);
                 } else {
                     // Update state to reflect that we are now editing an existing camera
-                    // This prevents creating a duplicate if the user clicks "Save" later
                     setEditingId(savedCamera.id);
-
-                    // Re-parse RTSP URL into components for the UI
-                    let user = '', pass = '', host = savedCamera.rtsp_url;
-                    const match = savedCamera.rtsp_url.match(/^(rtsp|http|https|rtmp):\/\/([^:]+)(?::([^@]+))?@(.+)$/);
-                    if (match) {
-                        const withoutProto = savedCamera.rtsp_url.replace(/^(rtsp|http|https|rtmp):\/\//, '');
-                        if (withoutProto.includes('@')) {
-                            const [auth, ...rest] = withoutProto.split('@');
-                            host = rest.join('@');
-                            const [u, p] = auth.split(':');
-                            user = u;
-                            pass = p;
-                        } else {
-                            host = withoutProto;
-                        }
-                    } else if (savedCamera.rtsp_url && savedCamera.rtsp_url.includes('://')) {
-                        const withoutProto = savedCamera.rtsp_url.split('://')[1];
-                        if (withoutProto.includes('@')) {
-                            const [auth, h] = withoutProto.split('@');
-                            host = h;
-                            if (auth.includes(':')) {
-                                const [u, p] = auth.split(':');
-                                user = u;
-                                pass = p;
-                            } else {
-                                user = auth;
-                            }
-                        } else {
-                            host = withoutProto;
-                        }
-                    }
-
+                    const { user, pass, host } = parseRtspUrl(savedCamera.rtsp_url);
                     setNewCamera({
                         ...savedCamera,
                         rtsp_username: user,
@@ -596,8 +565,11 @@ export const Cameras = () => {
             title: 'Copy Settings',
             message: `Overwrite settings for ${copyTargets.length} cameras?`,
             onConfirm: async () => {
-                // Fields to EXCLUDE (Unique items)
-                const EXCLUDED_FIELDS = ['id', 'name', 'rtsp_url', 'stream_url', 'created_at', 'location', 'stream_port'];
+                // Fields to EXCLUDE (Unique/Hardware specific items)
+                const EXCLUDED_FIELDS = [
+                    'id', 'name', 'rtsp_url', 'stream_url', 'created_at', 'location', 'stream_port',
+                    'resolution_width', 'resolution_height', 'auto_resolution'
+                ];
 
                 const settingsToCopy = Object.keys(newCamera).reduce((acc, key) => {
                     if (!EXCLUDED_FIELDS.includes(key)) {

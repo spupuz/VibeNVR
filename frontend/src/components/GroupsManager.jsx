@@ -212,7 +212,15 @@ export const GroupsManager = ({ cameras }) => {
                             {group.cameras.length === 0 && <span className="text-xs text-muted-foreground italic">No cameras assigned</span>}
                             {group.cameras.slice(0, 5).map(cam => (
                                 <span key={cam.id} className="text-xs bg-muted px-2 py-1 rounded-md border border-border flex items-center">
-                                    <Camera className="w-3 h-3 mr-1 opacity-50" />
+                                    <div className="relative mr-1.5 flex items-center">
+                                        <Camera className="w-3 h-3 opacity-50" />
+                                        {cam.recording_mode === 'Motion Triggered' && (
+                                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-card animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.5)]"></span>
+                                        )}
+                                        {cam.recording_mode === 'Continuous' && (
+                                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full border border-card shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>
+                                        )}
+                                    </div>
                                     {cam.name}
                                 </span>
                             ))}

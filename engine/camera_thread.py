@@ -388,10 +388,13 @@ class CameraThread(threading.Thread):
         try:
             h, w = frame.shape[:2]
             
-            # Scale: 1.0 at 1080p roughly
+            # Resilient Scaling Logic
             base_scale = self.config.get('text_scale', 1.0)
-            font_scale = (base_scale / 10.0) * (w / 1920.0) * 2.5
-            thickness = max(1, int(font_scale * 2))
+            # Adjust scaling factor for better visibility on small screens (640x480)
+            font_scale = (w / 1000.0) * base_scale * 0.8
+            # Minimum scale for 480p/720p visibility
+            font_scale = max(0.6, font_scale)
+            thickness = max(1, int(font_scale * 2.2))
             
             cam_name = self.config.get('name', 'Camera')
 
