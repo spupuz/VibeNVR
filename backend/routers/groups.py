@@ -39,7 +39,7 @@ def update_group_cameras_endpoint(group_id: int, camera_ids: List[int], db: Sess
     return group
 
 @router.post("/{group_id}/action")
-def perform_group_action(group_id: int, action: schemas.GroupAction, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def perform_group_action(group_id: int, action: schemas.GroupAction, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
     group = crud.get_group(db, group_id)
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
@@ -51,17 +51,28 @@ def perform_group_action(group_id: int, action: schemas.GroupAction, db: Session
     
     if action.action == "enable_motion":
         for cam in group.cameras:
-            cam.recording_mode = "Motion Triggered"
+            # If off, move to motion triggered. If already recording (motion or continuous), stay.
+            if cam.recording_mode == "Off":
+                cam.recording_mode = "Motion Triggered"
+            
+            # Always ensure detection is active if the group toggle is ON
             cam.detect_motion_mode = "Always"
             modified_count += 1
             
     elif action.action == "disable_motion":
         for cam in group.cameras:
-            cam.recording_mode = "Off"
+            # Only disable if it was purely motion recording. Continuous remains active.
+            if cam.recording_mode == "Motion Triggered":
+                cam.recording_mode = "Off"
+            
+            # Turn off detection for the group toggle
             cam.detect_motion_mode = "Off"
             modified_count += 1
 
     elif action.action == "copy_settings":
+        if current_user.role != "admin":
+            raise HTTPException(status_code=403, detail="Admin privileges required for copy_settings")
+            
         if not action.source_camera_id:
             raise HTTPException(status_code=400, detail="source_camera_id required for copy_settings")
         
@@ -73,7 +84,8 @@ def perform_group_action(group_id: int, action: schemas.GroupAction, db: Session
         excluded = [
             'id', 'name', 'rtsp_url', 'stream_url', 'location', 
             'is_active', 'created_at', 'groups', 
-            '_sa_instance_state'
+            '_sa_instance_state',
+            'resolution_width', 'resolution_height', 'auto_resolution'
         ]
         
         source_data = source.__dict__
