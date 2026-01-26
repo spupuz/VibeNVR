@@ -13,7 +13,7 @@ export const Tooltip = ({ text, children }) => {
                 onMouseEnter={() => setShow(true)}
                 onMouseLeave={() => setShow(false)}
                 onClick={() => setShow(!show)}
-                className="ml-1 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                className="ml-2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
             >
                 <HelpCircle className="w-4 h-4" />
             </button>
@@ -39,7 +39,7 @@ const LabelWithHelp = ({ label, help }) => (
 
 // Toggle Switch Component (like motionEye)
 export const Toggle = ({ checked, onChange, label, disabled = false, help = '' }) => (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between gap-3">
         <LabelWithHelp label={label} help={help} />
         <button
             type="button"
