@@ -63,7 +63,29 @@ const CameraCard = ({ camera, onDelete, onEdit, onToggleActive }) => {
                 {user?.role === 'admin' && (
                     <>
                         <button
-                            onClick={() => window.open(`/api/cameras/${camera.id}/export`, '_blank')}
+                            onClick={async () => {
+                                try {
+                                    const { token } = JSON.parse(localStorage.getItem('user_data') || '{}');
+                                    const res = await fetch(`/api/cameras/${camera.id}/export`, {
+                                        headers: { Authorization: `Bearer ${token}` }
+                                    });
+                                    if (res.ok) {
+                                        const blob = await res.blob();
+                                        const url = window.URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `vibenvr_camera_${camera.name.replace(' ', '_')}.json`;
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        window.URL.revokeObjectURL(url);
+                                        document.body.removeChild(a);
+                                    } else {
+                                        alert('Failed to export settings');
+                                    }
+                                } catch (e) {
+                                    alert('Export error: ' + e.message);
+                                }
+                            }}
                             className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
                             title="Export Camera Settings"
                         >
@@ -580,7 +602,28 @@ export const Cameras = () => {
                                 <span>Add Camera</span>
                             </button>
                             <button
-                                onClick={() => window.open('/api/cameras/export/all', '_blank')}
+                                onClick={async () => {
+                                    try {
+                                        const res = await fetch('/api/cameras/export/all', {
+                                            headers: { Authorization: `Bearer ${token}` }
+                                        });
+                                        if (res.ok) {
+                                            const blob = await res.blob();
+                                            const url = window.URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = url;
+                                            a.download = 'vibenvr_cameras_export.json';
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            window.URL.revokeObjectURL(url);
+                                            document.body.removeChild(a);
+                                        } else {
+                                            showToast('Failed to export cameras', 'error');
+                                        }
+                                    } catch (e) {
+                                        showToast('Export error: ' + e.message, 'error');
+                                    }
+                                }}
                                 className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 h-10 rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md whitespace-nowrap text-sm font-medium"
                                 title="Export all cameras to JSON"
                             >
@@ -1506,13 +1549,15 @@ export const Cameras = () => {
                                         >
                                             Cancel
                                         </button>
-                                        <button
-                                            type="button"
-                                            onClick={(e) => handleCreate(e, false)}
-                                            className="px-4 py-2 text-primary hover:bg-primary/10 text-sm font-medium rounded-lg transition-colors border border-primary/20"
-                                        >
-                                            Apply
-                                        </button>
+                                        {editingId && (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => handleCreate(e, false)}
+                                                className="px-4 py-2 text-primary hover:bg-primary/10 text-sm font-medium rounded-lg transition-colors border border-primary/20"
+                                            >
+                                                Apply
+                                            </button>
+                                        )}
                                         <button
                                             type="submit"
                                             className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90"

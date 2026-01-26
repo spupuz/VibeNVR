@@ -177,9 +177,18 @@ class CameraBase(BaseModel):
 class CameraCreate(CameraBase):
     pass
 
+# Groups
+class CameraGroupBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class CameraGroupCreate(CameraGroupBase):
+    pass
+
 class Camera(CameraBase):
     id: int
     created_at: datetime
+    groups: list[CameraGroupBase] = []
 
     class Config:
         from_attributes = True
@@ -233,13 +242,7 @@ class UserPasswordUpdate(BaseModel):
     old_password: Optional[str] = None
     new_password: str
 
-# Groups
-class CameraGroupBase(BaseModel):
-    name: str
-    description: Optional[str] = None
 
-class CameraGroupCreate(CameraGroupBase):
-    pass
 
 class CameraGroup(CameraGroupBase):
     id: int
