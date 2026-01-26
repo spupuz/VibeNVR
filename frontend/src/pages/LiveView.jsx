@@ -118,18 +118,18 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                 </div>
             </div>
 
-            {/* ACTION BAR - Bottom Centered, clean and accessible */}
-            <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex justify-center pointer-events-none">
-                <div className="flex items-center gap-1 sm:gap-2 bg-black/80 backdrop-blur-xl p-1 sm:p-1.5 rounded-2xl border border-white/10 shadow-3xl pointer-events-auto">
+            {/* ACTION BAR - Bottom Centered, scalalble */}
+            <div className="absolute inset-x-0 bottom-0 p-2 z-40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex justify-center pointer-events-none">
+                <div className="flex items-center gap-0.5 sm:gap-1 bg-black/80 backdrop-blur-xl p-1 rounded-xl border border-white/10 shadow-3xl pointer-events-auto max-w-full overflow-hidden">
                     {/* View Controls */}
-                    <button onClick={() => onFocus(camera.id)} className={`p-1.5 sm:p-2 rounded-xl text-white transition-all ${isFocused ? 'bg-primary' : 'hover:bg-white/10'}`} title="Focus">
-                        <Square className="w-4 h-4 sm:w-5 h-5" />
+                    <button onClick={() => onFocus(camera.id)} className={`p-1 rounded-md text-white transition-all shrink-0 ${isFocused ? 'bg-primary' : 'hover:bg-white/10'}`} title="Focus">
+                        <Square className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
-                    <button onClick={handleFullscreen} className="p-1.5 sm:p-2 text-white hover:bg-white/10 rounded-xl transition-all" title="Fullscreen">
-                        <Maximize2 className="w-4 h-4 sm:w-5 h-5" />
+                    <button onClick={handleFullscreen} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Fullscreen">
+                        <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
 
-                    <div className="w-px h-6 bg-white/10 mx-0.5 sm:mx-1 self-center" />
+                    <div className="w-px h-4 bg-white/10 mx-0.5 self-center shrink-0" />
 
                     {/* Snapshot & Media Browser */}
                     <button onClick={() => {
@@ -137,17 +137,17 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                             method: 'POST',
                             headers: { Authorization: `Bearer ${token}` }
                         }).then(res => { if (res.ok) showToast(`Snapshot saved`, 'success'); });
-                    }} className="p-1.5 sm:p-2 text-white hover:bg-white/10 rounded-xl transition-all" title="Take Photo">
-                        <Camera className="w-4 h-4 sm:w-5 h-5" />
+                    }} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Take Photo">
+                        <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
-                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=snapshot`)} className="p-1.5 sm:p-2 text-white hover:bg-white/10 rounded-xl transition-all" title="Gallery">
-                        <ImageIcon className="w-4 h-4 sm:w-5 h-5" />
+                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=snapshot`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Gallery">
+                        <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
-                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=video`)} className="p-1.5 sm:p-2 text-white hover:bg-white/10 rounded-xl transition-all" title="Videos">
-                        <Play className="w-4 h-4 sm:w-5 h-5" />
+                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=video`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Videos">
+                        <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
 
-                    <div className="w-px h-6 bg-white/10 mx-0.5 sm:mx-1 self-center" />
+                    <div className="w-px h-4 bg-white/10 mx-0.5 self-center shrink-0" />
 
                     {/* Always Record Toggle */}
                     <button
@@ -155,14 +155,14 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                             e.stopPropagation();
                             onToggleRecording(camera);
                         }}
-                        className={`p-1.5 sm:p-2 rounded-xl transition-all ${camera.recording_mode === 'Always' ? 'bg-red-600 text-white animate-pulse shadow-[0_0_15px_rgba(220,38,38,0.6)]' : 'text-white hover:bg-red-600/50'}`}
+                        className={`p-1 rounded-md transition-all shrink-0 ${camera.recording_mode === 'Always' ? 'bg-red-600 text-white animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]' : 'text-white hover:bg-red-600/50'}`}
                         title={camera.recording_mode === 'Always' ? "Stop Always Recording" : "Start Always Recording"}
                     >
-                        <Disc className="w-4 h-4 sm:w-5 h-5" />
+                        <Disc className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
 
-                    <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1.5 sm:p-2 text-primary-foreground bg-primary hover:bg-primary/80 rounded-xl transition-all" title="Settings">
-                        <Settings className="w-4 h-4 sm:w-5 h-5" />
+                    <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1 text-primary-foreground bg-primary hover:bg-primary/80 rounded-md transition-all shrink-0" title="Settings">
+                        <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
                 </div>
             </div>
