@@ -31,26 +31,12 @@ const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSe
             )}
 
             <div className="p-6 flex-1">
-                <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center space-x-3 ml-2">
-                        <div className={`p-2 rounded-lg transition-colors ${isSelected ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
-                            <Camera className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-lg flex items-center gap-2">
-                                {camera.name}
-                                <span className="text-xs font-mono bg-muted/50 px-1.5 py-0.5 rounded text-muted-foreground border border-border">
-                                    ID: {camera.id}
-                                </span>
-                            </h3>
-                            <div className="flex items-center text-xs text-muted-foreground mt-1">
-                                <MapPin className="w-3 h-3 mr-1" />
-                                {camera.location || 'Unknown Location'}
-                            </div>
-                        </div>
+                <div className="flex justify-between items-center mb-4">
+                    <div className={`p-2 rounded-lg transition-colors ml-2 ${isSelected ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                        <Camera className="w-6 h-6" />
                     </div>
                     {user?.role === 'admin' && (
-                        <div onClick={(e) => e.stopPropagation()}>
+                        <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
                             <Toggle
                                 checked={camera.is_active}
                                 onChange={() => onToggleActive(camera)}
@@ -58,6 +44,19 @@ const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSe
                             />
                         </div>
                     )}
+                </div>
+
+                <div className="mb-4">
+                    <h3 className="font-semibold text-lg flex items-center flex-wrap gap-2">
+                        <span className="mr-1">{camera.name}</span>
+                        <span className="text-xs font-mono bg-muted/50 px-1.5 py-0.5 rounded text-muted-foreground border border-border whitespace-nowrap">
+                            ID: {camera.id}
+                        </span>
+                    </h3>
+                    <div className="flex items-center text-xs text-muted-foreground mt-1">
+                        <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                        <span className="truncate" title={camera.location}>{camera.location || 'Unknown Location'}</span>
+                    </div>
                 </div>
 
                 {user?.role === 'admin' && (

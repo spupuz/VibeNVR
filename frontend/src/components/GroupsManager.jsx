@@ -165,70 +165,76 @@ export const GroupsManager = ({ cameras }) => {
                     <Layers className="w-5 h-5" />
                     Camera Groups
                 </h3>
-                <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-                >
-                    <Plus className="w-4 h-4" />
-                    <span>New Group</span>
-                </button>
+                {user?.role === 'admin' && (
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>New Group</span>
+                    </button>
+                )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {groups.map(group => (
-                    <div key={group.id} className="bg-card border border-border rounded-xl p-6 hover:shadow-lg transition-all duration-300 group">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex items-center space-x-3">
-                                <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                    <div key={group.id} className="bg-card border-2 border-border rounded-xl flex flex-col hover:shadow-lg transition-all duration-300 group overflow-hidden">
+                        <div className="p-6 flex-1">
+                            {/* Top Row: Icon and Motion Toggle */}
+                            <div className="flex justify-between items-center mb-4">
+                                <div className="p-2 bg-primary/10 rounded-lg text-primary ml-2">
                                     <Layers className="w-6 h-6" />
                                 </div>
-                                <div>
-                                    <h3 className="font-semibold text-lg">{group.name}</h3>
-                                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                        {group.cameras.length} cameras
-                                    </p>
-                                </div>
-                            </div>
 
-                            {/* Motion Toggle in Top Right (Matches Camera 'Active' Toggle) */}
-                            <div className="flex items-center bg-muted/30 rounded-lg p-1 border border-border" title="Toggle Motion Detection for Group">
-                                <div className="mr-2 flex items-center">
-                                    {group.cameras.length > 0 && group.cameras.every(c => c.detect_motion_mode === 'Always') ? (
-                                        <Play className="w-3 h-3 text-green-500 mr-1" />
-                                    ) : (
-                                        <Pause className="w-3 h-3 text-muted-foreground mr-1" />
-                                    )}
-                                    <span className="text-[10px] font-medium text-muted-foreground uppercase">Motion</span>
-                                </div>
-                                <Toggle
-                                    compact={true}
-                                    checked={group.cameras.length > 0 && group.cameras.every(c => c.detect_motion_mode === 'Always')}
-                                    onChange={(val) => handleAction(group.id, val ? 'enable_motion' : 'disable_motion')}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 mb-6 min-h-[40px] content-start">
-                            {group.cameras.length === 0 && <span className="text-xs text-muted-foreground italic">No cameras assigned</span>}
-                            {group.cameras.slice(0, 5).map(cam => (
-                                <span key={cam.id} className="text-xs bg-muted px-2 py-1 rounded-md border border-border flex items-center">
-                                    <div className="relative mr-1.5 flex items-center">
-                                        <Camera className="w-3 h-3 opacity-50" />
-                                        {cam.recording_mode === 'Motion Triggered' && (
-                                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-card animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.5)]"></span>
+                                {/* Motion Toggle in Top Right */}
+                                <div className="flex items-center bg-muted/30 rounded-lg p-1 border border-border flex-shrink-0" title="Toggle Motion Detection for Group">
+                                    <div className="mr-2 flex items-center">
+                                        {group.cameras.length > 0 && group.cameras.every(c => c.detect_motion_mode === 'Always') ? (
+                                            <Play className="w-3 h-3 text-green-500 mr-1" />
+                                        ) : (
+                                            <Pause className="w-3 h-3 text-muted-foreground mr-1" />
                                         )}
-                                        {cam.recording_mode === 'Continuous' && (
-                                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full border border-card shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>
-                                        )}
+                                        <span className="text-[10px] font-medium text-muted-foreground uppercase">Motion</span>
                                     </div>
-                                    {cam.name}
-                                </span>
-                            ))}
-                            {group.cameras.length > 5 && <span className="text-xs text-muted-foreground py-1">+{group.cameras.length - 5} more</span>}
+                                    <Toggle
+                                        compact={true}
+                                        checked={group.cameras.length > 0 && group.cameras.every(c => c.detect_motion_mode === 'Always')}
+                                        onChange={(val) => handleAction(group.id, val ? 'enable_motion' : 'disable_motion')}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Group Info */}
+                            <div className="mb-4">
+                                <h3 className="font-semibold text-lg">{group.name}</h3>
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                    {group.cameras.length} cameras
+                                </p>
+                            </div>
+
+                            {/* Camera Badges */}
+                            <div className="flex flex-wrap gap-2 min-h-[40px] content-start">
+                                {group.cameras.length === 0 && <span className="text-xs text-muted-foreground italic">No cameras assigned</span>}
+                                {group.cameras.slice(0, 5).map(cam => (
+                                    <span key={cam.id} className="text-xs bg-muted px-2 py-1 rounded-md border border-border flex items-center">
+                                        <div className="relative mr-1.5 flex items-center">
+                                            <Camera className="w-3 h-3 opacity-50" />
+                                            {cam.recording_mode === 'Motion Triggered' && (
+                                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-card animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.5)]"></span>
+                                            )}
+                                            {cam.recording_mode === 'Continuous' && (
+                                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full border border-card shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>
+                                            )}
+                                        </div>
+                                        {cam.name}
+                                    </span>
+                                ))}
+                                {group.cameras.length > 5 && <span className="text-xs text-muted-foreground py-1">+{group.cameras.length - 5} more</span>}
+                            </div>
                         </div>
 
                         {/* Actions Footer */}
-                        <div className="flex justify-between items-center pt-4 border-t border-border">
+                        <div className="flex justify-between items-center p-4 bg-muted/10 border-t border-border">
                             {/* Left Action: Copy Settings */}
                             <div>
                                 {user?.role === 'admin' && (
@@ -245,20 +251,24 @@ export const GroupsManager = ({ cameras }) => {
 
                             {/* Right Actions: Edit/Delete */}
                             <div className="flex space-x-2">
-                                <button
-                                    onClick={() => openManageModal(group)}
-                                    className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                    title="Edit Group"
-                                >
-                                    <Edit className="w-5 h-5" />
-                                </button>
-                                <button
-                                    onClick={() => handleDeleteGroup(group.id)}
-                                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                    title="Delete Group"
-                                >
-                                    <Trash2 className="w-5 h-5" />
-                                </button>
+                                {user?.role === 'admin' && (
+                                    <>
+                                        <button
+                                            onClick={() => openManageModal(group)}
+                                            className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-colors"
+                                            title="Edit Group"
+                                        >
+                                            <Edit className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteGroup(group.id)}
+                                            className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
+                                            title="Delete Group"
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
