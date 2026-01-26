@@ -7,6 +7,9 @@ def get_camera(db: Session, camera_id: int):
 def get_cameras(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Camera).offset(skip).limit(limit).all()
 
+def get_camera_by_rtsp_url(db: Session, rtsp_url: str):
+    return db.query(models.Camera).filter(models.Camera.rtsp_url == rtsp_url).first()
+
 def create_camera(db: Session, camera: schemas.CameraCreate):
     db_camera = models.Camera(**camera.dict())
     db.add(db_camera)
@@ -76,6 +79,9 @@ def get_user(db: Session, user_id: int):
 
 def get_user_by_username(db: Session, username: str):
     return db.query(models.User).filter(models.User.username == username).first()
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(models.User).filter(models.User.email == email).first()
 
 def get_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.User).offset(skip).limit(limit).all()

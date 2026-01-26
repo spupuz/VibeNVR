@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from typing import List
 import crud, schemas, database, motion_service, storage_service, probe_service, auth_service, models
 import json, asyncio, tarfile, io, re, os
+from urllib.parse import urlparse
 from typing import Optional
 
 router = APIRouter(
@@ -12,6 +13,18 @@ router = APIRouter(
     tags=["cameras"],
     responses={404: {"description": "Not found"}},
 )
+
+def extract_host(url: str) -> Optional[str]:
+    """Helper to extract hostname/IP from RTSP/HTTP URL"""
+    try:
+        if not url: return None
+        # Handle cases where protocol might be missing or weird
+        if "://" not in url:
+            url = "rtsp://" + url
+        parsed = urlparse(url)
+        return parsed.hostname
+    except:
+        return None
 
 @router.post("", response_model=schemas.Camera)
 def create_camera(camera: schemas.CameraCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
@@ -134,6 +147,26 @@ def delete_camera(camera_id: int, db: Session = Depends(database.get_db), curren
     # 4. Sync engine config
     motion_service.generate_motion_config(db)
     return db_camera
+
+@router.post("/bulk-delete")
+def bulk_delete_cameras(camera_ids: List[int], db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """Delete multiple cameras at once"""
+    deleted_count = 0
+    for camera_id in camera_ids:
+        # 1. Stop the camera if running
+        motion_service.stop_camera(camera_id)
+        
+        # 2. Delete media from disk
+        storage_service.delete_camera_media(camera_id)
+        
+        # 3. Delete from DB
+        db_camera = crud.delete_camera(db, camera_id=camera_id)
+        if db_camera:
+            deleted_count += 1
+    
+    # 4. Sync engine config once
+    motion_service.generate_motion_config(db)
+    return {"message": f"Successfully deleted {deleted_count} camera(s)", "count": deleted_count}
 
 from fastapi.responses import StreamingResponse, Response
 import httpx
@@ -259,12 +292,26 @@ async def import_cameras(file: UploadFile = File(...), db: Session = Depends(dat
         data = json.loads(content)
         
         imported_count = 0
+        skipped_count = 0
         cameras_data = data.get("cameras", [data.get("camera")]) if "cameras" in data else [data.get("camera")]
         
         for cam_data in cameras_data:
             if cam_data is None:
                 continue
             
+            rtsp_url = cam_data.get("rtsp_url")
+            host = extract_host(rtsp_url)
+            
+            if host:
+                # Check all existing cameras for the same host
+                all_cams = crud.get_cameras(db, limit=1000)
+                existing = next((c for c in all_cams if extract_host(c.rtsp_url) == host), None)
+                
+                if existing:
+                    print(f"[IMPORT] Skipping camera {cam_data.get('name')} - Host/IP already exists: {host}", flush=True)
+                    skipped_count += 1
+                    continue
+
             # Extract and remove groups to avoid schema validation error
             group_names = cam_data.pop("groups", [])
             
@@ -287,7 +334,12 @@ async def import_cameras(file: UploadFile = File(...), db: Session = Depends(dat
             imported_count += 1
         
         motion_service.generate_motion_config(db)
-        return {"message": f"Successfully imported {imported_count} camera(s)", "count": imported_count}
+        
+        msg = f"Successfully imported {imported_count} camera(s)"
+        if skipped_count > 0:
+            msg += f". {skipped_count} camera(s) skipped (already existing)."
+            
+        return {"message": msg, "count": imported_count, "skipped": skipped_count}
     
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON file")
@@ -304,6 +356,7 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
         content = await file.read()
         tar_stream = io.BytesIO(content)
         imported_count = 0
+        skipped_count = 0
         
         with tarfile.open(fileobj=tar_stream, mode='r:gz') as tar:
             members = tar.getmembers()
@@ -337,11 +390,7 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
                         # Build VibeNVR Schema
                         name = cam_name_match.group(1).strip() if cam_name_match else f"Imported {filename}"
                         rtsp_url = url_match.group(1).strip()
-                        
-                        # Check for sensitive info in URL and mask it for logs
-                        safe_url_log = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', rtsp_url)
-                        print(f"[IMPORT] Found camera: {name} with URL: {safe_url_log}", flush=True)
-                        
+
                         # Handle userpass injection if present in netcam_userpass but not in URL
                         if userpass_match and '@' not in rtsp_url:
                             userpass = userpass_match.group(1).strip()
@@ -349,6 +398,21 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
                                 proto, rest = rtsp_url.split('://', 1)
                                 rtsp_url = f"{proto}://{userpass}@{rest}"
                         
+                        # Duplicate check (after URL is finalized)
+                        host = extract_host(rtsp_url)
+                        if host:
+                            all_cams = crud.get_cameras(db, limit=1000)
+                            existing = next((c for c in all_cams if extract_host(c.rtsp_url) == host), None)
+                            
+                            if existing:
+                                print(f"[IMPORT] Skipping camera {name} - Host/IP already exists: {host}", flush=True)
+                                skipped_count += 1
+                                continue
+
+                        # Check for sensitive info in URL and mask it for logs
+                        safe_url_log = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', rtsp_url)
+                        print(f"[IMPORT] Found camera: {name} with URL: {safe_url_log}", flush=True)
+
                         # Create Camera
                         new_cam = schemas.CameraCreate(
                             name=name,
@@ -382,7 +446,12 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
         
         print(f"[IMPORT] Total imported: {imported_count}", flush=True)
         motion_service.generate_motion_config(db)
-        return {"message": f"Successfully imported {imported_count} camera(s) from MotionEye backup", "count": imported_count}
+        
+        msg = f"Successfully imported {imported_count} camera(s) from MotionEye backup"
+        if skipped_count > 0:
+            msg += f". {skipped_count} camera(s) skipped (already existing)."
+            
+        return {"message": msg, "count": imported_count, "skipped": skipped_count}
 
     except Exception as e:
         print(f"MotionEye Import Error: {e}", flush=True)
