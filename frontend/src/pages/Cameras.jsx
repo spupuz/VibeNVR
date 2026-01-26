@@ -1335,11 +1335,7 @@ export const Cameras = () => {
                                             unit="frames"
                                         />
 
-                                        <Toggle
-                                            label="Show Frame Changes"
-                                            checked={newCamera.show_frame_changes}
-                                            onChange={(val) => setNewCamera({ ...newCamera, show_frame_changes: val })}
-                                        />
+
                                     </div>
                                 )}
 

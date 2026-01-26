@@ -428,9 +428,10 @@ class CameraThread(threading.Thread):
         except Exception as e:
             logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Overlay error: {e}")
             
-        # Motion Debug Box
-        if self.motion_detected and self.config.get('show_motion_box', False):
-            cv2.rectangle(frame, (10, 10), (w-10, h-10), (0, 0, 255), 4)
+        # Motion Debug Box - Forcefully disabled to prioritize UI reactive borders 
+        # and keep the recorded video stream clean for storage.
+        # if self.motion_detected and self.config.get('show_motion_box', False):
+        #    cv2.rectangle(frame, (10, 10), (w-10, h-10), (0, 0, 255), 4)
 
     def handle_recording(self, frame):
         mode = self.config.get('recording_mode', 'Off')
