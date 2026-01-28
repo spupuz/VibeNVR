@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, CameraOff, Maximize2, Settings, Image as ImageIcon, Play, Square, Power, Disc, Grid } from 'lucide-react';
+import { Camera, CameraOff, Maximize2, Minimize2, Settings, Image as ImageIcon, Play, Square, Power, Disc, Grid, X } from 'lucide-react';
 import { Toggle } from '../components/ui/FormControls';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -15,6 +15,8 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
     const navigate = useNavigate();
     const pollingRef = useRef(null);
     const mountedRef = useRef(true);
+    const containerRef = useRef(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     // JPEG Polling - Recursive "Fetch then Wait" pattern to prevent connection flooding
     useEffect(() => {
@@ -77,12 +79,27 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
     }, [camera.id, token, index, isFocused]);
 
     const handleFullscreen = (e) => {
-        const el = e.currentTarget.closest('.video-container');
-        if (el.requestFullscreen) el.requestFullscreen();
+        const el = e?.currentTarget?.closest('.video-container') || containerRef.current;
+        if (el?.requestFullscreen) el.requestFullscreen();
     };
 
+    const handleExitFullscreen = () => {
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
+    };
+
+    // Listen for fullscreen changes
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
     return (
-        <div className={`video-container relative w-full bg-black rounded-xl overflow-hidden aspect-video group transition-all duration-300 ${isFocused ? 'ring-4 ring-primary z-30' : 'z-10'}`}>
+        <div ref={containerRef} className={`video-container relative w-full bg-black rounded-xl overflow-hidden ${isFullscreen ? 'h-full' : 'aspect-video'} group transition-all duration-300 ${isFocused ? 'ring-4 ring-primary z-30' : 'z-10'}`}>
 
             {/* VIBRANT INTERNAL BORDER (Prevents clipping) */}
             <div className={`absolute inset-0 rounded-xl pointer-events-none z-50 transition-all duration-300 ${isLiveMotion
@@ -93,6 +110,16 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                 }`}
             />
 
+            {/* EXIT FULLSCREEN BUTTON - Only visible in fullscreen mode */}
+            {isFullscreen && (
+                <button
+                    onClick={handleExitFullscreen}
+                    className="absolute top-4 right-4 z-[60] p-3 bg-black/70 hover:bg-black/90 text-white rounded-full shadow-2xl backdrop-blur-sm transition-all active:scale-90 border border-white/20"
+                    title="Exit Fullscreen"
+                >
+                    <X className="w-6 h-6" />
+                </button>
+            )}
             {/* TOP LEFT - STATUS & INFO (Stacked, no overlap) */}
             <div className="absolute top-2 left-2 z-40 flex flex-col gap-1.5 pointer-events-none">
                 {isLiveMotion ? (
@@ -182,7 +209,7 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                 <img
                     src={frameSrc}
                     alt={camera.name}
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className={`absolute inset-0 w-full h-full ${isFullscreen ? 'object-contain' : 'object-cover'}`}
                 />
             ) : (
                 <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-black/90">
