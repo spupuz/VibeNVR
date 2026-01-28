@@ -244,6 +244,14 @@ export const Cameras = () => {
     const [activeTab, setActiveTab] = useState('general');
     const [editingId, setEditingId] = useState(null);
     const [view, setView] = useState('cameras');
+    const [isGroupView, setIsGroupView] = useState(() => {
+        return localStorage.getItem('camerasGroupBy') === 'true';
+    });
+
+    const handleGroupViewToggle = (val) => {
+        setIsGroupView(val);
+        localStorage.setItem('camerasGroupBy', val);
+    };
     const { showToast } = useToast();
     const [isProcessing, setIsProcessing] = useState(false);
     const [processingMessage, setProcessingMessage] = useState({ title: 'Processing', text: 'Please wait...' });
@@ -614,12 +622,27 @@ export const Cameras = () => {
         <div className="space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Cameras</h2>
+                    <h2 className="text-3xl font-bold tracking-tight flex items-baseline gap-2">
+                        Cameras
+                        <span className="text-lg font-normal text-muted-foreground">({cameras.length} cameras)</span>
+                    </h2>
                     <p className="text-muted-foreground mt-2">Manage your video sources.</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 w-full sm:w-auto overflow-hidden">
+                    {/* Group View Toggle - visible to all users */}
+                    {view === 'cameras' && (
+                        <div className="flex items-center justify-end sm:justify-start">
+                            <Toggle
+                                checked={isGroupView}
+                                onChange={handleGroupViewToggle}
+                                label="Group View"
+                                help="Group cameras by assigned groups"
+                            />
+                        </div>
+                    )}
                     {user?.role === 'admin' && view === 'cameras' && (
                         <>
+
                             <button
                                 onClick={() => {
                                     setEditingId(null);
@@ -678,11 +701,12 @@ export const Cameras = () => {
                                     });
                                     setShowAddModal(true);
                                 }}
-                                className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 bg-primary text-primary-foreground px-4 h-10 rounded-lg hover:bg-primary/90 transition-colors whitespace-nowrap text-sm font-medium"
+                                className="flex items-center justify-center space-x-2 bg-primary text-primary-foreground px-3 sm:px-4 h-10 rounded-lg hover:bg-primary/90 transition-colors whitespace-nowrap text-sm font-medium shrink-0"
                             >
                                 <Plus className="w-4 h-4" />
                                 <span>Add Camera</span>
                             </button>
+
                             <button
                                 onClick={async () => {
                                     try {
@@ -706,14 +730,14 @@ export const Cameras = () => {
                                         showToast('Export error: ' + e.message, 'error');
                                     }
                                 }}
-                                className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 h-10 rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md whitespace-nowrap text-sm font-medium"
+                                className="flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-3 sm:px-4 h-10 rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md whitespace-nowrap text-sm font-medium shrink-0"
                                 title="Export all cameras to JSON"
                             >
                                 <Download className="w-4 h-4" />
                                 <span>Export All</span>
                             </button>
-                            <div className="flex-1 sm:flex-initial flex gap-1">
-                                <label className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 h-10 rounded-l-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md cursor-pointer whitespace-nowrap text-sm font-medium border-r border-white/20" title="Import cameras from VibeNVR JSON">
+                            <div className="flex gap-0 shrink-0">
+                                <label className="flex items-center justify-center space-x-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 h-10 rounded-l-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md cursor-pointer whitespace-nowrap text-sm font-medium" title="Import cameras from VibeNVR JSON">
                                     <Upload className="w-4 h-4" />
                                     <span>Import</span>
                                     <input
@@ -752,7 +776,7 @@ export const Cameras = () => {
                                         }}
                                     />
                                 </label>
-                                <label className="flex-1 sm:flex-initial flex items-center justify-center px-4 h-10 bg-indigo-600 text-white rounded-r-lg hover:bg-indigo-700 transition-all shadow-sm hover:shadow-md cursor-pointer whitespace-nowrap text-sm font-medium" title="Import from MotionEye backup (.tar.gz)">
+                                <label className="flex items-center justify-center px-2.5 h-10 bg-indigo-600 text-white rounded-r-lg hover:bg-indigo-700 transition-all shadow-sm hover:shadow-md cursor-pointer text-sm font-medium border-l border-white/20" title="Import from MotionEye backup (.tar.gz)">
                                     <div className="flex flex-col items-center leading-tight">
                                         <span className="text-[10px] opacity-70">from</span>
                                         <span className="text-xs">MotionEye</span>
@@ -822,25 +846,102 @@ export const Cameras = () => {
                 ) : loading ? (
                     <div className="flex justify-center p-12"><Activity className="animate-spin w-8 h-8 text-primary" /></div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {cameras.map(cam => (
-                            <CameraCard
-                                key={cam.id}
-                                camera={cam}
-                                onDelete={handleDelete}
-                                onEdit={handleEdit}
-                                onToggleActive={handleToggleActive}
-                                isSelected={selectedCameraIds.includes(cam.id)}
-                                onSelect={handleSelectCamera}
-                            />
-                        ))}
+                    <>
+                        {isGroupView && cameras.length > 0 ? (
+                            <div className="space-y-12">
+                                {(() => {
+                                    const grouped = {};
+                                    const ungrouped = [];
+                                    cameras.forEach(cam => {
+                                        if (cam.groups && cam.groups.length > 0) {
+                                            cam.groups.forEach(g => {
+                                                if (!grouped[g.name]) grouped[g.name] = [];
+                                                if (!grouped[g.name].find(c => c.id === cam.id)) {
+                                                    grouped[g.name].push(cam);
+                                                }
+                                            });
+                                        } else {
+                                            ungrouped.push(cam);
+                                        }
+                                    });
+
+                                    const sortedGroupNames = Object.keys(grouped).sort();
+
+                                    return (
+                                        <>
+                                            {sortedGroupNames.map(groupName => (
+                                                <div key={groupName} className="relative">
+                                                    <h3 className="text-xl font-bold mb-6 text-foreground/90 flex items-center border-b pb-2">
+                                                        <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-md text-sm mr-3 font-mono">
+                                                            {grouped[groupName].length}
+                                                        </span>
+                                                        {groupName}
+                                                    </h3>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                        {grouped[groupName].map(cam => (
+                                                            <CameraCard
+                                                                key={`${groupName}-${cam.id}`}
+                                                                camera={cam}
+                                                                onDelete={handleDelete}
+                                                                onEdit={handleEdit}
+                                                                onToggleActive={handleToggleActive}
+                                                                isSelected={selectedCameraIds.includes(cam.id)}
+                                                                onSelect={handleSelectCamera}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+
+                                            {ungrouped.length > 0 && (
+                                                <div className="relative">
+                                                    {sortedGroupNames.length > 0 && (
+                                                        <h3 className="text-xl font-bold mb-6 text-foreground/90 flex items-center border-b pb-2 pt-4 opacity-80">
+                                                            Ungrouped Cameras
+                                                        </h3>
+                                                    )}
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                        {ungrouped.map(cam => (
+                                                            <CameraCard
+                                                                key={cam.id}
+                                                                camera={cam}
+                                                                onDelete={handleDelete}
+                                                                onEdit={handleEdit}
+                                                                onToggleActive={handleToggleActive}
+                                                                isSelected={selectedCameraIds.includes(cam.id)}
+                                                                onSelect={handleSelectCamera}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {cameras.map(cam => (
+                                    <CameraCard
+                                        key={cam.id}
+                                        camera={cam}
+                                        onDelete={handleDelete}
+                                        onEdit={handleEdit}
+                                        onToggleActive={handleToggleActive}
+                                        isSelected={selectedCameraIds.includes(cam.id)}
+                                        onSelect={handleSelectCamera}
+                                    />
+                                ))}
+                            </div>
+                        )}
+
                         {cameras.length === 0 && (
-                            <div className="col-span-full text-center py-12 text-muted-foreground bg-card border border-dashed border-border rounded-xl">
+                            <div className="text-center py-12 text-muted-foreground bg-card border border-dashed border-border rounded-xl">
                                 <Camera className="w-12 h-12 mx-auto mb-4 opacity-20" />
                                 <p>No cameras found. Add one to get started.</p>
                             </div>
                         )}
-                    </div>
+                    </>
                 )
             }
 
@@ -1734,53 +1835,57 @@ export const Cameras = () => {
                 )
             }
             {/* Bulk Actions Floating Bar */}
-            {selectedCameraIds.length > 1 && !showAddModal && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <div className="bg-card/95 backdrop-blur-md border border-primary/20 shadow-2xl rounded-2xl px-6 py-4 flex items-center space-x-6 text-foreground min-w-[320px]">
-                        <div className="flex-1">
-                            <p className="font-bold text-sm">{selectedCameraIds.length} Camera(s) selected</p>
-                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Bulk Actions</p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <button
-                                onClick={() => setSelectedCameraIds([])}
-                                className="px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 rounded-lg transition-colors"
-                            >
-                                Clear
-                            </button>
-                            <button
-                                onClick={handleBulkDelete}
-                                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-all flex items-center shadow-lg shadow-red-500/20 active:scale-95"
-                            >
-                                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                                Delete Selected
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Global Processing Overlay */}
-            {isProcessing && (
-                <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[100] flex flex-col items-center justify-center animate-in fade-in duration-300">
-                    <div className="bg-card border border-border p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm text-center">
-                        <div className="relative mb-6">
-                            <Activity className="w-16 h-16 text-primary animate-spin" />
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all">
-                                {processingMessage.title.includes('Delete') ? (
-                                    <Trash2 className="w-6 h-6 text-red-500" />
-                                ) : (
-                                    <Upload className="w-6 h-6 text-primary" />
-                                )}
+            {
+                selectedCameraIds.length > 1 && !showAddModal && (
+                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <div className="bg-card/95 backdrop-blur-md border border-primary/20 shadow-2xl rounded-2xl px-6 py-4 flex items-center space-x-6 text-foreground min-w-[320px]">
+                            <div className="flex-1">
+                                <p className="font-bold text-sm">{selectedCameraIds.length} Camera(s) selected</p>
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Bulk Actions</p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <button
+                                    onClick={() => setSelectedCameraIds([])}
+                                    className="px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 rounded-lg transition-colors"
+                                >
+                                    Clear
+                                </button>
+                                <button
+                                    onClick={handleBulkDelete}
+                                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-all flex items-center shadow-lg shadow-red-500/20 active:scale-95"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                    Delete Selected
+                                </button>
                             </div>
                         </div>
-                        <h3 className="text-xl font-bold mb-2">{processingMessage.title}</h3>
-                        <p className="text-muted-foreground text-sm">
-                            {processingMessage.text}
-                        </p>
                     </div>
-                </div>
-            )}
+                )
+            }
+
+            {/* Global Processing Overlay */}
+            {
+                isProcessing && (
+                    <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[100] flex flex-col items-center justify-center animate-in fade-in duration-300">
+                        <div className="bg-card border border-border p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm text-center">
+                            <div className="relative mb-6">
+                                <Activity className="w-16 h-16 text-primary animate-spin" />
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all">
+                                    {processingMessage.title.includes('Delete') ? (
+                                        <Trash2 className="w-6 h-6 text-red-500" />
+                                    ) : (
+                                        <Upload className="w-6 h-6 text-primary" />
+                                    )}
+                                </div>
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">{processingMessage.title}</h3>
+                            <p className="text-muted-foreground text-sm">
+                                {processingMessage.text}
+                            </p>
+                        </div>
+                    </div>
+                )
+            }
 
             <ConfirmModal {...confirmConfig} />
         </div >
