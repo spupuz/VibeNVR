@@ -11,7 +11,7 @@ RUN echo "deb http://deb.debian.org/debian bookworm main contrib non-free non-fr
 # Install system dependencies
 # We use --no-install-recommends to keep image small
 # Drivers for Intel/AMD HW acceleration
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     mesa-va-drivers \
     intel-media-va-driver-non-free \
     libglib2.0-0 \
@@ -38,7 +38,8 @@ WORKDIR /app
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip wheel && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Suppress annoying FFmpeg/OpenCV logs
 ENV OPENCV_LOG_LEVEL=ERROR
