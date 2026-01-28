@@ -310,6 +310,14 @@ def sync_recordings(dry_run=False):
                 continue
             
             # Check if video is valid
+            # Skip very recent files to avoid deleting those currently being written
+            # or finalized by the engine (prevents "Error writing trailer" in engine)
+            try:
+                if (time.time() - os.path.getmtime(file_path)) < 300: # 5 minutes
+                    continue
+            except:
+                continue
+
             if not is_video_valid(file_path):
                 file_size = os.path.getsize(file_path)
                 corrupted_size += file_size

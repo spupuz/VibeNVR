@@ -59,7 +59,7 @@ const HourTimeline = ({ events, onHourClick, selectedHour }) => {
 };
 
 const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl, onDelete }) => {
-    const { user } = useAuth();
+    const { token, user } = useAuth();
     const [imgError, setImgError] = useState(false);
     const time = new Date(event.timestamp_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const date = new Date(event.timestamp_start).toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -100,7 +100,7 @@ const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl, onDele
                 <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-90 transition-opacity z-10">
                     {/* Download */}
                     <a
-                        href={`/api/events/${event.id}/download`}
+                        href={`/api/events/${event.id}/download?token=${token}`}
                         download
                         onClick={(e) => e.stopPropagation()}
                         className="p-1 bg-black/50 hover:bg-black/70 text-white rounded backdrop-blur-sm transition-colors"
@@ -702,7 +702,7 @@ export const Timeline = () => {
                                     <div className="w-px h-6 bg-border mx-1"></div>
 
                                     <a
-                                        href={`/api/events/${selectedEvent.id}/download`}
+                                        href={`/api/events/${selectedEvent.id}/download?token=${token}`}
                                         download
                                         className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors"
                                     >

@@ -117,14 +117,12 @@ async def lifespan(app: FastAPI):
     log_service.start_scheduler()
     
     # Regenerate motion config
-    db = next(database.get_db())
-    try:
-        # Sync to engine directly using motion_service
-        motion_service.generate_motion_config(db)
-    except Exception as e:
-        print(f"Startup warning: {e}")
-    finally:
-        db.close()
+    with database.get_db_ctx() as db:
+        try:
+            # Sync to engine directly using motion_service
+            motion_service.generate_motion_config(db)
+        except Exception as e:
+            print(f"Startup warning: {e}")
     
     # Background orphan recovery (delayed to not overload startup)
     def run_orphan_recovery():
@@ -177,17 +175,16 @@ from fastapi import HTTPException, Depends
 
 # Secure media serving
 @app.get("/media/{file_path:path}")
-async def get_secure_media(file_path: str, user=Depends(auth_service.get_current_user_from_query)):
+async def get_secure_media(file_path: str, token: str):
+    # Release DB connection early
+    with database.get_db_ctx() as db:
+        auth_service.get_user_from_token(token, db)
+    
     # Security Validation: Ensure path is within /data/
     # Normalize path to prevent traversals like /data/../etc/passwd
     full_path = os.path.normpath(f"/data/{file_path}")
     
     if not full_path.startswith("/data/"):
-         # For Windows dev environment compatibility (if /data is mapped to c:\...)
-         # In docker linux /data is absolute.
-         # But let's be strict for /data prefix.
-         # Actually os.path.normpath on windows might flip slashes.
-         # The container IS linux.
          print(f"Security Alert (Media): Attempted access to {full_path}")
          raise HTTPException(status_code=403, detail="Access denied")
 

@@ -202,68 +202,64 @@ def cleanup_temp_files():
 def run_cleanup():
     """Main cleanup task to be run periodically"""
     logger.info("Starting storage cleanup task...")
-    db = next(database.get_db())
-    try:
-        # Priority 1: Enforce Per-Camera Limits first (Quota + Time)
-        cameras = db.query(models.Camera).all()
-        for camera in cameras:
-            cleanup_camera(db, camera)
+    with database.get_db_ctx() as db:
+        try:
+            # Priority 1: Enforce Per-Camera Limits first (Quota + Time)
+            cameras = db.query(models.Camera).all()
+            for camera in cameras:
+                cleanup_camera(db, camera)
             
-        # Priority 2: Enforce Global Storage Limit
-        # Only iterate if we are STILL over limit after per-camera cleanup
-        max_global_str = get_setting(db, "max_global_storage_gb")
-        max_global_gb = float(max_global_str) if max_global_str else 0
-        
-        if max_global_gb > 0:
-            current_used_gb = get_dir_size("/data") / (1024**3)
+            # Priority 2: Enforce Global Storage Limit
+            # Only iterate if we are STILL over limit after per-camera cleanup
+            max_global_str = get_setting(db, "max_global_storage_gb")
+            max_global_gb = float(max_global_str) if max_global_str else 0
             
-            if current_used_gb > max_global_gb:
-                logger.info(f"Global storage limit exceeded: {current_used_gb:.2f}GB > {max_global_gb:.2f}GB. Cleaning up...")
-                target_gb = max_global_gb * 0.95
+            if max_global_gb > 0:
+                current_used_gb = get_dir_size("/data") / (1024**3)
                 
-                while current_used_gb > target_gb:
-                    # Delete absolute oldest event across ALL cameras
-                    oldest_event = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).first()
-                    if not oldest_event:
-                        break
+                if current_used_gb > max_global_gb:
+                    logger.info(f"Global storage limit exceeded: {current_used_gb:.2f}GB > {max_global_gb:.2f}GB. Cleaning up...")
+                    target_gb = max_global_gb * 0.95
                     
-                    # Estimate size to subtract
-                    size_gb = 0
-                    if oldest_event.file_size:
-                        size_gb = oldest_event.file_size / (1024**3)
-                    
-                    delete_event_media(oldest_event, db, reason="Global Quota")
-                    db.commit()
-                    
-                    # Recalculate or subtract? Subtracting is faster but less accurate.
-                    # Let's subtract for speed in loop
-                    current_used_gb -= size_gb
-                    current_used_gb -= size_gb
-                    logger.debug(f"Deleted old event to free space. Remaining est: {current_used_gb:.2f}GB")
-        
-        # Priority 3: Cleanup Temp Files
-        cleanup_temp_files()
+                    while current_used_gb > target_gb:
+                        # Delete absolute oldest event across ALL cameras
+                        oldest_event = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).first()
+                        if not oldest_event:
+                            break
+                        
+                        # Estimate size to subtract
+                        size_gb = 0
+                        if oldest_event.file_size:
+                            size_gb = oldest_event.file_size / (1024**3)
+                        
+                        delete_event_media(oldest_event, db, reason="Global Quota")
+                        db.commit()
+                        
+                        # Recalculate or subtract? Subtracting is faster but less accurate.
+                        # Let's subtract for speed in loop
+                        current_used_gb -= size_gb
+                        logger.debug(f"Deleted old event to free space. Remaining est: {current_used_gb:.2f}GB")
+            
+            # Priority 3: Cleanup Temp Files
+            cleanup_temp_files()
 
-    except Exception as e:
-        logger.error(f"Error during cleanup: {e}")
-    finally:
-        db.close()
+        except Exception as e:
+            logger.error(f"Error during cleanup: {e}")
 
 def storage_monitor_loop():
     """Background loop to run cleanup periodically"""
     while True:
         try:
-            db = next(database.get_db())
-            cleanup_enabled = get_setting(db, "cleanup_enabled") == "true"
-            interval_str = get_setting(db, "cleanup_interval_hours")
-            interval_hours = int(interval_str) if interval_str else 24
-            db.close()
+            with database.get_db_ctx() as db:
+                cleanup_enabled = get_setting(db, "cleanup_enabled") == "true"
+                interval_str = get_setting(db, "cleanup_interval_hours")
+                interval_hours = int(interval_str) if interval_str else 24
 
             if cleanup_enabled:
                 run_cleanup()
             
             # Use a shorter wait if something failed, otherwise wait for configured interval
-            time.sleep(interval_hours * 3600)
+            time.sleep(max(1, interval_hours) * 3600)
         except Exception as e:
             logger.error(f"Error in storage monitor loop: {e}")
             time.sleep(300) # Wait 5 mins on error
