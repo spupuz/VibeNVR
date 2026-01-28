@@ -17,13 +17,16 @@ export const AuthProvider = ({ children }) => {
                     if (res.ok) {
                         const userData = await res.json();
                         setUser(userData);
-                    } else {
-                        // Token invalid/expired
+                    } else if (res.status === 401) {
+                        // Token invalid/expired - only logout on 401
                         logout();
+                    } else {
+                        console.warn("Auth check failed with status:", res.status);
+                        // Do NOT logout for 500s or other errors
                     }
                 } catch (err) {
-                    console.error("Auth check failed", err);
-                    logout();
+                    console.error("Auth check failed (network error)", err);
+                    // Do NOT logout on network error
                 }
             } else {
                 setLoading(false);
