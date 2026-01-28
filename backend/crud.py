@@ -42,7 +42,7 @@ def get_events(db: Session, skip: int = 0, limit: int = 100, camera_id: int = No
     if date:
         # Assuming date is YYYY-MM-DD
         # Use a range to handle timezone correctly
-        from datetime import datetime, timedelta
+        import datetime
         from zoneinfo import ZoneInfo
         
         # Get local timezone from env or default to Europe/Rome as per docker-compose
@@ -51,9 +51,9 @@ def get_events(db: Session, skip: int = 0, limit: int = 100, camera_id: int = No
         local_tz = ZoneInfo(tz_name)
         
         # Parse date and set to start of day in local timezone
-        naive_start = datetime.strptime(date, '%Y-%m-%d')
+        naive_start = datetime.datetime.strptime(date, '%Y-%m-%d')
         start_date = naive_start.replace(tzinfo=local_tz)
-        end_date = start_date + timedelta(days=1)
+        end_date = start_date + datetime.timedelta(days=1)
         
         query = query.filter(models.Event.timestamp_start >= start_date)
         query = query.filter(models.Event.timestamp_start < end_date)

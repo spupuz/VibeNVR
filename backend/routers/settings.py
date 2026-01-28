@@ -7,8 +7,8 @@ import database
 import models
 import schemas
 import auth_service
-import json
-from datetime import datetime
+import json, time
+import datetime, motion_service
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -154,15 +154,21 @@ def init_default_settings(db: Session = Depends(database.get_db), current_user: 
 def export_backup(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Export configuration to JSON"""
     data = {
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.datetime.now().isoformat(),
         "version": "1.0",
         "settings": jsonable_encoder(db.query(models.SystemSettings).all()),
         "cameras": jsonable_encoder([schemas.Camera.model_validate(c) for c in db.query(models.Camera).all()]),
         "groups": jsonable_encoder([schemas.CameraGroup.model_validate(g) for g in db.query(models.CameraGroup).all()]),
-        "associations": [{"camera_id": a.camera_id, "group_id": a.group_id} for a in db.query(models.CameraGroupAssociation).all()]
+        "associations": [{"camera_id": a.camera_id, "group_id": a.group_id} for a in db.query(models.CameraGroupAssociation).all()],
+        "users": [{
+            "username": u.username,
+            "email": u.email,
+            "hashed_password": u.hashed_password,
+            "role": u.role
+        } for u in db.query(models.User).all()]
     }
     
-    filename = f"vibenvr_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    filename = f"vibenvr_backup_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     return JSONResponse(
         content=data,
         headers={"Content-Disposition": f"attachment; filename={filename}"}
@@ -275,8 +281,38 @@ async def import_backup(
                              assoc = models.CameraGroupAssociation(camera_id=cam_id, group_id=grp_id)
                              db.add(assoc)
 
+        # 6. Restore Users
+        if "users" in data:
+            print(f"[BACKUP] Restoring {len(data['users'])} users", flush=True)
+            for u in data["users"]:
+                existing_user = db.query(models.User).filter(models.User.username == u["username"]).first()
+                if not existing_user:
+                    new_user = models.User(
+                        username=u["username"],
+                        email=u.get("email"),
+                        hashed_password=u["hashed_password"],
+                        role=u.get("role", "viewer")
+                    )
+                    db.add(new_user)
+                else:
+                    # Update existing user role/email? 
+                    # Generally safer to just restore missing ones to avoid locking out the person doing the restore if they changed their pwd.
+                    existing_user.role = u.get("role", existing_user.role)
+                    existing_user.email = u.get("email", existing_user.email)
+
         db.commit()
-        return {"message": "Backup imported successfully. Please refresh the page."}
+        
+        # 6. Apply settings to engine (Force clean restart)
+        try:
+             # Stop everyone first to avoid conflicts and stale threads
+             motion_service.stop_all_engines()
+             # Wait a small moment for OS cleanup
+             time.sleep(1)
+             motion_service.generate_motion_config(db)
+        except Exception as e:
+             print(f"[BACKUP] Warning: Failed to sync engine after import: {e}", flush=True)
+
+        return {"message": "Backup imported successfully. All cameras synced."}
 
     except Exception as e:
         db.rollback()

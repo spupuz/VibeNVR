@@ -27,7 +27,6 @@ export const Settings = () => {
         notify_email_recipient: '',
         default_landing_page: 'live',
         global_attach_image_email: true,
-        global_attach_image_email: true,
         global_attach_image_telegram: true,
 
         // Advanced
@@ -327,7 +326,7 @@ export const Settings = () => {
 
             // Try to get filename from header
             const disposition = res.headers.get('Content-Disposition');
-            let filename = `vibenvr_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            let filename = `vibenvr_backup_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.json`;
             if (disposition && disposition.includes('filename=')) {
                 filename = disposition.split('filename=')[1].replace(/"/g, '');
             }
@@ -343,35 +342,44 @@ export const Settings = () => {
     };
 
     const handleImport = async (e) => {
-        const file = e.target.files[0];
+        const file = e.target.files?.[0];
         if (!file) return;
 
-        if (!window.confirm("Are you sure you want to restore this backup? Current settings and camera configurations will be overwritten/merged. This cannot be undone.")) {
-            e.target.value = null; // reset
-            return;
-        }
+        setConfirmConfig({
+            isOpen: true,
+            title: 'Import Configuration',
+            message: 'Are you sure you want to restore this backup? Current settings and camera configurations will be overwritten or merged. This action cannot be undone.',
+            confirmText: 'Import Now',
+            variant: 'primary',
+            onConfirm: async () => {
+                setConfirmConfig({ isOpen: false });
+                const formData = new FormData();
+                formData.append('file', file);
 
-        const formData = new FormData();
-        formData.append('file', file);
-
-        try {
-            const res = await fetch('/api/settings/backup/import', {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}` },
-                body: formData
-            });
-            if (res.ok) {
-                showToast("Backup imported successfully! Reloading...", "success");
-                setTimeout(() => window.location.reload(), 2000);
-            } else {
-                const err = await res.json();
-                showToast("Import failed: " + err.detail, "error");
+                try {
+                    const res = await fetch('/api/settings/backup/import', {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${token}` },
+                        body: formData
+                    });
+                    if (res.ok) {
+                        showToast("Backup imported successfully! Reloading...", "success");
+                        setTimeout(() => window.location.reload(), 2000);
+                    } else {
+                        const err = await res.json();
+                        showToast("Import failed: " + err.detail, "error");
+                    }
+                } catch (err) {
+                    showToast("Import failed: " + err.message, "error");
+                }
+            },
+            onCancel: () => {
+                setConfirmConfig({ isOpen: false });
+                if (e.target) e.target.value = null;
             }
-        } catch (err) {
-            showToast("Import failed: " + err.message, "error");
-        }
-        e.target.value = null;
+        });
     };
+
 
     const initDefaults = async () => {
         try {
@@ -1270,13 +1278,13 @@ export const Settings = () => {
                                 <p className="text-sm text-muted-foreground">Export or Import system configuration (Settings, Cameras, Groups)</p>
                             </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row flex-wrap gap-4 pt-2">
+                        <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2">
                             <button
                                 onClick={handleExport}
-                                className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors"
+                                className="w-full sm:w-auto h-11 px-6 flex items-center justify-center space-x-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-bold shadow-sm active:scale-95"
                             >
                                 <Download className="w-4 h-4" />
-                                <span>Export Configuration</span>
+                                <span>Export Config</span>
                             </button>
 
                             <div className="relative w-full sm:w-auto">
@@ -1284,17 +1292,17 @@ export const Settings = () => {
                                     type="file"
                                     accept=".json"
                                     onChange={handleImport}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 />
                                 <button
-                                    className="w-full h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors pointer-events-none"
+                                    className="w-full sm:w-auto h-11 px-6 flex items-center justify-center space-x-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-bold shadow-sm"
                                 >
                                     <Upload className="w-4 h-4" />
-                                    <span>Import Configuration</span>
+                                    <span>Import Config</span>
                                 </button>
                             </div>
 
-                            <p className="text-xs text-muted-foreground w-full mt-1">
+                            <p className="text-[10px] text-muted-foreground w-full mt-1 bg-muted/30 p-2 rounded-lg border border-border/50">
                                 * Export includes all cameras, groups, and system settings. Import will merge or overwrite existing configurations.
                             </p>
                         </div>

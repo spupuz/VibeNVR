@@ -14,6 +14,7 @@ export const GroupsManager = ({ cameras }) => {
 
     // Manage Modal
     const [managingGroup, setManagingGroup] = useState(null);
+    const [selectedGroupIds, setSelectedGroupIds] = useState([]);
     const [selectedCameraIds, setSelectedCameraIds] = useState([]);
     const { showToast } = useToast();
     const [confirmConfig, setConfirmConfig] = useState({ isOpen: false });
@@ -73,6 +74,7 @@ export const GroupsManager = ({ cameras }) => {
                     });
                     if (res.ok) {
                         fetchGroups();
+                        setSelectedGroupIds(prev => prev.filter(gid => gid !== id));
                         showToast('Group deleted', 'success');
                     } else {
                         showToast('Failed to delete group', 'error');
@@ -84,6 +86,54 @@ export const GroupsManager = ({ cameras }) => {
             },
             onCancel: () => setConfirmConfig({ isOpen: false })
         });
+    };
+
+    const handleBulkDeleteGroups = async () => {
+        if (selectedGroupIds.length === 0) return;
+
+        setConfirmConfig({
+            isOpen: true,
+            title: 'Bulk Delete Groups',
+            message: `Are you sure you want to delete ${selectedGroupIds.length} groups? Cameras will NOT be deleted.`,
+            onConfirm: async () => {
+                try {
+                    const res = await fetch('/api/groups/bulk-delete', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`
+                        },
+                        body: JSON.stringify(selectedGroupIds)
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        fetchGroups();
+                        setSelectedGroupIds([]);
+                        showToast(data.message, 'success');
+                    } else {
+                        showToast('Bulk delete failed', 'error');
+                    }
+                } catch (err) {
+                    showToast('Error performing bulk delete: ' + err.message, 'error');
+                }
+                setConfirmConfig({ isOpen: false });
+            },
+            onCancel: () => setConfirmConfig({ isOpen: false })
+        });
+    };
+
+    const handleSelectGroup = (id) => {
+        setSelectedGroupIds(prev =>
+            prev.includes(id) ? prev.filter(gid => gid !== id) : [...prev, id]
+        );
+    };
+
+    const handleSelectAllGroups = () => {
+        if (selectedGroupIds.length === groups.length) {
+            setSelectedGroupIds([]);
+        } else {
+            setSelectedGroupIds(groups.map(g => g.id));
+        }
     };
 
     const openManageModal = (group) => {
@@ -165,24 +215,55 @@ export const GroupsManager = ({ cameras }) => {
                     <Layers className="w-5 h-5" />
                     Camera Groups
                 </h3>
-                {user?.role === 'admin' && (
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-                    >
-                        <Plus className="w-4 h-4" />
-                        <span>New Group</span>
-                    </button>
-                )}
+                <div className="flex items-center gap-4">
+                    {user?.role === 'admin' && groups.length > 0 && (
+                        <button
+                            onClick={handleSelectAllGroups}
+                            className="flex items-center justify-center space-x-2 bg-muted hover:bg-secondary text-foreground px-3 h-8 rounded-lg transition-all whitespace-nowrap text-xs font-bold border border-border shadow-sm active:scale-95"
+                        >
+                            <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-colors ${selectedGroupIds.length === groups.length ? 'bg-primary border-primary' : 'bg-background border-border'}`}>
+                                {selectedGroupIds.length === groups.length && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={5} d="M5 13l4 4L19 7" /></svg>}
+                            </div>
+                            <span>{selectedGroupIds.length === groups.length ? 'Deselect All' : 'Select All'}</span>
+                        </button>
+                    )}
+                    {user?.role === 'admin' && (
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span>New Group</span>
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {groups.map(group => (
-                    <div key={group.id} className="bg-card border-2 border-border rounded-xl flex flex-col hover:shadow-lg transition-all duration-300 group overflow-hidden">
+                    <div
+                        key={group.id}
+                        className={`bg-card border-2 rounded-xl flex flex-col hover:shadow-lg transition-all duration-300 group overflow-hidden relative
+                            ${selectedGroupIds.includes(group.id) ? 'border-primary ring-1 ring-primary/20' : 'border-border'}
+                        `}
+                    >
+                        {/* Selection Checkbox */}
+                        {user?.role === 'admin' && (
+                            <div
+                                className={`absolute top-4 left-4 z-10 w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer ${selectedGroupIds.includes(group.id) ? 'bg-primary border-primary' : 'bg-background/80 border-border group-hover:border-primary/50'
+                                    }`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSelectGroup(group.id);
+                                }}
+                            >
+                                {selectedGroupIds.includes(group.id) && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
+                            </div>
+                        )}
                         <div className="p-6 flex-1">
                             {/* Top Row: Icon and Motion Toggle */}
                             <div className="flex justify-between items-center mb-4">
-                                <div className="p-2 bg-primary/10 rounded-lg text-primary ml-2">
+                                <div className={`p-2 rounded-lg transition-colors ml-2 ${selectedGroupIds.includes(group.id) ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
                                     <Layers className="w-6 h-6" />
                                 </div>
 
@@ -390,6 +471,34 @@ export const GroupsManager = ({ cameras }) => {
                     </div>
                 </div>
             )}
+            {/* Bulk Actions Floating Bar */}
+            {
+                selectedGroupIds.length > 0 && (
+                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <div className="bg-card/95 backdrop-blur-md border border-primary/20 shadow-2xl rounded-2xl px-6 py-4 flex items-center space-x-6 text-foreground min-w-[320px]">
+                            <div className="flex-1">
+                                <p className="font-bold text-sm">{selectedGroupIds.length} Group(s) selected</p>
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Bulk Actions</p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <button
+                                    onClick={() => setSelectedGroupIds([])}
+                                    className="px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 rounded-lg transition-colors"
+                                >
+                                    Clear
+                                </button>
+                                <button
+                                    onClick={handleBulkDeleteGroups}
+                                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-all flex items-center shadow-lg shadow-red-500/20 active:scale-95"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                    Delete Selected
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
             <ConfirmModal {...confirmConfig} />
         </div>
     );

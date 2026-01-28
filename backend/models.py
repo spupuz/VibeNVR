@@ -15,9 +15,9 @@ class Camera(Base):
     # Video Device
     resolution_width = Column(Integer, default=800)
     resolution_height = Column(Integer, default=600)
-    auto_resolution = Column(Boolean, default=True)
     framerate = Column(Integer, default=15)
     rotation = Column(Integer, default=0) # 0, 90, 180, 270
+    auto_resolution = Column(Boolean, default=True)
 
     # Text Overlay
     text_left = Column(String, default="Camera Name")
@@ -53,6 +53,13 @@ class Camera(Base):
     captured_after = Column(Integer, default=30) # frames
     min_motion_frames = Column(Integer, default=2)
     show_frame_changes = Column(Boolean, default=True)
+    
+    # Advanced Motion Detection
+    auto_threshold_tuning = Column(Boolean, default=True)
+    auto_noise_detection = Column(Boolean, default=True)
+    light_switch_detection = Column(Integer, default=0)
+    mask = Column(Boolean, default=False)
+    create_debug_media = Column(Boolean, default=False)
 
     # Notification Destinations
     notify_webhook_url = Column(String, nullable=True)

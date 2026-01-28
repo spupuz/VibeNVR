@@ -31,6 +31,16 @@ def delete_group(group_id: int, db: Session = Depends(database.get_db), current_
         raise HTTPException(status_code=404, detail="Group not found")
     return {"message": "Group deleted"}
 
+@router.post("/bulk-delete")
+def bulk_delete_groups(group_ids: List[int], db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """Delete multiple groups at once"""
+    deleted_count = 0
+    for group_id in group_ids:
+        deleted = crud.delete_group(db, group_id=group_id)
+        if deleted:
+            deleted_count += 1
+    return {"message": f"Successfully deleted {deleted_count} group(s)", "count": deleted_count}
+
 @router.post("/{group_id}/cameras", response_model=schemas.CameraGroup)
 def update_group_cameras_endpoint(group_id: int, camera_ids: List[int], db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     group = crud.update_group_cameras(db, group_id, camera_ids)

@@ -8,7 +8,8 @@ import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 
 const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSelect }) => {
-    const { user } = useAuth();
+    const { user, token } = useAuth();
+    const { showToast } = useToast();
     return (
         <div
             className={`bg-card border-2 rounded-xl flex flex-col hover:shadow-lg transition-all duration-300 group relative overflow-hidden
@@ -85,7 +86,6 @@ const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSe
                         <button
                             onClick={async () => {
                                 try {
-                                    const { token } = JSON.parse(localStorage.getItem('user_data') || '{}');
                                     const res = await fetch(`/api/cameras/${camera.id}/export`, {
                                         headers: { Authorization: `Bearer ${token}` }
                                     });
@@ -94,16 +94,24 @@ const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSe
                                         const url = window.URL.createObjectURL(blob);
                                         const a = document.createElement('a');
                                         a.href = url;
-                                        a.download = `vibenvr_camera_${camera.name.replace(' ', '_')}.json`;
+
+                                        const disposition = res.headers.get('Content-Disposition');
+                                        let filename = `vibenvr_camera_${camera.name.replace(' ', '_')}_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.json`;
+                                        if (disposition && disposition.includes('filename=')) {
+                                            filename = disposition.split('filename=')[1].replace(/"/g, '');
+                                        }
+                                        a.download = filename;
+
                                         document.body.appendChild(a);
                                         a.click();
                                         window.URL.revokeObjectURL(url);
                                         document.body.removeChild(a);
+                                        showToast("Camera settings exported successfully", "success");
                                     } else {
-                                        alert('Failed to export settings');
+                                        showToast("Failed to export settings", "error");
                                     }
                                 } catch (e) {
-                                    alert('Export error: ' + e.message);
+                                    showToast("Export error: " + e.message, "error");
                                 }
                             }}
                             className="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40 rounded-lg transition-colors"
@@ -399,6 +407,15 @@ export const Cameras = () => {
         );
     };
 
+    const handleSelectAll = (ids) => {
+        const allInIdsSelected = ids.every(id => selectedCameraIds.includes(id));
+        if (allInIdsSelected) {
+            setSelectedCameraIds(prev => prev.filter(id => !ids.includes(id)));
+        } else {
+            setSelectedCameraIds(prev => Array.from(new Set([...prev, ...ids])));
+        }
+    };
+
     const handleEdit = (camera) => {
         const { user, pass, host } = parseRtspUrl(camera.rtsp_url);
         setNewCamera({
@@ -631,13 +648,24 @@ export const Cameras = () => {
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 w-full sm:w-auto overflow-hidden">
                     {/* Group View Toggle - visible to all users */}
                     {view === 'cameras' && (
-                        <div className="flex items-center justify-end sm:justify-start">
+                        <div className="flex items-center gap-4">
                             <Toggle
                                 checked={isGroupView}
                                 onChange={handleGroupViewToggle}
                                 label="Group View"
                                 help="Group cameras by assigned groups"
                             />
+                            {user?.role === 'admin' && cameras.length > 0 && (
+                                <button
+                                    onClick={() => handleSelectAll(cameras.map(c => c.id))}
+                                    className="flex items-center justify-center space-x-2 bg-muted hover:bg-secondary text-foreground px-3 h-8 rounded-lg transition-all whitespace-nowrap text-xs font-bold border border-border shadow-sm active:scale-95"
+                                >
+                                    <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-colors ${cameras.every(c => selectedCameraIds.includes(c.id)) ? 'bg-primary border-primary' : 'bg-background border-border'}`}>
+                                        {cameras.every(c => selectedCameraIds.includes(c.id)) && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={5} d="M5 13l4 4L19 7" /></svg>}
+                                    </div>
+                                    <span>{cameras.every(c => selectedCameraIds.includes(c.id)) ? 'Deselect All' : 'Select All'}</span>
+                                </button>
+                            )}
                         </div>
                     )}
                     {user?.role === 'admin' && view === 'cameras' && (
@@ -718,11 +746,19 @@ export const Cameras = () => {
                                             const url = window.URL.createObjectURL(blob);
                                             const a = document.createElement('a');
                                             a.href = url;
-                                            a.download = 'vibenvr_cameras_export.json';
+
+                                            const disposition = res.headers.get('Content-Disposition');
+                                            let filename = `vibenvr_cameras_export_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.json`;
+                                            if (disposition && disposition.includes('filename=')) {
+                                                filename = disposition.split('filename=')[1].replace(/"/g, '');
+                                            }
+                                            a.download = filename;
+
                                             document.body.appendChild(a);
                                             a.click();
                                             window.URL.revokeObjectURL(url);
                                             document.body.removeChild(a);
+                                            showToast("All cameras exported successfully", "success");
                                         } else {
                                             showToast('Failed to export cameras', 'error');
                                         }
@@ -869,35 +905,61 @@ export const Cameras = () => {
 
                                     return (
                                         <>
-                                            {sortedGroupNames.map(groupName => (
-                                                <div key={groupName} className="relative">
-                                                    <h3 className="text-xl font-bold mb-6 text-foreground/90 flex items-center border-b pb-2">
-                                                        <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-md text-sm mr-3 font-mono">
-                                                            {grouped[groupName].length}
-                                                        </span>
-                                                        {groupName}
-                                                    </h3>
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                        {grouped[groupName].map(cam => (
-                                                            <CameraCard
-                                                                key={`${groupName}-${cam.id}`}
-                                                                camera={cam}
-                                                                onDelete={handleDelete}
-                                                                onEdit={handleEdit}
-                                                                onToggleActive={handleToggleActive}
-                                                                isSelected={selectedCameraIds.includes(cam.id)}
-                                                                onSelect={handleSelectCamera}
-                                                            />
-                                                        ))}
+                                            {sortedGroupNames.map(groupName => {
+                                                const groupCamIds = grouped[groupName].map(c => c.id);
+                                                const allInGroupSelected = groupCamIds.every(id => selectedCameraIds.includes(id));
+                                                return (
+                                                    <div key={groupName} className="relative">
+                                                        <h3 className="text-xl font-bold mb-6 text-foreground/90 flex items-center border-b pb-2">
+                                                            <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-md text-sm mr-3 font-mono">
+                                                                {grouped[groupName].length}
+                                                            </span>
+                                                            {groupName}
+                                                            {user?.role === 'admin' && (
+                                                                <button
+                                                                    onClick={() => handleSelectAll(groupCamIds)}
+                                                                    className="ml-auto text-[10px] font-bold px-2 py-1 bg-muted hover:bg-secondary rounded-md transition-all border border-border flex items-center gap-1.5 uppercase tracking-tight"
+                                                                >
+                                                                    <div className={`w-3 h-3 rounded-sm border flex items-center justify-center transition-colors ${allInGroupSelected ? 'bg-primary border-primary' : 'bg-background border-border'}`}>
+                                                                        {allInGroupSelected && <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={6} d="M5 13l4 4L19 7" /></svg>}
+                                                                    </div>
+                                                                    {allInGroupSelected ? 'Deselect Group' : 'Select Group'}
+                                                                </button>
+                                                            )}
+                                                        </h3>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                            {grouped[groupName].map(cam => (
+                                                                <CameraCard
+                                                                    key={`${groupName}-${cam.id}`}
+                                                                    camera={cam}
+                                                                    onDelete={handleDelete}
+                                                                    onEdit={handleEdit}
+                                                                    onToggleActive={handleToggleActive}
+                                                                    isSelected={selectedCameraIds.includes(cam.id)}
+                                                                    onSelect={handleSelectCamera}
+                                                                />
+                                                            ))}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
 
                                             {ungrouped.length > 0 && (
                                                 <div className="relative">
                                                     {sortedGroupNames.length > 0 && (
                                                         <h3 className="text-xl font-bold mb-6 text-foreground/90 flex items-center border-b pb-2 pt-4 opacity-80">
                                                             Ungrouped Cameras
+                                                            {user?.role === 'admin' && (
+                                                                <button
+                                                                    onClick={() => handleSelectAll(ungrouped.map(c => c.id))}
+                                                                    className="ml-auto text-[10px] font-bold px-2 py-1 bg-muted hover:bg-secondary rounded-md transition-all border border-border flex items-center gap-1.5 uppercase tracking-tight"
+                                                                >
+                                                                    <div className={`w-3 h-3 rounded-sm border flex items-center justify-center transition-colors ${ungrouped.every(c => selectedCameraIds.includes(c.id)) ? 'bg-primary border-primary' : 'bg-background border-border'}`}>
+                                                                        {ungrouped.every(c => selectedCameraIds.includes(c.id)) && <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={6} d="M5 13l4 4L19 7" /></svg>}
+                                                                    </div>
+                                                                    {ungrouped.every(c => selectedCameraIds.includes(c.id)) ? 'Deselect Ungrouped' : 'Select Ungrouped'}
+                                                                </button>
+                                                            )}
                                                         </h3>
                                                     )}
                                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1836,7 +1898,7 @@ export const Cameras = () => {
             }
             {/* Bulk Actions Floating Bar */}
             {
-                selectedCameraIds.length > 1 && !showAddModal && (
+                selectedCameraIds.length > 0 && !showAddModal && (
                     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <div className="bg-card/95 backdrop-blur-md border border-primary/20 shadow-2xl rounded-2xl px-6 py-4 flex items-center space-x-6 text-foreground min-w-[320px]">
                             <div className="flex-1">
@@ -1868,15 +1930,15 @@ export const Cameras = () => {
                 isProcessing && (
                     <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[100] flex flex-col items-center justify-center animate-in fade-in duration-300">
                         <div className="bg-card border border-border p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm text-center">
-                            <div className="relative mb-6">
-                                <Activity className="w-16 h-16 text-primary animate-spin" />
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all">
+                            <div className="flex items-center justify-center space-x-6 mb-6">
+                                <div className="p-3 bg-primary/10 rounded-2xl">
                                     {processingMessage.title.includes('Delete') ? (
-                                        <Trash2 className="w-6 h-6 text-red-500" />
+                                        <Trash2 className="w-10 h-10 text-red-500" />
                                     ) : (
-                                        <Upload className="w-6 h-6 text-primary" />
+                                        <Upload className="w-10 h-10 text-primary" />
                                     )}
                                 </div>
+                                <Activity className="w-12 h-12 text-primary animate-spin opacity-50" />
                             </div>
                             <h3 className="text-xl font-bold mb-2">{processingMessage.title}</h3>
                             <p className="text-muted-foreground text-sm">

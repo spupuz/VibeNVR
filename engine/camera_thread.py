@@ -284,7 +284,7 @@ class CameraThread(threading.Thread):
                 
         # Cleanup
         self.stream_reader.stop()
-        self.stream_reader.join()
+        self.stream_reader.join(timeout=1.0)
         self.stop_recording()
         logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Thread stopped")
 
@@ -683,7 +683,10 @@ class CameraThread(threading.Thread):
         
     def stop(self):
         self.running = False
-        self.join()
+        # Don't join with timeout here, let the manager handle it if needed
+        # or just set running to false and let the loop finish.
+        # But we want to be able to wait a bit.
+        self.join(timeout=2.0)
 
     def get_frame_bytes(self):
         with self.lock:
