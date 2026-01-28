@@ -207,7 +207,7 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                 <img
                     src={frameSrc}
                     alt={camera.name}
-                    className={`absolute inset-0 w-full h-full ${isFullscreen ? 'object-contain' : 'object-cover'}`}
+                    className={`absolute inset-0 w-full h-full object-contain`}
                 />
             ) : (
                 <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-black/90">
