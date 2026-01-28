@@ -298,13 +298,14 @@ export const LiveView = () => {
         : groupFilteredCameras;
 
     return (
-        <div className="h-full flex flex-col px-4 sm:px-6 py-2">
-            <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 px-2 pt-2">
+        <div className="h-full flex flex-col p-4 lg:p-8">
+            <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                    <h2 className="text-3xl font-bold tracking-tight flex items-baseline gap-2">
                         Live View
-                        <span className="text-sm font-normal text-muted-foreground hidden sm:inline-block">({cameras.length} cameras)</span>
+                        <span className="text-lg font-normal text-muted-foreground">({cameras.length} cameras)</span>
                     </h2>
+                    <p className="text-muted-foreground mt-2">Monitor your cameras in real-time.</p>
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
 
@@ -331,6 +332,7 @@ export const LiveView = () => {
                             <Toggle
                                 checked={isGroupView}
                                 onChange={handleGroupViewToggle}
+                                label="Group View"
                                 help="Group cameras by section"
                             />
                         </div>
@@ -365,125 +367,141 @@ export const LiveView = () => {
             </div>
 
             {/* Group View Render Logic */}
-            {isGroupView && selectedGroup === 'all' && !focusCameraId ? (
-                <div className="flex-1 overflow-y-auto space-y-6 pr-2">
-                    {/* Render Grouped Sections */}
-                    {(() => {
-                        // 1. Group cameras by their primary group (or first group found)
-                        //    Cameras with no group go to "Ungrouped"
-                        //    Cameras with multiple groups: we can duplicate them or just pick the first.
-                        //    Let's pick the first group name for sorting.
-                        const grouped = {};
-                        const ungrouped = [];
+            {
+                isGroupView && selectedGroup === 'all' && !focusCameraId ? (
+                    <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+                        {/* Render Grouped Sections */}
+                        {(() => {
+                            // 1. Group cameras by their primary group (or first group found)
+                            //    Cameras with no group go to "Ungrouped"
+                            //    Cameras with multiple groups: we can duplicate them or just pick the first.
+                            //    Let's pick the first group name for sorting.
+                            const grouped = {};
+                            const ungrouped = [];
 
-                        displayCameras.forEach(cam => {
-                            if (cam.groups && cam.groups.length > 0) {
-                                cam.groups.forEach(g => {
-                                    if (!grouped[g.name]) grouped[g.name] = [];
-                                    // Prevent duplicates in same group if data is weird, 
-                                    // but allow camera in multiple DIFFERENT groups.
-                                    if (!grouped[g.name].find(c => c.id === cam.id)) {
-                                        grouped[g.name].push(cam);
-                                    }
-                                });
-                            } else {
-                                ungrouped.push(cam);
-                            }
-                        });
+                            displayCameras.forEach(cam => {
+                                if (cam.groups && cam.groups.length > 0) {
+                                    cam.groups.forEach(g => {
+                                        if (!grouped[g.name]) grouped[g.name] = [];
+                                        // Prevent duplicates in same group if data is weird, 
+                                        // but allow camera in multiple DIFFERENT groups.
+                                        if (!grouped[g.name].find(c => c.id === cam.id)) {
+                                            grouped[g.name].push(cam);
+                                        }
+                                    });
+                                } else {
+                                    ungrouped.push(cam);
+                                }
+                            });
 
-                        const sortedGroupNames = Object.keys(grouped).sort();
+                            const sortedGroupNames = Object.keys(grouped).sort();
 
-                        return (
-                            <>
-                                {sortedGroupNames.map(groupName => (
-                                    <div key={groupName}>
-                                        <h3 className="text-lg font-semibold mb-2 text-foreground/80 sticky top-0 bg-background/95 backdrop-blur z-20 py-1">{groupName}</h3>
-                                        <div className={`grid gap-2 sm:gap-4 ${columnSetting === 'auto' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
-                                            columnSetting === '1' ? 'grid-cols-1' :
-                                                columnSetting === '2' ? 'grid-cols-1 sm:grid-cols-2' :
-                                                    columnSetting === '3' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
-                                                        'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
-                                            }`}>
-                                            {grouped[groupName].map((cam, i) => (
-                                                <VideoPlayer
-                                                    key={cam.id}
-                                                    index={i}
-                                                    camera={cam}
-                                                    onFocus={toggleFocus}
-                                                    isFocused={focusCameraId === cam.id}
-                                                    onToggleActive={handleToggleActive}
-                                                    onToggleRecording={handleToggleRecording}
-                                                    isRecording={activeMotionIds.includes(cam.id)}
-                                                    isLiveMotion={liveMotionIds.includes(cam.id)}
-                                                />
-                                            ))}
+                            return (
+                                <>
+                                    {sortedGroupNames.map(groupName => (
+                                        <div key={groupName}>
+                                            <h3 className="text-xl font-bold mb-4 text-foreground/90 flex items-center border-b pb-2 sticky top-0 bg-background/95 backdrop-blur z-20 pt-2">
+                                                <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-md text-sm mr-3 font-mono">
+                                                    {grouped[groupName].length}
+                                                </span>
+                                                {groupName}
+                                            </h3>
+                                            <div className={`grid gap-2 sm:gap-4 ${columnSetting === 'auto' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
+                                                columnSetting === '1' ? 'grid-cols-1' :
+                                                    columnSetting === '2' ? 'grid-cols-1 sm:grid-cols-2' :
+                                                        columnSetting === '3' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
+                                                            'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+                                                }`}>
+                                                {grouped[groupName].map((cam, i) => (
+                                                    <VideoPlayer
+                                                        key={cam.id}
+                                                        index={i}
+                                                        camera={cam}
+                                                        onFocus={toggleFocus}
+                                                        isFocused={focusCameraId === cam.id}
+                                                        onToggleActive={handleToggleActive}
+                                                        onToggleRecording={handleToggleRecording}
+                                                        isRecording={activeMotionIds.includes(cam.id)}
+                                                        isLiveMotion={liveMotionIds.includes(cam.id)}
+                                                    />
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
 
-                                {ungrouped.length > 0 && (
-                                    <div>
-                                        {sortedGroupNames.length > 0 && <h3 className="text-lg font-semibold mb-2 text-foreground/80 sticky top-0 bg-background/95 backdrop-blur z-20 py-1">Ungrouped</h3>}
-                                        <div className={`grid gap-2 sm:gap-4 ${columnSetting === 'auto' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
-                                            columnSetting === '1' ? 'grid-cols-1' :
-                                                columnSetting === '2' ? 'grid-cols-1 sm:grid-cols-2' :
-                                                    columnSetting === '3' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
-                                                        'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
-                                            }`}>
-                                            {ungrouped.map((cam, i) => (
-                                                <VideoPlayer
-                                                    key={cam.id}
-                                                    index={i}
-                                                    camera={cam}
-                                                    onFocus={toggleFocus}
-                                                    isFocused={focusCameraId === cam.id}
-                                                    onToggleActive={handleToggleActive}
-                                                    onToggleRecording={handleToggleRecording}
-                                                    isRecording={activeMotionIds.includes(cam.id)}
-                                                    isLiveMotion={liveMotionIds.includes(cam.id)}
-                                                />
-                                            ))}
+                                    {ungrouped.length > 0 && (
+                                        <div>
+                                            {sortedGroupNames.length > 0 && (
+                                                <h3 className="text-xl font-bold mb-4 text-foreground/90 flex items-center border-b pb-2 sticky top-0 bg-background/95 backdrop-blur z-20 pt-2">
+                                                    <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-md text-sm mr-3 font-mono">
+                                                        {ungrouped.length}
+                                                    </span>
+                                                    Ungrouped
+                                                </h3>
+                                            )}
+                                            <div className={`grid gap-2 sm:gap-4 ${columnSetting === 'auto' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
+                                                columnSetting === '1' ? 'grid-cols-1' :
+                                                    columnSetting === '2' ? 'grid-cols-1 sm:grid-cols-2' :
+                                                        columnSetting === '3' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
+                                                            'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+                                                }`}>
+                                                {ungrouped.map((cam, i) => (
+                                                    <VideoPlayer
+                                                        key={cam.id}
+                                                        index={i}
+                                                        camera={cam}
+                                                        onFocus={toggleFocus}
+                                                        isFocused={focusCameraId === cam.id}
+                                                        onToggleActive={handleToggleActive}
+                                                        onToggleRecording={handleToggleRecording}
+                                                        isRecording={activeMotionIds.includes(cam.id)}
+                                                        isLiveMotion={liveMotionIds.includes(cam.id)}
+                                                    />
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                            </>
-                        );
-                    })()}
-                </div>
-            ) : (
-                <div className={`grid gap-2 sm:gap-4 flex-1 min-h-0 ${focusCameraId ? 'grid-cols-1' :
-                    columnSetting === 'auto' ? (
-                        cameras.length <= 1 ? 'grid-cols-1' :
-                            cameras.length <= 4 ? 'grid-cols-1 sm:grid-cols-2' :
-                                'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
-                    ) : (
-                        columnSetting === '1' ? 'grid-cols-1' :
-                            columnSetting === '2' ? 'grid-cols-1 sm:grid-cols-2' :
-                                columnSetting === '3' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
-                                    columnSetting === '4' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
-                    )
-                    }`}>
-                    {displayCameras.map((cam, i) => (
-                        <VideoPlayer
-                            key={cam.id}
-                            index={i}
-                            camera={cam}
-                            onFocus={toggleFocus}
-                            isFocused={focusCameraId === cam.id}
-                            onToggleActive={handleToggleActive}
-                            onToggleRecording={handleToggleRecording}
-                            isRecording={activeMotionIds.includes(cam.id)}
-                            isLiveMotion={liveMotionIds.includes(cam.id)}
-                        />
-                    ))}
-                </div>
-            )}
+                                    )}
+                                </>
+                            );
+                        })()}
+                    </div>
+                ) : (
+                    <div className={`grid gap-2 sm:gap-4 flex-1 min-h-0 pr-2 ${focusCameraId ? 'grid-cols-1' :
+                        columnSetting === 'auto' ? (
+                            cameras.length <= 1 ? 'grid-cols-1' :
+                                cameras.length <= 4 ? 'grid-cols-1 sm:grid-cols-2' :
+                                    'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+                        ) : (
+                            columnSetting === '1' ? 'grid-cols-1' :
+                                columnSetting === '2' ? 'grid-cols-1 sm:grid-cols-2' :
+                                    columnSetting === '3' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
+                                        columnSetting === '4' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+                        )
+                        }`}>
+                        {displayCameras.map((cam, i) => (
+                            <VideoPlayer
+                                key={cam.id}
+                                index={i}
+                                camera={cam}
+                                onFocus={toggleFocus}
+                                isFocused={focusCameraId === cam.id}
+                                onToggleActive={handleToggleActive}
+                                onToggleRecording={handleToggleRecording}
+                                isRecording={activeMotionIds.includes(cam.id)}
+                                isLiveMotion={liveMotionIds.includes(cam.id)}
+                            />
+                        ))}
+                    </div>
+                )
+            }
 
-            {cameras.length === 0 && (
-                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed border-border rounded-xl">
-                    <p>No cameras configured.</p>
-                </div>
-            )}
-        </div>
+            {
+                cameras.length === 0 && (
+                    <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed border-border rounded-xl">
+                        <p>No cameras configured.</p>
+                    </div>
+                )
+            }
+        </div >
     );
 };

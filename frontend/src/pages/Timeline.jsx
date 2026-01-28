@@ -419,330 +419,341 @@ export const Timeline = () => {
     }, [autoplayNext, selectedEvent, goToNextEvent]);
 
     return (
-        <div className="min-h-[calc(100vh-8rem)] lg:h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-4">
-            {/* Mobile: Sticky Video Player at Top */}
-            {selectedEvent && (
-                <div className="lg:hidden sticky top-0 z-20 bg-card border border-border rounded-xl p-3 flex flex-col">
-                    <div className="flex justify-between items-center mb-2">
-                        <div className="flex-1 min-w-0">
-                            <h3 className="text-sm font-bold truncate">{getCameraName(selectedEvent.camera_id)}</h3>
-                            <p className="text-[10px] text-muted-foreground truncate">
-                                {new Date(selectedEvent.timestamp_start).toLocaleString()}
-                            </p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            {/* Mobile Auto-next */}
-                            <label className="flex items-center space-x-1.5 px-2 py-1 bg-muted/50 rounded-lg cursor-pointer transition-all active:scale-95">
-                                <input
-                                    type="checkbox"
-                                    checked={autoplayNext}
-                                    onChange={(e) => setAutoplayNext(e.target.checked)}
-                                    className="w-3.5 h-3.5 rounded border-gray-400 text-primary focus:ring-primary"
-                                />
-                                <span className="text-[10px] font-bold text-foreground/80 uppercase tracking-tighter">Auto-next</span>
-                                {autoplayNext && (
-                                    <select
-                                        value={autoplayDirection}
-                                        onChange={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setAutoplayDirection(e.target.value);
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="ml-1 h-3.5 text-[9px] bg-transparent border-none focus:ring-0 cursor-pointer text-muted-foreground hover:text-foreground p-0 pr-1 pl-1"
-                                        title="Playback Order"
-                                    >
-                                        <option value="desc">Newest → Oldest</option>
-                                        <option value="asc">Oldest → Newest</option>
-                                    </select>
-                                )}
-                            </label>
-                            <button
-                                onClick={() => setSelectedEvent(null)}
-                                className="p-1 hover:bg-accent rounded-lg text-muted-foreground transition-colors"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </div>
-                    <div className="aspect-video bg-black rounded-lg overflow-hidden relative">
-                        {selectedEvent.type === 'video' ? (
-                            <video
-                                ref={videoRef}
-                                controls
-                                autoPlay
-                                className="w-full h-full object-contain"
-                                src={getMediaUrl(selectedEvent.file_path)}
-                                onEnded={handleVideoEnded}
-                                onLoadedMetadata={(e) => e.target.playbackRate = playbackSpeed}
-                            />
-                        ) : (
-                            <img
-                                src={getMediaUrl(selectedEvent.file_path)}
-                                alt="Event"
-                                className="w-full h-full object-contain"
-                            />
-                        )}
-                        {/* Mobile Speed Overlay - Consistent with Desktop */}
-                        {selectedEvent.type === 'video' && (
-                            <div className="absolute top-2 right-2 px-2.5 py-1 rounded-md backdrop-blur-md shadow-lg bg-black/40 border border-white/20 active:scale-90 transition-all">
-                                <select
-                                    value={playbackSpeed}
-                                    onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
-                                    className="bg-transparent text-xs font-black text-white/90 border-none focus:ring-0 cursor-pointer p-0 text-center w-8 appearance-none"
-                                    title="Playback Speed"
-                                >
-                                    <option value={1} className="text-black">1x</option>
-                                    <option value={2} className="text-black">2x</option>
-                                    <option value={3} className="text-black">3x</option>
-                                </select>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* Left: Event List */}
-            <div className="w-full lg:w-[380px] flex-shrink-0 flex flex-col">
-                {/* Filters */}
-                <div className="flex flex-wrap items-center gap-3 mb-4 p-1">
-                    {/* ... (Previous filters remain unchanged) ... */}
-                    <div className="relative">
-                        <select
-                            className="appearance-none pl-3 pr-8 py-2 bg-card border border-border rounded-xl text-sm min-w-[140px] focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50"
-                            value={selectedCameraFilter}
-                            onChange={(e) => {
-                                setSelectedCameraFilter(e.target.value);
-                                const newParams = new URLSearchParams(searchParams);
-                                if (e.target.value === 'all') newParams.delete('camera');
-                                else newParams.set('camera', e.target.value);
-                                setSearchParams(newParams);
-                            }}
-                        >
-                            <option value="all">All Cameras</option>
-                            {cameras.map(cam => (
-                                <option key={cam.id} value={cam.id}>{cam.name}</option>
-                            ))}
-                        </select>
-                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
-                            <Filter className="w-3.5 h-3.5" />
-                        </div>
-                    </div>
-
-                    <div className="relative">
-                        <select
-                            className="appearance-none pl-3 pr-8 py-2 bg-card border border-border rounded-xl text-sm min-w-[120px] focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50"
-                            value={selectedTypeFilter}
-                            onChange={(e) => {
-                                setSelectedTypeFilter(e.target.value);
-                                const newParams = new URLSearchParams(searchParams);
-                                if (e.target.value === 'all') newParams.delete('type');
-                                else newParams.set('type', e.target.value);
-                                setSearchParams(newParams);
-                            }}
-                        >
-                            <option value="all">All Media</option>
-                            <option value="video">Videos</option>
-                            <option value="snapshot">Snapshots</option>
-                        </select>
-                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
-                            {selectedTypeFilter === 'video' ? <Video className="w-3.5 h-3.5" /> : selectedTypeFilter === 'snapshot' ? <ImageIcon className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                        </div>
-                    </div>
-
-                    <div className="relative flex items-center">
-                        <input
-                            type="date"
-                            className="pl-9 pr-3 py-2 bg-card border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50"
-                            value={selectedDate}
-                            onChange={(e) => {
-                                setSelectedDate(e.target.value);
-                                const newParams = new URLSearchParams(searchParams);
-                                newParams.set('date', e.target.value);
-                                setSearchParams(newParams);
-                            }}
-                        />
-                        <Calendar className="absolute left-3 w-4 h-4 text-primary" />
-                    </div>
-
-                    <button
-                        onClick={() => {
-                            const today = new Date().toLocaleDateString('en-CA');
-                            setSelectedDate(today);
-                            setSelectedHour(null);
-                            setSelectedCameraFilter('all');
-                            setSelectedTypeFilter('all');
-                            setSearchParams({});
-                        }}
-                        className={`flex items-center space-x-1.5 px-3 py-2 border rounded-xl text-sm transition-all
-                            ${selectedDate === new Date().toLocaleDateString('en-CA') && selectedCameraFilter === 'all' && selectedTypeFilter === 'all'
-                                ? 'bg-primary/10 border-primary/20 text-primary font-medium'
-                                : 'bg-card border-border hover:bg-accent text-muted-foreground'
-                            }`}
-                    >
-                        <span>Reset</span>
-                    </button>
-
-                    {selectedHour !== null && (
-                        <button
-                            onClick={() => setSelectedHour(null)}
-                            className="px-3 py-2 text-sm bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-colors flex items-center gap-1.5"
-                        >
-                            <span className="font-bold">{selectedHour}:00</span>
-                            <span className="opacity-70">✕</span>
-                        </button>
-                    )}
-                </div>
-
-                {/* Events area with vertical timeline */}
-                <div className="flex-1 flex gap-2 min-h-0">
-                    <HourTimeline
-                        events={events}
-                        onHourClick={(h) => setSelectedHour(selectedHour === h ? null : h)}
-                        selectedHour={selectedHour}
-                    />
-
-                    <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-                        {filteredEvents.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                                <Calendar className="w-10 h-10 mb-3 opacity-30" />
-                                <p className="text-sm">No events found</p>
-                            </div>
-                        ) : (
-                            Object.entries(groupedEvents).map(([date, dateEvents]) => (
-                                <div key={date}>
-                                    <div className="sticky top-0 bg-background/90 backdrop-blur-sm py-1.5 mb-1 z-10">
-                                        <span className="text-[10px] font-semibold text-muted-foreground uppercase">{date}</span>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        {dateEvents.map(event => (
-                                            <EventCard
-                                                key={event.id}
-                                                event={event}
-                                                onClick={setSelectedEvent}
-                                                cameraName={getCameraName(event.camera_id)}
-                                                isSelected={selectedEvent?.id === event.id}
-                                                getMediaUrl={getMediaUrl}
-                                                onDelete={handleDelete}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
+        <div className="min-h-[calc(100vh-8rem)] lg:h-[calc(100vh-8rem)] flex flex-col">
+            {/* Page Header */}
+            <div className="mb-4">
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-baseline gap-2">
+                    Timeline
+                    <span className="text-lg font-normal text-muted-foreground">({filteredEvents.length} events)</span>
+                </h2>
+                <p className="text-muted-foreground text-sm mt-1">Browse recorded events and media.</p>
             </div>
 
-            {/* Right: Preview Panel - Hidden on mobile, shown on desktop */}
-            <div className="hidden lg:flex flex-1 bg-card border border-border rounded-xl p-4 flex-col min-h-0">
-                {selectedEvent ? (
-                    <>
-                        <div className="flex justify-between items-start mb-3">
-                            <div>
-                                <h3 className="text-lg font-bold">Event Details</h3>
-                                <p className="text-xs text-muted-foreground">
-                                    {getCameraName(selectedEvent.camera_id)} • {new Date(selectedEvent.timestamp_start).toLocaleString()}
-                                    {selectedEvent.file_size > 0 && ` • ${selectedEvent.file_size < 1024 * 1024
-                                        ? (selectedEvent.file_size / 1024).toFixed(1) + ' KB'
-                                        : (selectedEvent.file_size / (1024 * 1024)).toFixed(1) + ' MB'}`}
+            <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
+                {/* Mobile: Sticky Video Player at Top */}
+                {selectedEvent && (
+                    <div className="lg:hidden sticky top-0 z-20 bg-card border border-border rounded-xl p-3 flex flex-col">
+                        <div className="flex justify-between items-center mb-2">
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-sm font-bold truncate">{getCameraName(selectedEvent.camera_id)}</h3>
+                                <p className="text-[10px] text-muted-foreground truncate">
+                                    {new Date(selectedEvent.timestamp_start).toLocaleString()}
                                 </p>
                             </div>
                             <div className="flex items-center space-x-2">
-                                {/* Autoplay Toggle */}
-                                <div className="flex items-center space-x-2 mr-2 bg-muted/30 px-2 py-1 rounded-lg">
+                                {/* Mobile Auto-next */}
+                                <label className="flex items-center space-x-1.5 px-2 py-1 bg-muted/50 rounded-lg cursor-pointer transition-all active:scale-95">
                                     <input
                                         type="checkbox"
-                                        id="autoplayNext"
                                         checked={autoplayNext}
                                         onChange={(e) => setAutoplayNext(e.target.checked)}
-                                        className="rounded border-gray-400 text-primary focus:ring-primary"
+                                        className="w-3.5 h-3.5 rounded border-gray-400 text-primary focus:ring-primary"
                                     />
-                                    <label htmlFor="autoplayNext" className="text-xs font-medium cursor-pointer select-none">Auto-next</label>
-
+                                    <span className="text-[10px] font-bold text-foreground/80 uppercase tracking-tighter">Auto-next</span>
                                     {autoplayNext && (
                                         <select
                                             value={autoplayDirection}
-                                            onChange={(e) => setAutoplayDirection(e.target.value)}
-                                            className="ml-1 h-5 text-[10px] bg-transparent border-none focus:ring-0 cursor-pointer text-muted-foreground hover:text-foreground p-0 pr-1 pl-1"
+                                            onChange={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setAutoplayDirection(e.target.value);
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="ml-1 h-3.5 text-[9px] bg-transparent border-none focus:ring-0 cursor-pointer text-muted-foreground hover:text-foreground p-0 pr-1 pl-1"
                                             title="Playback Order"
                                         >
                                             <option value="desc">Newest → Oldest</option>
                                             <option value="asc">Oldest → Newest</option>
                                         </select>
                                     )}
-                                </div>
-
-                                {/* Speed Selection */}
-                                {selectedEvent.type === 'video' && (
-                                    <div className="flex items-center space-x-1 bg-muted/50 hover:bg-muted rounded-lg px-2 py-1 transition-colors border border-transparent hover:border-border">
-                                        <select
-                                            value={playbackSpeed}
-                                            onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
-                                            className="bg-transparent text-xs font-bold text-foreground border-none focus:ring-0 cursor-pointer p-0 text-center w-12 appearance-none"
-                                            title="Playback Speed"
-                                        >
-                                            <option value={1}>1x</option>
-                                            <option value={2}>2x</option>
-                                            <option value={3}>3x</option>
-                                        </select>
-                                    </div>
-                                )}
-
-                                <div className="w-px h-6 bg-border mx-1"></div>
-
-                                <a
-                                    href={`/api/events/${selectedEvent.id}/download`}
-                                    download
-                                    className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                                </label>
+                                <button
+                                    onClick={() => setSelectedEvent(null)}
+                                    className="p-1 hover:bg-accent rounded-lg text-muted-foreground transition-colors"
                                 >
-                                    <Download className="w-4 h-4" />
-                                </a>
-                                {user?.role === 'admin' && (
-                                    <button
-                                        onClick={() => handleDelete(selectedEvent.id)}
-                                        className="p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-lg transition-colors"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                )}
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
                         </div>
-
-                        <div className="flex-1 bg-black rounded-lg overflow-hidden flex items-center justify-center min-h-0">
+                        <div className="aspect-video bg-black rounded-lg overflow-hidden relative">
                             {selectedEvent.type === 'video' ? (
                                 <video
                                     ref={videoRef}
                                     controls
                                     autoPlay
-                                    className="max-w-full max-h-full object-contain"
+                                    className="w-full h-full object-contain"
                                     src={getMediaUrl(selectedEvent.file_path)}
                                     onEnded={handleVideoEnded}
                                     onLoadedMetadata={(e) => e.target.playbackRate = playbackSpeed}
-                                >
-                                    Your browser does not support video.
-                                </video>
+                                />
                             ) : (
                                 <img
                                     src={getMediaUrl(selectedEvent.file_path)}
                                     alt="Event"
-                                    className="max-w-full max-h-full object-contain"
+                                    className="w-full h-full object-contain"
                                 />
                             )}
+                            {/* Mobile Speed Overlay - Consistent with Desktop */}
+                            {selectedEvent.type === 'video' && (
+                                <div className="absolute top-2 right-2 px-2.5 py-1 rounded-md backdrop-blur-md shadow-lg bg-black/40 border border-white/20 active:scale-90 transition-all">
+                                    <select
+                                        value={playbackSpeed}
+                                        onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
+                                        className="bg-transparent text-xs font-black text-white/90 border-none focus:ring-0 cursor-pointer p-0 text-center w-8 appearance-none"
+                                        title="Playback Speed"
+                                    >
+                                        <option value={1} className="text-black">1x</option>
+                                        <option value={2} className="text-black">2x</option>
+                                        <option value={3} className="text-black">3x</option>
+                                    </select>
+                                </div>
+                            )}
                         </div>
-
-                        <div className="mt-2 text-[10px] text-muted-foreground font-mono bg-muted/30 p-1.5 rounded truncate">
-                            {selectedEvent.file_path}
-                        </div>
-                    </>
-                ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
-                        <Play className="w-12 h-12 mb-3 opacity-20" />
-                        <p className="text-sm">Select an event to preview</p>
                     </div>
                 )}
+
+                {/* Left: Event List */}
+                <div className="w-full lg:w-[380px] flex-shrink-0 flex flex-col">
+                    {/* Filters */}
+                    <div className="flex flex-wrap items-center gap-3 mb-4 p-1">
+                        {/* ... (Previous filters remain unchanged) ... */}
+                        <div className="relative">
+                            <select
+                                className="appearance-none pl-3 pr-8 py-2 bg-card border border-border rounded-xl text-sm min-w-[140px] focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50"
+                                value={selectedCameraFilter}
+                                onChange={(e) => {
+                                    setSelectedCameraFilter(e.target.value);
+                                    const newParams = new URLSearchParams(searchParams);
+                                    if (e.target.value === 'all') newParams.delete('camera');
+                                    else newParams.set('camera', e.target.value);
+                                    setSearchParams(newParams);
+                                }}
+                            >
+                                <option value="all">All Cameras</option>
+                                {cameras.map(cam => (
+                                    <option key={cam.id} value={cam.id}>{cam.name}</option>
+                                ))}
+                            </select>
+                            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                                <Filter className="w-3.5 h-3.5" />
+                            </div>
+                        </div>
+
+                        <div className="relative">
+                            <select
+                                className="appearance-none pl-3 pr-8 py-2 bg-card border border-border rounded-xl text-sm min-w-[120px] focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50"
+                                value={selectedTypeFilter}
+                                onChange={(e) => {
+                                    setSelectedTypeFilter(e.target.value);
+                                    const newParams = new URLSearchParams(searchParams);
+                                    if (e.target.value === 'all') newParams.delete('type');
+                                    else newParams.set('type', e.target.value);
+                                    setSearchParams(newParams);
+                                }}
+                            >
+                                <option value="all">All Media</option>
+                                <option value="video">Videos</option>
+                                <option value="snapshot">Snapshots</option>
+                            </select>
+                            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                                {selectedTypeFilter === 'video' ? <Video className="w-3.5 h-3.5" /> : selectedTypeFilter === 'snapshot' ? <ImageIcon className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                            </div>
+                        </div>
+
+                        <div className="relative flex items-center">
+                            <input
+                                type="date"
+                                className="pl-9 pr-3 py-2 bg-card border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50"
+                                value={selectedDate}
+                                onChange={(e) => {
+                                    setSelectedDate(e.target.value);
+                                    const newParams = new URLSearchParams(searchParams);
+                                    newParams.set('date', e.target.value);
+                                    setSearchParams(newParams);
+                                }}
+                            />
+                            <Calendar className="absolute left-3 w-4 h-4 text-primary" />
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                const today = new Date().toLocaleDateString('en-CA');
+                                setSelectedDate(today);
+                                setSelectedHour(null);
+                                setSelectedCameraFilter('all');
+                                setSelectedTypeFilter('all');
+                                setSearchParams({});
+                            }}
+                            className={`flex items-center space-x-1.5 px-3 py-2 border rounded-xl text-sm transition-all
+                            ${selectedDate === new Date().toLocaleDateString('en-CA') && selectedCameraFilter === 'all' && selectedTypeFilter === 'all'
+                                    ? 'bg-primary/10 border-primary/20 text-primary font-medium'
+                                    : 'bg-card border-border hover:bg-accent text-muted-foreground'
+                                }`}
+                        >
+                            <span>Reset</span>
+                        </button>
+
+                        {selectedHour !== null && (
+                            <button
+                                onClick={() => setSelectedHour(null)}
+                                className="px-3 py-2 text-sm bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-colors flex items-center gap-1.5"
+                            >
+                                <span className="font-bold">{selectedHour}:00</span>
+                                <span className="opacity-70">✕</span>
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Events area with vertical timeline */}
+                    <div className="flex-1 flex gap-2 min-h-0">
+                        <HourTimeline
+                            events={events}
+                            onHourClick={(h) => setSelectedHour(selectedHour === h ? null : h)}
+                            selectedHour={selectedHour}
+                        />
+
+                        <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                            {filteredEvents.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                                    <Calendar className="w-10 h-10 mb-3 opacity-30" />
+                                    <p className="text-sm">No events found</p>
+                                </div>
+                            ) : (
+                                Object.entries(groupedEvents).map(([date, dateEvents]) => (
+                                    <div key={date}>
+                                        <div className="sticky top-0 bg-background/90 backdrop-blur-sm py-1.5 mb-1 z-10">
+                                            <span className="text-[10px] font-semibold text-muted-foreground uppercase">{date}</span>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            {dateEvents.map(event => (
+                                                <EventCard
+                                                    key={event.id}
+                                                    event={event}
+                                                    onClick={setSelectedEvent}
+                                                    cameraName={getCameraName(event.camera_id)}
+                                                    isSelected={selectedEvent?.id === event.id}
+                                                    getMediaUrl={getMediaUrl}
+                                                    onDelete={handleDelete}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right: Preview Panel - Hidden on mobile, shown on desktop */}
+                <div className="hidden lg:flex flex-1 bg-card border border-border rounded-xl p-4 flex-col min-h-0">
+                    {selectedEvent ? (
+                        <>
+                            <div className="flex justify-between items-start mb-3">
+                                <div>
+                                    <h3 className="text-lg font-bold">Event Details</h3>
+                                    <p className="text-xs text-muted-foreground">
+                                        {getCameraName(selectedEvent.camera_id)} • {new Date(selectedEvent.timestamp_start).toLocaleString()}
+                                        {selectedEvent.file_size > 0 && ` • ${selectedEvent.file_size < 1024 * 1024
+                                            ? (selectedEvent.file_size / 1024).toFixed(1) + ' KB'
+                                            : (selectedEvent.file_size / (1024 * 1024)).toFixed(1) + ' MB'}`}
+                                    </p>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    {/* Autoplay Toggle */}
+                                    <div className="flex items-center space-x-2 mr-2 bg-muted/30 px-2 py-1 rounded-lg">
+                                        <input
+                                            type="checkbox"
+                                            id="autoplayNext"
+                                            checked={autoplayNext}
+                                            onChange={(e) => setAutoplayNext(e.target.checked)}
+                                            className="rounded border-gray-400 text-primary focus:ring-primary"
+                                        />
+                                        <label htmlFor="autoplayNext" className="text-xs font-medium cursor-pointer select-none">Auto-next</label>
+
+                                        {autoplayNext && (
+                                            <select
+                                                value={autoplayDirection}
+                                                onChange={(e) => setAutoplayDirection(e.target.value)}
+                                                className="ml-1 h-5 text-[10px] bg-transparent border-none focus:ring-0 cursor-pointer text-muted-foreground hover:text-foreground p-0 pr-1 pl-1"
+                                                title="Playback Order"
+                                            >
+                                                <option value="desc">Newest → Oldest</option>
+                                                <option value="asc">Oldest → Newest</option>
+                                            </select>
+                                        )}
+                                    </div>
+
+                                    {/* Speed Selection */}
+                                    {selectedEvent.type === 'video' && (
+                                        <div className="flex items-center space-x-1 bg-muted/50 hover:bg-muted rounded-lg px-2 py-1 transition-colors border border-transparent hover:border-border">
+                                            <select
+                                                value={playbackSpeed}
+                                                onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
+                                                className="bg-transparent text-xs font-bold text-foreground border-none focus:ring-0 cursor-pointer p-0 text-center w-12 appearance-none"
+                                                title="Playback Speed"
+                                            >
+                                                <option value={1}>1x</option>
+                                                <option value={2}>2x</option>
+                                                <option value={3}>3x</option>
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    <div className="w-px h-6 bg-border mx-1"></div>
+
+                                    <a
+                                        href={`/api/events/${selectedEvent.id}/download`}
+                                        download
+                                        className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                    </a>
+                                    {user?.role === 'admin' && (
+                                        <button
+                                            onClick={() => handleDelete(selectedEvent.id)}
+                                            className="p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-lg transition-colors"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex-1 bg-black rounded-lg overflow-hidden flex items-center justify-center min-h-0">
+                                {selectedEvent.type === 'video' ? (
+                                    <video
+                                        ref={videoRef}
+                                        controls
+                                        autoPlay
+                                        className="max-w-full max-h-full object-contain"
+                                        src={getMediaUrl(selectedEvent.file_path)}
+                                        onEnded={handleVideoEnded}
+                                        onLoadedMetadata={(e) => e.target.playbackRate = playbackSpeed}
+                                    >
+                                        Your browser does not support video.
+                                    </video>
+                                ) : (
+                                    <img
+                                        src={getMediaUrl(selectedEvent.file_path)}
+                                        alt="Event"
+                                        className="max-w-full max-h-full object-contain"
+                                    />
+                                )}
+                            </div>
+
+                            <div className="mt-2 text-[10px] text-muted-foreground font-mono bg-muted/30 p-1.5 rounded truncate">
+                                {selectedEvent.file_path}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+                            <Play className="w-12 h-12 mb-3 opacity-20" />
+                            <p className="text-sm">Select an event to preview</p>
+                        </div>
+                    )}
+                </div>
+                <ConfirmModal {...confirmConfig} />
             </div>
-            <ConfirmModal {...confirmConfig} />
         </div>
     );
 };
