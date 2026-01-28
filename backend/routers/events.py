@@ -480,20 +480,25 @@ def delete_event(event_id: int, db: Session = Depends(database.get_db), current_
     return event
 
 @router.get("/{event_id}/download")
-def download_event(event_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user_mixed)):
+def download_event(event_id: int, token: str):
     """Download event file with proper headers for cross-origin support"""
-    event = db.query(models.Event).filter(models.Event.id == event_id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    
-    if not event.file_path:
-        raise HTTPException(status_code=404, detail="No file associated with this event")
-    
+    with database.get_db_ctx() as db:
+        auth_service.get_user_from_token(token, db)
+        event = db.query(models.Event).filter(models.Event.id == event_id).first()
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        if not event.file_path:
+            raise HTTPException(status_code=404, detail="No file associated with this event")
+        
+        file_path = event.file_path
+        event_type = event.type
+
+    # db is closed here
     # Convert DB path to backend filesystem path
     prefix = "/var/lib/motion"
     backend_prefix = "/data"
     
-    file_path = event.file_path
     if file_path.startswith(prefix):
         file_path = file_path.replace(prefix, backend_prefix, 1)
     elif file_path.startswith("/var/lib/vibe/recordings"):
@@ -511,7 +516,7 @@ def download_event(event_id: int, db: Session = Depends(database.get_db), curren
     filename = os.path.basename(file_path)
     
     # Determine media type
-    media_type = "video/mp4" if event.type == "video" else "image/jpeg"
+    media_type = "video/mp4" if event_type == "video" else "image/jpeg"
     
     return FileResponse(
         path=file_path,

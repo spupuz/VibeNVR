@@ -69,80 +69,78 @@ def generate_debug_report():
             pass
     report.append(f"Version: {version}")
 
-    db = next(database.get_db())
-    try:
-        # Camera Summary
-        cameras = db.query(models.Camera).all()
-        report.append(f"Total Cameras: {len(cameras)}")
-        for cam in cameras:
-            # Sanitize URL: rtsp://user:pass@ip:port/path -> rtsp://***:***@ip:port/path
-            # Sanitize URL: rtsp://user:pass@ip:port/path -> rtsp://user:***@ip:port/path
-            # Mask password only, show username for debugging context
-            safe_url = "N/A"
-            if cam.rtsp_url:
-                safe_url = re.sub(r'(rtsp://[^:]+):([^@]+)@', r'\1:***@', cam.rtsp_url) 
-                
-            safe_url = re.sub(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', 'XXX.XXX.XXX.XXX', safe_url)
-            
-            report.append(f"  - Camera ID {cam.id} ({cam.name}):")
-            report.append(f"    Mode: {cam.recording_mode}, Picture Mode: {cam.picture_recording_mode}")
-            report.append(f"    Resolution: {cam.resolution_width}x{cam.resolution_height} @ {cam.framerate}fps")
-            report.append(f"    Storage Limit: {cam.max_storage_gb}GB")
-            report.append(f"    Movie Passthrough: {cam.movie_passthrough}")
-            report.append(f"    URL Structure: {safe_url}")
-            report.append(f"    Enabled: {cam.is_active}")
-
-        # Global Settings
-        settings = db.query(models.SystemSettings).all()
-        report.append("\n--- Global Settings ---")
-        for s in settings:
-            # Redact sensitive settings
-            val = s.value
-            if any(k in s.key for k in ['password', 'token', 'secret', 'key']):
-                val = "***REDACTED***"
-            report.append(f"  {s.key}: {val}")
-
-        # Optimization Status
-        report.append("\n--- Optimization Status ---")
-        opt_keys = [
-            "opt_live_view_fps_throttle", "opt_motion_fps_throttle", 
-            "opt_live_view_height_limit", "opt_motion_analysis_height",
-            "opt_live_view_quality", "opt_snapshot_quality", "opt_ffmpeg_preset"
-        ]
-        # Create a lookup from the already fetched settings
-        settings_map = {s.key: s.value for s in settings}
-        
-        for k in opt_keys:
-            val = settings_map.get(k, "Not Set (Using Default)")
-            report.append(f"  {k}: {val}")
-
-        # 3. Database Stats
-        report.append("\n--- Database Stats ---")
+    with database.get_db_ctx() as db:
         try:
-            total_videos = db.query(models.Event).filter(models.Event.type == 'video').count()
-            total_images = db.query(models.Event).filter(models.Event.type == 'image').count() # or snapshot?
-            # Check models.Event types. Usually 'video' and 'snapshot' or 'image'. 
-            # Let's check actual data.
-            # Assuming 'video' and 'snapshot' based on other files.
-            total_snapshots = db.query(models.Event).filter(models.Event.type == 'snapshot').count()
-            
-            report.append(f"Total Video Events: {total_videos}")
-            report.append(f"Total Snapshot Events: {total_snapshots}")
-            
-            # Oldest Event
-            oldest = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).first()
-            if oldest:
-                report.append(f"Oldest Event: {oldest.timestamp_start}")
-            else:
-                 report.append("Oldest Event: None")
-                 
-        except Exception as e:
-            report.append(f"Error querying DB stats: {e}")
+            # Camera Summary
+            cameras = db.query(models.Camera).all()
+            report.append(f"Total Cameras: {len(cameras)}")
+            for cam in cameras:
+                # Sanitize URL: rtsp://user:pass@ip:port/path -> rtsp://***:***@ip:port/path
+                # Sanitize URL: rtsp://user:pass@ip:port/path -> rtsp://user:***@ip:port/path
+                # Mask password only, show username for debugging context
+                safe_url = "N/A"
+                if cam.rtsp_url:
+                    safe_url = re.sub(r'(rtsp://[^:]+):([^@]+)@', r'\1:***@', cam.rtsp_url) 
+                    
+                safe_url = re.sub(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', 'XXX.XXX.XXX.XXX', safe_url)
+                
+                report.append(f"  - Camera ID {cam.id} ({cam.name}):")
+                report.append(f"    Mode: {cam.recording_mode}, Picture Mode: {cam.picture_recording_mode}")
+                report.append(f"    Resolution: {cam.resolution_width}x{cam.resolution_height} @ {cam.framerate}fps")
+                report.append(f"    Storage Limit: {cam.max_storage_gb}GB")
+                report.append(f"    Movie Passthrough: {cam.movie_passthrough}")
+                report.append(f"    URL Structure: {safe_url}")
+                report.append(f"    Enabled: {cam.is_active}")
 
-    except Exception as e:
-        report.append(f"Error generating config report: {e}")
-    finally:
-        db.close()
+            # Global Settings
+            settings = db.query(models.SystemSettings).all()
+            report.append("\n--- Global Settings ---")
+            for s in settings:
+                # Redact sensitive settings
+                val = s.value
+                if any(k in s.key for k in ['password', 'token', 'secret', 'key']):
+                    val = "***REDACTED***"
+                report.append(f"  {s.key}: {val}")
+
+            # Optimization Status
+            report.append("\n--- Optimization Status ---")
+            opt_keys = [
+                "opt_live_view_fps_throttle", "opt_motion_fps_throttle", 
+                "opt_live_view_height_limit", "opt_motion_analysis_height",
+                "opt_live_view_quality", "opt_snapshot_quality", "opt_ffmpeg_preset"
+            ]
+            # Create a lookup from the already fetched settings
+            settings_map = {s.key: s.value for s in settings}
+            
+            for k in opt_keys:
+                val = settings_map.get(k, "Not Set (Using Default)")
+                report.append(f"  {k}: {val}")
+
+            # 3. Database Stats
+            report.append("\n--- Database Stats ---")
+            try:
+                total_videos = db.query(models.Event).filter(models.Event.type == 'video').count()
+                total_images = db.query(models.Event).filter(models.Event.type == 'image').count() # or snapshot?
+                # Check models.Event types. Usually 'video' and 'snapshot' or 'image'. 
+                # Let's check actual data.
+                # Assuming 'video' and 'snapshot' based on other files.
+                total_snapshots = db.query(models.Event).filter(models.Event.type == 'snapshot').count()
+                
+                report.append(f"Total Video Events: {total_videos}")
+                report.append(f"Total Snapshot Events: {total_snapshots}")
+                
+                # Oldest Event
+                oldest = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).first()
+                if oldest:
+                    report.append(f"Oldest Event: {oldest.timestamp_start}")
+                else:
+                     report.append("Oldest Event: None")
+                     
+            except Exception as e:
+                report.append(f"Error querying DB stats: {e}")
+
+        except Exception as e:
+            report.append(f"Error generating config report: {e}")
 
     return "\n".join(report)
 

@@ -176,11 +176,13 @@ from fastapi.responses import StreamingResponse, Response
 import httpx
 
 @router.get("/{camera_id}/frame")
-async def get_camera_frame(camera_id: int, db: Session = Depends(database.get_db), user=Depends(auth_service.get_current_user_mixed)):
+async def get_camera_frame(camera_id: int, token: str):
     """Proxy a single JPEG frame from the engine (for polling mode)"""
-    db_camera = crud.get_camera(db, camera_id=camera_id)
-    if db_camera is None:
-        raise HTTPException(status_code=404, detail="Camera not found")
+    with database.get_db_ctx() as db:
+        auth_service.get_user_from_token(token, db)
+        db_camera = crud.get_camera(db, camera_id=camera_id)
+        if db_camera is None:
+            raise HTTPException(status_code=404, detail="Camera not found")
     
     frame_url = f"http://engine:8000/cameras/{camera_id}/frame"
     
@@ -199,11 +201,13 @@ async def get_camera_frame(camera_id: int, db: Session = Depends(database.get_db
         return Response(content=placeholder, media_type="image/jpeg")
 
 @router.get("/{camera_id}/stream")
-async def stream_camera(camera_id: int, db: Session = Depends(database.get_db), user=Depends(auth_service.get_current_user_mixed)):
+async def stream_camera(camera_id: int, token: str):
     """Proxy the MJPEG stream from Motion to bypass CORS issues"""
-    db_camera = crud.get_camera(db, camera_id=camera_id)
-    if db_camera is None:
-        raise HTTPException(status_code=404, detail="Camera not found")
+    with database.get_db_ctx() as db:
+        auth_service.get_user_from_token(token, db)
+        db_camera = crud.get_camera(db, camera_id=camera_id)
+        if db_camera is None:
+            raise HTTPException(status_code=404, detail="Camera not found")
     
     # Use explicit container name for hostname stability
     # Motion used 8100+ID, VibeEngine uses API path
