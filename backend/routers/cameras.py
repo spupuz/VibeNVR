@@ -7,6 +7,7 @@ import crud, schemas, database, motion_service, storage_service, probe_service, 
 import json, asyncio, tarfile, io, re, os
 from urllib.parse import urlparse
 from typing import Optional
+import datetime
 
 router = APIRouter(
     prefix="/cameras",
@@ -266,10 +267,11 @@ def export_all_cameras(db: Session = Depends(database.get_db), current_user: mod
         cam_data["groups"] = [g.name for g in cam.groups]
         export_data.append(cam_data)
     
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
     return Response(
         content=json.dumps({"cameras": export_data, "version": "1.1"}, indent=2),
         media_type="application/json",
-        headers={"Content-Disposition": "attachment; filename=vibenvr_cameras_export.json"}
+        headers={"Content-Disposition": f"attachment; filename=vibenvr_cameras_export_{timestamp}.json"}
     )
 
 @router.get("/{camera_id}/export")
@@ -286,10 +288,11 @@ def export_single_camera(camera_id: int, db: Session = Depends(database.get_db),
     # Include group names in export
     filtered_data["groups"] = [g.name for g in cam.groups]
     
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
     return Response(
         content=json.dumps({"camera": filtered_data, "version": "1.1"}, indent=2),
         media_type="application/json",
-        headers={"Content-Disposition": f"attachment; filename=vibenvr_camera_{cam.name.replace(' ', '_')}.json"}
+        headers={"Content-Disposition": f"attachment; filename=vibenvr_camera_{cam.name.replace(' ', '_')}_{timestamp}.json"}
     )
 
 @router.post("/import")
@@ -297,8 +300,12 @@ async def import_cameras(file: UploadFile = File(...), db: Session = Depends(dat
     """Import cameras from JSON file"""
     try:
         content = await file.read()
-        data = json.loads(content)
-        
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError as e:
+            print(f"[IMPORT] JSON Decode Error: {e}")
+            raise HTTPException(status_code=400, detail="Invalid JSON file format")
+
         imported_count = 0
         skipped_count = 0
         cameras_data = data.get("cameras", [data.get("camera")]) if "cameras" in data else [data.get("camera")]
@@ -349,10 +356,13 @@ async def import_cameras(file: UploadFile = File(...), db: Session = Depends(dat
             
         return {"message": msg, "count": imported_count, "skipped": skipped_count}
     
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid JSON file")
+    except HTTPException as e:
+        raise e
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        print(f"[IMPORT] Unexpected Error: {e}", flush=True)
+        raise HTTPException(status_code=400, detail=f"Import failed: {str(e)}")
 
 @router.post("/import/motioneye")
 async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):

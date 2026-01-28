@@ -120,9 +120,22 @@ def generate_motion_config(db: Session):
         except Exception as e:
             print(f"Error syncing camera {cam.id}: {e}", flush=True)
 
-    # 2. Stop cameras that shouldn't be running?
-    # TODO: We might need a 'list_cameras' endpoint on Engine to know what to stop.
-    # For now, we assume this is mostly called on startup.
+    # 2. Stop inactive cameras that might still be running in the engine
+    # Fetch ALL cameras to find those that are i-active
+    all_cams = db.query(Camera).all()
+    for cam in all_cams:
+        if not cam.is_active:
+             # Try to stop it just in case
+             stop_camera(cam.id)
+
+def stop_all_engines():
+    """Stop all running camera threads in the engine"""
+    try:
+        requests.post(f"{ENGINE_BASE_URL}/cameras/stop-all", timeout=5)
+        return True
+    except Exception as e:
+        print(f"Failed to stop all cameras: {e}")
+        return False
 
 def update_camera_runtime(camera: Camera):
     """

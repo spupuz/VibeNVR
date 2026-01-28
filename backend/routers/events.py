@@ -3,7 +3,8 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import crud, schemas, database, os, requests, threading, models, subprocess, auth_service
-from datetime import datetime
+from sqlalchemy.exc import IntegrityError
+import datetime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -187,6 +188,28 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
 
     threading.Thread(target=_send, daemon=True).start()
 
+def cleanup_orphaned_file(file_path: str, camera_id: int):
+    """Helper to delete files from disk if the camera no longer exists in DB"""
+    if not file_path:
+        return
+        
+    local_path = None
+    if file_path.startswith("/var/lib/motion"):
+        local_path = file_path.replace("/var/lib/motion", "/data", 1)
+    elif file_path.startswith("/var/lib/vibe/recordings"):
+        local_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
+    
+    if local_path and os.path.exists(local_path):
+        try:
+            os.remove(local_path)
+            logger.info(f"[WEBHOOK] Cleaned up orphaned file for deleted camera {camera_id}: {local_path}")
+            # Also try to remove thumbnail if it exists
+            base, _ = os.path.splitext(local_path)
+            if os.path.exists(base + ".jpg"):
+                os.remove(base + ".jpg")
+        except Exception as e:
+            logger.error(f"[WEBHOOK] Failed to cleanup orphaned file: {e}")
+
 @router.post("", response_model=schemas.Event)
 def create_event(event: schemas.EventCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     return crud.create_event(db=db, event=event)
@@ -226,7 +249,7 @@ def is_within_schedule(camera: models.Camera):
         return camera.is_active
     
     # Working Schedule (Day based)
-    now = datetime.now()
+    now = datetime.datetime.now()
     days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
     current_day = days[now.weekday()]
     
@@ -264,8 +287,11 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
     # Fetch camera for settings
     camera = crud.get_camera(db, camera_id)
     if not camera:
-        logger.warning(f"[WEBHOOK] Camera ID: {camera_id} not found")
-        return {"status": "error", "message": "camera not found"}
+        event_type = payload.get("type")
+        file_path = payload.get("file_path")
+        logger.warning(f"[WEBHOOK] Camera ID: {camera_id} not found. Event: {event_type}")
+        cleanup_orphaned_file(file_path, camera_id)
+        return {"status": "error", "message": "camera not found, file cleaned up"}
 
     event_type = payload.get("type") # event_start, picture_save, movie_end
     logger.info(f"[WEBHOOK] Received: {event_type} for camera {camera.name} (ID: {camera_id})")
@@ -296,12 +322,11 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
         if camera_id in ACTIVE_CAMERAS:
             del ACTIVE_CAMERAS[camera_id]
         
-        from datetime import datetime
         ts_str = payload.get("timestamp")
         try:
-            ts = datetime.fromisoformat(ts_str)
+            ts = datetime.datetime.fromisoformat(ts_str)
         except:
-            ts = datetime.now().astimezone()
+            ts = datetime.datetime.now().astimezone()
 
         # Get Duration using ffprobe
         ts_end = None
@@ -320,8 +345,7 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
                 result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
                 if result.returncode == 0:
                     duration_sec = float(result.stdout.strip())
-                    from datetime import timedelta
-                    ts_end = ts + timedelta(seconds=duration_sec)
+                    ts_end = ts + datetime.timedelta(seconds=duration_sec)
                     logger.info(f"[WEBHOOK] Video duration: {duration_sec}s")
             except Exception as e:
                 logger.error(f"[WEBHOOK] Failed to get duration: {e}")
@@ -371,8 +395,14 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
             # Notification for movie end (if configured and within schedule)
             if in_schedule:
                 send_notifications(camera.id, "movie_end", payload)
-        except Exception as e:
-            logger.error(f"[WEBHOOK] ERROR saving event: {e}")
+        except (IntegrityError, Exception) as e:
+            # Check for ForeignKeyViolation (camera deleted while we were processing)
+            err_str = str(e).lower()
+            if "foreignkeyviolation" in err_str or "foreign key constraint" in err_str:
+                logger.warning(f"[WEBHOOK] Camera {camera_id} was deleted during processing. Cleaning up.")
+                cleanup_orphaned_file(file_path, camera_id)
+            else:
+                logger.error(f"[WEBHOOK] ERROR saving event: {e}")
             
     elif event_type == "event_start":
         logger.info(f"[WEBHOOK] Motion event started for camera {camera.name} (ID: {camera_id})")
@@ -405,12 +435,11 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
         if local_path and os.path.exists(local_path):
             file_size = os.path.getsize(local_path)
 
-        from datetime import datetime
         ts_str = payload.get("timestamp")
         try:
-            ts = datetime.fromisoformat(ts_str)
+            ts = datetime.datetime.fromisoformat(ts_str)
         except:
-            ts = datetime.now().astimezone()
+            ts = datetime.datetime.now().astimezone()
 
         event_data = schemas.EventCreate(
             camera_id=camera_id,
@@ -426,8 +455,14 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
         )
         try:
             crud.create_event(db, event_data)
-        except Exception as e:
-            logger.error(f"[WEBHOOK] ERROR saving picture event: {e}")
+        except (IntegrityError, Exception) as e:
+            # Check for ForeignKeyViolation (camera deleted while we were processing)
+            err_str = str(e).lower()
+            if "foreignkeyviolation" in err_str or "foreign key constraint" in err_str:
+                logger.warning(f"[WEBHOOK] Camera {camera_id} was deleted during processing. Cleaning up snapshot.")
+                cleanup_orphaned_file(file_path, camera_id)
+            else:
+                logger.error(f"[WEBHOOK] ERROR saving picture event: {e}")
         
     return {"status": "received"}
 

@@ -45,6 +45,11 @@ class CameraManager:
             self.cameras[camera_id].stop()
             del self.cameras[camera_id]
 
+    def stop_all(self):
+        logger.info("Stopping all cameras...")
+        for camera_id in list(self.cameras.keys()):
+            self.stop_camera(camera_id)
+
     def update_camera(self, camera_id: int, config: dict):
         if camera_id in self.cameras:
             self.cameras[camera_id].update_config(config)

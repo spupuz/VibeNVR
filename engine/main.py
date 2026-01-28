@@ -94,6 +94,11 @@ def stop_camera(camera_id: int):
     manager.stop_camera(camera_id)
     return {"status": "stopped", "camera_id": camera_id}
 
+@app.post("/cameras/stop-all")
+def stop_all_cameras():
+    manager.stop_all()
+    return {"status": "all_stopped"}
+
 @app.put("/cameras/{camera_id}/config")
 def update_config(camera_id: int, config: CameraConfig):
     manager.update_camera(camera_id, config.model_dump())
