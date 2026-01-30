@@ -22,7 +22,8 @@ services:
       - "${VIBENVR_BACKEND_PORT:-5005}:5000"
     volumes:
       - ${VIBENVR_DATA:-vibenvr_data}:/data
-      - /etc/localtime:/etc/localtime:ro
+      # - /etc/localtime:/etc/localtime:ro # Removed for cross-platform compatibility, use TZ
+
     environment:
       - DATABASE_URL=postgresql://vibenvr:vibenvrpass@db:5432/vibenvr
       - TZ=Europe/Rome
@@ -38,6 +39,8 @@ services:
       sh -c "mkdir -p /data/logs && chmod 777 /data/logs && touch /data/logs/backend.log && uvicorn main:app --host 0.0.0.0 --port 5000 2>&1 | tee -a /data/logs/backend.log"
     networks:
       - vibe-network
+    # security_opt:
+    #   - seccomp:unconfined # Uncomment on older hosts/kernels (e.g. Synology, QNAP) if you see PermissionError
 
   engine:
     image: spupuz/vibenvr-engine:latest
@@ -46,7 +49,8 @@ services:
       - "5001:5001"
     volumes:
       - ${VIBENVR_DATA:-vibenvr_data}:/var/lib/vibe/recordings
-      - /etc/localtime:/etc/localtime:ro
+      # - /etc/localtime:/etc/localtime:ro # Removed for cross-platform compatibility, use TZ
+
     environment:
       - BACKEND_URL=http://vibenvr-backend:5000
       - TZ=Europe/Rome
@@ -71,6 +75,8 @@ services:
       sh -c "mkdir -p /var/lib/vibe/recordings/logs && touch /var/lib/vibe/recordings/logs/engine.log && python -u main.py 2>&1 | grep --line-buffered -v 'SEI type 764' | tee -a /var/lib/vibe/recordings/logs/engine.log"
     networks:
       - vibe-network
+    # security_opt:
+    #   - seccomp:unconfined # Uncomment on older hosts/kernels (e.g. Synology, QNAP) if you see PermissionError
 
   db:
     image: postgres:15-alpine
@@ -89,6 +95,9 @@ services:
     networks:
       - vibe-network
     restart: always
+    # security_opt:
+    #   - seccomp:unconfined # Uncomment on older hosts/kernels (e.g. Synology, QNAP) if you see PermissionError
+
 
 volumes:
   vibenvr_data:

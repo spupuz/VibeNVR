@@ -59,12 +59,12 @@ export const About = () => {
                             If you love VibeNVR, consider giving it a Star on GitHub or buying me a coffee! Your support keeps the updates coming.
                         </p>
 
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                        <div className="flex flex-col gap-4 justify-center items-center">
                             <a
                                 href="https://github.com/spupuz/VibeNVR"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center justify-center space-x-2 bg-gray-900 text-white px-6 py-3 rounded-full font-bold hover:bg-gray-800 hover:scale-105 hover:shadow-xl transition-all duration-300"
+                                className="inline-flex items-center justify-center space-x-2 bg-gray-900 text-white px-6 py-3 rounded-full font-bold hover:bg-gray-800 hover:scale-105 hover:shadow-xl transition-all duration-300 w-64"
                             >
                                 <Github className="w-5 h-5" />
                                 <span>Star on GitHub</span>
@@ -73,7 +73,7 @@ export const About = () => {
                                 href="https://www.buymeacoffee.com/spupuz"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center justify-center space-x-2 bg-[#FFDD00] text-black px-6 py-3 rounded-full font-bold hover:bg-[#FFEA00] hover:scale-105 hover:shadow-xl transition-all duration-300"
+                                className="inline-flex items-center justify-center space-x-2 bg-[#FFDD00] text-black px-6 py-3 rounded-full font-bold hover:bg-[#FFEA00] hover:scale-105 hover:shadow-xl transition-all duration-300 w-64"
                             >
                                 <img
                                     src="https://cdn.buymeacoffee.com/buttons/bmc-new-btn-logo.svg"
@@ -81,6 +81,20 @@ export const About = () => {
                                     className="w-5 h-5"
                                 />
                                 <span>Buy me a coffee</span>
+                            </a>
+                            <a
+                                href="https://www.producthunt.com/products/vibenvr?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-vibenvr"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center transition-all duration-300 hover:scale-105 rounded-lg overflow-hidden"
+                            >
+                                <img
+                                    src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1070162&theme=light&t=1769727454865"
+                                    alt="VibeNVR - Simple, privacy-respecting local NVR | Product Hunt"
+                                    width="250"
+                                    height="54"
+                                    className="w-[250px] h-[54px]"
+                                />
                             </a>
                         </div>
                     </div>
