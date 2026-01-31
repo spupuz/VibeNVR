@@ -20,7 +20,8 @@ def get_optimization_settings(db: Session) -> dict:
         "opt_motion_analysis_height": 180,
         "opt_live_view_quality": 60,
         "opt_snapshot_quality": 90,
-        "opt_ffmpeg_preset": "ultrafast"
+        "opt_ffmpeg_preset": "ultrafast",
+        "opt_pre_capture_fps_throttle": 1
     }
     
     try:
@@ -57,7 +58,7 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
         "recording_mode": cam.recording_mode,
         "threshold": cam.threshold or 1500,
         "motion_gap": cam.motion_gap or 10,
-        "pre_capture": cam.captured_before or 0,
+        "pre_capture": (cam.captured_before or 0) * (cam.framerate or 15),
         "post_capture": cam.captured_after or 0,
         "movie_quality": cam.movie_quality or 75,
         "movie_passthrough": cam.movie_passthrough if cam.movie_passthrough is not None else False,

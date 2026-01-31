@@ -36,7 +36,9 @@ export const Settings = () => {
         opt_motion_analysis_height: 180,
         opt_live_view_quality: 60,
         opt_snapshot_quality: 90,
-        opt_ffmpeg_preset: 'ultrafast'
+        opt_snapshot_quality: 90,
+        opt_ffmpeg_preset: 'ultrafast',
+        opt_pre_capture_fps_throttle: 1
     });
     const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0, percent: 0 });
     const [loading, setLoading] = useState(true);
@@ -253,7 +255,9 @@ export const Settings = () => {
                     opt_motion_analysis_height: parseInt(data.opt_motion_analysis_height?.value) || 180,
                     opt_live_view_quality: parseInt(data.opt_live_view_quality?.value) || 60,
                     opt_snapshot_quality: parseInt(data.opt_snapshot_quality?.value) || 90,
-                    opt_ffmpeg_preset: data.opt_ffmpeg_preset?.value || 'ultrafast'
+                    opt_snapshot_quality: parseInt(data.opt_snapshot_quality?.value) || 90,
+                    opt_ffmpeg_preset: data.opt_ffmpeg_preset?.value || 'ultrafast',
+                    opt_pre_capture_fps_throttle: parseInt(data.opt_pre_capture_fps_throttle?.value) || 1
                 });
             }
         } catch (err) {
@@ -303,7 +307,9 @@ export const Settings = () => {
                     opt_motion_analysis_height: globalSettings.opt_motion_analysis_height.toString(),
                     opt_live_view_quality: globalSettings.opt_live_view_quality.toString(),
                     opt_snapshot_quality: globalSettings.opt_snapshot_quality.toString(),
-                    opt_ffmpeg_preset: globalSettings.opt_ffmpeg_preset
+                    opt_snapshot_quality: globalSettings.opt_snapshot_quality.toString(),
+                    opt_ffmpeg_preset: globalSettings.opt_ffmpeg_preset,
+                    opt_pre_capture_fps_throttle: globalSettings.opt_pre_capture_fps_throttle.toString()
                 })
             });
             showToast('Settings saved successfully!', 'success');
@@ -1138,6 +1144,29 @@ export const Settings = () => {
                                     onChange={e => setGlobalSettings({ ...globalSettings, opt_motion_fps_throttle: parseInt(e.target.value) })}
                                 />
                                 <p className="text-[10px] text-muted-foreground mt-1">Default: 3 (Process 33% of frames)</p>
+                            </div>
+                        </div>
+
+                        {/* Pre-Capture Throttling */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
+                            <div className="col-span-1">
+                                <label className="block text-sm font-medium mb-1">Pre-Capture Buffer FPS divisor</label>
+                                <p className="text-xs text-muted-foreground">
+                                    Reduces the RAM usage of the pre-trigger buffer by storing fewer frames.
+                                    Setting this to <strong>2</strong> means only every 2nd frame is buffered (saving 50% RAM), but early seconds of recording will be less fluid.
+                                    <br /><br />
+                                    <strong>Higher value = Less RAM usage</strong>.
+                                </p>
+                            </div>
+                            <div className="col-span-2">
+                                <input
+                                    type="number"
+                                    min="1" max="10"
+                                    className="w-full max-w-[150px] bg-background border border-input rounded px-3 py-2 text-sm"
+                                    value={globalSettings.opt_pre_capture_fps_throttle}
+                                    onChange={e => setGlobalSettings({ ...globalSettings, opt_pre_capture_fps_throttle: parseInt(e.target.value) })}
+                                />
+                                <p className="text-[10px] text-muted-foreground mt-1">Default: 1 (Full FPS)</p>
                             </div>
                         </div>
 

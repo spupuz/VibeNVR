@@ -102,6 +102,10 @@ async def lifespan(app: FastAPI):
                 import migrate_db
                 print("Checking for schema migrations...")
                 migrate_db.migrate()
+                
+                # Auto-migrate captured_before (Frames -> Seconds)
+                import migrate_captured_before
+                migrate_captured_before.migrate_frames_to_seconds()
             except Exception as e:
                 print(f"Migration warning: {e}")
                 
@@ -127,7 +131,7 @@ async def lifespan(app: FastAPI):
     # Background orphan recovery (delayed to not overload startup)
     def run_orphan_recovery():
         import time
-        time.sleep(30)  # Wait 30 seconds after startup
+        time.sleep(60)  # Wait 60 seconds after startup to ensure system stability
         print("[Startup] Running automatic orphan recording recovery...")
         try:
             import sync_recordings

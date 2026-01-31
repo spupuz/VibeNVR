@@ -49,8 +49,8 @@ class Camera(Base):
     threshold = Column(Integer, default=1500)
     despeckle_filter = Column(Boolean, default=False)
     motion_gap = Column(Integer, default=10) # seconds
-    captured_before = Column(Integer, default=30) # frames
-    captured_after = Column(Integer, default=30) # frames
+    captured_before = Column(Integer, default=2) # seconds
+    captured_after = Column(Integer, default=2) # seconds
     min_motion_frames = Column(Integer, default=2)
     show_frame_changes = Column(Boolean, default=True)
     
