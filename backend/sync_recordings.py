@@ -9,6 +9,7 @@ import os
 import sys
 import subprocess
 import argparse
+import time
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -49,13 +50,18 @@ def generate_thumbnail(video_path, thumb_path):
     """Generate thumbnail using ffmpeg"""
     try:
         os.makedirs(os.path.dirname(thumb_path), exist_ok=True)
+        # Use simple seek to start
         subprocess.run([
             "ffmpeg", "-y", "-i", video_path, 
             "-ss", "00:00:00.5", "-vframes", "1", "-vf", "scale=320:-1",
             thumb_path
-        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
+        ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=45) # Increased timeout
         return True
-    except:
+    except subprocess.CalledProcessError as e:
+        logger.warning(f"Thumbnail generation failed for {os.path.basename(video_path)}: FFmpeg returned {e.returncode}. Stderr: {e.stderr.decode('utf-8', errors='ignore') if e.stderr else 'No stderr'}")
+        return False
+    except Exception as e:
+        logger.warning(f"Thumbnail generation error for {os.path.basename(video_path)}: {str(e)}")
         return False
 
 def is_video_valid(file_path):
@@ -205,6 +211,30 @@ def sync_recordings(dry_run=False):
                     
                     # Get file info
                     file_size = os.path.getsize(full_path)
+                    
+                    # Check age - skip recent files (likely active recording or being written)
+                    mtime = os.path.getmtime(full_path)
+                    if (time.time() - mtime) < 120: # 2 minutes grace period
+                        continue
+
+                    # Validate video integrity before importing
+                    if not is_video_valid(full_path):
+                        logger.warning(f"  ⚠️  Found corrupted orphan: {rel_path}")
+                        if not dry_run:
+                            try:
+                                if is_safe_path(full_path):
+                                    os.remove(full_path)
+                                    # Also remove thumbnail if exists
+                                    thumb_candidate = os.path.splitext(full_path)[0] + ".jpg"
+                                    if os.path.exists(thumb_candidate):
+                                        os.remove(thumb_candidate)
+                                    logger.info(f"  🗑️  Deleted corrupted orphan: {rel_path}")
+                            except Exception as e:
+                                logger.error(f"  ❌ Failed to delete corrupted file: {e}")
+                        else:
+                             logger.info(f"  [Would Delete] corrupted orphan: {rel_path}")
+                        continue
+                        
                     duration = get_video_duration(full_path)
                     timestamp_end = timestamp_start + timedelta(seconds=duration)
                     
@@ -347,6 +377,53 @@ def sync_recordings(dry_run=False):
                 corrupted_count += 1
         
         if not dry_run and corrupted_count > 0:
+            db.commit()
+
+        # Step 4: Fix Zero Duration Events
+        # Sometimes events exist but have bad metadata (crash during record)
+        logger.info("Checking for events with zero duration...")
+        fixed_duration_count = 0
+        
+        # Find video events where duration is effectively 0 (< 1s) but we expect content
+        # We can detect this by checking if timestamp_end is close to timestamp_start
+        # SQLite storage of datetime might need care, but logic: (end - start).total_seconds() < 1
+        zero_dur_events = []
+        all_videos = db.query(Event).filter(Event.type == "video").all()
+        
+        for event in all_videos:
+            if event.timestamp_end and event.timestamp_start:
+                dur = (event.timestamp_end - event.timestamp_start).total_seconds()
+                if dur < 1.0:
+                    zero_dur_events.append(event)
+            elif not event.timestamp_end:
+                 zero_dur_events.append(event)
+
+        for event in zero_dur_events:
+            if not event.file_path: 
+                continue
+
+            # Convert to fs path
+            file_path = event.file_path
+            if file_path.startswith('/var/lib/vibe/recordings'):
+                file_path = file_path.replace('/var/lib/vibe/recordings', '/data', 1)
+            elif file_path.startswith('/var/lib/motion'):
+                file_path = file_path.replace('/var/lib/motion', '/data', 1)
+            
+            if not os.path.exists(file_path):
+                continue
+                
+            # Get real duration
+            true_dur = get_video_duration(file_path)
+            if true_dur > 1.0:
+                if dry_run:
+                    logger.info(f"  [Would Fix] Duration for {os.path.basename(file_path)}: 0s -> {true_dur}s")
+                else:
+                    event.timestamp_end = event.timestamp_start + timedelta(seconds=true_dur)
+                    event.file_size = os.path.getsize(file_path) # Update size too just in case
+                    fixed_duration_count += 1
+                    logger.info(f"  ⏱️  Fixed duration for {os.path.basename(file_path)}: {true_dur}s")
+
+        if not dry_run and fixed_duration_count > 0:
             db.commit()
         
         # Prepare result stats

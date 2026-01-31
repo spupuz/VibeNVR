@@ -1581,15 +1581,21 @@ export const Cameras = () => {
                                                 label="Captured Before"
                                                 type="number"
                                                 value={newCamera.captured_before}
-                                                onChange={(val) => setNewCamera({ ...newCamera, captured_before: val })}
-                                                unit="frames"
+                                                onChange={(val) => {
+                                                    // Enforce max 5s limit
+                                                    if (val > 5) val = 5;
+                                                    setNewCamera({ ...newCamera, captured_before: val })
+                                                }}
+                                                unit="seconds"
+                                                max={5}
+                                                min={0}
                                             />
                                             <InputField
                                                 label="Captured After"
                                                 type="number"
                                                 value={newCamera.captured_after}
                                                 onChange={(val) => setNewCamera({ ...newCamera, captured_after: val })}
-                                                unit="frames"
+                                                unit="seconds"
                                             />
                                         </div>
                                         <InputField

@@ -22,8 +22,8 @@ START_TIME = time.time()
 RESOURCE_HISTORY = deque(maxlen=60)
 RESOURCE_HISTORY_LOCK = threading.Lock()
 
-def collect_resource_stats():
-    """Collect CPU/RAM stats and store in history. Called every minute."""
+def collect_resource_stats(last_net_recv=None, check_duration_sec=60):
+    """Collect CPU/RAM/Net stats and store in history. Called every minute."""
     try:
         # Backend stats
         backend_process = psutil.Process(os.getpid())
@@ -42,6 +42,15 @@ def collect_resource_stats():
         except:
             pass
         
+        # Network stats (Global system-wide)
+        current_net_recv = psutil.net_io_counters().bytes_recv
+        net_recv_mbps = 0.0
+        
+        if last_net_recv is not None:
+             # Calculate MB/s based on difference since last check
+             diff_bytes = current_net_recv - last_net_recv
+             net_recv_mbps = round((diff_bytes / (1024 * 1024)) / check_duration_sec, 2)
+        
         data_point = {
             "timestamp": datetime.now().isoformat(),
             "cpu_percent": round(backend_cpu + engine_cpu, 1),
@@ -49,20 +58,31 @@ def collect_resource_stats():
             "backend_cpu": round(backend_cpu, 1),
             "engine_cpu": engine_cpu,
             "backend_mem_mb": round(backend_mem_mb, 1),
-            "engine_mem_mb": engine_mem_mb
+            "engine_mem_mb": engine_mem_mb,
+            "network_recv_mbps": net_recv_mbps
         }
         
         with RESOURCE_HISTORY_LOCK:
             RESOURCE_HISTORY.append(data_point)
+            
+        return current_net_recv
+            
     except Exception as e:
         print(f"Error collecting resource stats: {e}")
+        return last_net_recv
 
 def start_resource_collector():
     """Background thread to collect stats every minute"""
     def collector_loop():
+        # Initialize baseline
+        last_net_recv = psutil.net_io_counters().bytes_recv
+        
+        # Collect first point immediately (Network will be 0 MB/s due to 0 interval)
+        last_net_recv = collect_resource_stats(last_net_recv, 1)
+        
         while True:
-            collect_resource_stats()
             time.sleep(60)  # Collect every minute
+            last_net_recv = collect_resource_stats(last_net_recv, 60)
     
     thread = threading.Thread(target=collector_loop, daemon=True)
     thread.start()
@@ -70,9 +90,17 @@ def start_resource_collector():
 # Start the collector on module load
 start_resource_collector()
 
+# Rate limiting state for Network calculation
+_last_net_stats = {
+    "time": 0,
+    "bytes_recv": 0,
+    "bytes_sent": 0
+}
+_net_lock = threading.Lock()
+
 @router.get("")
 def get_stats(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
-    from sqlalchemy import func
+    from sqlalchemy import func, text
     
     # 1. Active Cameras
     cameras = crud.get_cameras(db, skip=0, limit=1000)
@@ -133,6 +161,11 @@ def get_stats(db: Session = Depends(database.get_db), current_user: models.User 
     daily_usage_map = {cam_id: (float(size) if size is not None else 0.0) for cam_id, size in daily_stats_query}
     global_daily_bytes = sum(daily_usage_map.values())
     global_daily_gb = global_daily_bytes / (1024**3)
+
+    # Simple 24h count
+    events_24h = db.query(func.count(models.Event.id))\
+        .filter(models.Event.timestamp_start >= one_day_ago)\
+        .scalar() or 0
 
     # Get Global Limit setting
     global_limit_row = db.query(models.SystemSettings).filter(models.SystemSettings.key == "max_global_storage_gb").first()
@@ -201,7 +234,7 @@ def get_stats(db: Session = Depends(database.get_db), current_user: models.User 
     engine_cpu = 0
     engine_mem_mb = 0
     try:
-        engine_resp = requests.get("http://vibenvr-engine:8000/stats", timeout=2)
+        engine_resp = requests.get("http://engine:8000/stats", timeout=2)
         if engine_resp.status_code == 200:
             engine_data = engine_resp.json()
             engine_cpu = engine_data.get("cpu_percent", 0)
@@ -213,9 +246,45 @@ def get_stats(db: Session = Depends(database.get_db), current_user: models.User 
     total_cpu = round(backend_cpu + engine_cpu, 1)
     total_mem_mb = round(backend_mem_mb + engine_mem_mb, 1)
 
+    # NEW: Network Rate Calculation
+    # Calculate MB/s based on diff from last call
+    global _last_net_stats
+    current_net = psutil.net_io_counters()
+    now_time = time.time()
+    
+    recv_mbps = 0.0
+    sent_mbps = 0.0
+    
+    with _net_lock:
+        if _last_net_stats["time"] > 0:
+            delta_time = now_time - _last_net_stats["time"]
+            if delta_time > 0:
+                delta_recv = current_net.bytes_recv - _last_net_stats["bytes_recv"]
+                delta_sent = current_net.bytes_sent - _last_net_stats["bytes_sent"]
+                
+                # Convert to MB/s
+                recv_mbps = round((delta_recv / (1024*1024)) / delta_time, 2)
+                sent_mbps = round((delta_sent / (1024*1024)) / delta_time, 2)
+        
+        # Update state
+        _last_net_stats["time"] = now_time
+        _last_net_stats["bytes_recv"] = current_net.bytes_recv
+        _last_net_stats["bytes_sent"] = current_net.bytes_sent
+
+    # NEW: Database Size
+    db_size_mb = 0
+    try:
+        # Postgres specific
+        result = db.execute(text("SELECT pg_database_size(current_database())")).fetchone()
+        if result:
+            db_size_mb = round(result[0] / (1024*1024), 1)
+    except Exception as e:
+        print(f"Error getting DB size: {e}")
+
     return {
         "active_cameras": active_cameras_count,
         "total_events": (global_movies[0] or 0) + (global_pics[0] or 0),
+        "events_24h": events_24h,
         "video_count": global_movies[0] or 0,
         "picture_count": global_pics[0] or 0,
         "storage": {
@@ -227,7 +296,9 @@ def get_stats(db: Session = Depends(database.get_db), current_user: models.User 
             "daily_rate_gb": round(global_daily_gb, 2),
             "configured_retention": configured_retention_setting,
             "configured_retention_days": configured_retention_days,
-            "required_storage_gb": required_storage_gb
+            "required_storage_gb": required_storage_gb,
+            "total_quota_gb": max_global_gb,
+            "quota_percent": round((storage_used_gb / max_global_gb) * 100) if max_global_gb > 0 else 0
         },
         "resources": {
             "cpu_percent": total_cpu,
@@ -236,6 +307,14 @@ def get_stats(db: Session = Depends(database.get_db), current_user: models.User 
             "backend_mem_mb": round(backend_mem_mb, 1),
             "engine_cpu": engine_cpu,
             "engine_mem_mb": engine_mem_mb
+        },
+        "network": {
+            "recv_mbps": recv_mbps,
+            "sent_mbps": sent_mbps
+        },
+        "database": {
+            "size_mb": db_size_mb,
+            "event_count": (global_movies[0] or 0) + (global_pics[0] or 0)
         },
         "details": {
             "global": global_stats,

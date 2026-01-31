@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Camera, HardDrive, ShieldAlert, Film, Image, CalendarClock, Cpu, MemoryStick, Settings, GripVertical, GripHorizontal } from 'lucide-react';
+import { Activity, Camera, HardDrive, ShieldAlert, Film, Image, CalendarClock, Cpu, MemoryStick, Settings, GripVertical, GripHorizontal, Network, Database } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -64,8 +64,11 @@ export const Dashboard = () => {
         picture_count: 0,
         storage: {
             total_gb: 0, used_gb: 0, free_gb: 0, percent: 0,
-            estimated_retention_days: null, daily_rate_gb: null
+            estimated_retention_days: null, daily_rate_gb: null,
+            total_quota_gb: 0, quota_percent: 0
         },
+        network: { recv_mbps: 0, sent_mbps: 0 },
+        database: { size_mb: 0, event_count: 0 },
         system_status: 'Unknown',
         uptime: '0m'
     });
@@ -92,13 +95,13 @@ export const Dashboard = () => {
     // Widget Order State
     const DEFAULT_ORDER = [
         'storage_movies', 'storage_pictures', 'storage_retention',
-        'active_cameras', 'total_events', 'video_count', 'picture_count',
+        'active_cameras', 'total_events', 'network_stats', 'db_stats',
         'storage_used', 'cpu_usage', 'memory_usage', 'system_status',
         'resource_graph', 'activity_graph', 'media_graph', 'recent_events'
     ];
 
     const [widgetOrder, setWidgetOrder] = useState(() => {
-        const saved = localStorage.getItem('dashboardOrder');
+        const saved = localStorage.getItem('dashboardOrder_v2');
         if (saved) {
             const parsed = JSON.parse(saved);
             // Merge with default to ensure no missing/new widgets
@@ -116,7 +119,7 @@ export const Dashboard = () => {
     }, [visibleWidgets]);
 
     useEffect(() => {
-        localStorage.setItem('dashboardOrder', JSON.stringify(widgetOrder));
+        localStorage.setItem('dashboardOrder_v2', JSON.stringify(widgetOrder));
     }, [widgetOrder]);
 
     // DnD Sensors
@@ -165,7 +168,8 @@ export const Dashboard = () => {
                     setResourceHistory(data.map(item => ({
                         time: new Date(item.timestamp).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
                         cpu: item.cpu_percent,
-                        memory: Math.round(item.memory_mb / 1024 * 10) / 10
+                        memory: Math.round(item.memory_mb / 1024 * 10) / 10,
+                        network: item.network_recv_mbps || 0
                     })));
                 }
             } catch (err) {
@@ -174,7 +178,7 @@ export const Dashboard = () => {
         };
 
         fetchAll();
-        const interval = setInterval(fetchAll, 30000);
+        const interval = setInterval(fetchAll, 60000);
         return () => clearInterval(interval);
     }, [token]);
 
@@ -275,10 +279,70 @@ export const Dashboard = () => {
             )
         },
         active_cameras: { group: 'cameras', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="Active Cameras" value={stats.active_cameras} subtext="Operational" icon={Camera} trend="positive" /> },
-        total_events: { group: 'videos', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="Motion Events" value={stats.total_events} subtext="Total Recorded" icon={Activity} /> },
-        video_count: { group: 'videos', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="Videos" value={stats.video_count} subtext="Activity Clips" icon={Film} /> },
-        picture_count: { group: 'pictures', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="Pictures" value={stats.picture_count} subtext="Snapshots" icon={Image} /> },
-        storage_used: { group: 'storage', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="Storage Used" value={`${stats.storage.percent}%`} subtext={`${stats.storage.used_gb}GB / ${stats.storage.total_gb}GB`} icon={HardDrive} /> },
+        total_events: { group: 'videos', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="Last 24h" value={stats.events_24h || 0} subtext="Events Recorded" icon={Activity} /> },
+        network_stats: { group: 'system', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="Network I/O" value={`${stats.network?.recv_mbps || 0} MB/s`} subtext={`Out: ${stats.network?.sent_mbps || 0} MB/s`} icon={Network} /> },
+        db_stats: { group: 'system', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="Database" value={`${stats.database?.size_mb || 0} MB`} subtext={`${stats.database?.event_count || 0} Events`} icon={Database} /> },
+        storage_used: {
+            group: 'storage',
+            span: 'col-span-6 md:col-span-3 lg:col-span-3',
+            render: () => (
+                <div className="p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group h-full relative flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-medium text-muted-foreground">Storage Used</h3>
+                        <div className="rounded-full bg-primary/10 p-2 text-primary group-hover:scale-110 transition-transform">
+                            <HardDrive className="w-5 h-5" />
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {/* Physical Disk */}
+                        <div>
+                            <div className="flex justify-between items-end mb-1">
+                                <span className="text-xs font-semibold text-muted-foreground">Physical Disk</span>
+                                <span className="text-sm font-bold">{stats.storage.percent}%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div className="h-full bg-primary transition-all" style={{ width: `${Math.min(100, stats.storage.percent)}%` }} />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 text-right">{stats.storage.used_gb}GB / {stats.storage.total_gb}GB</p>
+                        </div>
+
+                        {/* App Quota (if set) */}
+                        {stats.storage.total_quota_gb > 0 && (
+                            <div>
+                                <div className="flex justify-between items-end mb-1">
+                                    <span className="text-xs font-semibold text-muted-foreground">App Quota</span>
+                                    <span className={`text-sm font-bold ${stats.storage.quota_percent > 90 ? 'text-red-500' : 'text-blue-500'}`}>
+                                        {stats.storage.quota_percent}%
+                                    </span>
+                                </div>
+                                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div
+                                        className={`h-full transition-all ${stats.storage.quota_percent > 90 ? 'bg-red-500' : 'bg-blue-500'}`}
+                                        style={{ width: `${Math.min(100, stats.storage.quota_percent)}%` }}
+                                    />
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-0.5 text-right">{stats.storage.used_gb}GB / {stats.storage.total_quota_gb}GB</p>
+                            </div>
+                        )}
+
+                        {/* Fallback if no quota set, just to fill space or keep consistent layout? 
+                            Maybe show 'Unlimited' text. */}
+                        {(!stats.storage.total_quota_gb || stats.storage.total_quota_gb === 0) && (
+                            <div>
+                                <div className="flex justify-between items-end mb-1">
+                                    <span className="text-xs font-semibold text-muted-foreground">App Quota</span>
+                                    <span className="text-xs text-muted-foreground">Unlimited</span>
+                                </div>
+                                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden opacity-20">
+                                    <div className="h-full bg-muted" style={{ width: '100%' }} />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )
+        },
         cpu_usage: { group: 'system', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="CPU Usage" value={`${stats.resources?.cpu_percent || 0}%`} subtext={`Engine: ${stats.resources?.engine_cpu || 0}%`} icon={Cpu} /> },
         memory_usage: { group: 'system', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="Memory" value={`${Math.round(stats.resources?.memory_mb || 0)} MB`} subtext={`Engine: ${Math.round(stats.resources?.engine_mem_mb || 0)} MB`} icon={MemoryStick} /> },
         system_status: { group: 'system', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="System Status" value={stats.system_status} subtext={`Uptime: ${stats.uptime}`} icon={ShieldAlert} trend="positive" /> },
@@ -296,9 +360,11 @@ export const Dashboard = () => {
                                 <XAxis dataKey="time" stroke="#888888" fontSize={11} tickLine={false} axisLine={false} />
                                 <YAxis yAxisId="cpu" stroke="#3b82f6" fontSize={11} tickLine={false} axisLine={false} tickFormatter={value => `${value}%`} />
                                 <YAxis yAxisId="mem" orientation="right" stroke="#10b981" fontSize={11} tickLine={false} axisLine={false} tickFormatter={value => `${value}G`} />
+                                <YAxis yAxisId="net" orientation="right" stroke="#ef4444" fontSize={11} tickLine={false} axisLine={false} tickFormatter={value => `${value}M`} />
                                 <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px' }} />
                                 <Line yAxisId="cpu" type="monotone" dataKey="cpu" stroke="#3b82f6" strokeWidth={2} dot={false} />
                                 <Line yAxisId="mem" type="monotone" dataKey="memory" stroke="#10b981" strokeWidth={2} dot={false} />
+                                <Line yAxisId="net" type="monotone" dataKey="network" stroke="#ef4444" strokeWidth={2} dot={false} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
@@ -422,8 +488,7 @@ export const Dashboard = () => {
                         <h3 className="text-xl font-bold mb-4">Dashboard Widgets</h3>
                         <div className="space-y-3 mb-6">
                             {Object.entries({
-                                videos: 'Video Stats',
-                                pictures: 'Picture Stats',
+                                videos: 'Event Stats',
                                 storage: 'Storage Stats',
                                 system: 'System Stats',
                                 activityGraph: 'Activity Graphs',
