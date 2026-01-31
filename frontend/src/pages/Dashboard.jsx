@@ -76,6 +76,13 @@ export const Dashboard = () => {
     const [cameraMap, setCameraMap] = useState({});
     const [graphData, setGraphData] = useState([]);
     const [resourceHistory, setResourceHistory] = useState([]);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Widget Visibility State
     const [visibleWidgets, setVisibleWidgets] = useState(() => {
@@ -178,7 +185,7 @@ export const Dashboard = () => {
         };
 
         fetchAll();
-        const interval = setInterval(fetchAll, 60000);
+        const interval = setInterval(fetchAll, 30000);
         return () => clearInterval(interval);
     }, [token]);
 
@@ -355,13 +362,23 @@ export const Dashboard = () => {
                     <h3 className="text-lg font-semibold mb-4">Resource Usage (Last Hour)</h3>
                     <div className="h-[200px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={resourceHistory} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <LineChart data={resourceHistory} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" opacity={0.2} />
                                 <XAxis dataKey="time" stroke="#888888" fontSize={11} tickLine={false} axisLine={false} />
                                 <YAxis yAxisId="cpu" stroke="#3b82f6" fontSize={11} tickLine={false} axisLine={false} tickFormatter={value => `${value}%`} />
-                                <YAxis yAxisId="mem" orientation="right" stroke="#10b981" fontSize={11} tickLine={false} axisLine={false} tickFormatter={value => `${value}G`} />
-                                <YAxis yAxisId="net" orientation="right" stroke="#ef4444" fontSize={11} tickLine={false} axisLine={false} tickFormatter={value => `${value}M`} />
-                                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px' }} />
+                                <YAxis yAxisId="mem" orientation="right" stroke="#10b981" fontSize={11} tickLine={false} axisLine={false} tickFormatter={value => `${value}G`} hide={isMobile} />
+                                <YAxis yAxisId="net" orientation="right" stroke="#ef4444" fontSize={11} tickLine={false} axisLine={false} tickFormatter={value => `${value}M`} hide={isMobile} />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}
+                                    itemStyle={{ fontSize: '12px', padding: 0 }}
+                                    labelStyle={{ fontSize: '12px', marginBottom: '4px' }}
+                                    formatter={(value, name) => {
+                                        if (name === 'cpu') return [`${value}%`, 'CPU'];
+                                        if (name === 'memory') return [`${value} GB`, 'Memory'];
+                                        if (name === 'network') return [`${value} MB/s`, 'Network'];
+                                        return [value, name];
+                                    }}
+                                />
                                 <Line yAxisId="cpu" type="monotone" dataKey="cpu" stroke="#3b82f6" strokeWidth={2} dot={false} />
                                 <Line yAxisId="mem" type="monotone" dataKey="memory" stroke="#10b981" strokeWidth={2} dot={false} />
                                 <Line yAxisId="net" type="monotone" dataKey="network" stroke="#ef4444" strokeWidth={2} dot={false} />
