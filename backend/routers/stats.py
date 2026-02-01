@@ -109,13 +109,86 @@ def start_resource_collector():
 # Start the collector on module load
 start_resource_collector()
 
-# Rate limiting state for Network calculation
-_last_net_stats = {
-    "time": 0,
-    "bytes_recv": 0,
-    "bytes_sent": 0
+# Real-time Network Speed State (Updated every 2s)
+CURRENT_NET_SPEED = {
+    "recv_mbps": 0.0,
+    "sent_mbps": 0.0
 }
-_net_lock = threading.Lock()
+_realtime_net_lock = threading.Lock()
+
+def start_realtime_collector():
+    """Background thread to calculate current network speed every 2 seconds"""
+    def collector_loop():
+        last_time = time.time()
+        backend_proc = psutil.Process(os.getpid())
+        
+        # Initial counters
+        net_io = psutil.net_io_counters()
+        last_recv = net_io.bytes_recv
+        last_sent = net_io.bytes_sent
+        
+        # Try to get engine initial if possible
+        try:
+            resp = requests.get("http://engine:8000/stats", timeout=1)
+            if resp.status_code == 200:
+                data = resp.json()
+                last_recv += data.get("network_recv", 0)
+                last_sent += data.get("network_sent", 0)
+        except:
+             pass
+
+        while True:
+            time.sleep(2)
+            try:
+                now_time = time.time()
+                delta_time = now_time - last_time
+                if delta_time <= 0: continue
+                
+                # Get current stats
+                net_io = psutil.net_io_counters()
+                curr_recv = net_io.bytes_recv
+                curr_sent = net_io.bytes_sent
+                
+                # Add Engine stats
+                try:
+                    resp = requests.get("http://engine:8000/stats", timeout=1)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        curr_recv += data.get("network_recv", 0)
+                        curr_sent += data.get("network_sent", 0)
+                except:
+                    pass
+                
+                # Calculate diff
+                diff_recv = curr_recv - last_recv
+                diff_sent = curr_sent - last_sent
+                
+                # Handle restarts/overflows
+                if diff_recv < 0: diff_recv = 0
+                if diff_sent < 0: diff_sent = 0
+                
+                # MB/s
+                recv_mbps = round((diff_recv / (1024*1024)) / delta_time, 2)
+                sent_mbps = round((diff_sent / (1024*1024)) / delta_time, 2)
+                
+                with _realtime_net_lock:
+                    CURRENT_NET_SPEED["recv_mbps"] = recv_mbps
+                    CURRENT_NET_SPEED["sent_mbps"] = sent_mbps
+                
+                # Update baseline
+                last_recv = curr_recv
+                last_sent = curr_sent
+                last_time = now_time
+                
+            except Exception as e:
+                print(f"Error in realtime net collector: {e}")
+                time.sleep(5) # Backoff on error
+
+    thread = threading.Thread(target=collector_loop, daemon=True)
+    thread.start()
+
+# Start collectors
+start_realtime_collector()
 
 @router.get("")
 def get_stats(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
@@ -265,30 +338,12 @@ def get_stats(db: Session = Depends(database.get_db), current_user: models.User 
     total_cpu = round(backend_cpu + engine_cpu, 1)
     total_mem_mb = round(backend_mem_mb + engine_mem_mb, 1)
 
-    # NEW: Network Rate Calculation
-    # Calculate MB/s based on diff from last call
-    global _last_net_stats
-    current_net = psutil.net_io_counters()
-    now_time = time.time()
-    
+    # NEW: Network Rate Calculation (Read from background thread)
     recv_mbps = 0.0
     sent_mbps = 0.0
-    
-    with _net_lock:
-        if _last_net_stats["time"] > 0:
-            delta_time = now_time - _last_net_stats["time"]
-            if delta_time > 0:
-                delta_recv = current_net.bytes_recv - _last_net_stats["bytes_recv"]
-                delta_sent = current_net.bytes_sent - _last_net_stats["bytes_sent"]
-                
-                # Convert to MB/s
-                recv_mbps = round((delta_recv / (1024*1024)) / delta_time, 2)
-                sent_mbps = round((delta_sent / (1024*1024)) / delta_time, 2)
-        
-        # Update state
-        _last_net_stats["time"] = now_time
-        _last_net_stats["bytes_recv"] = current_net.bytes_recv
-        _last_net_stats["bytes_sent"] = current_net.bytes_sent
+    with _realtime_net_lock:
+        recv_mbps = CURRENT_NET_SPEED["recv_mbps"]
+        sent_mbps = CURRENT_NET_SPEED["sent_mbps"]
 
     # NEW: Database Size
     db_size_mb = 0
