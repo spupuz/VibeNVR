@@ -78,10 +78,15 @@ def get_stats():
     # Count active camera threads
     active_cameras = len(manager.cameras)
     
+    # Network stats (Global for container)
+    net_io = psutil.net_io_counters()
+
     return {
         "cpu_percent": round(cpu_percent, 1),
         "memory_mb": round(mem_mb, 1),
-        "active_cameras": active_cameras
+        "active_cameras": active_cameras,
+        "network_recv": net_io.bytes_recv,
+        "network_sent": net_io.bytes_sent
     }
 
 @app.post("/cameras/{camera_id}/start")

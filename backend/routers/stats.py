@@ -22,7 +22,7 @@ START_TIME = time.time()
 RESOURCE_HISTORY = deque(maxlen=60)
 RESOURCE_HISTORY_LOCK = threading.Lock()
 
-def collect_resource_stats(last_net_recv=None, check_duration_sec=60):
+def collect_resource_stats(last_net_recv=None, last_net_sent=None, check_duration_sec=60):
     """Collect CPU/RAM/Net stats and store in history. Called every minute."""
     try:
         # Backend stats
@@ -33,23 +33,40 @@ def collect_resource_stats(last_net_recv=None, check_duration_sec=60):
         # Engine stats
         engine_cpu = 0
         engine_mem_mb = 0
+        engine_net_recv = 0
+        engine_net_sent = 0
         try:
             engine_resp = requests.get("http://engine:8000/stats", timeout=2)
             if engine_resp.status_code == 200:
                 engine_data = engine_resp.json()
                 engine_cpu = engine_data.get("cpu_percent", 0)
                 engine_mem_mb = engine_data.get("memory_mb", 0)
+                engine_net_recv = engine_data.get("network_recv", 0)
+                engine_net_sent = engine_data.get("network_sent", 0)
         except:
             pass
         
-        # Network stats (Global system-wide)
-        current_net_recv = psutil.net_io_counters().bytes_recv
-        net_recv_mbps = 0.0
+        # Network stats (Global system-wide = Backend + Engine)
+        net_io = psutil.net_io_counters()
+        # Sum backend + engine bytes. 
+        # Note: This might double count internal traffic between them, but ensures external camera traffic is seen.
+        current_net_recv = net_io.bytes_recv + engine_net_recv
+        current_net_sent = net_io.bytes_sent + engine_net_sent
         
-        if last_net_recv is not None:
+        net_recv_mbps = 0.0
+        net_sent_mbps = 0.0
+        
+        if last_net_recv is not None and last_net_sent is not None:
              # Calculate MB/s based on difference since last check
-             diff_bytes = current_net_recv - last_net_recv
-             net_recv_mbps = round((diff_bytes / (1024 * 1024)) / check_duration_sec, 2)
+             diff_recv = current_net_recv - last_net_recv
+             diff_sent = current_net_sent - last_net_sent
+             
+             # Handle counter resets (if container restarted)
+             if diff_recv < 0: diff_recv = 0
+             if diff_sent < 0: diff_sent = 0
+             
+             net_recv_mbps = round((diff_recv / (1024 * 1024)) / check_duration_sec, 2)
+             net_sent_mbps = round((diff_sent / (1024 * 1024)) / check_duration_sec, 2)
         
         data_point = {
             "timestamp": datetime.now().isoformat(),
@@ -59,30 +76,32 @@ def collect_resource_stats(last_net_recv=None, check_duration_sec=60):
             "engine_cpu": engine_cpu,
             "backend_mem_mb": round(backend_mem_mb, 1),
             "engine_mem_mb": engine_mem_mb,
-            "network_recv_mbps": net_recv_mbps
+            "network_recv_mbps": net_recv_mbps,
+            "network_sent_mbps": net_sent_mbps
         }
         
         with RESOURCE_HISTORY_LOCK:
             RESOURCE_HISTORY.append(data_point)
             
-        return current_net_recv
+        return current_net_recv, current_net_sent
             
     except Exception as e:
         print(f"Error collecting resource stats: {e}")
-        return last_net_recv
+        return last_net_recv, last_net_sent
 
 def start_resource_collector():
     """Background thread to collect stats every minute"""
     def collector_loop():
         # Initialize baseline
-        last_net_recv = psutil.net_io_counters().bytes_recv
+        last_net_recv = None
+        last_net_sent = None
         
         # Collect first point immediately (Network will be 0 MB/s due to 0 interval)
-        last_net_recv = collect_resource_stats(last_net_recv, 1)
+        last_net_recv, last_net_sent = collect_resource_stats(last_net_recv, last_net_sent, 1)
         
         while True:
             time.sleep(60)  # Collect every minute
-            last_net_recv = collect_resource_stats(last_net_recv, 60)
+            last_net_recv, last_net_sent = collect_resource_stats(last_net_recv, last_net_sent, 60)
     
     thread = threading.Thread(target=collector_loop, daemon=True)
     thread.start()

@@ -94,6 +94,7 @@ export const Dashboard = () => {
             system: true,
             activityGraph: true,
             resourceGraph: true,
+            networkGraph: true,
             recentEvents: true,
             cameras: true
         };
@@ -104,16 +105,35 @@ export const Dashboard = () => {
         'storage_movies', 'storage_pictures', 'storage_retention',
         'active_cameras', 'total_events', 'network_stats', 'db_stats',
         'storage_used', 'cpu_usage', 'memory_usage', 'system_status',
-        'resource_graph', 'activity_graph', 'media_graph', 'recent_events'
+        'resource_graph', 'network_graph', 'activity_graph', 'media_graph', 'recent_events'
     ];
 
     const [widgetOrder, setWidgetOrder] = useState(() => {
         const saved = localStorage.getItem('dashboardOrder_v2');
         if (saved) {
-            const parsed = JSON.parse(saved);
-            // Merge with default to ensure no missing/new widgets
+            let parsed = JSON.parse(saved);
+
+            // 1. Identify missing widgets
             const missing = DEFAULT_ORDER.filter(id => !parsed.includes(id));
-            if (missing.length > 0) return [...parsed, ...missing];
+
+            if (missing.length > 0) {
+                // Special handling: smart insert for network_graph
+                if (missing.includes('network_graph') && parsed.includes('resource_graph')) {
+                    const idx = parsed.indexOf('resource_graph');
+                    // Insert network_graph right after resource_graph
+                    parsed = [
+                        ...parsed.slice(0, idx + 1),
+                        'network_graph',
+                        ...parsed.slice(idx + 1)
+                    ];
+                    // Remove network_graph from missing list to avoid double add
+                    const netIndex = missing.indexOf('network_graph');
+                    if (netIndex > -1) missing.splice(netIndex, 1);
+                }
+
+                // Append remaining missing widgets
+                return [...parsed, ...missing];
+            }
             return parsed;
         }
         return DEFAULT_ORDER;
@@ -176,7 +196,8 @@ export const Dashboard = () => {
                         time: new Date(item.timestamp).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
                         cpu: item.cpu_percent,
                         memory: Math.round(item.memory_mb / 1024 * 10) / 10,
-                        network: item.network_recv_mbps || 0
+                        network_in: item.network_recv_mbps || 0,
+                        network_out: item.network_sent_mbps || 0
                     })));
                 }
             } catch (err) {
@@ -367,25 +388,44 @@ export const Dashboard = () => {
                                 <XAxis dataKey="time" stroke="#888888" fontSize={11} tickLine={false} axisLine={false} />
                                 <YAxis yAxisId="cpu" stroke="#3b82f6" fontSize={11} tickLine={false} axisLine={false} tickFormatter={value => `${value}%`} />
                                 <YAxis yAxisId="mem" orientation="right" stroke="#10b981" fontSize={11} tickLine={false} axisLine={false} tickFormatter={value => `${value}G`} hide={isMobile} />
-                                <YAxis yAxisId="net" orientation="right" stroke="#ef4444" fontSize={11} tickLine={false} axisLine={false} tickFormatter={value => `${value}M`} hide={isMobile} />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}
-                                    itemStyle={{ fontSize: '12px', padding: 0 }}
-                                    labelStyle={{ fontSize: '12px', marginBottom: '4px' }}
-                                    formatter={(value, name) => {
-                                        if (name === 'cpu') return [`${value}%`, 'CPU'];
-                                        if (name === 'memory') return [`${value} GB`, 'Memory'];
-                                        if (name === 'network') return [`${value} MB/s`, 'Network'];
-                                        return [value, name];
-                                    }}
+                                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--card-foreground))' }}
+                                    itemStyle={{ color: 'hsl(var(--card-foreground))' }}
                                 />
-                                <Line yAxisId="cpu" type="monotone" dataKey="cpu" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                                <Line yAxisId="mem" type="monotone" dataKey="memory" stroke="#10b981" strokeWidth={2} dot={false} />
-                                <Line yAxisId="net" type="monotone" dataKey="network" stroke="#ef4444" strokeWidth={2} dot={false} />
+                                <Legend verticalAlign="bottom" height={36} />
+                                <Line yAxisId="cpu" name="CPU Usage %" type="monotone" dataKey="cpu" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                                <Line yAxisId="mem" name="Memory (MB)" type="monotone" dataKey="memory" stroke="#10b981" strokeWidth={2} dot={false} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
+            )
+        },
+
+        network_graph: {
+            group: 'networkGraph',
+            span: 'col-span-12 h-64',
+            render: () => (
+                <div className="bg-card rounded-xl border border-border p-6 h-full">
+                    <h3 className="text-lg font-semibold mb-4">Network Traffic(Last Hour)</h3>
+                    <div className="h-[200px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={resourceHistory} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" opacity={0.2} />
+                                <XAxis dataKey="time" stroke="#888888" fontSize={11} tickLine={false} axisLine={false} />
+                                <YAxis yAxisId="net" stroke="#ef4444" fontSize={11} tickLine={false} axisLine={false} tickFormatter={value => `${value}M`} />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--card-foreground))' }}
+                                    itemStyle={{ color: 'hsl(var(--card-foreground))' }}
+                                    formatter={(value, name) => [`${value} MB/s`, name]}
+                                />
+                                <Legend verticalAlign="bottom" height={36} />
+                                <Line yAxisId="net" name="Network In" type="monotone" dataKey="network_in" stroke="#6366f1" strokeWidth={2} dot={false} />
+                                <Line yAxisId="net" name="Network Out" type="monotone" dataKey="network_out" stroke="#ec4899" strokeWidth={2} dot={false} strokeDasharray="3 3" />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div >
             )
         },
 
@@ -510,6 +550,7 @@ export const Dashboard = () => {
                                 system: 'System Stats',
                                 activityGraph: 'Activity Graphs',
                                 resourceGraph: 'Resource Graph',
+                                networkGraph: 'Network Graph',
                                 recentEvents: 'Recent Events',
                                 cameras: 'Active Cameras'
                             }).map(([key, label]) => (
