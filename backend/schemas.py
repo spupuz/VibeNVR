@@ -29,6 +29,7 @@ class CameraBase(BaseModel):
     movie_quality: Optional[int] = 75
     movie_passthrough: Optional[bool] = False
     recording_mode: Optional[str] = "Motion Triggered"
+    previous_recording_mode: Optional[str] = None
     max_movie_length: Optional[int] = 120  # Default 2 minutes, range 60-300 (1-5 min)
     preserve_movies: Optional[str] = "For One Week"
     max_storage_gb: Optional[float] = 0  # 0 = unlimited

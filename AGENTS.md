@@ -159,8 +159,22 @@ def delete_camera(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth_service.get_current_active_admin)
 ):
-    # Only admin can delete
+### Anti-Pattern 4: Raw Logs
+**Bad**: Logging sensitive data (URLs with credentials, tokens) directly.
+```python
+logger.info(f"Connecting to {rtsp_url}") # BAD! Exposes credentials.
 ```
+**Good**: Filter sensitive data or use placeholders.
+```python
+safe_url = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', rtsp_url)
+logger.info(f"Connecting to {safe_url}")
+```
+
+## Security & Data Privacy
+
+- **Sanitize everything**: Every input from the user or the network must be validated using Pydantic schemas.
+- **Mask logs and telemetry**: Ensure that no sensitive information is ever written to logs or telemetry streams.
+- **Role-Based Access Control (RBAC)**: Always check for `current_user` role when implementing new API endpoints.
 
 ## AI-Assisted Contributions
 
