@@ -85,21 +85,16 @@ class StreamReader(threading.Thread):
                     current_url = self.url # Update current target
                     logger.info(f"StreamReader ({self.camera_name}): Connecting to stream...")
                     
-                    # Modern OpenCV HW Acceleration using CAP_PROP_HW_ACCELERATION
-                    capture_params = [cv2.CAP_PROP_BUFFERSIZE, 1]
+                    # NOTE: OpenCV 4.6 (Debian) on FFMPEG backend does not support params in constructor
+                    # We utilize os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] which is set above
+                    cap = cv2.VideoCapture(current_url, cv2.CAP_FFMPEG)
                     
-                    if hw_accel_enabled:
-                         if hw_accel_type == 'nvidia':
-                              capture_params.extend([cv2.CAP_PROP_HW_ACCELERATION, cv2.VIDEO_ACCELERATION_CUDA])
-                         elif hw_accel_type in ['vaapi', 'intel', 'amd']:
-                              capture_params.extend([cv2.CAP_PROP_HW_ACCELERATION, cv2.VIDEO_ACCELERATION_VAAPI])
-                         elif hw_accel_type == 'auto':
-                              # Fallback to ANY if auto detection failed to resolve specific type
-                              capture_params.extend([cv2.CAP_PROP_HW_ACCELERATION, cv2.VIDEO_ACCELERATION_ANY])
-                    
-                    logger.debug(f"StreamReader ({self.camera_name}): Params: {capture_params}")
-                    cap = cv2.VideoCapture(current_url, cv2.CAP_FFMPEG, capture_params)
-                    
+                    # Try to minimize buffer if backend supports it
+                    try:
+                        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                    except:
+                        pass
+                                        
                     if not cap.isOpened():
                         if time.time() - self.last_error_log > 10:
                             logger.warning(f"StreamReader ({self.camera_name}): Failed to connect. Retrying...")
