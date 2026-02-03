@@ -373,7 +373,40 @@ export const Dashboard = () => {
         },
         cpu_usage: { group: 'system', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="CPU Usage" value={`${stats.resources?.cpu_percent || 0}%`} subtext={`Engine: ${stats.resources?.engine_cpu || 0}%`} icon={Cpu} /> },
         memory_usage: { group: 'system', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="Memory" value={`${Math.round(stats.resources?.memory_mb || 0)} MB`} subtext={`Engine: ${Math.round(stats.resources?.engine_mem_mb || 0)} MB`} icon={MemoryStick} /> },
-        system_status: { group: 'system', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="System Status" value={stats.system_status} subtext={`Uptime: ${stats.uptime}`} icon={ShieldAlert} trend="positive" /> },
+        system_status: {
+            group: 'system',
+            span: 'col-span-6 md:col-span-3 lg:col-span-3',
+            render: () => (
+                <div className="p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group h-full relative">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-medium text-muted-foreground">System Status</h3>
+                        <div className="rounded-full bg-primary/10 p-2 text-primary group-hover:scale-110 transition-transform">
+                            <ShieldAlert className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <p className="text-3xl font-bold">{stats.system_status}</p>
+                    <div className="flex flex-col gap-1 mt-1">
+                        <p className="text-xs text-green-500">Uptime: {stats.uptime}</p>
+                        {stats.hw_accel && (
+                            <div className="flex items-center gap-2 mt-2">
+                                <span className={`text-[10px] px-2 py-0.5 rounded font-medium border ${!stats.hw_accel.enabled
+                                        ? 'bg-muted text-muted-foreground border-border'
+                                        : stats.hw_accel.verified
+                                            ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                            : 'bg-red-500/10 text-red-500 border-red-500/20'
+                                    }`}>
+                                    HW Accel: {
+                                        !stats.hw_accel.enabled
+                                            ? 'OFF'
+                                            : `${stats.hw_accel.type.toUpperCase()} ${stats.hw_accel.verified ? 'OK' : '(ERROR)'}`
+                                    }
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )
+        },
 
         resource_graph: {
             group: 'resourceGraph',

@@ -331,8 +331,14 @@ def get_stats(db: Session = Depends(database.get_db), current_user: models.User 
             engine_data = engine_resp.json()
             engine_cpu = engine_data.get("cpu_percent", 0)
             engine_mem_mb = engine_data.get("memory_mb", 0)
+            engine_hw_accel = engine_data.get("hw_accel", False)
+            engine_hw_accel_type = engine_data.get("hw_accel_type", "none")
+            engine_hw_accel_verified = engine_data.get("hw_accel_verified", False)
     except:
         pass  # Engine unreachable, use 0
+        engine_hw_accel = False
+        engine_hw_accel_type = "unknown"
+        engine_hw_accel_verified = False
     
     # Total app resources
     total_cpu = round(backend_cpu + engine_cpu, 1)
@@ -395,7 +401,12 @@ def get_stats(db: Session = Depends(database.get_db), current_user: models.User 
             "cameras": camera_stats
         },
         "system_status": "Healthy",
-        "uptime": uptime_str
+        "uptime": uptime_str,
+        "hw_accel": {
+            "enabled": engine_hw_accel,
+            "type": engine_hw_accel_type,
+            "verified": engine_hw_accel_verified
+        }
     }
 
 @router.get("/history")
