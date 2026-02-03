@@ -11,6 +11,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     python3 \
     python3-pip \
     python3-opencv \
+    python-is-python3 \
     ffmpeg \
     mesa-va-drivers \
     intel-media-va-driver-non-free \
