@@ -35,6 +35,15 @@ class StreamReader(threading.Thread):
             self.url = new_url
             # Trigger reconnect by modifying state handled in run loop
             # We don't have direct access to 'cap' here, but the loop checks self.url
+    
+    def force_reconnect(self):
+        """Force the stream reader to reconnect by marking as disconnected"""
+        logger.info(f"StreamReader ({self.camera_name}): Force reconnect requested")
+        self.connected = False
+        # Clear the latest frame to indicate we're reconnecting
+        with self.lock:
+            self.latest_frame = None
+            self.last_read_time = 0
         
     def run(self):
         self.running = True
@@ -515,7 +524,7 @@ class CameraThread(threading.Thread):
         mode = self.config.get('recording_mode', 'Off')
         should_record = False
         
-        if mode == 'Always':
+        if mode == 'Always' or mode == 'Continuous':
             should_record = True
         elif mode == 'Motion Triggered' and self.motion_detected:
             should_record = True
@@ -635,7 +644,7 @@ class CameraThread(threading.Thread):
                 self.passthrough_error_count += 1
                 return
 
-        # ENCODING MODE (Standard)
+        # ENCODING MODE with Hardware Acceleration Support
         # Map quality (0-100) to CRF (51-18)
         # 100 = CRF 18 (Visually Lossless)
         # 75  = CRF 26 (Good Compromise)
@@ -644,8 +653,33 @@ class CameraThread(threading.Thread):
         crf = int(51 - (quality * 0.33))
         crf = max(18, min(51, crf))
         
-        # Use hardware acceleration if available for ENCODING too? 
-        # For now, software libx264 ultrafast is used as per existing code.
+        # Check if HW encoding is available
+        hw_accel_enabled = os.environ.get('HW_ACCEL', 'false').lower() == 'true'
+        hw_accel_type = os.environ.get('HW_ACCEL_TYPE', 'auto').lower()
+        
+        # Select encoder based on HW accel settings
+        video_codec = 'libx264'  # Software fallback
+        codec_specific_args = ['-preset', self.config.get('opt_ffmpeg_preset', 'ultrafast'), '-crf', str(crf)]
+        
+        if hw_accel_enabled:
+            if hw_accel_type in ['vaapi', 'intel', 'amd', 'auto']:
+                # Try VAAPI encoding
+                if os.path.exists('/dev/dri'):
+                    video_codec = 'h264_vaapi'
+                    # VAAPI uses different quality control (qp instead of crf)  
+                    qp = int(crf * 0.7)  # Approximate CRF to QP mapping
+                    codec_specific_args = [
+                        '-vaapi_device', '/dev/dri/renderD128',
+                        '-vf', 'format=nv12,hwupload',
+                        '-qp', str(qp)
+                    ]
+                    logger.info(f"Camera {self.config.get('name')}: Using VAAPI hardware encoding")
+            
+            elif hw_accel_type == 'nvidia':
+                # NVIDIA NVENC
+                video_codec = 'h264_nvenc'
+                codec_specific_args = ['-preset', 'fast', '-cq', str(crf)]
+                logger.info(f"Camera {self.config.get('name')}: Using NVENC hardware encoding")
         
         command = [
             'ffmpeg',
@@ -656,12 +690,15 @@ class CameraThread(threading.Thread):
             '-pix_fmt', 'bgr24',
             '-r', str(self.config.get('framerate', 15)),
             '-i', '-',
-            '-c:v', 'libx264',
-            '-preset', self.config.get('opt_ffmpeg_preset', 'ultrafast'),
-            '-crf', str(crf),
+            '-c:v', video_codec,
+            *codec_specific_args,
             '-pix_fmt', 'yuv420p',
             full_path
         ]
+        
+        # Log encoder being used
+        cmd_str = ' '.join([c for c in command if 'rtsp' not in c.lower()])
+        logger.info(f"Camera {self.config.get('name')}: FFmpeg encoding command: {cmd_str}")
         
         try:
             self.recording_process = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
@@ -734,7 +771,31 @@ class CameraThread(threading.Thread):
 
     def update_config(self, new_config):
         """ Update config dynamically without stopping thread """
+        old_passthrough = self.config.get('movie_passthrough', False)
+        new_passthrough = new_config.get('movie_passthrough', old_passthrough)
+        
         self.config.update(new_config)
+        
+        # Handle passthrough mode change
+        if 'movie_passthrough' in new_config and old_passthrough != new_passthrough:
+            logger.info(f"Camera {self.config.get('name')}: Passthrough mode changed from {old_passthrough} to {new_passthrough}")
+            
+            # Reset error count to give passthrough a fresh start
+            self.passthrough_error_count = 0
+            
+            # If we have an active passthrough recording, stop it so it can restart with new settings
+            # This also releases the RTSP connection that might block the liveview StreamReader
+            if self.is_recording and self.passthrough_active:
+                logger.info(f"Camera {self.config.get('name')}: Stopping active passthrough recording due to config change")
+                self.stop_recording()
+                # (moved after if block)
+            
+            # Update passthrough_active regardless of recording state
+            self.passthrough_active = new_passthrough
+            
+            # Force StreamReader to reconnect after passthrough change
+            # This fixes the black screen issue when toggling passthrough
+            self.stream_reader.force_reconnect()
         
         # Update StreamReader URL if changed
         if 'rtsp_url' in new_config:

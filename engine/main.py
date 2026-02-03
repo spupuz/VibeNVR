@@ -89,12 +89,28 @@ def get_stats():
         "network_sent": net_io.bytes_sent,
         "hw_accel": os.environ.get("HW_ACCEL", "false").lower() == "true",
         "hw_accel_type": os.environ.get("HW_ACCEL_TYPE", "unknown"),
-        "hw_accel_verified": _verify_hw_accel(os.environ.get("HW_ACCEL_TYPE", "unknown"))
+        "hw_accel_status": _get_hw_accel_status(os.environ.get("HW_ACCEL_TYPE", "unknown"))
     }
 
-    return False
-
-    return False
+def _check_vaapi_capabilities():
+    """Check if VAAPI encoders are available via FFmpeg"""
+    try:
+        import subprocess
+        result = subprocess.run(
+            ['ffmpeg', '-hide_banner', '-encoders'],
+            capture_output=True,
+            text=True,
+            timeout=2
+        )
+        output = result.stdout
+        has_h264_vaapi = 'h264_vaapi' in output
+        has_hevc_vaapi = 'hevc_vaapi' in output
+        
+        logger.info(f"VAAPI Encoders available: h264={has_h264_vaapi}, hevc={has_hevc_vaapi}")
+        return has_h264_vaapi or has_hevc_vaapi
+    except Exception as e:
+        logger.error(f"Failed to check VAAPI capabilities: {e}")
+        return False
 
 def _check_nvidia_usage():
     """Helper to check NVIDIA GPU usage"""
@@ -139,49 +155,55 @@ def _check_dri_usage():
                 continue
         
         # If we get here, we found no matches
-        logger.warning(f"HW Check Failed. Open /dev FDs: {debug_fds}")
+        logger.debug(f"HW Check: No active DRI usage. Open /dev FDs: {debug_fds}")
     except Exception as e:
         logger.error(f"HW Check DRI Error: {e}")
         pass
     return False
 
-def _verify_hw_accel(accel_type):
-    """Verify if the configured HW acceleration is actually BEING USED"""
+def _get_hw_accel_status(accel_type):
+    """Return HW accel status: 'disabled', 'ready', 'active', or 'error'"""
     if not os.environ.get("HW_ACCEL", "false").lower() == "true":
-        return False
-        
+        return "disabled"
+    
     accel_type = accel_type.lower()
     
-    try:
-        verified = False
-        
-        if accel_type == "nvidia":
-            verified = _check_nvidia_usage()
-            
-        elif accel_type in ["intel", "amd", "vaapi"]:
-            verified = _check_dri_usage()
-            
-        elif accel_type == "auto":
-            # flexible check: try both
-            if _check_dri_usage():
-                verified = True
-            elif _check_nvidia_usage():
-                verified = True
-                
-        if not verified:
-            # Optional: log only once per minute to avoid spam, or relying on the fact this is polled?
-            # It is polled by frontend every 30s-60s. Low spam risk.
-            if not os.path.exists("/dev/dri") and accel_type in ["intel", "amd", "vaapi", "auto"]:
-                 logger.warning(f"HW Check Failed: /dev/dri missing. Verify Docker device mapping.")
-            pass
-
-        return verified
-            
-    except Exception as e:
-        logger.error(f"HW Check unexpected validation error: {e}")
-        return False
-        
-    return False
+    # 1. Check if device/driver exists
+    device_exists = False
+    
+    if accel_type in ["intel", "amd", "vaapi", "auto"]:
+        device_exists = os.path.exists("/dev/dri")
+        if device_exists:
+            # Additional check: verify VAAPI encoders are available
+            if not _check_vaapi_capabilities():
+                logger.warning("HW Accel: /dev/dri exists but VAAPI encoders not available in FFmpeg")
+                return "error"
+    elif accel_type == "nvidia":
+        try:
+            import subprocess
+            result = subprocess.run(["nvidia-smi"], capture_output=True, timeout=1)
+            device_exists = result.returncode == 0
+        except:
+            device_exists = False
+    
+    if not device_exists:
+        logger.warning(f"HW Accel: Device not found for type '{accel_type}'")
+        return "error"
+    
+    # 2. Check if actively in use (file descriptors)
+    actively_used = False
+    
+    if accel_type in ["intel", "amd", "vaapi", "auto"]:
+        actively_used = _check_dri_usage()  # Existing FD check
+    elif accel_type == "nvidia":
+        actively_used = _check_nvidia_usage()
+    
+    if actively_used:
+        logger.debug("HW Accel: Device actively in use")
+        return "active"
+    else:
+        logger.debug("HW Accel: Device ready but idle")
+        return "ready"
 
 @app.post("/cameras/{camera_id}/start")
 def start_camera(camera_id: int, config: CameraConfig):

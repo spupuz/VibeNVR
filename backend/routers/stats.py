@@ -333,12 +333,12 @@ def get_stats(db: Session = Depends(database.get_db), current_user: models.User 
             engine_mem_mb = engine_data.get("memory_mb", 0)
             engine_hw_accel = engine_data.get("hw_accel", False)
             engine_hw_accel_type = engine_data.get("hw_accel_type", "none")
-            engine_hw_accel_verified = engine_data.get("hw_accel_verified", False)
+            engine_hw_accel_status = engine_data.get("hw_accel_status", "disabled")
     except:
         pass  # Engine unreachable, use 0
         engine_hw_accel = False
         engine_hw_accel_type = "unknown"
-        engine_hw_accel_verified = False
+        engine_hw_accel_status = "disabled"
     
     # Total app resources
     total_cpu = round(backend_cpu + engine_cpu, 1)
@@ -405,7 +405,7 @@ def get_stats(db: Session = Depends(database.get_db), current_user: models.User 
         "hw_accel": {
             "enabled": engine_hw_accel,
             "type": engine_hw_accel_type,
-            "verified": engine_hw_accel_verified
+            "status": engine_hw_accel_status
         }
     }
 
