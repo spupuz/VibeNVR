@@ -50,14 +50,27 @@ class StreamReader(threading.Thread):
         
         # Configure FFMPEG backend for hardware acceleration
         if hw_accel_enabled:
+            # Smart Auto Detection
+            if hw_accel_type == 'auto':
+                try:
+                    import shutil
+                    if shutil.which('nvidia-smi'):
+                        hw_accel_type = 'nvidia'
+                    elif os.path.exists('/dev/dri'):
+                        hw_accel_type = 'vaapi'
+                except:
+                    pass
+
             if hw_accel_type == 'nvidia':
                 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;cuda"
             elif hw_accel_type == 'intel':
+                 # purely historical, modern intel uses vaapi usually, but qsv is explicit
                 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;qsv"
-            elif hw_accel_type == 'amd':
+            elif hw_accel_type in ['amd', 'vaapi']:
                 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;vaapi"
-            else:  # auto
+            else:  # auto fallback or unknown
                 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;auto"
+            
             logger.info(f"StreamReader ({self.camera_name}): HW acceleration configured ({hw_accel_type})")
         else:
             logger.info(f"StreamReader ({self.camera_name}): HW acceleration DISABLED")
