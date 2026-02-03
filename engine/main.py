@@ -86,8 +86,73 @@ def get_stats():
         "memory_mb": round(mem_mb, 1),
         "active_cameras": active_cameras,
         "network_recv": net_io.bytes_recv,
-        "network_sent": net_io.bytes_sent
+        "network_sent": net_io.bytes_sent,
+        "hw_accel": os.environ.get("HW_ACCEL", "false").lower() == "true",
+        "hw_accel_type": os.environ.get("HW_ACCEL_TYPE", "unknown"),
+        "hw_accel_verified": _verify_hw_accel(os.environ.get("HW_ACCEL_TYPE", "unknown"))
     }
+
+def _verify_hw_accel(accel_type):
+    """Verify if the configured HW acceleration is actually BEING USED"""
+    if not os.environ.get("HW_ACCEL", "false").lower() == "true":
+        return False
+        
+    accel_type = accel_type.lower()
+    
+    try:
+        if accel_type == "nvidia":
+            # Check if this process is using the GPU
+            # nvidia-smi --query-compute-apps=pid --format=csv,noheader
+            import subprocess
+            try:
+                res = subprocess.run(
+                    ["nvidia-smi", "--query-compute-apps=pid", "--format=csv,noheader"], 
+                    stdout=subprocess.PIPE, 
+                    stderr=subprocess.DEVNULL,
+                    text=True
+                )
+                if res.returncode == 0:
+                    # Check if our PID (or any of our threads/child processes roughly) is in the list
+                    # Note: engine is main process. cv2 threads are inside it.
+                    my_pid = str(os.getpid())
+                    if my_pid in res.stdout.split():
+                        return True
+            except: 
+                pass
+            return False
+            
+        elif accel_type in ["intel", "amd", "vaapi", "auto"]:
+            # Check if /dev/dri/renderD128 is OPEN by this process
+            # Linux only
+            if not os.path.exists("/dev/dri/renderD128"):
+                return False
+                
+            try:
+                # Provide a loose check: if the device exists, and we are on 'auto' or explicit type.
+                # Strictly checking open FDs might be flaky if cv2 opens/closes rapidly or uses internal helper processes.
+                # However, if stream is running, it should be open.
+                
+                # Check ALL open FDs for this process
+                fds = os.listdir('/proc/self/fd')
+                for fd in fds:
+                    try:
+                        target = os.readlink(f'/proc/self/fd/{fd}')
+                        if "renderD128" in target:
+                            return True
+                    except:
+                        continue
+            except:
+                # Fallback: if we can't read /proc (e.g. permission), assume True if device exists
+                # But user wants Verification.
+                pass
+                
+            return False
+            
+    except Exception as e:
+        # logger.error(f"HW Check Error: {e}")
+        return False
+        
+    return False
 
 @app.post("/cameras/{camera_id}/start")
 def start_camera(camera_id: int, config: CameraConfig):
