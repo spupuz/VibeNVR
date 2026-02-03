@@ -94,6 +94,57 @@ def get_stats():
 
     return False
 
+    return False
+
+def _check_nvidia_usage():
+    """Helper to check NVIDIA GPU usage"""
+    try:
+        import subprocess
+        # nvidia-smi --query-compute-apps=pid --format=csv,noheader
+        res = subprocess.run(
+            ["nvidia-smi", "--query-compute-apps=pid", "--format=csv,noheader"], 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.DEVNULL, # Suppress stderr (usually 'command not found')
+            text=True
+        )
+        if res.returncode == 0:
+            my_pid = str(os.getpid())
+            # Check if our PID is in the list of processes using GPU
+            pid_list = [p.strip() for p in res.stdout.split('\n') if p.strip()]
+            if my_pid in pid_list:
+                return True
+    except Exception as e:
+        pass
+    return False
+
+def _check_dri_usage():
+    """Helper to check DRI (Intel/AMD) usage"""
+    if not os.path.exists("/dev/dri"):
+        # logger.info("HW Check: /dev/dri does not exist")
+        return False
+        
+    try:
+        # Check ALL open FDs for this process
+        fds = os.listdir('/proc/self/fd')
+        debug_fds = []
+        for fd in fds:
+            try:
+                target = os.readlink(f'/proc/self/fd/{fd}')
+                if target.startswith("/dev/"):
+                    debug_fds.append(target)
+                # Match any render node (renderD128, renderD129, etc) used by VAAPI/QSV
+                if "render" in target and "/dev/dri" in target:
+                    return True
+            except:
+                continue
+        
+        # If we get here, we found no matches
+        logger.warning(f"HW Check Failed. Open /dev FDs: {debug_fds}")
+    except Exception as e:
+        logger.error(f"HW Check DRI Error: {e}")
+        pass
+    return False
+
 def _verify_hw_accel(accel_type):
     """Verify if the configured HW acceleration is actually BEING USED"""
     if not os.environ.get("HW_ACCEL", "false").lower() == "true":
@@ -102,56 +153,32 @@ def _verify_hw_accel(accel_type):
     accel_type = accel_type.lower()
     
     try:
+        verified = False
+        
         if accel_type == "nvidia":
-            # Check if this process is using the GPU
-            # nvidia-smi --query-compute-apps=pid --format=csv,noheader
-            import subprocess
-            try:
-                res = subprocess.run(
-                    ["nvidia-smi", "--query-compute-apps=pid", "--format=csv,noheader"], 
-                    stdout=subprocess.PIPE, 
-                    stderr=subprocess.DEVNULL,
-                    text=True
-                )
-                if res.returncode == 0:
-                    # Check if our PID (or any of our threads/child processes roughly) is in the list
-                    # Note: engine is main process. cv2 threads are inside it.
-                    my_pid = str(os.getpid())
-                    if my_pid in res.stdout.split():
-                        return True
-            except: 
-                pass
-            return False
+            verified = _check_nvidia_usage()
             
-        elif accel_type in ["intel", "amd", "vaapi", "auto"]:
-            # Check if any DRI render node is OPEN by this process
-            # Linux only
-            if not os.path.exists("/dev/dri"):
-                return False
+        elif accel_type in ["intel", "amd", "vaapi"]:
+            verified = _check_dri_usage()
+            
+        elif accel_type == "auto":
+            # flexible check: try both
+            if _check_dri_usage():
+                verified = True
+            elif _check_nvidia_usage():
+                verified = True
                 
-            try:
-                # Provide a loose check: if the device exists, and we are on 'auto' or explicit type.
-                # Strictly checking open FDs might be flaky if cv2 opens/closes rapidly or uses internal helper processes.
-                # However, if stream is running, it should be open.
-                
-                # Check ALL open FDs for this process
-                fds = os.listdir('/proc/self/fd')
-                for fd in fds:
-                    try:
-                        target = os.readlink(f'/proc/self/fd/{fd}')
-                        # Match any render node (renderD128, renderD129, etc)
-                        if "render" in target and "/dev/dri" in target:
-                            return True
-                    except:
-                        continue
-            except Exception as e:
-                # logger.error(f"HW Check Error details: {e}")
-                pass
-                
-            return False
+        if not verified:
+            # Optional: log only once per minute to avoid spam, or relying on the fact this is polled?
+            # It is polled by frontend every 30s-60s. Low spam risk.
+            if not os.path.exists("/dev/dri") and accel_type in ["intel", "amd", "vaapi", "auto"]:
+                 logger.warning(f"HW Check Failed: /dev/dri missing. Verify Docker device mapping.")
+            pass
+
+        return verified
             
     except Exception as e:
-        logger.error(f"HW Check Error: {e}")
+        logger.error(f"HW Check unexpected validation error: {e}")
         return False
         
     return False
