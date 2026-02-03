@@ -47,6 +47,10 @@ def validate_setting(key: str, value: str):
             v = int(value)
             if v < 1 or v > 100: raise ValueError("Quality must be between 1 and 100")
             
+        elif key == "opt_verbose_engine_logs":
+            if value.lower() not in ["true", "false"]:
+                raise ValueError("Must be 'true' or 'false'")
+            
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid value for {key}: {str(e)}")
 
@@ -87,6 +91,8 @@ def get_setting_by_key(key: str, db: Session = Depends(database.get_db), current
 def update_setting(key: str, value: str, description: str = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Update or create a setting"""
     setting = set_setting(db, key, value, description)
+    if key.startswith("opt_"):
+        motion_service.sync_global_config(db)
     return {"key": setting.key, "value": setting.value, "description": setting.description}
 
 @router.post("/bulk")
@@ -94,6 +100,11 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
     """Update multiple settings at once"""
     for key, value in settings.items():
         set_setting(db, key, str(value))
+    
+    # Sync global config if any opt_ setting was updated
+    if any(k.startswith("opt_") for k in settings.keys()):
+        motion_service.sync_global_config(db)
+        
     return {"message": "Settings updated successfully", "count": len(settings)}
 
 @router.post("/cleanup")
@@ -133,6 +144,7 @@ DEFAULT_SETTINGS = {
     "opt_live_view_quality": {"value": "60", "description": "JPEG Quality for live stream (1-100)"},
     "opt_snapshot_quality": {"value": "90", "description": "JPEG Quality for snapshots (1-100)"},
     "opt_ffmpeg_preset": {"value": "ultrafast", "description": "FFmpeg preset for transcoding (ultrafast, superfast, veryfast, faster, fast, medium)"},
+    "opt_verbose_engine_logs": {"value": "false", "description": "Enable verbose logs from OpenCV/FFmpeg in the engine"},
 }
 
 @router.post("/init-defaults")

@@ -21,15 +21,18 @@ def get_optimization_settings(db: Session) -> dict:
         "opt_live_view_quality": 60,
         "opt_snapshot_quality": 90,
         "opt_ffmpeg_preset": "ultrafast",
-        "opt_pre_capture_fps_throttle": 1
+        "opt_pre_capture_fps_throttle": 1,
+        "opt_verbose_engine_logs": False
     }
     
     try:
         settings = db.query(SystemSettings).filter(SystemSettings.key.startswith("opt_")).all()
         for s in settings:
-            # Most are integers, preset is string
+            # Most are integers, preset is string, some are boolean
             if s.key == "opt_ffmpeg_preset":
                 defaults[s.key] = s.value
+            elif s.key == "opt_verbose_engine_logs":
+                defaults[s.key] = s.value.lower() == "true"
             else:
                 try:
                     defaults[s.key] = int(s.value)
@@ -103,6 +106,9 @@ def generate_motion_config(db: Session):
             print(f"Waiting for VibeEngine... (Retry {i+1}/{max_retries})")
             time.sleep(5)
 
+    # Sync global config first
+    sync_global_config(db)
+
     # Fetch global optimizations once
     opt_settings = get_optimization_settings(db)
     print(f"Applying optimizations: {opt_settings}", flush=True)
@@ -128,6 +134,24 @@ def generate_motion_config(db: Session):
         if not cam.is_active:
              # Try to stop it just in case
              stop_camera(cam.id)
+
+def sync_global_config(db: Session):
+    """Sync global optimization settings to VibeEngine config endpoint"""
+    opt_settings = get_optimization_settings(db)
+    payload = {
+        "opt_verbose_engine_logs": opt_settings.get("opt_verbose_engine_logs", False)
+    }
+    try:
+        resp = requests.post(f"{ENGINE_BASE_URL}/config", json=payload, timeout=5)
+        if resp.status_code == 200:
+            print("Successfully synced global config to VibeEngine", flush=True)
+            return True
+        else:
+            print(f"Failed to sync global config: {resp.text}", flush=True)
+            return False
+    except Exception as e:
+        print(f"Error syncing global config: {e}", flush=True)
+        return False
 
 def stop_all_engines():
     """Stop all running camera threads in the engine"""

@@ -661,6 +661,10 @@ class CameraThread(threading.Thread):
         video_codec = 'libx264'  # Software fallback
         codec_specific_args = ['-preset', self.config.get('opt_ffmpeg_preset', 'ultrafast'), '-crf', str(crf)]
         
+        # Log level based on global config
+        from main import GLOBAL_CONFIG
+        ffmpeg_loglevel = 'debug' if GLOBAL_CONFIG.get('opt_verbose_engine_logs') else 'error'
+        
         if hw_accel_enabled:
             if hw_accel_type in ['vaapi', 'intel', 'amd', 'auto']:
                 # Try VAAPI encoding
@@ -684,6 +688,7 @@ class CameraThread(threading.Thread):
         command = [
             'ffmpeg',
             '-y',
+            '-loglevel', ffmpeg_loglevel,
             '-f', 'rawvideo',
             '-vcodec', 'rawvideo',
             '-s', f'{width}x{height}',

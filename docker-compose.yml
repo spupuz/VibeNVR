@@ -49,7 +49,7 @@ services:
     container_name: vibenvr-engine
     restart: unless-stopped
     ports:
-      - "5001:5001"
+      - "5001:8000"
     volumes:
       - ./engine:/app
       - ${VIBENVR_DATA:-vibenvr_data}:/var/lib/vibe/recordings
