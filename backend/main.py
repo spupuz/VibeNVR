@@ -21,8 +21,12 @@ class TokenRedactingFilter(logging.Filter):
         if hasattr(record, "args") and record.args:
             new_args = list(record.args)
             for i, arg in enumerate(new_args):
-                if isinstance(arg, str) and "token=" in arg:
-                    new_args[i] = re.sub(r"token=[^&\s]*", "token=REDACTED", arg)
+                if isinstance(arg, str):
+                    if "token=" in arg:
+                        new_args[i] = re.sub(r"token=[^&\s]*", "token=REDACTED", arg)
+                    # Redact RTSP credentials
+                    if "rtsp://" in arg:
+                        new_args[i] = re.sub(r"rtsp://([^:]+):([^@]+)@", r"rtsp://\1:***@", arg)
             record.args = tuple(new_args)
         return True
 

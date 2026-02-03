@@ -12,6 +12,8 @@ VibeNVR has clear rules for AI-assisted contributions:
 
 - **No AI-generated media is allowed** (art, images, videos, audio, etc.). Text and code are the only acceptable AI-generated content, per the other rules in this policy.
 
+- **Data Masking & Privacy is Paramount.** AI must never include actual sensitive data (RTPS credentials, passwords, tokens) in commits, walkthroughs, or logs. Always use placeholders or implemented filters.
+
 - **Contributors who ignore this policy will face consequences.** Undisclosed AI usage or suspected AI usage without disclosure will result in PR closure. Repeated violations may result in being blocked from contributing. You've been warned.
 
 These rules apply to all outside contributions. Maintainers are exempt from these rules and may use AI tools at their discretion; they've proven themselves trustworthy to apply good judgment.
