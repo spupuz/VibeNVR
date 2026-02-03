@@ -102,7 +102,7 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
             {/* VIBRANT INTERNAL BORDER (Prevents clipping) */}
             <div className={`absolute inset-0 rounded-xl pointer-events-none z-50 transition-all duration-300 ${isLiveMotion
                 ? 'border-[4px] border-red-600 shadow-[inset_0_0_20px_rgba(220,38,38,0.4)]'
-                : camera.recording_mode === 'Always'
+                : (camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous')
                     ? 'border-[4px] border-blue-600 shadow-[inset_0_0_20px_rgba(37,99,235,0.3)]'
                     : 'border border-white/10'
                 }`}
@@ -125,10 +125,10 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                         <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_white]" />
                         <span className="text-[10px] font-black text-white tracking-widest uppercase">MOTION</span>
                     </div>
-                ) : camera.recording_mode === 'Always' ? (
+                ) : (camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? (
                     <div className="flex items-center space-x-2 bg-blue-600 px-2.5 py-1 rounded shadow-2xl ring-1 ring-white/20 w-fit">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-200" />
-                        <span className="text-[10px] font-black text-white tracking-widest uppercase">ALWAYS REC</span>
+                        <span className="text-[10px] font-black text-white tracking-widest uppercase">CONTINUOUS</span>
                     </div>
                 ) : null}
 
@@ -180,8 +180,8 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                             e.stopPropagation();
                             onToggleRecording(camera);
                         }}
-                        className={`p-1 rounded-md transition-all shrink-0 ${camera.recording_mode === 'Always' ? 'bg-red-600 text-white animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]' : 'text-white hover:bg-red-600/50'}`}
-                        title={camera.recording_mode === 'Always' ? "Stop Always Recording" : "Start Always Recording"}
+                        className={`p-1 rounded-md transition-all shrink-0 ${(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? 'bg-red-600 text-white animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]' : 'text-white hover:bg-red-600/50'}`}
+                        title={(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? "Stop Recording" : "Start Continuous Recording"}
                     >
                         <Disc className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>

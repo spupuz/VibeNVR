@@ -118,8 +118,20 @@ def toggle_camera_recording(camera_id: int, db: Session = Depends(database.get_d
     if db_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
     
-    # Toggle between Always and Motion Triggered
-    new_mode = 'Motion Triggered' if db_camera.recording_mode == 'Always' else 'Always'
+    # Toggle recording ON/OFF via overlay button
+    # Continuous = manual "record now" mode
+    # Off = stop recording
+    # This is for quick manual control; Motion Triggered is set via settings modal
+    is_continuous = db_camera.recording_mode in ('Always', 'Continuous')
+    
+    if is_continuous:
+        # Turning OFF: restore previous mode (Off or Motion Triggered)
+        new_mode = db_camera.previous_recording_mode or 'Off'
+        db_camera.previous_recording_mode = None  # Clear saved state
+    else:
+        # Turning ON: save current mode and switch to Continuous
+        db_camera.previous_recording_mode = db_camera.recording_mode
+        new_mode = 'Continuous'
     
     # Update DB
     db_camera.recording_mode = new_mode

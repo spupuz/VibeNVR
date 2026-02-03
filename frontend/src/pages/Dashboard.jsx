@@ -389,16 +389,21 @@ export const Dashboard = () => {
                         <p className="text-xs text-green-500">Uptime: {stats.uptime}</p>
                         {stats.hw_accel && (
                             <div className="flex items-center gap-2 mt-2">
-                                <span className={`text-[10px] px-2 py-0.5 rounded font-medium border ${!stats.hw_accel.enabled
+                                <span className={`text-[10px] px-2 py-0.5 rounded font-medium border ${stats.hw_accel.status === 'disabled'
                                         ? 'bg-muted text-muted-foreground border-border'
-                                        : stats.hw_accel.verified
-                                            ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-                                            : 'bg-red-500/10 text-red-500 border-red-500/20'
+                                        : stats.hw_accel.status === 'active'
+                                            ? 'bg-green-500/10 text-green-500 border-green-500/20'
+                                            : stats.hw_accel.status === 'ready'
+                                                ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                                : 'bg-red-500/10 text-red-500 border-red-500/20'
                                     }`}>
                                     HW Accel: {
-                                        !stats.hw_accel.enabled
+                                        stats.hw_accel.status === 'disabled'
                                             ? 'OFF'
-                                            : `${stats.hw_accel.type.toUpperCase()} ${stats.hw_accel.verified ? 'OK' : '(ERROR)'}`
+                                            : `${stats.hw_accel.type.toUpperCase()} ${stats.hw_accel.status === 'active' ? '✓' :
+                                                stats.hw_accel.status === 'ready' ? 'READY' :
+                                                    'ERROR'
+                                            }`
                                     }
                                 </span>
                             </div>

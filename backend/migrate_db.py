@@ -52,6 +52,7 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "movie_passthrough", "BOOLEAN", True)
     add_column_if_not_exists(engine, "cameras", "movie_quality", "INTEGER", 75)
     add_column_if_not_exists(engine, "cameras", "recording_mode", "VARCHAR", "Motion Triggered")
+    add_column_if_not_exists(engine, "cameras", "previous_recording_mode", "VARCHAR")  # For toggle state memory
     add_column_if_not_exists(engine, "cameras", "max_movie_length", "INTEGER", 0)
     add_column_if_not_exists(engine, "cameras", "preserve_movies", "VARCHAR", "For One Week")
 
