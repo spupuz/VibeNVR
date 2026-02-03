@@ -92,6 +92,8 @@ def get_stats():
         "hw_accel_verified": _verify_hw_accel(os.environ.get("HW_ACCEL_TYPE", "unknown"))
     }
 
+    return False
+
 def _verify_hw_accel(accel_type):
     """Verify if the configured HW acceleration is actually BEING USED"""
     if not os.environ.get("HW_ACCEL", "false").lower() == "true":
@@ -122,9 +124,9 @@ def _verify_hw_accel(accel_type):
             return False
             
         elif accel_type in ["intel", "amd", "vaapi", "auto"]:
-            # Check if /dev/dri/renderD128 is OPEN by this process
+            # Check if any DRI render node is OPEN by this process
             # Linux only
-            if not os.path.exists("/dev/dri/renderD128"):
+            if not os.path.exists("/dev/dri"):
                 return False
                 
             try:
@@ -137,19 +139,19 @@ def _verify_hw_accel(accel_type):
                 for fd in fds:
                     try:
                         target = os.readlink(f'/proc/self/fd/{fd}')
-                        if "renderD128" in target:
+                        # Match any render node (renderD128, renderD129, etc)
+                        if "render" in target and "/dev/dri" in target:
                             return True
                     except:
                         continue
-            except:
-                # Fallback: if we can't read /proc (e.g. permission), assume True if device exists
-                # But user wants Verification.
+            except Exception as e:
+                # logger.error(f"HW Check Error details: {e}")
                 pass
                 
             return False
             
     except Exception as e:
-        # logger.error(f"HW Check Error: {e}")
+        logger.error(f"HW Check Error: {e}")
         return False
         
     return False

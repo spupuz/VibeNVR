@@ -58,7 +58,7 @@ class StreamReader(threading.Thread):
                 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;vaapi"
             else:  # auto
                 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;auto"
-            logger.info(f"StreamReader ({self.camera_name}): HW acceleration enabled ({hw_accel_type})")
+            logger.info(f"StreamReader ({self.camera_name}): HW acceleration configured ({hw_accel_type})")
         else:
             logger.info(f"StreamReader ({self.camera_name}): HW acceleration DISABLED")
             os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
