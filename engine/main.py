@@ -2,14 +2,62 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel, field_validator
 import logging
-import sys
 import psutil
 import os
-from core import manager
+import sys
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', stream=sys.stdout)
+import logging
+import psutil
+
+# Setup Logger
+VERBOSE_LEVEL = 5
+logging.addLevelName(VERBOSE_LEVEL, "VERBOSE")
+def verbose_log(self, message, *args, **kws):
+    if self.isEnabledFor(VERBOSE_LEVEL):
+        self._log(VERBOSE_LEVEL, message, args, **kws)
+logging.Logger.verbose = verbose_log
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    force=True
+)
 logger = logging.getLogger("VibeEngine")
+
+# Global Engine Config (Synced from Backend)
+GLOBAL_CONFIG = {
+    "opt_verbose_engine_logs": False
+}
+
+def set_engine_log_level(verbose: bool):
+    """Dynamically adjust OpenCV and FFmpeg log levels"""
+    level = "DEBUG" if verbose else "ERROR"
+    os.environ["OPENCV_LOG_LEVEL"] = level
+    os.environ["OPENCV_VIDEOIO_DEBUG"] = "1" if verbose else "0"
+    os.environ["OPENCV_FFMPEG_LOGLEVEL"] = "40" if verbose else "0" # 40 = Verbose in OpenCV FFmpeg
+    
+    # Also adjust our own logger and all related loggers
+    target_level = logging.DEBUG if verbose else logging.INFO
+    logger.setLevel(target_level)
+    logging.getLogger("core").setLevel(target_level)
+    logging.getLogger("camera_thread").setLevel(target_level)
+    logging.getLogger("StreamReader").setLevel(target_level)
+    
+    # Try OpenCV dynamic log level if available
+    try:
+        import cv2
+        # OpenCV levels: 0=SILENT, 1=FATAL, 2=ERROR, 3=WARNING, 4=INFO, 5=DEBUG, 6=VERBOSE
+        cv_level = 6 if verbose else 2 
+        cv2.setLogLevel(cv_level)
+    except Exception:
+        pass
+    
+    logger.info(f"Engine Log Level set to: {'VERBOSE' if verbose else 'NORMAL'}")
+
+# Initialize default level
+set_engine_log_level(False)
+
+from core import manager
 
 app = FastAPI(title="VibeEngine")
 
@@ -62,6 +110,22 @@ class CameraConfig(BaseModel):
 @app.get("/")
 def health_check():
     return {"status": "running", "engine": "VibeEngine"}
+
+@app.post("/config")
+def update_config(config: dict):
+    """Update global engine configuration from backend"""
+    global GLOBAL_CONFIG
+    logger.info(f"Updating global config: {config}")
+    
+    for key, value in config.items():
+        if key in GLOBAL_CONFIG:
+            GLOBAL_CONFIG[key] = value
+            
+            # Actionable settings
+            if key == "opt_verbose_engine_logs":
+                set_engine_log_level(value)
+                
+    return {"status": "success", "config": GLOBAL_CONFIG}
 
 @app.get("/stats")
 def get_stats():
@@ -154,8 +218,8 @@ def _check_dri_usage():
             except:
                 continue
         
-        # If we get here, we found no matches
-        logger.debug(f"HW Check: No active DRI usage. Open /dev FDs: {debug_fds}")
+        if debug_fds:
+            logger.verbose(f"HW Check: No active DRI sessions. Current /dev FDs: {debug_fds}")
     except Exception as e:
         logger.error(f"HW Check DRI Error: {e}")
         pass
@@ -199,10 +263,10 @@ def _get_hw_accel_status(accel_type):
         actively_used = _check_nvidia_usage()
     
     if actively_used:
-        logger.debug("HW Accel: Device actively in use")
+        logger.verbose("HW Accel Status: Active (GPU sessions detected)")
         return "active"
     else:
-        logger.debug("HW Accel: Device ready but idle")
+        logger.verbose("HW Accel Status: Ready (Idle, no active GPU sessions)")
         return "ready"
 
 @app.post("/cameras/{camera_id}/start")

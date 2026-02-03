@@ -38,7 +38,8 @@ export const Settings = () => {
         opt_snapshot_quality: 90,
         opt_snapshot_quality: 90,
         opt_ffmpeg_preset: 'ultrafast',
-        opt_pre_capture_fps_throttle: 1
+        opt_pre_capture_fps_throttle: 1,
+        opt_verbose_engine_logs: false
     });
     const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0, percent: 0 });
     const [loading, setLoading] = useState(true);
@@ -257,7 +258,8 @@ export const Settings = () => {
                     opt_snapshot_quality: parseInt(data.opt_snapshot_quality?.value) || 90,
                     opt_snapshot_quality: parseInt(data.opt_snapshot_quality?.value) || 90,
                     opt_ffmpeg_preset: data.opt_ffmpeg_preset?.value || 'ultrafast',
-                    opt_pre_capture_fps_throttle: parseInt(data.opt_pre_capture_fps_throttle?.value) || 1
+                    opt_pre_capture_fps_throttle: parseInt(data.opt_pre_capture_fps_throttle?.value) || 1,
+                    opt_verbose_engine_logs: data.opt_verbose_engine_logs?.value === 'true'
                 });
             }
         } catch (err) {
@@ -307,9 +309,9 @@ export const Settings = () => {
                     opt_motion_analysis_height: globalSettings.opt_motion_analysis_height.toString(),
                     opt_live_view_quality: globalSettings.opt_live_view_quality.toString(),
                     opt_snapshot_quality: globalSettings.opt_snapshot_quality.toString(),
-                    opt_snapshot_quality: globalSettings.opt_snapshot_quality.toString(),
                     opt_ffmpeg_preset: globalSettings.opt_ffmpeg_preset,
-                    opt_pre_capture_fps_throttle: globalSettings.opt_pre_capture_fps_throttle.toString()
+                    opt_pre_capture_fps_throttle: globalSettings.opt_pre_capture_fps_throttle.toString(),
+                    opt_verbose_engine_logs: globalSettings.opt_verbose_engine_logs.toString()
                 })
             });
             showToast('Settings saved successfully!', 'success');
@@ -1288,6 +1290,32 @@ export const Settings = () => {
                                     <option value="slow">Slow (High CPU)</option>
                                 </select>
                                 <p className="text-[10px] text-muted-foreground mt-1">Default: Ultrafast</p>
+                            </div>
+                        </div>
+
+                        {/* Verbose Logs */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-border/50">
+                            <div className="col-span-1">
+                                <label className="block text-sm font-medium mb-1">Verbose Engine Logs</label>
+                                <p className="text-xs text-muted-foreground">
+                                    Enables detailed logs from OpenCV and FFmpeg.
+                                    <br /><br />
+                                    <strong>Useful for debugging connection issues</strong>, but will clutter the engine logs during normal operation.
+                                </p>
+                            </div>
+                            <div className="col-span-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setGlobalSettings({ ...globalSettings, opt_verbose_engine_logs: !globalSettings.opt_verbose_engine_logs })}
+                                    className={'relative inline-flex h-6 w-11 items-center rounded-full transition-colors ' +
+                                        (globalSettings.opt_verbose_engine_logs ? 'bg-primary' : 'bg-muted')
+                                    }
+                                >
+                                    <span className={'inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ' +
+                                        (globalSettings.opt_verbose_engine_logs ? 'translate-x-6' : 'translate-x-1')
+                                    } />
+                                </button>
+                                <p className="text-[10px] text-muted-foreground mt-1">Default: Off</p>
                             </div>
                         </div>
                     </div>
