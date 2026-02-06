@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.responses import JSONResponse, Response
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
-from typing import List
-import crud, schemas, database, motion_service, storage_service, probe_service, auth_service, models
+import crud, schemas, database, motion_service, storage_service, probe_service, auth_service, models, health_service
 import json, asyncio, tarfile, io, re, os
 from urllib.parse import urlparse
-from typing import Optional
+from typing import Optional, List
 import datetime
 
 router = APIRouter(
@@ -27,8 +26,57 @@ def extract_host(url: str) -> Optional[str]:
     except:
         return None
 
+def sanitize_rtsp_url(url: str) -> str:
+    """
+    Ensure RTSP credentials are URL-encoded.
+    Handles special characters in password (e.g. @, :, /) which break cv2/ffmpeg parsing.
+    """
+    if not url or '://' not in url or '@' not in url:
+        return url
+        
+    try:
+        # Split into [scheme]://[credentials]@[host_part]
+        # We find the LAST @ to separate credentials from host
+        last_at_index = url.rfind('@')
+        if last_at_index == -1: return url
+        
+        scheme_end_index = url.find('://')
+        if scheme_end_index == -1: return url
+        
+        credentials_part = url[scheme_end_index + 3 : last_at_index]
+        host_part = url[last_at_index + 1:]
+        scheme = url[:scheme_end_index]
+        
+        # Credentials should be user:pass
+        if ':' in credentials_part:
+            from urllib.parse import quote, unquote
+            
+            # Split by first colon
+            user, password = credentials_part.split(':', 1)
+            
+            # FIRST decode (in case already encoded), THEN encode
+            # This prevents double-encoding when saving an already-encoded URL
+            user_decoded = unquote(user)
+            pass_decoded = unquote(password)
+            
+            # Now encode properly
+            # safe='' ensures even / is encoded, which is crucial for passwords
+            user_enc = quote(user_decoded, safe='')
+            pass_enc = quote(pass_decoded, safe='')
+            
+            return f"{scheme}://{user_enc}:{pass_enc}@{host_part}"
+            
+        return url
+    except Exception as e:
+        print(f"Error sanitizing URL: {e}")
+        return url
+
 @router.post("", response_model=schemas.Camera)
 def create_camera(camera: schemas.CameraCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    # Sanitize URL credentials
+    if camera.rtsp_url:
+        camera.rtsp_url = sanitize_rtsp_url(camera.rtsp_url)
+
     # Auto-detect resolution if passthrough is enabled
     # Auto-detect resolution if enabled
     if camera.auto_resolution and camera.rtsp_url:
@@ -58,7 +106,14 @@ def read_camera(camera_id: int, db: Session = Depends(database.get_db), current_
     return db_camera
 
 @router.put("/{camera_id}", response_model=schemas.Camera)
-def update_camera(camera_id: int, camera: schemas.CameraCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks: BackgroundTasks, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    # Sanitize URL credentials
+    if camera.rtsp_url:
+        camera.rtsp_url = sanitize_rtsp_url(camera.rtsp_url)
+        # Log the sanitized URL (masked for safety)
+        masked_url = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', camera.rtsp_url)
+        print(f"[UPDATE] Camera {camera_id} sanitized URL: {masked_url}", flush=True)
+
     # Get existing camera to check if RTSP URL changed
     existing_camera = crud.get_camera(db, camera_id=camera_id)
     if existing_camera is None:
@@ -102,6 +157,8 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, db: Session = De
         if db_camera.is_active:
             print(f"Camera {camera.name} updated. Applying runtime config...", flush=True)
             motion_service.update_camera_runtime(db_camera)
+            # Immediate health refresh
+            background_tasks.add_task(health_service.refresh_camera_health, camera_id)
         else:
             print(f"Camera {camera.name} updated (inactive). Ensuring it is stopped...", flush=True)
             motion_service.stop_camera(db_camera.id)
@@ -202,16 +259,20 @@ async def get_camera_frame(camera_id: int, token: str):
     try:
         async with httpx.AsyncClient(timeout=2.0) as client:
             response = await client.get(frame_url)
+            
+            # Proxy the status code from Engine (e.g. 401, 503)
+            # This allows frontend to distinguish Auth Error vs Network Error
             return Response(
                 content=response.content,
+                status_code=response.status_code,
                 media_type="image/jpeg",
                 headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
             )
     except Exception as e:
         print(f"[FRAME] Error getting frame for camera {camera_id}: {e}", flush=True)
-        # Return placeholder on error
-        placeholder = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00H\x00H\x00\x00\xff\xdb\x00C\x00\x03\x02\x02\x03\x02\x02\x03\x03\x03\x03\x04\x06\x0b\x07\x06\x06\x06\x06\r\x0b\x0b\x08\x0b\x0c\r\x0f\x0e\x0e\x0c\x0c\x0c\r\x0f\x10\x12\x17\x15\x15\x15\x17\x11\x13\x19\x1b\x18\x15\x1a\x14\x11\x11\x14\x1b\x15\x18\x1a\x1d\x1d\x1e\x1e\x1e\x13\x17 !\x1f\x1d!\x19\x1e\x1e\x1d\xff\xc0\x00\x11\x08\x00\x01\x00\x01\x03\x01"\x00\x02\x11\x01\x03\x11\x01\xff\xc4\x00\x14\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\xff\xda\x00\x0c\x03\x01\x00\x02\x11\x03\x11\x00?\x00\xbf\x00\xff\xd9'
-        return Response(content=placeholder, media_type="image/jpeg")
+        # Return error status so frontend can show "Connection Error" overlay
+        # instead of loading a black placeholder frame
+        raise HTTPException(status_code=503, detail=f"Frame unavailable: {e}")
 
 @router.get("/{camera_id}/stream")
 async def stream_camera(camera_id: int, token: str):

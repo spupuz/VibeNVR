@@ -308,9 +308,17 @@ def get_single_frame(camera_id: int):
     if frame_bytes:
         return Response(content=frame_bytes, media_type="image/jpeg")
     else:
-        # Return 1x1 black pixel if no frame available
-        placeholder = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00H\x00H\x00\x00\xff\xdb\x00C\x00\x03\x02\x02\x03\x02\x02\x03\x03\x03\x03\x04\x06\x0b\x07\x06\x06\x06\x06\r\x0b\x0b\x08\x0b\x0c\r\x0f\x0e\x0e\x0c\x0c\x0c\r\x0f\x10\x12\x17\x15\x15\x15\x17\x11\x13\x19\x1b\x18\x15\x1a\x14\x11\x11\x14\x1b\x15\x18\x1a\x1d\x1d\x1e\x1e\x1e\x13\x17 !\x1f\x1d!\x19\x1e\x1e\x1d\xff\xc0\x00\x11\x08\x00\x01\x00\x01\x03\x01"\x00\x02\x11\x01\x03\x11\x01\xff\xc4\x00\x14\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\xff\xda\x00\x0c\x03\x01\x00\x02\x11\x03\x11\x00?\x00\xbf\x00\xff\xd9'
-        return Response(content=placeholder, media_type="image/jpeg")
+        # Check health status to return precise error
+        # Access the camera thread directly from manager
+        if hasattr(manager, 'cameras') and camera_id in manager.cameras:
+            cam = manager.cameras[camera_id]
+            # Use get_health() if available, else access attr
+            health = cam.get_health() if hasattr(cam, 'get_health') else "UNKNOWN"
+            
+            if health == "UNAUTHORIZED":
+                raise HTTPException(status_code=401, detail="Unauthorized")
+                
+        raise HTTPException(status_code=503, detail="Frame unavailable")
 
 @app.get("/cameras/{camera_id}/stream")
 def get_stream(camera_id: int):

@@ -25,6 +25,7 @@ export const Settings = () => {
         telegram_bot_token: '',
         telegram_chat_id: '',
         notify_email_recipient: '',
+        notify_webhook_url: '',
         default_landing_page: 'live',
         global_attach_image_email: true,
         global_attach_image_telegram: true,
@@ -246,6 +247,7 @@ export const Settings = () => {
                     telegram_bot_token: data.telegram_bot_token?.value || '',
                     telegram_chat_id: data.telegram_chat_id?.value || '',
                     notify_email_recipient: data.notify_email_recipient?.value || '',
+                    notify_webhook_url: data.notify_webhook_url?.value || '',
                     default_landing_page: data.default_landing_page?.value || 'live',
                     global_attach_image_email: data.global_attach_image_email?.value !== 'false',
                     global_attach_image_telegram: data.global_attach_image_telegram?.value !== 'false',
@@ -298,6 +300,7 @@ export const Settings = () => {
                     telegram_bot_token: globalSettings.telegram_bot_token,
                     telegram_chat_id: globalSettings.telegram_chat_id,
                     notify_email_recipient: globalSettings.notify_email_recipient,
+                    notify_webhook_url: globalSettings.notify_webhook_url,
 
                     default_landing_page: globalSettings.default_landing_page,
                     global_attach_image_email: globalSettings.global_attach_image_email.toString(),
@@ -317,6 +320,50 @@ export const Settings = () => {
             showToast('Settings saved successfully!', 'success');
         } catch (err) {
             showToast('Failed to save settings: ' + err.message, 'error');
+        }
+    };
+
+    const handleTestNotify = async (channel) => {
+        let payload = { channel, settings: {} };
+
+        if (channel === 'email') {
+            payload.settings = {
+                smtp_server: globalSettings.smtp_server,
+                smtp_port: globalSettings.smtp_port,
+                smtp_username: globalSettings.smtp_username,
+                smtp_password: globalSettings.smtp_password,
+                smtp_from_email: globalSettings.smtp_from_email,
+                recipient: globalSettings.notify_email_recipient
+            };
+        } else if (channel === 'telegram') {
+            payload.settings = {
+                telegram_bot_token: globalSettings.telegram_bot_token,
+                telegram_chat_id: globalSettings.telegram_chat_id
+            };
+        } else if (channel === 'webhook') {
+            payload.settings = {
+                notify_webhook_url: globalSettings.notify_webhook_url
+            };
+        }
+
+        try {
+            const res = await fetch('/api/settings/test-notify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                showToast(data.message, 'success');
+            } else {
+                showToast('Test Failed: ' + data.detail, 'error');
+            }
+        } catch (err) {
+            showToast('Test Failed: ' + err.message, 'error');
         }
     };
 
@@ -850,7 +897,18 @@ export const Settings = () => {
                     <div className="space-y-6">
                         {/* SMTP Section */}
                         <div>
-                            <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">SMTP (Email) Configuration</h4>
+                            <div className="flex justify-between items-center mb-3">
+                                <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">SMTP (Email) Configuration</h4>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleTestNotify('email')}
+                                    className="h-8 text-xs"
+                                >
+                                    Test Email
+                                </Button>
+                            </div>
                             <p className="text-xs text-muted-foreground mb-4 bg-muted/30 p-2 rounded-lg border border-border/50">
                                 <span className="font-semibold text-primary">Note:</span> These global credentials will be used for all cameras unless a camera specifically overrides them in its own settings.
                             </p>
@@ -895,7 +953,7 @@ export const Settings = () => {
                                         onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_password: e.target.value })}
                                     />
                                 </div>
-                                <div className="col-span-2">
+                                <div className="col-span-2 md:col-span-1">
                                     <label className="block text-xs font-medium mb-1">Sender Email ("From")</label>
                                     <input
                                         type="email"
@@ -905,12 +963,34 @@ export const Settings = () => {
                                         onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_from_email: e.target.value })}
                                     />
                                 </div>
+                                <div className="col-span-2 md:col-span-1">
+                                    <label className="block text-xs font-medium mb-1">Default Email Recipient ("To")</label>
+                                    <input
+                                        type="email"
+                                        placeholder="admin@example.com"
+                                        className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
+                                        value={globalSettings.notify_email_recipient}
+                                        onChange={(e) => setGlobalSettings({ ...globalSettings, notify_email_recipient: e.target.value })}
+                                    />
+                                    <p className="text-[10px] text-muted-foreground mt-1">Fallback if camera recipient is not set</p>
+                                </div>
                             </div>
                         </div>
 
                         {/* Telegram Section */}
                         <div className="pt-4 border-t border-border/50">
-                            <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Telegram Configuration</h4>
+                            <div className="flex justify-between items-center mb-3">
+                                <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Telegram Configuration</h4>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleTestNotify('telegram')}
+                                    className="h-8 text-xs"
+                                >
+                                    Test Telegram
+                                </Button>
+                            </div>
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-xs font-medium mb-1">Bot Token</label>
@@ -937,20 +1017,36 @@ export const Settings = () => {
                             </div>
                         </div>
 
+                        {/* Webhook Section */}
+                        <div className="pt-4 border-t border-border/50">
+                            <div className="flex justify-between items-center mb-3">
+                                <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Webhook Configuration</h4>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleTestNotify('webhook')}
+                                    className="h-8 text-xs"
+                                >
+                                    Test Webhook
+                                </Button>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium mb-1">Global Webhook URL</label>
+                                <input
+                                    type="text"
+                                    placeholder="https://homeassistant.local/api/webhook/..."
+                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm font-mono"
+                                    value={globalSettings.notify_webhook_url}
+                                    onChange={(e) => setGlobalSettings({ ...globalSettings, notify_webhook_url: e.target.value })}
+                                />
+                                <p className="text-[10px] text-muted-foreground mt-1">Global Default. Used if a camera doesn't specify a webhook.</p>
+                            </div>
+                        </div>
+
                         {/* Defaults section inside Notifications */}
                         <div className="pt-4 border-t border-border/50">
-                            <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Notification Defaults</h4>
-                            <div className="max-w-md">
-                                <label className="block text-xs font-medium mb-1">Default Email Recipient</label>
-                                <input
-                                    type="email"
-                                    placeholder="admin@example.com"
-                                    className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
-                                    value={globalSettings.notify_email_recipient}
-                                    onChange={(e) => setGlobalSettings({ ...globalSettings, notify_email_recipient: e.target.value })}
-                                />
-                                <p className="text-[10px] text-muted-foreground mt-1">Used if a camera doesn't specify a recipient</p>
-                            </div>
+                            <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Attachment Defaults</h4>
 
                             <div className="mt-4 space-y-4">
                                 <div className="flex items-center justify-between max-w-sm">

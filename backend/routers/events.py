@@ -47,17 +47,27 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
             global_tg_token = get_conf("telegram_bot_token")
             global_tg_chat = get_conf("telegram_chat_id")
             global_email_recipient = get_conf("notify_email_recipient")
+            global_webhook_url = get_conf("notify_webhook_url")
             
             # Global Attach Settings (Default to True if not set)
             global_attach_email = get_conf("global_attach_image_email") != "false"
             global_attach_telegram = get_conf("global_attach_image_telegram") != "false"
 
-            # Resolve effective config (Camera overrides Global?)
+            # Resolve effective config based on Event Type
+            is_health_event = (event_type == "camera_health")
             
-            tg_token = camera.notify_telegram_token or global_tg_token
-            tg_chat = camera.notify_telegram_chat_id or global_tg_chat
-            
-            email_recipient = camera.notify_email_address or global_email_recipient
+            if is_health_event:
+                # Health Specific -> Global Fallback
+                tg_token = camera.notify_health_telegram_token or global_tg_token
+                tg_chat = camera.notify_health_telegram_chat_id or global_tg_chat
+                email_recipient = camera.notify_health_email_recipient or global_email_recipient
+                webhook_url = camera.notify_health_webhook_url or global_webhook_url
+            else:
+                # Standard (Motion/Event) -> Global Fallback
+                tg_token = camera.notify_telegram_token or global_tg_token
+                tg_chat = camera.notify_telegram_chat_id or global_tg_chat
+                email_recipient = camera.notify_email_address or global_email_recipient
+                webhook_url = camera.notify_webhook_url or global_webhook_url
             
             # Prepare Attachment (Snapshot)
             file_path = details.get("file_path")
@@ -102,10 +112,27 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
             # ---------------------------------------------------------
             # 1. Telegram Notification
             # ---------------------------------------------------------
-            if (event_type == "event_start" and camera.notify_start_telegram) and tg_token and tg_chat:
+            
+            # Format Timestamp
+            ts_raw = details.get('timestamp')
+            ts_formatted = ts_raw
+            try:
+                if ts_raw:
+                    dt = datetime.datetime.fromisoformat(str(ts_raw))
+                    ts_formatted = dt.strftime("%Y-%m-%d %H:%M:%S")
+            except:
+                pass
+
+            should_notify_tg = False
+            if event_type == "event_start":
+                should_notify_tg = camera.notify_start_telegram
+                caption = f"🚨 *Motion Detected!*\n📷 Camera: {camera.name}\n⏰ Time: {ts_formatted}"
+            elif event_type == "camera_health":
+                should_notify_tg = camera.notify_health_telegram
+                caption = f"{details.get('title', 'Camera Alert')}\n{details.get('message', '')}"
+
+            if should_notify_tg and tg_token and tg_chat:
                 try:
-                    caption = f"🚨 *Motion Detected!*\n📷 Camera: {camera.name}\n⏰ Time: {details.get('timestamp')}"
-                    
                     # Check both Camera setting AND Global setting (Master switch logic)
                     if image_path and camera.notify_attach_image_telegram and global_attach_telegram:
                         # Send Photo
@@ -123,30 +150,36 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                             "parse_mode": "Markdown"
                         }, timeout=5)
                 except Exception as e:
-                    print(f"[NOTIFY] Telegram failed: {e}")
                     logger.error(f"[NOTIFY] Telegram failed: {e}")
 
             # ---------------------------------------------------------
             # 2. Email Notification
             # ---------------------------------------------------------
-            if (event_type == "event_start" and camera.notify_start_email) and smtp_server and email_recipient:
+            should_notify_email = False
+            if event_type == "event_start":
+                should_notify_email = camera.notify_start_email
+                subject = f"Motion Detected: {camera.name}"
+                body_title = "Motion Detected"
+            elif event_type == "camera_health":
+                should_notify_email = camera.notify_health_email
+                subject = details.get('title', f"Camera Alert: {camera.name}")
+                body_title = "Camera Health Alert"
+
+            if should_notify_email and smtp_server and email_recipient:
                 try:
                     msg = MIMEMultipart()
-                    msg['Subject'] = f"Motion Detected: {camera.name}"
+                    msg['Subject'] = subject
                     msg['From'] = smtp_from or "vibenvr@localhost"
                     msg['To'] = email_recipient
 
-                    body = f"""
-                    <h2>Motion Detected</h2>
+                    html_body = f"""
+                    <h2>{body_title}</h2>
                     <p><b>Camera:</b> {camera.name}</p>
-                    <p><b>Time:</b> {details.get('timestamp')}</p>
+                    <p>{details.get('message', f"Event: {event_type}")}</p>
+                    <p><b>Time:</b> {details.get('timestamp', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))}</p>
                     <p><i>VibeNVR Alert System</i></p>
                     """
-                    msg.attach(MIMEText(body, 'html'))
-
-                    msg.attach(MIMEText(body, 'html'))
-
-                    msg.attach(MIMEText(body, 'html'))
+                    msg.attach(MIMEText(html_body, 'html'))
 
                     if image_path and camera.notify_attach_image_email and global_attach_email:
                         with open(image_path, 'rb') as f:
@@ -156,6 +189,7 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
 
                     # Connect and send
                     server = smtplib.SMTP(smtp_server, smtp_port)
+                    server.set_debuglevel(0)
                     server.starttls()
                     if smtp_user and smtp_pass:
                         server.login(smtp_user, smtp_pass)
@@ -168,19 +202,26 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
             # ---------------------------------------------------------
             # 3. Webhook (Legacy/Existing)
             # ---------------------------------------------------------
-            if (event_type == "event_start" and camera.notify_start_webhook) or \
-               (event_type == "movie_end" and camera.notify_end_webhook):
-                if camera.notify_webhook_url:
-                    try:
-                        requests.post(camera.notify_webhook_url, json={
-                            "camera_name": camera.name,
-                            "event": event_type,
-                            "timestamp": details.get("timestamp"),
-                            "file_path": details.get("file_path")
-                        }, timeout=5)
-                    except Exception as e:
-                        logger.error(f"[NOTIFY] Webhook failed: {e}")
+            should_notify_webhook = False
+            if event_type == "event_start":
+                should_notify_webhook = camera.notify_start_webhook
+            elif event_type == "movie_end":
+                should_notify_webhook = camera.notify_end_webhook
+            elif event_type == "camera_health":
+                should_notify_webhook = camera.notify_health_webhook
 
+            if should_notify_webhook and webhook_url:
+                try:
+                    requests.post(webhook_url, json={
+                        "camera_name": camera.name,
+                        "event": event_type,
+                        "title": details.get("title"),
+                        "message": details.get("message"),
+                        "timestamp": details.get("timestamp"),
+                        "file_path": details.get("file_path")
+                    }, timeout=5)
+                except Exception as e:
+                    logger.error(f"[NOTIFY] Webhook failed: {e}")
         except Exception as e:
             logger.error(f"[NOTIFY] General error: {e}")
         finally:
@@ -235,10 +276,12 @@ LIVE_MOTION = {}
 
 @router.get("/status")
 def get_motion_status(current_user: models.User = Depends(auth_service.get_current_user)):
-    """Returns list of camera IDs currently detecting motion and/or recording"""
+    """Returns list of camera IDs currently detecting motion and/or recording, plus health info"""
+    from health_service import HEALTH_CACHE
     return {
         "active_ids": list(ACTIVE_CAMERAS.keys()),
-        "live_motion_ids": list(LIVE_MOTION.keys())
+        "live_motion_ids": list(LIVE_MOTION.keys()),
+        "camera_health": HEALTH_CACHE
     }
 
 def is_within_schedule(camera: models.Camera):
@@ -409,6 +452,21 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
         ACTIVE_CAMERAS[camera_id] = payload.get("timestamp")
         if in_schedule:
             send_notifications(camera.id, "event_start", payload)
+
+    elif event_type == "camera_health":
+        logger.info(f"[WEBHOOK] Health event for camera {camera.name} (ID: {camera_id}): {payload.get('message')}")
+        
+        # Update Health Cache immediately for UI responsiveness
+        try:
+            from health_service import HEALTH_CACHE
+            new_status = payload.get("status")
+            if new_status:
+                HEALTH_CACHE[camera.id] = new_status
+        except ImportError:
+            pass
+            
+        # Always send health notifications regardless of schedule (it's a system alert)
+        send_notifications(camera.id, "camera_health", payload)
             
     elif event_type == "motion_on":
         # Purely for UI reactive feedback

@@ -8,6 +8,7 @@ import numpy as np
 import logging
 from datetime import datetime
 from collections import deque
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -17,33 +18,33 @@ class StreamReader(threading.Thread):
     This ensures the buffer is constantly drained and we always 
     have the latest frame, preventing "video lag".
     """
-    def __init__(self, url, camera_name="Unknown"):
+    def __init__(self, camera_id, url, camera_name="Unknown", event_callback=None):
         super().__init__(daemon=True)
-        self.url = url
+        self.camera_id = camera_id
+        self.camera_id = camera_id
+        # Sanitize URL: replace // with / in path, but preserve rtsp://
+        # Split by protocol to be safe
+        if "://" in url:
+            proto, rest = url.split("://", 1)
+            self.url = f"{proto}://{rest.replace('//', '/')}"
+        else:
+            self.url = url.replace("//", "/")
         self.camera_name = camera_name
+        self.event_callback = event_callback
         self.latest_frame = None
         self.last_read_time = 0
         self.lock = threading.Lock()
         self.running = False
         self.connected = False
+        self.health_status = "STARTING" # STARTING, CONNECTED, UNREACHABLE, UNAUTHORIZED
         # Limit reconnection log spam
         self.last_error_log = 0
-        
-    def update_url(self, new_url):
-        if self.url != new_url:
-            logger.info(f"StreamReader ({self.camera_name}): URL updated, triggering reconnect")
-            self.url = new_url
-            # Trigger reconnect by modifying state handled in run loop
-            # We don't have direct access to 'cap' here, but the loop checks self.url
-    
-    def force_reconnect(self):
-        """Force the stream reader to reconnect by marking as disconnected"""
-        logger.info(f"StreamReader ({self.camera_name}): Force reconnect requested")
-        self.connected = False
-        # Clear the latest frame to indicate we're reconnecting
+        self.last_status_check = 0
+        self.consecutive_failures = 0
+
+    def get_health(self):
         with self.lock:
-            self.latest_frame = None
-            self.last_read_time = 0
+            return self.health_status
         
     def run(self):
         self.running = True
@@ -53,13 +54,12 @@ class StreamReader(threading.Thread):
         # Suppress OpenCV videoio debug
         os.environ["OPENCV_VIDEOIO_DEBUG"] = "0"
         
-        # Check for hardware acceleration setting
+        # ... HW acceleration setup ...
+        # (keeping existing HW acceleration logic)
         hw_accel_enabled = os.environ.get('HW_ACCEL', 'false').lower() == 'true'
         hw_accel_type = os.environ.get('HW_ACCEL_TYPE', 'auto').lower()
         
-        # Configure FFMPEG backend for hardware acceleration
         if hw_accel_enabled:
-            # Smart Auto Detection
             if hw_accel_type == 'auto':
                 try:
                     import shutil
@@ -73,50 +73,164 @@ class StreamReader(threading.Thread):
             if hw_accel_type == 'nvidia':
                 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;cuda"
             elif hw_accel_type == 'intel':
-                 # purely historical, modern intel uses vaapi usually, but qsv is explicit
                 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;qsv"
             elif hw_accel_type in ['amd', 'vaapi']:
                 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;vaapi"
-            else:  # auto fallback or unknown
+            else:
                 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;auto"
-            
             logger.info(f"StreamReader ({self.camera_name}): HW acceleration configured ({hw_accel_type})")
         else:
             logger.info(f"StreamReader ({self.camera_name}): HW acceleration DISABLED")
             os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
-            
-        logger.debug(f"StreamReader ({self.camera_name}): FFmpeg Options: {os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS']}")
-        
+
         while self.running:
             try:
                 # 1. Connection Phase
-                if cap is None or not cap.isOpened():
-                    current_url = self.url # Update current target
-                    logger.info(f"StreamReader ({self.camera_name}): Connecting to stream...")
+                with self.lock:
+                    target_url = self.url
+                
+                # STOP if Authorized Failed (Prevent IP Ban)
+                if self.health_status == "UNAUTHORIZED":
+                     # Wait for user to update URL/Credentials
+                     time.sleep(1.0)
+                     continue
+
+                if cap is None or not cap.isOpened() or self.health_status == "STARTING":
+                    current_url = target_url
+                    self.connected = False
                     
-                    # NOTE: OpenCV 4.6 (Debian) on FFMPEG backend does not support params in constructor
-                    # We utilize os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] which is set above
                     cap = cv2.VideoCapture(current_url, cv2.CAP_FFMPEG)
-                    
-                    # Try to minimize buffer if backend supports it
-                    try:
-                        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-                    except:
-                        pass
                                         
                     if not cap.isOpened():
-                        if time.time() - self.last_error_log > 10:
-                            logger.warning(f"StreamReader ({self.camera_name}): Failed to connect. Retrying...")
-                            self.last_error_log = time.time()
-                        time.sleep(2)
+                        self.consecutive_failures += 1
+                        
+                        # Immediate Diagnosis (No 30s delay)
+                        try:
+                            # Use ffprobe for a quick probe to check status
+                            cmd = ["ffprobe", "-v", "error", "-rtsp_transport", "tcp", current_url]
+                            res = subprocess.run(cmd, stderr=subprocess.PIPE, text=True, timeout=5)
+                            
+                            err_out = res.stderr.lower()
+                            logger.info(f"[DEBUG] ffprobe stderr repr: {repr(err_out)}") # Use repr to see hidden chars
+                            
+                            auth_failed = False
+                            if "401" in err_out: auth_failed = True
+                            elif "unauthorized" in err_out: auth_failed = True
+                            elif "403" in err_out: auth_failed = True
+                            elif "forbidden" in err_out: auth_failed = True
+                            
+                            if auth_failed:
+                                with self.lock: 
+                                    self.health_status = "UNAUTHORIZED"
+                                    self.latest_frame = None 
+                                logger.warning(f"StreamReader ({self.camera_name}): Authentication failed (401/403). Invoking callback...")
+                                
+                                try:
+                                    if self.event_callback:
+                                        try:
+                                            # Sanitize error output to remove credentials (rtsp://user:pass@)
+                                            safe_err_out = re.sub(r'://[^@]+@', '://***:***@', err_out)
+                                            event_data = {
+                                                "camera_id": self.camera_id,
+                                                "camera_name": self.camera_name,
+                                                "status": "UNAUTHORIZED",
+                                                "timestamp": int(time.time()),
+                                                "message": "We detected an authentication error. Please check your camera username and password.",
+                                                "title": "Camera Authentication Failed"
+                                            }
+                                            self.event_callback(self.camera_id, 'health_status_changed', event_data)
+                                            logger.info(f"StreamReader ({self.camera_name}): Callback invoked for UNAUTHORIZED.")
+                                        except Exception as cb_inner_e:
+                                            logger.error(f"StreamReader ({self.camera_name}): Inner callback error: {cb_inner_e}")
+                                    else:
+                                        logger.error(f"StreamReader ({self.camera_name}): Callback is None!")
+                                except Exception as e:
+                                    logger.error(f"StreamReader ({self.camera_name}): Failed to prepare/call callback: {e}")
+                                
+                                time.sleep(10)
+                                continue
+
+                            # FALLBACK: Try CURL if ffprobe didn't catch it (ffprobe sometimes masks 401 as generic IO error)
+                            # Curl is often more explicit about RTSP handshake status
+                            try:
+                                logger.info(f"StreamReader ({self.camera_name}): ffprobe inconclusive, trying curl for auth check...")
+                                # -I (HEAD) might not work for RTSP, use -v to see headers. --fail to return non-zero?
+                                # We parse the stderr/stdout for "401 Unauthorized"
+                                cmd_curl = ["curl", "-v", "--connect-timeout", "5", current_url]
+                                res_curl = subprocess.run(cmd_curl, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=6)
+                                curl_out = (res_curl.stdout + res_curl.stderr).lower()
+                                
+                                if "401 unauthorized" in curl_out or "return code: 401" in curl_out:
+                                     with self.lock:
+                                         self.health_status = "UNAUTHORIZED"
+                                         self.latest_frame = None
+                                     logger.warning(f"StreamReader ({self.camera_name}): Authentication failed (401) via CURL. Stopping retries.")
+                                     
+                                     # IMMEDIATE NOTIFICATION 
+                                     if self.event_callback:
+                                        event_data = {
+                                            "camera_id": self.camera_id,
+                                            "camera_name": self.camera_name,
+                                            "status": "UNAUTHORIZED",
+                                            "timestamp": int(time.time()),
+                                            "message": "We detected an authentication error. Please check your camera username and password.",
+                                            "title": "Camera Authentication Failed"
+                                        }
+                                        try:
+                                            self.event_callback(self.camera_id, 'health_status_changed', event_data)
+                                        except Exception as e:
+                                            logger.error(f"Failed to callback event: {e}")
+                                     continue
+
+                            except Exception as e:
+                                # Curl failed or not found, proceed to generic unreachable
+                                logger.warning(f"StreamReader ({self.camera_name}): Curl auth check failed or timed out: {e}")
+                                pass
+
+                            # Generic Unreachable
+                            with self.lock: 
+                                self.health_status = "UNREACHABLE"
+                                self.latest_frame = None
+                            logger.warning(f"StreamReader ({self.camera_name}): Network unreachable. Error: {err_out[:50]}")
+
+                            # IMMEDIATE NOTIFICATION for Unreachable
+                            if self.last_health_report_status != "UNREACHABLE":
+                                self.last_health_report_status = "UNREACHABLE"
+                                if self.event_callback:
+                                    event_data = {
+                                        "camera_id": self.camera_id,
+                                        "camera_name": self.config.get('name', str(self.camera_id)),
+                                        "status": "UNREACHABLE",
+                                        "timestamp": int(time.time()),
+                                        "message": "Camera is unreachable. Check network or power.",
+                                        "title": "Camera Offline"
+                                    }
+                                    try:
+                                        self.event_callback(self.camera_id, 'health_status_changed', event_data)
+                                    except Exception as e:
+                                        logger.error(f"Failed to callback event: {e}")
+                        except Exception as e:
+                            with self.lock: 
+                                self.health_status = "UNREACHABLE"
+                                self.latest_frame = None
+                        
+                        # Exponential Backoff for generic failures
+                        # 10s, 20s, 40s, 60s... max 120s
+                        retry_delay = min(120, 10 * (2 ** (self.consecutive_failures - 1)))
+                        logger.info(f"StreamReader ({self.camera_name}): Retrying in {retry_delay}s...")
+                        time.sleep(retry_delay)
                         continue
                         
                     logger.info(f"StreamReader ({self.camera_name}): Connected!")
+                    with self.lock: self.health_status = "CONNECTED"
                     self.connected = True
+                    self.consecutive_failures = 0
                 
                 # 2. URL Change Check
-                if self.url != current_url:
-                    logger.info(f"StreamReader ({self.camera_name}): Switching stream URL...")
+                with self.lock:
+                    target_url = self.url
+
+                if target_url != current_url:
                     cap.release()
                     cap = None
                     self.connected = False
@@ -125,25 +239,22 @@ class StreamReader(threading.Thread):
                 # 3. Read Frame
                 ret, frame = cap.read()
                 if not ret:
-                    logger.warning(f"StreamReader ({self.camera_name}): Stream ended or failed. Reconnecting...")
+                    logger.warning(f"StreamReader ({self.camera_name}): Stream ended. Reconnecting...")
                     cap.release()
                     cap = None
-                    self.connected = False
-                    time.sleep(1)
                     continue
                 
                 # 4. Update Latest
                 with self.lock:
                     self.latest_frame = frame
                     self.last_read_time = time.time()
+                    self.health_status = "CONNECTED"
                     
             except Exception as e:
-                logger.error(f"StreamReader ({self.camera_name}): Error in loop: {e}")
-                if cap:
-                    cap.release()
+                logger.error(f"StreamReader ({self.camera_name}): Error: {e}")
+                if cap: cap.release()
                 cap = None
-                self.connected = False
-                time.sleep(1)
+                time.sleep(2)
                 
         if cap: cap.release()
         logger.info(f"StreamReader ({self.camera_name}): Stopped")
@@ -154,6 +265,36 @@ class StreamReader(threading.Thread):
             
     def stop(self):
         self.running = False
+
+    def update_url(self, new_url):
+        with self.lock:
+            # Sanitize URL: replace // with / in path
+            if "://" in new_url:
+                proto, rest = new_url.split("://", 1)
+                new_url = f"{proto}://{rest.replace('//', '/')}"
+            else:
+                new_url = new_url.replace("//", "/")
+
+            if self.url != new_url:
+                logger.info(f"StreamReader ({self.camera_name}): URL changed, resetting health status and forcing reconnect")
+                self.url = new_url
+                self.health_status = "STARTING"  # Force fresh connection attempt
+                self.last_status_check = 0  # Reset ffprobe throttle
+                self.latest_frame = None  # Clear any stale frame
+                self.connected = False # Ensure connected flag is reset
+            else:
+                 # Even if URL is same, if we are in error state, force a retry?
+                 # Useful if user just hits 'Save' to trigger a retry
+                 if self.health_status in ["UNAUTHORIZED", "UNREACHABLE"]:
+                     logger.info(f"StreamReader ({self.camera_name}): URL unchanged but in error state, forcing retry")
+                     self.health_status = "STARTING"
+                     self.last_status_check = 0
+
+    def force_reconnect(self):
+        with self.lock:
+            # Setting health to STARTING forces the loop to re-evaluate connection
+            self.connected = False
+            self.health_status = "STARTING"
 
 
 class CameraThread(threading.Thread):
@@ -166,7 +307,7 @@ class CameraThread(threading.Thread):
         self.running = False
         
         # Reader Thread
-        self.stream_reader = StreamReader(self.config['rtsp_url'], self.config.get('name', str(camera_id)))
+        self.stream_reader = StreamReader(self.camera_id, self.config['rtsp_url'], self.config.get('name', str(camera_id)), event_callback=self.event_callback)
         
         # Frame Storage
         self.latest_frame_jpeg = None
@@ -208,7 +349,14 @@ class CameraThread(threading.Thread):
 
         # Pre-capture buffer
         self.pre_buffer = deque(maxlen=self.config.get('pre_capture', 0) or 1)
+
+        # Health Monitoring (Restored)
+        self.last_health_report_status = "STARTING"
+        self.last_health_check_time = 0
     
+    def get_health(self):
+        return self.stream_reader.get_health()
+
     def _mask_url(self, url):
         import re
         if not url: return ""
@@ -332,6 +480,11 @@ class CameraThread(threading.Thread):
                         with self.lock:
                             self.latest_frame_jpeg = jpeg.tobytes()
                             self.last_frame_update_time = time.time()
+                        # Sync health_status when frames are successfully generated
+                        # This overrides any stale UNAUTHORIZED from ffprobe checks
+                        with self.stream_reader.lock:
+                            if self.stream_reader.health_status != "CONNECTED":
+                                self.stream_reader.health_status = "CONNECTED"
                 
                 # FPS Calculation
                 self.frame_count += 1
@@ -339,6 +492,53 @@ class CameraThread(threading.Thread):
                     self.fps = self.frame_count
                     self.frame_count = 0
                     self.last_fps_time = time.time()
+                
+                # Health Monitoring & Notification (Check every 60s)
+                if time.time() - self.last_health_check_time > 60.0:
+                    self.last_health_check_time = time.time()
+                    current_health = self.stream_reader.get_health()
+                    
+                    if current_health != self.last_health_report_status:
+                        prev_health = self.last_health_report_status
+                        self.last_health_report_status = current_health
+                        
+                        logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Health changed {prev_health} -> {current_health}")
+                        
+                        event_title = None
+                        event_msg = None
+                        
+                        if current_health == "UNAUTHORIZED":
+                            event_title = f"Camera Auth Failure: {self.config.get('name')}"
+                            event_msg = "Camera reported 401 Unauthorized (Wrong Password). Please check credentials."
+                        elif current_health == "UNREACHABLE":
+                            event_title = f"Camera Offline: {self.config.get('name')}"
+                            event_msg = "Camera is unreachable. Check network or power."
+                        elif current_health == "CONNECTED" and prev_health in ["UNAUTHORIZED", "UNREACHABLE"]:
+                            event_title = f"Camera Online: {self.config.get('name')}"
+                            event_msg = "Camera connection restored."
+                            
+                        # Trigger Event
+                        if event_title:
+                            event_data = {
+                                "camera_id": self.camera_id,
+                                "camera_name": self.camera_name,
+                                "status": current_health,
+                                "timestamp": int(time.time()),
+                                "message": event_msg,
+                                "title": event_title
+                            }
+                            self.event_queue.put(("health_status_changed", event_data))
+                            
+                            if self.event_callback:
+                                self.event_callback(self.camera_id, 'health_status_changed', {
+                                    "title": event_title,
+                                    "message": event_msg,
+                                    "new_status": current_health
+                                })
+                
+
+                    
+
 
                 # Framerate throttle (Processing FPS)
                 target_fps = self.config.get('framerate', 30)
@@ -804,7 +1004,15 @@ class CameraThread(threading.Thread):
         
         # Update StreamReader URL if changed
         if 'rtsp_url' in new_config:
-            self.stream_reader.update_url(new_config['rtsp_url'])
+            new_url = new_config['rtsp_url']
+            # Mask for logging
+            masked_new = self._mask_url(new_url)
+            masked_old = self._mask_url(self.config.get('rtsp_url'))
+            
+            if new_url != self.config.get('rtsp_url'):
+                logger.info(f"Camera {self.config.get('name')}: RTSP URL update: {masked_old} -> {masked_new}")
+                
+            self.stream_reader.update_url(new_url)
 
         # Update pre-buffer length
         pre_cap = self.config.get('pre_capture', 0)
