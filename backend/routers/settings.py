@@ -9,6 +9,7 @@ import schemas
 import auth_service
 import json, time
 import datetime, motion_service
+import requests
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -129,6 +130,7 @@ DEFAULT_SETTINGS = {
     "telegram_bot_token": {"value": "", "description": "Telegram Bot Token for global notifications"},
     "telegram_chat_id": {"value": "", "description": "Telegram Chat ID for global notifications"},
     "notify_email_recipient": {"value": "", "description": "Default recipient for email notifications"},
+    "notify_webhook_url": {"value": "", "description": "Global Webhook URL for notifications"},
     "default_landing_page": {"value": "live", "description": "Default page when opening the app (dashboard, timeline, live)"},
     
     # Log Settings
@@ -425,3 +427,120 @@ def sync_orphan_recordings(
 
     background_tasks.add_task(run_sync_task)
     return {"message": "Orphan recording recovery started in background."}
+
+@router.post("/init-defaults")
+def init_default_settings(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """Initialize default settings if they don't exist"""
+    count = 0
+    for key, data in DEFAULT_SETTINGS.items():
+        existing = db.query(models.SystemSettings).filter(models.SystemSettings.key == key).first()
+        if not existing:
+            setting = models.SystemSettings(key=key, value=data["value"], description=data["description"])
+            db.add(setting)
+            count += 1
+    db.commit()
+    return {"message": "Defaults initialized", "created_count": count}
+
+@router.post("/test-notify")
+def test_notification(config: schemas.TestNotificationConfig, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """Send a test notification synchronously using provided credentials, falling back to DB defaults"""
+    try:
+        channel = config.channel
+        settings = config.settings
+        
+        # Helper to get setting from payload OR database
+        def get_conf(key, default=None):
+            val = settings.get(key)
+            if val: return val
+            return get_setting(db, key) or default
+
+        if channel == "email":
+            import smtplib
+            from email.mime.text import MIMEText
+            
+            import socket
+            
+            smtp_server = get_conf("smtp_server")
+            smtp_port = int(get_conf("smtp_port", "587"))
+            smtp_user = get_conf("smtp_username")
+            smtp_pass = get_conf("smtp_password")
+            smtp_from = get_conf("smtp_from_email")
+            
+            # Recipient priority: Payload 'recipient' -> DB 'notify_email_recipient'
+            recipient = settings.get("recipient") 
+            if not recipient:
+                recipient = get_setting(db, "notify_email_recipient")
+            
+            if not all([smtp_server, smtp_from, recipient]):
+                raise ValueError("Missing required Email settings (Server, From, Recipient). Configure them in Global Settings first.")
+                
+            msg = MIMEText("This is a test notification from VibeNVR.\nIf you see this, your Email settings are correct!")
+            msg['Subject'] = "VibeNVR Test Notification"
+            msg['From'] = smtp_from
+            msg['To'] = recipient
+            
+            try:
+                # Handle implicit SSL (Port 465) vs STARTTLS (Port 587/25)
+                if smtp_port == 465:
+                    server = smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=10)
+                else:
+                    server = smtplib.SMTP(smtp_server, smtp_port, timeout=10)
+                    server.starttls()
+                
+                with server:
+                    if smtp_user and smtp_pass:
+                        try:
+                            server.login(smtp_user, smtp_pass)
+                        except smtplib.SMTPAuthenticationError:
+                            raise ValueError("Authentication failed: Incorrect Username or Password.")
+                    
+                    server.send_message(msg)
+            except (socket.timeout, ConnectionRefusedError, OSError) as e:
+                 raise ValueError(f"Connection failed: Unable to connect to {smtp_server}:{smtp_port}. ({str(e)})")
+            except smtplib.SMTPException as e:
+                 raise ValueError(f"SMTP Error: {str(e)}")
+                 
+            return {"status": "success", "message": f"Test email sent to {recipient}"}
+            
+        elif channel == "telegram":
+            token = get_conf("telegram_bot_token")
+            chat_id = settings.get("telegram_chat_id") or get_conf("telegram_chat_id")
+            
+            if not token or not chat_id:
+                raise ValueError("Missing Telegram Token or Chat ID. Configure them in Global Settings first.")
+                
+            api_url = f"https://api.telegram.org/bot{token}/sendMessage"
+            payload = {
+                "chat_id": chat_id,
+                "text": "🔔 VibeNVR Test Notification\n\nSucccess! Your Telegram bot is configured correctly."
+            }
+            
+            resp = requests.post(api_url, json=payload, timeout=10)
+            if not resp.ok:
+                raise ValueError(f"Telegram API Error: {resp.text}")
+                
+            return {"status": "success", "message": "Test Telegram message sent"}
+            
+        elif channel == "webhook":
+            url = settings.get("notify_webhook_url") or get_conf("notify_webhook_url")
+            
+            if not url:
+                raise ValueError("Missing Webhook URL. Configure it in Global Settings first.")
+                
+            payload = {
+                "event": "test",
+                "message": "VibeNVR Test Webhook",
+                "timestamp": datetime.datetime.now().isoformat()
+            }
+            
+            resp = requests.post(url, json=payload, timeout=10)
+            if not resp.ok:
+                raise ValueError(f"Webhook returned error: {resp.status_code} {resp.text}")
+                
+            return {"status": "success", "message": f"Test payload sent to {url}"}
+            
+        else:
+            raise ValueError(f"Unknown channel: {channel}")
+            
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

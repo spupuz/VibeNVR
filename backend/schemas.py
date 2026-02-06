@@ -2,6 +2,10 @@ from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import datetime
 
+class TestNotificationConfig(BaseModel):
+    channel: str # 'email', 'telegram', 'webhook'
+    settings: dict
+
 class CameraBase(BaseModel):
     name: str
     rtsp_url: str
@@ -64,6 +68,12 @@ class CameraBase(BaseModel):
     notify_telegram_chat_id: Optional[str] = None
     notify_email_address: Optional[str] = None
 
+    # Health Notification Destinations
+    notify_health_webhook_url: Optional[str] = None
+    notify_health_telegram_token: Optional[str] = None
+    notify_health_telegram_chat_id: Optional[str] = None
+    notify_health_email_recipient: Optional[str] = None
+
     # Notifications
     notify_start_email: Optional[bool] = False
     notify_start_telegram: Optional[bool] = False
@@ -72,8 +82,12 @@ class CameraBase(BaseModel):
     notify_end_webhook: Optional[bool] = False
     notify_end_command: Optional[bool] = False
     
+    # Health Notifications
+    notify_health_email: Optional[bool] = False
+    notify_health_telegram: Optional[bool] = False
+    notify_health_webhook: Optional[bool] = False
+    
     notify_attach_image_email: Optional[bool] = True
-    notify_attach_image_telegram: Optional[bool] = True
 
 
 

@@ -7,18 +7,17 @@ import { useToast } from '../contexts/ToastContext';
 
 const API_BASE = `/api`;
 
-const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onToggleRecording, isRecording, isLiveMotion }) => {
+const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onToggleRecording, isRecording, isLiveMotion, healthStatus }) => {
     const { token, user } = useAuth();
     const { showToast } = useToast();
     const [loadState, setLoadState] = useState('loading');
     const [frameSrc, setFrameSrc] = useState('');
     const navigate = useNavigate();
-    const pollingRef = useRef(null);
     const mountedRef = useRef(true);
     const containerRef = useRef(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
-    // JPEG Polling - Recursive "Fetch then Wait" pattern to prevent connection flooding
+    // JPEG Polling
     useEffect(() => {
         mountedRef.current = true;
         let timeoutId = null;
@@ -41,24 +40,22 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                         return url;
                     });
                     setLoadState('loaded');
+                } else if (response.status === 401 || response.status === 403) {
+                    setLoadState('unauthorized');
                 } else {
-                    // Don't show error immediately on single failure to reduce flicker
-                    // setLoadState('error');
+                    setLoadState('error');
                 }
             } catch (err) {
-                // Network error (e.g. abort or connection reset)
                 console.debug(`Frame fetch error for ${camera.id}`, err);
+                setLoadState('error');
             } finally {
                 if (mountedRef.current) {
-                    // adaptive delay: very fast if focused, restricted if grid
-                    // Serial execution guarantees no queue buildup
                     const delay = isFocused ? 50 : 200;
                     timeoutId = setTimeout(fetchFrame, delay);
                 }
             }
         };
 
-        // Staggered start to reduce initial spike
         const startDelay = setTimeout(() => {
             fetchFrame();
         }, index * 150);
@@ -68,7 +65,6 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
             clearTimeout(startDelay);
             if (timeoutId) clearTimeout(timeoutId);
 
-            // Clean up blob URL
             setFrameSrc(prev => {
                 if (prev) URL.revokeObjectURL(prev);
                 return '';
@@ -96,10 +92,18 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
         return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
     }, []);
 
+    // Derived Display State
+    const currentHealth = healthStatus || 'CONNECTED';
+
+    // If we successfully loaded a frame, we are definitely NOT offline or unauthorized, 
+    // regardless of what the (possibly stale) backend health check says.
+    const isOffline = loadState === 'loaded' ? false : (loadState === 'error' || currentHealth === 'UNREACHABLE' || currentHealth === 'OFFLINE');
+    const isUnauthorized = loadState === 'loaded' ? false : (loadState === 'unauthorized' || currentHealth === 'UNAUTHORIZED');
+
     return (
         <div ref={containerRef} className={`video-container relative w-full bg-black rounded-xl overflow-hidden ${isFullscreen ? 'h-full' : 'aspect-video'} group transition-all duration-300 ${isFocused ? 'ring-4 ring-primary z-30' : 'z-10'}`}>
 
-            {/* VIBRANT INTERNAL BORDER (Prevents clipping) */}
+            {/* VIBRANT INTERNAL BORDER */}
             <div className={`absolute inset-0 rounded-xl pointer-events-none z-50 transition-all duration-300 ${isLiveMotion
                 ? 'border-[4px] border-red-600 shadow-[inset_0_0_20px_rgba(220,38,38,0.4)]'
                 : (camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous')
@@ -108,7 +112,7 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                 }`}
             />
 
-            {/* EXIT FULLSCREEN BUTTON - Only visible in fullscreen mode */}
+            {/* EXIT FULLSCREEN BUTTON */}
             {isFullscreen && (
                 <button
                     onClick={handleExitFullscreen}
@@ -118,7 +122,7 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                     <X className="w-6 h-6" />
                 </button>
             )}
-            {/* TOP LEFT - STATUS & INFO (Stacked, no overlap) */}
+            {/* TOP LEFT - STATUS & INFO */}
             <div className="absolute top-2 left-2 z-40 flex flex-col gap-1.5 pointer-events-none">
                 {isLiveMotion ? (
                     <div className="flex items-center space-x-2 bg-red-600 px-2 py-1 rounded shadow-2xl animate-pulse ring-1 ring-white/40 w-fit">
@@ -132,7 +136,21 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                     </div>
                 ) : null}
 
-                {/* Camera Information Card (Below badges) */}
+                {/* ERROR BADGES */}
+                {isOffline && (
+                    <div className="flex items-center space-x-2 bg-zinc-800 px-2.5 py-1 rounded shadow-2xl ring-1 ring-white/20 w-fit">
+                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                        <span className="text-[10px] font-black text-white tracking-widest uppercase">NO SIGNAL</span>
+                    </div>
+                )}
+                {isUnauthorized && (
+                    <div className="flex items-center space-x-2 bg-amber-600 px-2.5 py-1 rounded shadow-2xl ring-1 ring-white/20 w-fit">
+                        <div className="w-1.5 h-1.5 rounded-full bg-amber-200" />
+                        <span className="text-[10px] font-black text-white tracking-widest uppercase">AUTH ERROR</span>
+                    </div>
+                )}
+
+                {/* Camera Information Card */}
                 <div className="bg-black/60 backdrop-blur-md px-2.5 py-2 rounded-lg border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-fit max-w-[200px]">
                     <h3 className="text-white font-bold text-xs sm:text-sm tracking-tight leading-tight truncate">
                         {camera.name}
@@ -143,10 +161,9 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                 </div>
             </div>
 
-            {/* ACTION BAR - Bottom Centered, scalalble */}
+            {/* ACTION BAR */}
             <div className="absolute inset-x-0 bottom-0 p-2 z-40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex justify-center pointer-events-none">
                 <div className="flex items-center gap-0.5 sm:gap-1 bg-black/80 backdrop-blur-xl p-1 rounded-xl border border-white/10 shadow-3xl pointer-events-auto max-w-full overflow-hidden">
-                    {/* View Controls */}
                     <button onClick={() => onFocus(camera.id)} className={`p-1 rounded-md text-white transition-all shrink-0 ${isFocused ? 'bg-primary' : 'hover:bg-white/10'}`} title="Focus">
                         <Square className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
@@ -156,7 +173,6 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
 
                     <div className="w-px h-4 bg-white/10 mx-0.5 self-center shrink-0" />
 
-                    {/* Snapshot & Media Browser */}
                     <button onClick={() => {
                         fetch(`${API_BASE}/cameras/${camera.id}/snapshot`, {
                             method: 'POST',
@@ -174,7 +190,6 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
 
                     <div className="w-px h-4 bg-white/10 mx-0.5 self-center shrink-0" />
 
-                    {/* Always Record Toggle */}
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -186,7 +201,6 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                         <Disc className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
 
-                    {/* Settings Button - Admin Only */}
                     {user?.role === 'admin' && (
                         <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1 text-primary-foreground bg-primary hover:bg-primary/80 rounded-md transition-all shrink-0" title="Settings">
                             <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -196,13 +210,10 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
             </div>
 
             {/* Video Content Layer */}
-            {loadState === 'error' ? (
-                <div className="absolute inset-0 w-full h-full">
-                    <img src="/no-signal.png" alt="No Signal" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="bg-black/80 text-white px-3 py-1 rounded text-[10px] font-mono tracking-widest border border-white/20">NO SIGNAL</span>
-                    </div>
-                </div>
+            {isUnauthorized ? (
+                <img src="/invalid-password.png" alt="Invalid Password" className="absolute inset-0 w-full h-full object-cover" />
+            ) : isOffline ? (
+                <img src="/no-signal.png" alt="No Signal" className="absolute inset-0 w-full h-full object-cover" />
             ) : frameSrc ? (
                 <img
                     src={frameSrc}
@@ -223,6 +234,7 @@ export const LiveView = () => {
     const [cameras, setCameras] = useState([]);
     const [activeMotionIds, setActiveMotionIds] = useState([]);
     const [liveMotionIds, setLiveMotionIds] = useState([]);
+    const [cameraHealth, setCameraHealth] = useState({});
     const [focusCameraId, setFocusCameraId] = useState(null);
     const [columnSetting, setColumnSetting] = useState(() => {
         return localStorage.getItem('liveViewColumns') || 'auto';
@@ -245,6 +257,7 @@ export const LiveView = () => {
             .then(data => {
                 setActiveMotionIds(data.active_ids || []);
                 setLiveMotionIds(data.live_motion_ids || []);
+                setCameraHealth(data.camera_health || {});
             })
             .catch(err => console.error("Failed to fetch motion status", err));
     };
@@ -448,6 +461,7 @@ export const LiveView = () => {
                                                         onToggleRecording={handleToggleRecording}
                                                         isRecording={activeMotionIds.includes(cam.id)}
                                                         isLiveMotion={liveMotionIds.includes(cam.id)}
+                                                        healthStatus={cameraHealth[cam.id]}
                                                     />
                                                 ))}
                                             </div>
@@ -481,6 +495,7 @@ export const LiveView = () => {
                                                         onToggleRecording={handleToggleRecording}
                                                         isRecording={activeMotionIds.includes(cam.id)}
                                                         isLiveMotion={liveMotionIds.includes(cam.id)}
+                                                        healthStatus={cameraHealth[cam.id]}
                                                     />
                                                 ))}
                                             </div>
@@ -514,6 +529,7 @@ export const LiveView = () => {
                                 onToggleRecording={handleToggleRecording}
                                 isRecording={activeMotionIds.includes(cam.id)}
                                 isLiveMotion={liveMotionIds.includes(cam.id)}
+                                healthStatus={cameraHealth[cam.id]}
                             />
                         ))}
                     </div>

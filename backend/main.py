@@ -123,6 +123,8 @@ async def lifespan(app: FastAPI):
     motion_service.start_check_loop()
     import log_service
     log_service.start_scheduler()
+    import health_service
+    health_service.start_health_service()
     
     # Regenerate motion config
     with database.get_db_ctx() as db:

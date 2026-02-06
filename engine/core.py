@@ -111,6 +111,14 @@ class CameraManager:
                     data["height"] = payload.get("height")
                 else:
                     data["file_path"] = payload # legacy string payload
+
+        elif event_type == "health_status_changed":
+            webhook_type = "camera_health"
+            if payload:
+                 data["title"] = payload.get("title")
+                 data["message"] = payload.get("message")
+                 data["status"] = payload.get("status")
+        
         elif event_type == "snapshot_save":
             webhook_type = "picture_save"
             if payload:
@@ -146,9 +154,11 @@ class CameraManager:
         """Debug status of all cameras"""
         status = {}
         for cid, thread in self.cameras.items():
+            health = thread.get_health()
             cam_status = {
                 "running": thread.is_alive(),
-                "connected": thread.cap is not None and thread.cap.isOpened(),
+                "connected": health == "CONNECTED",
+                "health": health,
                 "rtsp_url": thread._mask_url(thread.config.get("rtsp_url")),
                 "fps": thread.fps,
                 "motion": thread.motion_detected,
