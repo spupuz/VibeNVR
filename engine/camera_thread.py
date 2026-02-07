@@ -41,6 +41,7 @@ class StreamReader(threading.Thread):
         self.last_error_log = 0
         self.last_status_check = 0
         self.consecutive_failures = 0
+        self.last_health_report_status = None
 
     def get_health(self):
         with self.lock:
@@ -127,21 +128,24 @@ class StreamReader(threading.Thread):
                                 
                                 try:
                                     if self.event_callback:
-                                        try:
-                                            # Sanitize error output to remove credentials (rtsp://user:pass@)
-                                            safe_err_out = re.sub(r'://[^@]+@', '://***:***@', err_out)
-                                            event_data = {
-                                                "camera_id": self.camera_id,
-                                                "camera_name": self.camera_name,
-                                                "status": "UNAUTHORIZED",
-                                                "timestamp": int(time.time()),
-                                                "message": "We detected an authentication error. Please check your camera username and password.",
-                                                "title": "Camera Authentication Failed"
-                                            }
-                                            self.event_callback(self.camera_id, 'health_status_changed', event_data)
-                                            logger.info(f"StreamReader ({self.camera_name}): Callback invoked for UNAUTHORIZED.")
-                                        except Exception as cb_inner_e:
-                                            logger.error(f"StreamReader ({self.camera_name}): Inner callback error: {cb_inner_e}")
+                                        # DEBOUNCE: Only notify if status changed
+                                        if self.last_health_report_status != "UNAUTHORIZED":
+                                            self.last_health_report_status = "UNAUTHORIZED"
+                                            try:
+                                                # Sanitize error output to remove credentials (rtsp://user:pass@)
+                                                safe_err_out = re.sub(r'://[^@]+@', '://***:***@', err_out)
+                                                event_data = {
+                                                    "camera_id": self.camera_id,
+                                                    "camera_name": self.camera_name,
+                                                    "status": "UNAUTHORIZED",
+                                                    "timestamp": int(time.time()),
+                                                    "message": "We detected an authentication error. Please check your camera username and password.",
+                                                    "title": "🚫 Camera Authentication Failed"
+                                                }
+                                                self.event_callback(self.camera_id, 'health_status_changed', event_data)
+                                                logger.info(f"StreamReader ({self.camera_name}): Callback invoked for UNAUTHORIZED.")
+                                            except Exception as cb_inner_e:
+                                                logger.error(f"StreamReader ({self.camera_name}): Inner callback error: {cb_inner_e}")
                                     else:
                                         logger.error(f"StreamReader ({self.camera_name}): Callback is None!")
                                 except Exception as e:
@@ -167,19 +171,21 @@ class StreamReader(threading.Thread):
                                      logger.warning(f"StreamReader ({self.camera_name}): Authentication failed (401) via CURL. Stopping retries.")
                                      
                                      # IMMEDIATE NOTIFICATION 
-                                     if self.event_callback:
-                                        event_data = {
-                                            "camera_id": self.camera_id,
-                                            "camera_name": self.camera_name,
-                                            "status": "UNAUTHORIZED",
-                                            "timestamp": int(time.time()),
-                                            "message": "We detected an authentication error. Please check your camera username and password.",
-                                            "title": "Camera Authentication Failed"
-                                        }
-                                        try:
-                                            self.event_callback(self.camera_id, 'health_status_changed', event_data)
-                                        except Exception as e:
-                                            logger.error(f"Failed to callback event: {e}")
+                                     if self.last_health_report_status != "UNAUTHORIZED":
+                                         self.last_health_report_status = "UNAUTHORIZED"
+                                         if self.event_callback:
+                                            event_data = {
+                                                "camera_id": self.camera_id,
+                                                "camera_name": self.camera_name,
+                                                "status": "UNAUTHORIZED",
+                                                "timestamp": int(time.time()),
+                                                "message": "We detected an authentication error. Please check your camera username and password.",
+                                                "title": "🚫 Camera Authentication Failed"
+                                            }
+                                            try:
+                                                self.event_callback(self.camera_id, 'health_status_changed', event_data)
+                                            except Exception as e:
+                                                logger.error(f"Failed to callback event: {e}")
                                      continue
 
                             except Exception as e:
@@ -203,7 +209,7 @@ class StreamReader(threading.Thread):
                                         "status": "UNREACHABLE",
                                         "timestamp": int(time.time()),
                                         "message": "Camera is unreachable. Check network or power.",
-                                        "title": "Camera Offline"
+                                        "title": "📡 Camera Offline"
                                     }
                                     try:
                                         self.event_callback(self.camera_id, 'health_status_changed', event_data)
@@ -222,6 +228,25 @@ class StreamReader(threading.Thread):
                         continue
                         
                     logger.info(f"StreamReader ({self.camera_name}): Connected!")
+                    
+                    # RECOVERY NOTIFICATION
+                    if self.last_health_report_status in ["UNAUTHORIZED", "UNREACHABLE", "OFFLINE"]:
+                         logger.info(f"StreamReader ({self.camera_name}): Converting from {self.last_health_report_status} to CONNECTED")
+                         if self.event_callback:
+                            try:
+                                event_data = {
+                                    "camera_id": self.camera_id,
+                                    "camera_name": self.camera_name,
+                                    "status": "CONNECTED",
+                                    "timestamp": int(time.time()),
+                                    "message": f"Camera is back online. Connection established.",
+                                    "title": "✅ Camera Recovered"
+                                }
+                                self.event_callback(self.camera_id, 'health_status_changed', event_data)
+                            except Exception as e:
+                                logger.error(f"Failed to callback event for RECOVERY: {e}")
+                    
+                    self.last_health_report_status = "CONNECTED"
                     with self.lock: self.health_status = "CONNECTED"
                     self.connected = True
                     self.consecutive_failures = 0
