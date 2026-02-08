@@ -143,6 +143,74 @@ Attackers scanning your public IP will find all ports (5000, 8000) closed. They 
 
 ---
 
+## 🔧 Troubleshooting
+
+### Permission Errors on Proxmox/PVE Kernel, OpenMediaVault, Synology, QNAP
+
+If you're running VibeNVR on a system with the **Proxmox kernel (pve-kernel)**, **OpenMediaVault**, **Synology**, **QNAP**, or similar NAS devices, you may encounter permission errors like:
+
+**PostgreSQL errors:**
+```
+could not create Unix socket for address "/var/run/postgresql/.s.PGSQL.5432": Permission denied
+FATAL: could not create any Unix-domain sockets
+```
+
+**Engine/Backend errors:**
+```
+socket.socketpair()
+PermissionError: [Errno 13] Permission denied
+```
+
+**Solution:** These errors are caused by kernel security restrictions (seccomp/AppArmor). Try the following solutions in order:
+
+**Option 1: Disable seccomp and AppArmor**
+
+Add these lines to **each service** (backend, engine, db) in your `docker-compose.yml`:
+
+```yaml
+security_opt:
+  - seccomp:unconfined
+  - apparmor:unconfined
+```
+
+**Option 2: Use Privileged Mode for ALL Containers**
+
+If Option 1 doesn't work (common on OpenMediaVault + Proxmox kernel), you MUST change `privileged: false` to `privileged: true` for **every service** (frontend, backend, engine, db) in your `docker-compose.yml`:
+
+```yaml
+services:
+  frontend:
+    privileged: true # Change from false to true
+  backend:
+    privileged: true # Change from false to true
+  engine:
+    privileged: true # Change from false to true
+  db:
+    privileged: true # Change from false to true
+```
+
+**Option 3: System-level fix** (if all else fails)
+
+```bash
+# Enable unprivileged user namespaces
+sudo sysctl -w kernel.unprivileged_userns_clone=1
+
+# Make it permanent
+echo "kernel.unprivileged_userns_clone=1" | sudo tee /etc/sysctl.d/99-userns.conf
+sudo sysctl --system
+
+# Restart Docker
+sudo systemctl restart docker
+```
+
+After making changes, restart the containers:
+```bash
+docker compose down
+docker compose up -d
+```
+
+---
+
 ## 📸 Screenshots
 
 ### Desktop Views

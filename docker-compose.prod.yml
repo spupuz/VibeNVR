@@ -14,10 +14,12 @@ services:
     depends_on:
       - backend
     restart: always
+    privileged: false # Set to true for Proxmox/OMV/LXC if you see permission errors
 
   backend:
     image: spupuz/vibenvr-backend:latest
     container_name: vibenvr-backend
+    privileged: false # Set to true for Proxmox/OMV/LXC if you see permission errors
     ports:
       - "${VIBENVR_BACKEND_PORT:-5005}:5000"
     volumes:
@@ -39,8 +41,20 @@ services:
       sh -c "mkdir -p /data/logs && chmod 777 /data/logs && touch /data/logs/backend.log && uvicorn main:app --host 0.0.0.0 --port 5000 2>&1 | tee -a /data/logs/backend.log"
     networks:
       - vibe-network
+    # ─────────────────────────────────────────────────────────────────────────
+    # TROUBLESHOOTING: Permission Errors on Proxmox/PVE Kernel, Synology, QNAP
+    # ─────────────────────────────────────────────────────────────────────────
+    # If you see errors like "PermissionError: [Errno 13] Permission denied"
+    # or "could not create Unix socket", try these options in order:
+    #
+    # Option 1: Disable seccomp and AppArmor
     # security_opt:
-    #   - seccomp:unconfined # Uncomment on older hosts/kernels (e.g. Synology, QNAP) if you see PermissionError
+    #   - seccomp:unconfined
+    #   - apparmor:unconfined
+    #
+    # Option 2: If Option 1 doesn't work, use privileged mode
+    # privileged: true
+    # ─────────────────────────────────────────────────────────────────────────
 
   engine:
     image: spupuz/vibenvr-engine:latest
@@ -73,14 +87,36 @@ services:
     restart: always
     command: >
       sh -c "mkdir -p /var/lib/vibe/recordings/logs && touch /var/lib/vibe/recordings/logs/engine.log && python3 -u main.py 2>&1 | grep --line-buffered -v 'SEI type 764' | tee -a /var/lib/vibe/recordings/logs/engine.log"
+    # Fix for Proxmox/pve kernel: socket.socketpair() Permission denied
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    privileged: false # Set to true for Proxmox/OMV/LXC if you see permission errors
     networks:
       - vibe-network
+    # ─────────────────────────────────────────────────────────────────────────
+    # TROUBLESHOOTING: Permission Errors on Proxmox/PVE Kernel, Synology, QNAP
+    # ─────────────────────────────────────────────────────────────────────────
+    # If you see errors like "PermissionError: [Errno 13] Permission denied"
+    # or "socket.socketpair() Permission denied", try these options in order:
+    #
+    # Option 1: Disable seccomp and AppArmor
     # security_opt:
-    #   - seccomp:unconfined # Uncomment on older hosts/kernels (e.g. Synology, QNAP) if you see PermissionError
+    #   - seccomp:unconfined
+    #   - apparmor:unconfined
+    #
+    # Option 2: If Option 1 doesn't work, use privileged mode
+    # privileged: true
+    # ─────────────────────────────────────────────────────────────────────────
 
   db:
     image: postgres:15-alpine
     container_name: vibenvr-db
+    # Fix for Proxmox/pve kernel: Unix socket Permission denied
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    privileged: false # Set to true for Proxmox/OMV/LXC if you see permission errors
     environment:
       - POSTGRES_USER=vibenvr
       - POSTGRES_PASSWORD=vibenvrpass
@@ -96,8 +132,20 @@ services:
     networks:
       - vibe-network
     restart: always
+    # ─────────────────────────────────────────────────────────────────────────
+    # TROUBLESHOOTING: Permission Errors on Proxmox/PVE Kernel, Synology, QNAP
+    # ─────────────────────────────────────────────────────────────────────────
+    # If you see errors like "could not create Unix socket" or
+    # "could not create any Unix-domain sockets", try these options in order:
+    #
+    # Option 1: Disable seccomp and AppArmor
     # security_opt:
-    #   - seccomp:unconfined # Uncomment on older hosts/kernels (e.g. Synology, QNAP) if you see PermissionError
+    #   - seccomp:unconfined
+    #   - apparmor:unconfined
+    #
+    # Option 2: If Option 1 doesn't work, use privileged mode
+    # privileged: true
+    # ─────────────────────────────────────────────────────────────────────────
 
 
 volumes:
