@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Monitor, Save, HardDrive, Clock, Trash2, Users, Plus, X, Key, Bell, Download, Upload, LayoutDashboard, Settings as SettingsIcon } from 'lucide-react';
+import { Monitor, Save, HardDrive, Clock, Trash2, Users, Plus, X, Key, Bell, Download, Upload, LayoutDashboard, Settings as SettingsIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { Button } from '../components/ui/Button';
+import { CollapsibleSection } from '../components/ui/CollapsibleSection';
 
 export const Settings = () => {
     const { user, token } = useAuth();
@@ -56,6 +57,13 @@ export const Settings = () => {
     // Orphan Sync State
     const [orphanSyncStatus, setOrphanSyncStatus] = useState({ isSyncing: false, status: 'idle' });
     const [syncResultModal, setSyncResultModal] = useState({ isOpen: false, data: null });
+
+    // Collapsible Sections State
+    const [openSection, setOpenSection] = useState('account');
+
+    const toggleSection = (sectionId) => {
+        setOpenSection(openSection === sectionId ? '' : sectionId);
+    };
 
     // Poll for status when syncing
     useEffect(() => {
@@ -513,12 +521,17 @@ export const Settings = () => {
             </div>
 
             {/* My Account Section (Visible to everyone) */}
-            <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6">
+            {/* My Account Section (Visible to everyone) */}
+            <CollapsibleSection
+                id="account"
+                title="My Account"
+                description={`Manage your profile (${user?.username})`}
+                icon={<Users className="w-6 h-6" />}
+                isOpen={openSection === 'account'}
+                onToggle={toggleSection}
+            >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
-                            <Users className="w-6 h-6" />
-                        </div>
                         <div>
                             <h3 className="font-semibold text-lg">My Account</h3>
                             <p className="text-sm text-muted-foreground">Manage your profile ({user?.username})</p>
@@ -529,16 +542,20 @@ export const Settings = () => {
                         Change Password
                     </Button>
                 </div>
-            </div>
+            </CollapsibleSection>
 
             {/* User Management (Admin Only) */}
             {user?.role === 'admin' && (
-                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6">
+                <CollapsibleSection
+                    id="users"
+                    title="User Management"
+                    description="Manage system access and roles"
+                    icon={<Users className="w-6 h-6" />}
+                    isOpen={openSection === 'users'}
+                    onToggle={toggleSection}
+                >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
                         <div className="flex items-center space-x-3">
-                            <div className="p-2 bg-purple-500/10 rounded-lg text-purple-500">
-                                <Users className="w-6 h-6" />
-                            </div>
                             <div>
                                 <h3 className="font-semibold text-lg">User Management</h3>
                                 <p className="text-sm text-muted-foreground">Manage system access and roles</p>
@@ -605,7 +622,7 @@ export const Settings = () => {
                         </form>
                     )}
 
-                    <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">
+                    <div className="rounded-lg border border-border overflow-hidden overflow-x-auto mt-4">
                         <table className="w-full text-sm">
                             <thead className="bg-muted/40 text-left">
                                 <tr>
@@ -661,16 +678,20 @@ export const Settings = () => {
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </CollapsibleSection>
             )}
 
             {/* Storage Settings */}
             {user?.role === 'admin' && (
-                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6">
+                <CollapsibleSection
+                    id="storage"
+                    title="Storage Management"
+                    description="Control disk space usage for recordings"
+                    icon={<HardDrive className="w-6 h-6" />}
+                    isOpen={openSection === 'storage'}
+                    onToggle={toggleSection}
+                >
                     <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                        <div className="p-2 bg-green-500/10 rounded-lg text-green-500">
-                            <HardDrive className="w-6 h-6" />
-                        </div>
                         <div>
                             <h3 className="font-semibold text-lg">Storage Management</h3>
                             <p className="text-sm text-muted-foreground">Control disk space usage for recordings</p>
@@ -813,17 +834,21 @@ export const Settings = () => {
                             </div>
                         </div>
                     )}
-                </div>
+                </CollapsibleSection>
             )}
 
 
             {/* Live View Settings */}
             {user?.role === 'admin' && (
-                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6">
+                <CollapsibleSection
+                    id="liveview"
+                    title="Live View Layout"
+                    description="Customize how cameras are displayed"
+                    icon={<Monitor className="w-6 h-6" />}
+                    isOpen={openSection === 'liveview'}
+                    onToggle={toggleSection}
+                >
                     <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                        <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                            <Monitor className="w-6 h-6" />
-                        </div>
                         <div>
                             <h3 className="font-semibold text-lg">Live View Layout</h3>
                             <p className="text-sm text-muted-foreground">Customize how cameras are displayed</p>
@@ -849,16 +874,20 @@ export const Settings = () => {
                             </p>
                         </div>
                     </div>
-                </div>
+                </CollapsibleSection>
             )}
 
             {/* General Preferences */}
             {user?.role === 'admin' && (
-                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6">
+                <CollapsibleSection
+                    id="general"
+                    title="General Preferences"
+                    description="Configure global application defaults"
+                    icon={<SettingsIcon className="w-6 h-6" />}
+                    isOpen={openSection === 'general'}
+                    onToggle={toggleSection}
+                >
                     <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
-                            <SettingsIcon className="w-6 h-6" />
-                        </div>
                         <div>
                             <h3 className="font-semibold text-lg">General Preferences</h3>
                             <p className="text-sm text-muted-foreground">Configure global application defaults</p>
@@ -878,16 +907,20 @@ export const Settings = () => {
                         </select>
                         <p className="text-[10px] text-muted-foreground mt-1">Which page to show first when opening the application</p>
                     </div>
-                </div>
+                </CollapsibleSection>
             )}
 
             {/* Notification Settings */}
             {user?.role === 'admin' && (
-                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6">
+                <CollapsibleSection
+                    id="notifications"
+                    title="Notification Settings"
+                    description="Configure global Email and Telegram credentials"
+                    icon={<Bell className="w-6 h-6" />}
+                    isOpen={openSection === 'notifications'}
+                    onToggle={toggleSection}
+                >
                     <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                        <div className="p-2 bg-yellow-500/10 rounded-lg text-yellow-500">
-                            <Bell className="w-6 h-6" />
-                        </div>
                         <div>
                             <h3 className="font-semibold text-lg">Notification Settings</h3>
                             <p className="text-sm text-muted-foreground">Configure global Email and Telegram credentials</p>
@@ -1081,14 +1114,19 @@ export const Settings = () => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </CollapsibleSection>
             )}
+            {/* Maintenance Settings */}
             {user?.role === 'admin' && (
-                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4">
-                    <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500">
-                            <Trash2 className="w-6 h-6" />
-                        </div>
+                <CollapsibleSection
+                    id="maintenance"
+                    title="Maintenance"
+                    description="Manual system maintenance tasks"
+                    icon={<Trash2 className="w-6 h-6" />}
+                    isOpen={openSection === 'maintenance'}
+                    onToggle={toggleSection}
+                >
+                    <div className="flex items-center space-x-3 pb-4 border-b border-border">
                         <div>
                             <h3 className="font-semibold text-lg">Maintenance</h3>
                             <p className="text-sm text-muted-foreground">Manual system maintenance tasks</p>
@@ -1173,17 +1211,20 @@ export const Settings = () => {
                             </p>
                         </div>
                     </div>
-                </div>
-            )
-            }
+                </CollapsibleSection>
+            )}
 
             {/* Advanced Optimization Section */}
             {user?.role === 'admin' && (
-                <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-6">
+                <CollapsibleSection
+                    id="advanced"
+                    title="Advanced Optimization"
+                    description="Fine-tune performance parameters for CPU and Bandwidth control."
+                    icon={<SettingsIcon className="w-6 h-6" />}
+                    isOpen={openSection === 'advanced'}
+                    onToggle={toggleSection}
+                >
                     <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                        <div className="p-2 bg-red-500/10 rounded-lg text-red-500">
-                            <SettingsIcon className="w-6 h-6" />
-                        </div>
                         <div>
                             <h3 className="font-semibold text-lg">Advanced Optimization</h3>
                             <p className="text-sm text-muted-foreground">Fine-tune performance parameters for CPU and Bandwidth control.</p>
@@ -1415,61 +1456,64 @@ export const Settings = () => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </CollapsibleSection>
             )}
 
             {/* Backup & Restore */}
-            {
-                user?.role === 'admin' && (
-                    <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4">
-                        <div className="flex items-center space-x-3">
-                            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
-                                <HardDrive className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-lg">Backup & Restore</h3>
-                                <p className="text-sm text-muted-foreground">Export or Import system configuration (Settings, Cameras, Groups)</p>
-                            </div>
-                        </div>
-                        <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2">
-                            <button
-                                onClick={handleExport}
-                                className="w-full sm:w-auto h-11 px-6 flex items-center justify-center space-x-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-bold shadow-sm active:scale-95"
-                            >
-                                <Download className="w-4 h-4" />
-                                <span>Export Config</span>
-                            </button>
-
-                            <div className="relative w-full sm:w-auto">
-                                <input
-                                    type="file"
-                                    accept=".json"
-                                    onChange={handleImport}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                />
-                                <button
-                                    className="w-full sm:w-auto h-11 px-6 flex items-center justify-center space-x-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-bold shadow-sm"
-                                >
-                                    <Upload className="w-4 h-4" />
-                                    <span>Import Config</span>
-                                </button>
-                            </div>
-
-                            <p className="text-[10px] text-muted-foreground w-full mt-1 bg-muted/30 p-2 rounded-lg border border-border/50">
-                                * Export includes all cameras, groups, and system settings. Import will merge or overwrite existing configurations.
-                            </p>
+            {user?.role === 'admin' && (
+                <CollapsibleSection
+                    id="backup"
+                    title="Backup & Restore"
+                    description="Export or Import system configuration (Settings, Cameras, Groups)"
+                    icon={<HardDrive className="w-6 h-6" />}
+                    isOpen={openSection === 'backup'}
+                    onToggle={toggleSection}
+                >
+                    <div className="flex items-center space-x-3 pb-4 border-b border-border">
+                        <div>
+                            <h3 className="font-semibold text-lg">Backup & Restore</h3>
+                            <p className="text-sm text-muted-foreground">Export or Import system configuration (Settings, Cameras, Groups)</p>
                         </div>
                     </div>
-                )
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2">
+                        <button
+                            onClick={handleExport}
+                            className="w-full sm:w-auto h-11 px-6 flex items-center justify-center space-x-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-bold shadow-sm active:scale-95"
+                        >
+                            <Download className="w-4 h-4" />
+                            <span>Export Config</span>
+                        </button>
+
+                        <div className="relative w-full sm:w-auto">
+                            <input
+                                type="file"
+                                accept=".json"
+                                onChange={handleImport}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            />
+                            <button
+                                className="w-full sm:w-auto h-11 px-6 flex items-center justify-center space-x-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-bold shadow-sm"
+                            >
+                                <Upload className="w-4 h-4" />
+                                <span>Import Config</span>
+                            </button>
+                        </div>
+
+                        <p className="text-[10px] text-muted-foreground w-full mt-1 bg-muted/30 p-2 rounded-lg border border-border/50">
+                            * Export includes all cameras, groups, and system settings. Import will merge or overwrite existing configurations.
+                        </p>
+                    </div>
+                </CollapsibleSection>
+            )
             }
 
             {/* Save Button */}
             {
                 user?.role === 'admin' && (
-                    <div className="flex justify-end">
+                    <div className="sticky bottom-0 z-50 bg-background/95 backdrop-blur py-4 border-t border-border mt-8 flex justify-end">
                         <button
                             onClick={handleSave}
-                            className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                            className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors shadow-lg"
                         >
                             <Save className="w-4 h-4" />
                             <span>Save Settings</span>
