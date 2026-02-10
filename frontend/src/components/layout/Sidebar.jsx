@@ -1,6 +1,7 @@
 import React from 'react';
 import { LayoutDashboard, Camera, Film, History, Settings, LogOut, Moon, Sun, X, Info, FileText } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { Avatar } from '../ui/Avatar';
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     <button
@@ -24,7 +25,8 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
         { id: 'cameras', label: 'Cameras', icon: Camera },
         { id: 'live', label: 'Live View', icon: Film },
         { id: 'timeline', label: 'Timeline', icon: History },
-        { id: 'settings', label: 'Settings', icon: Settings },
+
+        ...(user?.role !== 'viewer' ? [{ id: 'settings', label: 'Settings', icon: Settings }] : []),
         ...(user?.role === 'admin' ? [{ id: 'logs', label: 'System Logs', icon: FileText }] : []),
         { id: 'about', label: 'About', icon: Info },
     ];
@@ -63,7 +65,22 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                 ))}
             </nav>
 
+
             <div className="p-4 border-t border-border space-y-2">
+                <button
+                    onClick={() => onTabChange('profile')}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group
+                    ${activeTab === 'profile'
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        }`}
+                >
+                    <Avatar user={user} size="sm" className="w-6 h-6 text-xs" />
+                    <span className="font-medium text-sm truncate">{user?.username}</span>
+                </button>
+
+                <SidebarItem icon={LogOut} label="Logout" onClick={logout} />
+
                 <button
                     onClick={toggleTheme}
                     className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-200 group"
@@ -77,7 +94,6 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                         {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                     </span>
                 </button>
-                <SidebarItem icon={LogOut} label="Logout" onClick={logout} />
             </div>
         </aside>
     );
