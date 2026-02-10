@@ -463,86 +463,14 @@ export const Settings = () => {
 
     return (
         <div className="space-y-8 relative">
-            {/* Password Modal */}
-            {pwdModalOpen && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-card w-full max-w-md rounded-xl border border-border shadow-2xl p-6 space-y-4">
-                        <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-bold">
-                                {pwdTargetUser ? 'Reset Password for ' + pwdTargetUser.username : 'Change My Password'}
-                            </h3>
-                            <button onClick={() => setPwdModalOpen(false)}><X className="w-5 h-5" /></button>
-                        </div>
-                        <form onSubmit={handlePasswordUpdate} className="space-y-4">
-                            {!pwdTargetUser && (
-                                <div>
-                                    <label className="text-sm font-medium mb-1 block">Old Password</label>
-                                    <input
-                                        type="password"
-                                        className="w-full bg-background border border-input rounded px-3 py-2"
-                                        required
-                                        value={pwdForm.old_password}
-                                        onChange={e => setPwdForm({ ...pwdForm, old_password: e.target.value })}
-                                    />
-                                </div>
-                            )}
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">New Password</label>
-                                <input
-                                    type="password"
-                                    className="w-full bg-background border border-input rounded px-3 py-2"
-                                    required
-                                    value={pwdForm.new_password}
-                                    onChange={e => setPwdForm({ ...pwdForm, new_password: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium mb-1 block">Confirm New Password</label>
-                                <input
-                                    type="password"
-                                    className="w-full bg-background border border-input rounded px-3 py-2"
-                                    required
-                                    value={pwdForm.confirm_password}
-                                    onChange={e => setPwdForm({ ...pwdForm, confirm_password: e.target.value })}
-                                />
-                            </div>
-                            <div className="flex justify-end gap-2 pt-2">
-                                <Button type="button" variant="outline" onClick={() => setPwdModalOpen(false)}>Cancel</Button>
-                                <Button type="submit">Update Password</Button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+
 
             <div>
                 <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
                 <p className="text-muted-foreground mt-2">Configure your VibeNVR preferences.</p>
             </div>
 
-            {/* My Account Section (Visible to everyone) */}
-            {/* My Account Section (Visible to everyone) */}
-            <CollapsibleSection
-                id="account"
-                title="My Account"
-                description={`Manage your profile (${user?.username})`}
-                icon={<Users className="w-6 h-6" />}
-                isOpen={openSection === 'account'}
-                onToggle={toggleSection}
-            >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center space-x-3">
-                        <div>
-                            <h3 className="font-semibold text-lg">My Account</h3>
-                            <p className="text-sm text-muted-foreground">Manage your profile ({user?.username})</p>
-                        </div>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => openPasswordModal(null)}>
-                        <Key className="w-4 h-4 mr-2" />
-                        Change Password
-                    </Button>
-                </div>
-            </CollapsibleSection>
+
 
             {/* User Management (Admin Only) */}
             {user?.role === 'admin' && (

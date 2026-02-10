@@ -108,6 +108,9 @@ def migrate():
     
     add_column_if_not_exists(engine, "cameras", "detect_motion_mode", "VARCHAR", "Always")
 
+    # Users
+    add_column_if_not_exists(engine, "users", "avatar_path", "VARCHAR")
+
 if __name__ == "__main__":
     print("Starting migration...")
     migrate()

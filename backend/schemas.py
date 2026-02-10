@@ -251,6 +251,7 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: int
     is_active: bool = True # inherited logic? No model has active.
+    avatar_path: Optional[str] = None
     created_at: datetime
 
     class Config:

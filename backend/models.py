@@ -178,4 +178,5 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     role = Column(String, default="viewer") # "admin", "viewer"
+    avatar_path = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
