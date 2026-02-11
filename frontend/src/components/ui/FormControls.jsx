@@ -18,7 +18,7 @@ export const Tooltip = ({ text, children }) => {
                 <HelpCircle className="w-4 h-4" />
             </button>
             {show && (
-                <div className="absolute left-full ml-2 z-50 px-3 py-2 text-xs bg-popover text-popover-foreground border border-border rounded-lg shadow-lg max-w-xs whitespace-normal">
+                <div className="absolute left-full ml-2 z-[160] px-3 py-2 text-xs bg-popover text-popover-foreground border border-border rounded-lg shadow-lg max-w-xs whitespace-normal">
                     {text}
                 </div>
             )}

@@ -7,6 +7,8 @@ import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { Button } from '../components/ui/Button';
 import { CollapsibleSection } from '../components/ui/CollapsibleSection';
 
+import { Avatar } from '../components/ui/Avatar';
+
 export const Settings = () => {
     const { user, token } = useAuth();
     const [liveViewColumns, setLiveViewColumns] = useState(() => {
@@ -563,10 +565,8 @@ export const Settings = () => {
                             <tbody>
                                 {users.map(u => (
                                     <tr key={u.id} className="border-t border-border hover:bg-muted/10">
-                                        <td className="p-3 font-medium flex items-center gap-2">
-                                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs text-primary font-bold">
-                                                {u.username[0].toUpperCase()}
-                                            </div>
+                                        <td className="p-3 font-medium flex items-center gap-3">
+                                            <Avatar user={u} size="xs" />
                                             {u.username}
                                             {u.id === user.id && <span className="text-[10px] bg-primary/20 text-primary px-1.5 rounded">You</span>}
                                         </td>
