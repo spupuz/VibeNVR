@@ -31,6 +31,7 @@ services:
       - TZ=Europe/Rome
       - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
       - WEBHOOK_SECRET=${WEBHOOK_SECRET:-vibe_secure_key_9823748923748923_change_in_prod}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
     depends_on:
       db:
         condition: service_healthy

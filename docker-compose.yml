@@ -35,6 +35,7 @@ services:
       - TZ=Europe/Rome
       - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
       - WEBHOOK_SECRET=${WEBHOOK_SECRET:-vibe_secure_key_9823748923748923_change_in_prod}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
     command: >
       sh -c "mkdir -p /data/logs && chmod 777 /data/logs && touch /data/logs/backend.log && uvicorn main:app --host 0.0.0.0 --port 5000 2>&1 | tee -a /data/logs/backend.log"
     networks:

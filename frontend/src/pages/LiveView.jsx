@@ -104,10 +104,10 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
         <div ref={containerRef} className={`video-container relative w-full bg-black rounded-xl overflow-hidden ${isFullscreen ? 'h-full' : 'aspect-video'} group transition-all duration-300 ${isFocused ? 'ring-4 ring-primary z-30' : 'z-10'}`}>
 
             {/* VIBRANT INTERNAL BORDER */}
-            <div className={`absolute inset-0 rounded-xl pointer-events-none z-50 transition-all duration-300 ${isLiveMotion
-                ? 'border-[4px] border-red-600 shadow-[inset_0_0_20px_rgba(220,38,38,0.4)]'
-                : (camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous')
-                    ? 'border-[4px] border-blue-600 shadow-[inset_0_0_20px_rgba(37,99,235,0.3)]'
+            <div className={`absolute inset-0 rounded-xl pointer-events-none z-50 transition-all duration-300 ${(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous')
+                ? 'border-[4px] border-blue-600 shadow-[inset_0_0_20px_rgba(37,99,235,0.3)]'
+                : (isLiveMotion || isRecording)
+                    ? 'border-[4px] border-red-600 shadow-[inset_0_0_20px_rgba(220,38,38,0.4)]'
                     : 'border border-white/10'
                 }`}
             />
@@ -124,15 +124,15 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
             )}
             {/* TOP LEFT - STATUS & INFO */}
             <div className="absolute top-2 left-2 z-40 flex flex-col gap-1.5 pointer-events-none">
-                {isLiveMotion ? (
-                    <div className="flex items-center space-x-2 bg-red-600 px-2 py-1 rounded shadow-2xl animate-pulse ring-1 ring-white/40 w-fit">
-                        <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_white]" />
-                        <span className="text-[10px] font-black text-white tracking-widest uppercase">MOTION</span>
-                    </div>
-                ) : (camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? (
+                {(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? (
                     <div className="flex items-center space-x-2 bg-blue-600 px-2.5 py-1 rounded shadow-2xl ring-1 ring-white/20 w-fit">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-200" />
                         <span className="text-[10px] font-black text-white tracking-widest uppercase">CONTINUOUS</span>
+                    </div>
+                ) : (isLiveMotion || isRecording) ? (
+                    <div className="flex items-center space-x-2 bg-red-600 px-2 py-1 rounded shadow-2xl animate-pulse ring-1 ring-white/40 w-fit">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_white]" />
+                        <span className="text-[10px] font-black text-white tracking-widest uppercase">MOTION</span>
                     </div>
                 ) : null}
 
