@@ -126,6 +126,8 @@ async def lifespan(app: FastAPI):
     log_service.start_scheduler()
     import health_service
     health_service.start_health_service()
+    import telemetry_service
+    telemetry_service.start_telemetry()
     
     # Regenerate motion config
     with database.get_db_ctx() as db:

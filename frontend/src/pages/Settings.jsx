@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Monitor, Save, HardDrive, Clock, Trash2, Users, Plus, X, Key, Bell, Download, Upload, LayoutDashboard, Settings as SettingsIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { Monitor, Save, HardDrive, Clock, Trash2, Users, Plus, X, Key, Bell, Download, Upload, LayoutDashboard, Settings as SettingsIcon, ChevronDown, ChevronUp, Send } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
@@ -43,7 +43,8 @@ export const Settings = () => {
         opt_snapshot_quality: 90,
         opt_ffmpeg_preset: 'ultrafast',
         opt_pre_capture_fps_throttle: 1,
-        opt_verbose_engine_logs: false
+        opt_verbose_engine_logs: false,
+        telemetry_enabled: true
     });
     const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0, percent: 0 });
     const [loading, setLoading] = useState(true);
@@ -110,6 +111,32 @@ export const Settings = () => {
     const occupationPercent = globalSettings.max_global_storage_gb > 0
         ? (storageStats.used_gb / globalSettings.max_global_storage_gb) * 100
         : storageStats.percent;
+
+    const [isReportingTelemetry, setIsReportingTelemetry] = useState(false);
+
+    const handleManualTelemetry = async () => {
+        setIsReportingTelemetry(true);
+        try {
+            const res = await fetch('/api/settings/telemetry/report', {
+                method: 'POST',
+                headers: { Authorization: 'Bearer ' + token }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                if (data.scarf_status === 200) {
+                    showToast('Telemetry report sent successfully!', 'success');
+                } else {
+                    showToast(`Report sent, but Scarf returned status ${data.scarf_status}. Check your Scarf pattern configuration.`, 'warning');
+                }
+            } else {
+                showToast('Failed to trigger telemetry: ' + data.detail, 'error');
+            }
+        } catch (err) {
+            showToast('Failed to trigger telemetry: ' + err.message, 'error');
+        } finally {
+            setIsReportingTelemetry(false);
+        }
+    };
 
     useEffect(() => {
         if (!token) return;
@@ -271,7 +298,8 @@ export const Settings = () => {
                     opt_snapshot_quality: parseInt(data.opt_snapshot_quality?.value) || 90,
                     opt_ffmpeg_preset: data.opt_ffmpeg_preset?.value || 'ultrafast',
                     opt_pre_capture_fps_throttle: parseInt(data.opt_pre_capture_fps_throttle?.value) || 1,
-                    opt_verbose_engine_logs: data.opt_verbose_engine_logs?.value === 'true'
+                    opt_verbose_engine_logs: data.opt_verbose_engine_logs?.value === 'true',
+                    telemetry_enabled: data.telemetry_enabled?.value !== 'false'
                 });
             }
         } catch (err) {
@@ -324,7 +352,8 @@ export const Settings = () => {
                     opt_snapshot_quality: globalSettings.opt_snapshot_quality.toString(),
                     opt_ffmpeg_preset: globalSettings.opt_ffmpeg_preset,
                     opt_pre_capture_fps_throttle: globalSettings.opt_pre_capture_fps_throttle.toString(),
-                    opt_verbose_engine_logs: globalSettings.opt_verbose_engine_logs.toString()
+                    opt_verbose_engine_logs: globalSettings.opt_verbose_engine_logs.toString(),
+                    telemetry_enabled: globalSettings.telemetry_enabled.toString()
                 })
             });
             showToast('Settings saved successfully!', 'success');
@@ -765,6 +794,80 @@ export const Settings = () => {
                 </CollapsibleSection>
             )}
 
+
+            {/* Privacy Settings */}
+            {user?.role === 'admin' && (
+                <CollapsibleSection
+                    id="privacy"
+                    title="Privacy & Analytics"
+                    description="Control anonymous data sharing"
+                    icon={<Monitor className="w-6 h-6" />}
+                    isOpen={openSection === 'privacy'}
+                    onToggle={toggleSection}
+                >
+                    <div className="flex items-center space-x-3 pb-4 border-b border-border">
+                        <div>
+                            <h3 className="font-semibold text-lg">Privacy & Analytics</h3>
+                            <p className="text-sm text-muted-foreground">Manage how anonymous data is collected</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6 pt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="col-span-1">
+                                <label className="block text-sm font-medium mb-1">Enable Anonymous Telemetry</label>
+                                <p className="text-xs text-muted-foreground">
+                                    Share basic, non-sensitive usage data to help us improve VibeNVR.
+                                    <br /><br />
+                                    We collect:
+                                    <ul className="list-disc list-inside mt-1 space-y-0.5 opacity-80">
+                                        <li>Application version</li>
+                                        <li>Hardware profile (CPU, RAM, GPU status)</li>
+                                        <li>Usage metrics (Cameras, Groups, Events)</li>
+                                        <li>OS and Hardware architecture</li>
+                                        <li>Anonymized feature flags (Notifications)</li>
+                                    </ul>
+                                    <br />
+                                    <strong>No IP addresses, camera names, samples or personal data are ever collected.</strong>
+                                </p>
+                            </div>
+                            <div className="col-span-2 space-y-4">
+                                <div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setGlobalSettings({ ...globalSettings, telemetry_enabled: !globalSettings.telemetry_enabled })}
+                                        className={'relative inline-flex h-6 w-11 items-center rounded-full transition-colors ' +
+                                            (globalSettings.telemetry_enabled ? 'bg-primary' : 'bg-muted')
+                                        }
+                                    >
+                                        <span className={'inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ' +
+                                            (globalSettings.telemetry_enabled ? 'translate-x-6' : 'translate-x-1')
+                                        } />
+                                    </button>
+                                    <p className="text-[10px] text-muted-foreground mt-1">Default: On (Helps development!)</p>
+                                </div>
+
+                                {globalSettings.telemetry_enabled && (
+                                    <div className="pt-4 border-t border-border">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={handleManualTelemetry}
+                                            disabled={isReportingTelemetry}
+                                        >
+                                            <Send className="w-4 h-4 mr-2" />
+                                            {isReportingTelemetry ? 'Sending...' : 'Send Report Now'}
+                                        </Button>
+                                        <p className="text-[10px] text-muted-foreground mt-1">
+                                            Manually trigger a report for testing or to update Scarf dashboard.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </CollapsibleSection>
+            )}
 
             {/* Live View Settings */}
             {user?.role === 'admin' && (

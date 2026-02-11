@@ -10,8 +10,18 @@ import auth_service
 import json, time
 import datetime, motion_service
 import requests
+import telemetry_service
 
 router = APIRouter(prefix="/settings", tags=["settings"])
+
+@router.post("/telemetry/report")
+def manual_telemetry_report(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
+    """Trigger a manual telemetry report (Admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can trigger telemetry")
+    
+    status_code = telemetry_service.send_telemetry()
+    return {"status": "ok", "scarf_status": status_code}
 
 def get_setting(db: Session, key: str) -> Optional[str]:
     """Get a setting value by key"""
@@ -48,7 +58,7 @@ def validate_setting(key: str, value: str):
             v = int(value)
             if v < 1 or v > 100: raise ValueError("Quality must be between 1 and 100")
             
-        elif key == "opt_verbose_engine_logs":
+        elif key in ["opt_verbose_engine_logs", "telemetry_enabled"]:
             if value.lower() not in ["true", "false"]:
                 raise ValueError("Must be 'true' or 'false'")
         
@@ -169,6 +179,8 @@ DEFAULT_SETTINGS = {
     "opt_snapshot_quality": {"value": "90", "description": "JPEG Quality for snapshots (1-100)"},
     "opt_ffmpeg_preset": {"value": "ultrafast", "description": "FFmpeg preset for transcoding (ultrafast, superfast, veryfast, faster, fast, medium)"},
     "opt_verbose_engine_logs": {"value": "false", "description": "Enable verbose logs from OpenCV/FFmpeg in the engine"},
+    "telemetry_enabled": {"value": "true", "description": "Enable anonymous telemetry to help improve VibeNVR"},
+    "instance_id": {"value": "", "description": "Unique anonymous ID for this VibeNVR instance"},
 }
 
 @router.post("/init-defaults")
