@@ -43,7 +43,36 @@ VibeNVR is built with security as a priority. Recent updates have hardened the s
 
 1.  **Authenticated Media**: Static files (videos/snapshots) are **NOT** served publicly. All media access requires a valid JWT token, passed either via Headers or securely signed Query Parameters.
 2.  **Protected Internal Ports**: By default, the Backend (5000) and Engine (8000) bind only to `127.0.0.1`. They are **NOT** accessible from the outside world, preventing direct attacks on the API or streams.
-3.  **Reverse Proxy Ready**: The system is designed to sit behind a Reverse Proxy (like Nginx Proxy Manager) which handles SSL termination and external access.
+3. **Reverse Proxy Ready**: The system is designed to sit behind a Reverse Proxy (like Nginx Proxy Manager) which handles SSL termination and external access.
+
+---
+
+## 📊 Telemetry & Privacy
+
+VibeNVR includes basic, anonymous telemetry to help me understand how the community is using the software and prioritize improvements. 
+
+### What is collected?
+We only collect **non-sensitive, anonymous** technical data:
+- **Application Version**: To see how many users are on the latest release.
+- **Hardware Profile**: CPU count, total RAM (rounded to GB), and GPU acceleration status.
+- **Usage Metrics**: Total number of cameras, camera groups, and events in the database.
+- **System Info**: Operating System and hardware architecture (e.g., Linux x86_64).
+- **Anonymous ID**: A randomly generated UUID that uniquely identifies the installation without linking it to any personal identity or IP address.
+- **Feature Flags**: A simple indicator if notifications are configured (no addresses or tokens).
+
+### How often?
+The report is sent once **30 seconds after startup** and then **once every 24 hours**.
+
+### Customization
+You can set a custom Scarf Pixel ID by adding `SCARF_PIXEL_ID` to your `.env` file or `docker-compose.yml`.
+
+### Opt-out
+Your privacy is paramount. You can disable telemetry at any time:
+1. Navigate to **Settings** in the web interface.
+2. Open the **Privacy & Analytics** section.
+3. Toggle off **Enable Anonymous Telemetry** and save.
+
+---
 
 ---
 
