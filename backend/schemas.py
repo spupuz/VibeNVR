@@ -1,10 +1,46 @@
-from pydantic import BaseModel, field_validator
-from typing import Optional
+from pydantic import BaseModel, field_validator, model_validator
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 class TestNotificationConfig(BaseModel):
     channel: str # 'email', 'telegram', 'webhook'
     settings: dict
+
+    @model_validator(mode='after')
+    def validate_webhook_settings(self) -> 'TestNotificationConfig':
+        if self.channel == 'webhook':
+            url = self.settings.get('notify_webhook_url')
+            if url:
+                # We reuse the validation logic but manually here or call a helper
+                import socket
+                from urllib.parse import urlparse
+                import ipaddress
+                try:
+                    parsed = urlparse(url)
+                    if not parsed.scheme or not parsed.netloc:
+                        raise ValueError('Invalid URL format')
+                    host = parsed.hostname
+                    try:
+                        ip_addr = ipaddress.ip_address(host)
+                    except ValueError:
+                        try:
+                            ip_addr = ipaddress.ip_address(socket.gethostbyname(host))
+                        except Exception:
+                            return self
+                    if ip_addr.is_loopback or ip_addr.is_private or ip_addr.is_reserved or ip_addr.is_link_local:
+                        raise ValueError('Local or private IP addresses are not allowed for webhooks')
+                except Exception as e:
+                    if isinstance(e, ValueError): raise e
+                    raise ValueError(f'Invalid or unreachable URL: {str(e)}')
+        return self
+
+    @field_validator('settings')
+    @classmethod
+    def validate_webhook_in_settings(cls, v: dict, values: dict) -> dict:
+        # Check if this is a webhook test
+        # Note: 'channel' is available in 'values' in pydantic v2 if defined before 'settings'
+        # Actually in Pydantic v2 it's best to use model_validator for multi-field checks
+        return v
 
 class CameraBase(BaseModel):
     name: str

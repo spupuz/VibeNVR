@@ -51,6 +51,28 @@ def validate_setting(key: str, value: str):
         elif key == "opt_verbose_engine_logs":
             if value.lower() not in ["true", "false"]:
                 raise ValueError("Must be 'true' or 'false'")
+        
+        elif key == "notify_webhook_url" and value:
+            import socket
+            from urllib.parse import urlparse
+            import ipaddress
+            try:
+                parsed = urlparse(value)
+                if not parsed.scheme or not parsed.netloc:
+                    raise ValueError('Invalid URL format')
+                host = parsed.hostname
+                try:
+                    ip_addr = ipaddress.ip_address(host)
+                except ValueError:
+                    try:
+                        ip_addr = ipaddress.ip_address(socket.gethostbyname(host))
+                    except Exception:
+                        return
+                if ip_addr.is_loopback or ip_addr.is_private or ip_addr.is_reserved or ip_addr.is_link_local:
+                    raise ValueError('Local or private IP addresses are not allowed for webhooks')
+            except Exception as e:
+                if isinstance(e, ValueError): raise e
+                raise ValueError(f'Invalid or unreachable URL: {str(e)}')
             
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid value for {key}: {str(e)}")

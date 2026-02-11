@@ -31,6 +31,7 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "resolution_height", "INTEGER", 600)
     add_column_if_not_exists(engine, "cameras", "framerate", "INTEGER", 15)
     add_column_if_not_exists(engine, "cameras", "rotation", "INTEGER", 0)
+    add_column_if_not_exists(engine, "cameras", "auto_resolution", "BOOLEAN", True)
 
     # Text Overlay
     add_column_if_not_exists(engine, "cameras", "text_left", "VARCHAR", "Camera Name")
@@ -55,8 +56,18 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "previous_recording_mode", "VARCHAR")  # For toggle state memory
     add_column_if_not_exists(engine, "cameras", "max_movie_length", "INTEGER", 0)
     add_column_if_not_exists(engine, "cameras", "preserve_movies", "VARCHAR", "For One Week")
+    add_column_if_not_exists(engine, "cameras", "max_storage_gb", "FLOAT", 0)
+
+    # Still Images
+    add_column_if_not_exists(engine, "cameras", "picture_file_name", "VARCHAR", "%Y-%m-%d/%H-%M-%S-%q")
+    add_column_if_not_exists(engine, "cameras", "picture_quality", "INTEGER", 75)
+    add_column_if_not_exists(engine, "cameras", "picture_recording_mode", "VARCHAR", "Manual")
+    add_column_if_not_exists(engine, "cameras", "preserve_pictures", "VARCHAR", "Forever")
+    add_column_if_not_exists(engine, "cameras", "enable_manual_snapshots", "BOOLEAN", True)
+    add_column_if_not_exists(engine, "cameras", "max_pictures_storage_gb", "FLOAT", 0)
 
     # Motion Detection
+    add_column_if_not_exists(engine, "cameras", "threshold", "INTEGER", 1500)
     add_column_if_not_exists(engine, "cameras", "auto_threshold_tuning", "BOOLEAN", True)
     add_column_if_not_exists(engine, "cameras", "auto_noise_detection", "BOOLEAN", True)
     add_column_if_not_exists(engine, "cameras", "light_switch_detection", "INTEGER", 0)
@@ -82,7 +93,6 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "notify_health_email_recipient", "VARCHAR")
 
     # Notifications
-
     add_column_if_not_exists(engine, "cameras", "notify_start_email", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "notify_start_telegram", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "notify_start_webhook", "BOOLEAN", False)
@@ -99,7 +109,6 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "notify_health_webhook", "BOOLEAN", False)
 
     # Schedule
-    # Schedule
     days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
     for day in days:
         add_column_if_not_exists(engine, "cameras", f"schedule_{day}", "BOOLEAN", True)
@@ -107,6 +116,14 @@ def migrate():
         add_column_if_not_exists(engine, "cameras", f"schedule_{day}_end", "VARCHAR", "23:59")
     
     add_column_if_not_exists(engine, "cameras", "detect_motion_mode", "VARCHAR", "Always")
+
+    # Events Table Improvements
+    add_column_if_not_exists(engine, "events", "event_type", "VARCHAR")
+    add_column_if_not_exists(engine, "events", "file_size", "INTEGER", 0)
+    add_column_if_not_exists(engine, "events", "width", "INTEGER")
+    add_column_if_not_exists(engine, "events", "height", "INTEGER")
+    add_column_if_not_exists(engine, "events", "motion_score", "FLOAT")
+    add_column_if_not_exists(engine, "events", "thumbnail_path", "VARCHAR")
 
     # Users
     add_column_if_not_exists(engine, "users", "avatar_path", "VARCHAR")

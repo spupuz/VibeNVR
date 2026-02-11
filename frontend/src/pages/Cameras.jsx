@@ -6,6 +6,7 @@ import { GroupsManager } from '../components/GroupsManager';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { Portal } from '../components/ui/Portal';
 
 const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSelect }) => {
     const { user, token } = useAuth();
@@ -1051,1043 +1052,1047 @@ export const Cameras = () => {
             {/* Simple Modal */}
             {
                 showAddModal && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-card p-6 rounded-xl w-full max-w-lg border border-border relative">
-                            <button
-                                onClick={() => {
-                                    setShowAddModal(false);
-                                    setEditingId(null);
-                                }}
-                                className="absolute right-4 top-4 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted/50 transition-colors"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                            <h3 className="text-xl font-bold mb-4 pr-8">{editingId ? `Edit ${newCamera.name} (ID: ${editingId})` : 'Add New Camera'}</h3>
+                    <Portal>
+                        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-[2000] overflow-y-auto pt-20 sm:pt-6 p-4 lg:pl-64">
+                            <div className="bg-card p-4 sm:p-6 rounded-xl w-full max-w-lg border border-border relative">
+                                <button
+                                    onClick={() => {
+                                        setShowAddModal(false);
+                                        setEditingId(null);
+                                    }}
+                                    className="absolute right-4 top-4 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted/50 transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                                <h3 className="text-xl font-bold mb-4 pr-8">{editingId ? `Edit ${newCamera.name} (ID: ${editingId})` : 'Add New Camera'}</h3>
 
-                            {/* Tabs */}
-                            {!editingId && (
-                                <div className="mb-4 p-4 bg-muted/30 rounded-lg border border-border">
-                                    <label className="block text-sm font-medium mb-2">Clone Settings From (Optional)</label>
-                                    <select
-                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                        onChange={(e) => {
-                                            const sourceId = parseInt(e.target.value);
-                                            const sourceCam = cameras.find(c => c.id === sourceId);
-                                            if (sourceCam) {
-                                                // Clone everything but unique identity fields and active status
-                                                setNewCamera(prev => ({
-                                                    ...sourceCam,
-                                                    id: undefined,
-                                                    name: prev.name, // Keep current input
-                                                    rtsp_url: prev.rtsp_url, // Keep current input
-                                                    stream_url: prev.stream_url,
-                                                    location: prev.location,
-                                                    is_active: prev.is_active, // Don't overwrite active status
-                                                    created_at: undefined
-                                                }));
-                                            }
-                                        }}
+                                {/* Tabs */}
+                                {!editingId && (
+                                    <div className="mb-4 p-4 bg-muted/30 rounded-lg border border-border">
+                                        <label className="block text-sm font-medium mb-2">Clone Settings From (Optional)</label>
+                                        <select
+                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                            onChange={(e) => {
+                                                const sourceId = parseInt(e.target.value);
+                                                const sourceCam = cameras.find(c => c.id === sourceId);
+                                                if (sourceCam) {
+                                                    // Clone everything but unique identity fields and active status
+                                                    setNewCamera(prev => ({
+                                                        ...sourceCam,
+                                                        id: undefined,
+                                                        name: prev.name, // Keep current input
+                                                        rtsp_url: prev.rtsp_url, // Keep current input
+                                                        stream_url: prev.stream_url,
+                                                        location: prev.location,
+                                                        is_active: prev.is_active, // Don't overwrite active status
+                                                        created_at: undefined
+                                                    }));
+                                                }
+                                            }}
+                                        >
+                                            <option value="">-- Start Fresh --</option>
+                                            {cameras.map(c => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+                                <div className="flex space-x-4 mb-4 border-b border-border text-xs overflow-x-auto flex-nowrap min-h-[40px] pb-1">
+                                    <button
+                                        className={`pb-2 ${activeTab === 'general' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                        onClick={() => setActiveTab('general')}
                                     >
-                                        <option value="">-- Start Fresh --</option>
-                                        {cameras.map(c => (
-                                            <option key={c.id} value={c.id}>{c.name}</option>
-                                        ))}
-                                    </select>
+                                        General
+                                    </button>
+                                    <button
+                                        className={`pb-2 ${activeTab === 'video' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                        onClick={() => setActiveTab('video')}
+                                    >
+                                        Video Device
+                                    </button>
+                                    <button
+                                        className={`pb-2 ${activeTab === 'movies' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                        onClick={() => setActiveTab('movies')}
+                                    >
+                                        Movies
+                                    </button>
+                                    <button
+                                        className={`pb-2 ${activeTab === 'motion' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                        onClick={() => setActiveTab('motion')}
+                                    >
+                                        Motion Detection
+                                    </button>
+                                    <button
+                                        className={`pb-2 ${activeTab === 'still_images' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                        onClick={() => setActiveTab('still_images')}
+                                    >
+                                        Still Images
+                                    </button>
+                                    <button
+                                        className={`pb-2 ${activeTab === 'notifications' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                        onClick={() => setActiveTab('notifications')}
+                                    >
+                                        Notifications
+                                    </button>
+                                    <button
+                                        className={`pb-2 flex-shrink-0 ${activeTab === 'overlay' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                        onClick={() => setActiveTab('overlay')}
+                                    >
+                                        Text Overlay
+                                    </button>
                                 </div>
-                            )}
 
-                            <div className="flex space-x-4 mb-4 border-b border-border text-xs overflow-x-auto scrollbar-hide flex-nowrap min-h-[40px]">
-                                <button
-                                    className={`pb-2 ${activeTab === 'general' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
-                                    onClick={() => setActiveTab('general')}
-                                >
-                                    General
-                                </button>
-                                <button
-                                    className={`pb-2 ${activeTab === 'video' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
-                                    onClick={() => setActiveTab('video')}
-                                >
-                                    Video Device
-                                </button>
-                                <button
-                                    className={`pb-2 ${activeTab === 'movies' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
-                                    onClick={() => setActiveTab('movies')}
-                                >
-                                    Movies
-                                </button>
-                                <button
-                                    className={`pb-2 ${activeTab === 'motion' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
-                                    onClick={() => setActiveTab('motion')}
-                                >
-                                    Motion Detection
-                                </button>
-                                <button
-                                    className={`pb-2 ${activeTab === 'still_images' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
-                                    onClick={() => setActiveTab('still_images')}
-                                >
-                                    Still Images
-                                </button>
-                                <button
-                                    className={`pb-2 ${activeTab === 'notifications' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
-                                    onClick={() => setActiveTab('notifications')}
-                                >
-                                    Notifications
-                                </button>
-                                <button
-                                    className={`pb-2 flex-shrink-0 ${activeTab === 'overlay' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
-                                    onClick={() => setActiveTab('overlay')}
-                                >
-                                    Text Overlay
-                                </button>
-                            </div>
+                                <form onSubmit={handleCreate} className="space-y-4">
+                                    <div className="max-h-[60vh] overflow-y-auto pr-2 -mr-2">
 
-                            <form onSubmit={handleCreate} className="space-y-4">
-                                <div className="max-h-[60vh] overflow-y-auto pr-2 -mr-2">
+                                        {activeTab === 'general' && (
+                                            <div className="space-y-6">
+                                                <SectionHeader title="Camera Identity" description="Basic camera information" />
+                                                <InputField
+                                                    label="Camera Name"
+                                                    value={newCamera.name}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, name: val })}
+                                                    placeholder="Enter camera name"
+                                                />
+                                                <InputField
+                                                    label="Location"
+                                                    value={newCamera.location}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, location: val })}
+                                                    placeholder="e.g. Front Door, Backyard"
+                                                />
+                                                <SectionHeader title="Connection" description="Video source configuration" />
+                                                <div className="bg-muted/30 p-4 rounded-lg border border-border space-y-4">
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-medium">Username (Optional)</label>
+                                                            <input
+                                                                type="text"
+                                                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                                value={newCamera.rtsp_username || ''}
+                                                                onChange={(e) => {
+                                                                    const user = e.target.value;
+                                                                    const pass = newCamera.rtsp_password || '';
+                                                                    const host = newCamera.rtsp_host || '';
+                                                                    const url = `rtsp://${user}${pass ? ':' + pass : ''}${user || pass ? '@' : ''}${host}`;
+                                                                    setNewCamera({ ...newCamera, rtsp_username: user, rtsp_url: url });
+                                                                }}
+                                                                placeholder="admin"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-medium">Password (Optional)</label>
+                                                            <div className="relative">
+                                                                <input
+                                                                    type={newCamera.show_password ? "text" : "password"}
+                                                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm pr-10"
+                                                                    value={newCamera.rtsp_password || ''}
+                                                                    onChange={(e) => {
+                                                                        const pass = e.target.value;
+                                                                        const user = newCamera.rtsp_username || '';
+                                                                        const host = newCamera.rtsp_host || '';
+                                                                        const url = `rtsp://${user}${pass ? ':' + pass : ''}${user || pass ? '@' : ''}${host}`;
+                                                                        setNewCamera({ ...newCamera, rtsp_password: pass, rtsp_url: url });
+                                                                    }}
+                                                                    placeholder="••••••"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
+                                                                    onClick={() => setNewCamera({ ...newCamera, show_password: !newCamera.show_password })}
+                                                                >
+                                                                    {newCamera.show_password ? "Hide" : "Show"}
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
 
-                                    {activeTab === 'general' && (
-                                        <div className="space-y-6">
-                                            <SectionHeader title="Camera Identity" description="Basic camera information" />
-                                            <InputField
-                                                label="Camera Name"
-                                                value={newCamera.name}
-                                                onChange={(val) => setNewCamera({ ...newCamera, name: val })}
-                                                placeholder="Enter camera name"
-                                            />
-                                            <InputField
-                                                label="Location"
-                                                value={newCamera.location}
-                                                onChange={(val) => setNewCamera({ ...newCamera, location: val })}
-                                                placeholder="e.g. Front Door, Backyard"
-                                            />
-                                            <SectionHeader title="Connection" description="Video source configuration" />
-                                            <div className="bg-muted/30 p-4 rounded-lg border border-border space-y-4">
-                                                <div className="grid grid-cols-2 gap-4">
                                                     <div className="space-y-2">
-                                                        <label className="text-sm font-medium">Username (Optional)</label>
+                                                        <label className="text-sm font-medium">RTSP Host & Path</label>
                                                         <input
                                                             type="text"
                                                             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                            value={newCamera.rtsp_username || ''}
+                                                            value={newCamera.rtsp_host || ''}
                                                             onChange={(e) => {
-                                                                const user = e.target.value;
+                                                                const host = e.target.value;
+                                                                const user = newCamera.rtsp_username || '';
                                                                 const pass = newCamera.rtsp_password || '';
-                                                                const host = newCamera.rtsp_host || '';
                                                                 const url = `rtsp://${user}${pass ? ':' + pass : ''}${user || pass ? '@' : ''}${host}`;
-                                                                setNewCamera({ ...newCamera, rtsp_username: user, rtsp_url: url });
+                                                                setNewCamera({ ...newCamera, rtsp_host: host, rtsp_url: url });
                                                             }}
-                                                            placeholder="admin"
+                                                            placeholder="192.168.1.100:554/stream1"
                                                         />
                                                     </div>
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-medium">Password (Optional)</label>
-                                                        <div className="relative">
-                                                            <input
-                                                                type={newCamera.show_password ? "text" : "password"}
-                                                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm pr-10"
-                                                                value={newCamera.rtsp_password || ''}
-                                                                onChange={(e) => {
-                                                                    const pass = e.target.value;
-                                                                    const user = newCamera.rtsp_username || '';
-                                                                    const host = newCamera.rtsp_host || '';
-                                                                    const url = `rtsp://${user}${pass ? ':' + pass : ''}${user || pass ? '@' : ''}${host}`;
-                                                                    setNewCamera({ ...newCamera, rtsp_password: pass, rtsp_url: url });
-                                                                }}
-                                                                placeholder="••••••"
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
-                                                                onClick={() => setNewCamera({ ...newCamera, show_password: !newCamera.show_password })}
-                                                            >
-                                                                {newCamera.show_password ? "Hide" : "Show"}
-                                                            </button>
-                                                        </div>
+
+                                                    <div className="text-xs text-muted-foreground break-all">
+                                                        <span className="font-semibold">Full URL:</span> {
+                                                            newCamera.rtsp_url?.replace(/:([^:@]+)@/, ':********@') || ''
+                                                        }
                                                     </div>
                                                 </div>
 
-                                                <div className="space-y-2">
-                                                    <label className="text-sm font-medium">RTSP Host & Path</label>
-                                                    <input
-                                                        type="text"
-                                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                        value={newCamera.rtsp_host || ''}
-                                                        onChange={(e) => {
-                                                            const host = e.target.value;
-                                                            const user = newCamera.rtsp_username || '';
-                                                            const pass = newCamera.rtsp_password || '';
-                                                            const url = `rtsp://${user}${pass ? ':' + pass : ''}${user || pass ? '@' : ''}${host}`;
-                                                            setNewCamera({ ...newCamera, rtsp_host: host, rtsp_url: url });
-                                                        }}
-                                                        placeholder="192.168.1.100:554/stream1"
-                                                    />
-                                                </div>
 
-                                                <div className="text-xs text-muted-foreground break-all">
-                                                    <span className="font-semibold">Full URL:</span> {
-                                                        newCamera.rtsp_url?.replace(/:([^:@]+)@/, ':********@') || ''
-                                                    }
-                                                </div>
                                             </div>
+                                        )}
 
-
-                                        </div>
-                                    )}
-
-                                    {activeTab === 'video' && (
-                                        <div className="space-y-6">
-                                            <SectionHeader title="Resolution" description="Configure video resolution settings" />
-                                            <Toggle
-                                                label="Auto-Detect Resolution"
-                                                checked={newCamera.auto_resolution !== false}
-                                                onChange={(val) => setNewCamera({ ...newCamera, auto_resolution: val })}
-                                                help="Automatically detect camera resolution on save. Disable to set manually."
-                                            />
-                                            {newCamera.auto_resolution !== false ? (
-                                                <div className="space-y-2">
-                                                    <label className="text-sm font-medium">Video Resolution</label>
-                                                    <div className="px-3 py-2 bg-muted/50 rounded-md border border-border text-muted-foreground">
-                                                        {newCamera.resolution_width}x{newCamera.resolution_height} (Auto-Detected)
+                                        {activeTab === 'video' && (
+                                            <div className="space-y-6">
+                                                <SectionHeader title="Resolution" description="Configure video resolution settings" />
+                                                <Toggle
+                                                    label="Auto-Detect Resolution"
+                                                    checked={newCamera.auto_resolution !== false}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, auto_resolution: val })}
+                                                    help="Automatically detect camera resolution on save. Disable to set manually."
+                                                />
+                                                {newCamera.auto_resolution !== false ? (
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-medium">Video Resolution</label>
+                                                        <div className="px-3 py-2 bg-muted/50 rounded-md border border-border text-muted-foreground">
+                                                            {newCamera.resolution_width}x{newCamera.resolution_height} (Auto-Detected)
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground">Resolution will be detected automatically when you save.</p>
                                                     </div>
-                                                    <p className="text-xs text-muted-foreground">Resolution will be detected automatically when you save.</p>
-                                                </div>
-                                            ) : (
+                                                ) : (
+                                                    <SelectField
+                                                        label="Video Resolution"
+                                                        value={`${newCamera.resolution_width}x${newCamera.resolution_height}`}
+                                                        onChange={(val) => {
+                                                            const [w, h] = val.split('x').map(Number);
+                                                            setNewCamera({ ...newCamera, resolution_width: w, resolution_height: h });
+                                                        }}
+                                                        options={[
+                                                            { value: '320x240', label: '320x240 (QVGA)' },
+                                                            { value: '640x480', label: '640x480 (VGA)' },
+                                                            { value: '800x600', label: '800x600 (SVGA)' },
+                                                            { value: '1280x720', label: '1280x720 (HD)' },
+                                                            { value: '1920x1080', label: '1920x1080 (Full HD)' },
+                                                            { value: '2560x1440', label: '2560x1440 (QHD)' },
+                                                            { value: '3840x2160', label: '3840x2160 (4K)' }
+                                                        ]}
+                                                    />
+                                                )}
                                                 <SelectField
-                                                    label="Video Resolution"
-                                                    value={`${newCamera.resolution_width}x${newCamera.resolution_height}`}
-                                                    onChange={(val) => {
-                                                        const [w, h] = val.split('x').map(Number);
-                                                        setNewCamera({ ...newCamera, resolution_width: w, resolution_height: h });
-                                                    }}
+                                                    label="Video Rotation"
+                                                    value={`${newCamera.rotation}°`}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, rotation: parseInt(val) })}
                                                     options={[
-                                                        { value: '320x240', label: '320x240 (QVGA)' },
-                                                        { value: '640x480', label: '640x480 (VGA)' },
-                                                        { value: '800x600', label: '800x600 (SVGA)' },
-                                                        { value: '1280x720', label: '1280x720 (HD)' },
-                                                        { value: '1920x1080', label: '1920x1080 (Full HD)' },
-                                                        { value: '2560x1440', label: '2560x1440 (QHD)' },
-                                                        { value: '3840x2160', label: '3840x2160 (4K)' }
+                                                        { value: '0', label: '0°' },
+                                                        { value: '90', label: '90°' },
+                                                        { value: '180', label: '180°' },
+                                                        { value: '270', label: '270°' }
                                                     ]}
                                                 />
-                                            )}
-                                            <SelectField
-                                                label="Video Rotation"
-                                                value={`${newCamera.rotation}°`}
-                                                onChange={(val) => setNewCamera({ ...newCamera, rotation: parseInt(val) })}
-                                                options={[
-                                                    { value: '0', label: '0°' },
-                                                    { value: '90', label: '90°' },
-                                                    { value: '180', label: '180°' },
-                                                    { value: '270', label: '270°' }
-                                                ]}
-                                            />
-                                            <SectionHeader title="Frame Rate" description="Frames captured per second" />
-                                            <Slider
-                                                label="Frame Rate"
-                                                value={newCamera.framerate}
-                                                onChange={(val) => setNewCamera({ ...newCamera, framerate: val })}
-                                                min={1}
-                                                max={30}
-                                                step={1}
-                                                unit=" fps"
-                                                marks={['1', '5', '10', '15', '20', '25', '30']}
-                                            />
-                                        </div>
-                                    )}
-
-
-
-                                    {activeTab === 'overlay' && (
-                                        <div className="space-y-6">
-                                            <SectionHeader title="Text Overlay" description="Configure on-screen text display" />
-
-                                            {/* Left Text */}
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-medium">Left Text</label>
-                                                <select
-                                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                    value={
-                                                        newCamera.text_left === '' ? 'disabled' :
-                                                            newCamera.text_left === '%$' ? 'name' :
-                                                                newCamera.text_left === '%Y-%m-%d %H:%M:%S' ? 'timestamp' :
-                                                                    'custom'
-                                                    }
-                                                    onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        if (val === 'disabled') setNewCamera({ ...newCamera, text_left: '' });
-                                                        else if (val === 'name') setNewCamera({ ...newCamera, text_left: '%$' });
-                                                        else if (val === 'timestamp') setNewCamera({ ...newCamera, text_left: '%Y-%m-%d %H:%M:%S' });
-                                                        else if (val === 'custom') setNewCamera({ ...newCamera, text_left: 'Custom Text' });
-                                                    }}
-                                                >
-                                                    <option value="name">Camera Name</option>
-                                                    <option value="timestamp">Timestamp</option>
-                                                    <option value="custom">Custom Text</option>
-                                                    <option value="disabled">Disabled</option>
-                                                </select>
-                                                {/* Custom Input */}
-                                                {!['', '%$', '%Y-%m-%d %H:%M:%S'].includes(newCamera.text_left) && (
-                                                    <input
-                                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-2"
-                                                        value={newCamera.text_left}
-                                                        onChange={(e) => setNewCamera({ ...newCamera, text_left: e.target.value })}
-                                                        placeholder="Enter custom text"
-                                                    />
-                                                )}
-                                            </div>
-
-                                            {/* Right Text */}
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-medium">Right Text</label>
-                                                <select
-                                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                    value={
-                                                        newCamera.text_right === '' ? 'disabled' :
-                                                            newCamera.text_right === '%$' ? 'name' :
-                                                                newCamera.text_right === '%Y-%m-%d %H:%M:%S' ? 'timestamp' :
-                                                                    'custom'
-                                                    }
-                                                    onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        if (val === 'disabled') setNewCamera({ ...newCamera, text_right: '' });
-                                                        else if (val === 'name') setNewCamera({ ...newCamera, text_right: '%$' });
-                                                        else if (val === 'timestamp') setNewCamera({ ...newCamera, text_right: '%Y-%m-%d %H:%M:%S' });
-                                                        else if (val === 'custom') setNewCamera({ ...newCamera, text_right: 'Custom Text' });
-                                                    }}
-                                                >
-                                                    <option value="name">Camera Name</option>
-                                                    <option value="timestamp">Timestamp</option>
-                                                    <option value="custom">Custom Text</option>
-                                                    <option value="disabled">Disabled</option>
-                                                </select>
-                                                {!['', '%$', '%Y-%m-%d %H:%M:%S'].includes(newCamera.text_right) && (
-                                                    <input
-                                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-2"
-                                                        value={newCamera.text_right}
-                                                        onChange={(e) => setNewCamera({ ...newCamera, text_right: e.target.value })}
-                                                        placeholder="Enter custom text"
-                                                    />
-                                                )}
-                                            </div>
-
-                                            <Slider
-                                                label="Text Scale"
-                                                value={newCamera.text_scale || 1}
-                                                onChange={(val) => setNewCamera({ ...newCamera, text_scale: val })}
-                                                min={1}
-                                                max={50}
-                                                step={1}
-                                                unit="x"
-                                            />
-                                        </div>
-                                    )}
-
-                                    {activeTab === 'movies' && (
-                                        <div className="space-y-6">
-                                            <SectionHeader title="Recording Settings" description="Configure video recording options" />
-                                            <SelectField
-                                                label="Recording Mode"
-                                                value={newCamera.recording_mode}
-                                                onChange={(val) => setNewCamera({ ...newCamera, recording_mode: val })}
-                                                options={['Motion Triggered', 'Continuous', 'Off']}
-                                            />
-                                            <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/50 p-3 rounded-lg text-xs mb-4">
-                                                <Toggle
-                                                    label="Passthrough Recording (CPU Saver)"
-                                                    checked={!!newCamera.movie_passthrough}
-                                                    onChange={(val) => setNewCamera({ ...newCamera, movie_passthrough: val })}
-                                                />
-                                                <p className="mt-1 text-muted-foreground ml-1">
-                                                    Directly saves the video stream without re-encoding. <br />
-                                                    <span className="font-semibold text-green-600 dark:text-green-400">Pros:</span> Near-zero CPU usage, original quality. <br />
-                                                    <span className="font-semibold text-red-600 dark:text-red-400">Cons:</span> No Text Overylays, potential start delay, MP4 container only.
-                                                </p>
-                                            </div>
-                                            <Slider
-                                                label="Movie Quality"
-                                                value={newCamera.movie_quality}
-                                                onChange={(val) => setNewCamera({ ...newCamera, movie_quality: val })}
-                                                min={10}
-                                                max={100}
-                                                step={5}
-                                                unit="%"
-                                                marks={['10%', '25%', '50%', '75%', '100%']}
-                                            />
-                                            <Slider
-                                                label="Maximum Movie Length"
-                                                value={newCamera.max_movie_length || 120}
-                                                onChange={(val) => setNewCamera({ ...newCamera, max_movie_length: val })}
-                                                min={60}
-                                                max={300}
-                                                step={30}
-                                                unit=" sec"
-                                                marks={['1m', '2m', '3m', '4m', '5m']}
-                                                help="Recording segments will be split at this length"
-                                            />
-                                            <SectionHeader title="File Naming" />
-                                            <InputField
-                                                label="Movie File Name"
-                                                value={newCamera.movie_file_name}
-                                                onChange={(val) => setNewCamera({ ...newCamera, movie_file_name: val })}
-                                                placeholder="%Y-%m-%d/%H-%M-%S"
-                                            />
-                                            <SelectField
-                                                label="Preserve Movies"
-                                                value={newCamera.preserve_movies}
-                                                onChange={(val) => setNewCamera({ ...newCamera, preserve_movies: val })}
-                                                options={['Forever', 'For One Month', 'For One Week', 'For One Day']}
-                                            />
-                                            <SectionHeader title="Storage Limit" description="Auto-delete old files when limit is reached" />
-                                            {stats?.details?.cameras?.[editingId] && (
-                                                <div className="mb-6 p-4 bg-muted/30 rounded-lg border border-border">
-                                                    <div className="flex items-center justify-between mb-3">
-                                                        <div className="flex items-center space-x-2">
-                                                            <div className="p-1.5 bg-blue-500/10 rounded text-blue-500">
-                                                                <Film className="w-4 h-4" />
-                                                            </div>
-                                                            <span className="font-semibold text-sm">Movies Storage</span>
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleCleanup(editingId, 'video')}
-                                                            className="text-xs flex items-center bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 px-2 py-1 rounded transition-colors"
-                                                            title="Enforce storage limits now"
-                                                        >
-                                                            <Trash2 className="w-3 h-3 mr-1" />
-                                                            Clean Up
-                                                        </button>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-4 mb-3">
-                                                        <div>
-                                                            <p className="text-xs text-muted-foreground">Disk Usage</p>
-                                                            <p className="text-lg font-bold">{stats.details.cameras[editingId].movies.size_gb} GB</p>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-xs text-muted-foreground">Total Files</p>
-                                                            <p className="text-lg font-bold">{stats.details.cameras[editingId].movies.count}</p>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Progress Bar */}
-                                                    <div className="space-y-1">
-                                                        <div className="flex justify-between text-xs">
-                                                            <span className="text-muted-foreground">
-                                                                {newCamera.max_storage_gb > 0
-                                                                    ? `${Math.round((stats.details.cameras[editingId].movies.size_gb / newCamera.max_storage_gb) * 100)}% Used`
-                                                                    : 'Unlimited Storage'}
-                                                            </span>
-                                                            <span className="text-muted-foreground">
-                                                                Limit: {newCamera.max_storage_gb > 0 ? `${newCamera.max_storage_gb} GB` : 'None'}
-                                                            </span>
-                                                        </div>
-                                                        <div className="h-2 w-full bg-secondary/50 rounded-full overflow-hidden">
-                                                            <div
-                                                                className={`h-full ${newCamera.max_storage_gb > 0 && stats.details.cameras[editingId].movies.size_gb > newCamera.max_storage_gb ? 'bg-red-500' : 'bg-blue-500'}`}
-                                                                style={{
-                                                                    width: newCamera.max_storage_gb > 0
-                                                                        ? `${Math.min((stats.details.cameras[editingId].movies.size_gb / newCamera.max_storage_gb) * 100, 100)}%`
-                                                                        : '0%'
-                                                                }}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <InputField
-                                                label="Maximum Storage (GB)"
-                                                type="number"
-                                                value={newCamera.max_storage_gb || 0}
-                                                onChange={(val) => setNewCamera({ ...newCamera, max_storage_gb: val })}
-                                                unit="GB"
-                                                placeholder="0 = unlimited"
-                                            />
-                                            <p className="text-xs text-muted-foreground">Set to 0 for unlimited storage. When exceeded, oldest files are deleted.</p>
-                                        </div>
-                                    )}
-
-                                    {activeTab === 'motion' && (
-                                        <div className="space-y-6">
-                                            <SectionHeader title="Detection Schedule" description="When should motion detection be active?" />
-                                            <SelectField
-                                                label="Motion Schedule Mode"
-                                                value={newCamera.detect_motion_mode}
-                                                onChange={(val) => setNewCamera({ ...newCamera, detect_motion_mode: val })}
-                                                options={['Always', 'Working Schedule', 'Manual Toggle']}
-                                            />
-
-                                            {newCamera.detect_motion_mode === 'Working Schedule' && (
-                                                <div className="bg-muted/30 p-4 rounded-lg border border-border">
-                                                    <div className="flex justify-between items-center mb-4">
-                                                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Weekly Schedule</p>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                const monActive = newCamera.schedule_monday !== false;
-                                                                const monStart = newCamera.schedule_monday_start || "00:00";
-                                                                const monEnd = newCamera.schedule_monday_end || "23:59";
-
-                                                                const updates = {};
-                                                                ['tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
-                                                                    updates[`schedule_${day}`] = monActive;
-                                                                    updates[`schedule_${day}_start`] = monStart;
-                                                                    updates[`schedule_${day}_end`] = monEnd;
-                                                                });
-                                                                setNewCamera(prev => ({ ...prev, ...updates }));
-                                                                showToast('Copied Monday settings to all days', 'success');
-                                                            }}
-                                                            className="text-xs bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded transition-colors flex items-center"
-                                                        >
-                                                            <Copy className="w-3 h-3 mr-1" />
-                                                            Copy Mon to All
-                                                        </button>
-                                                    </div>
-
-                                                    <div className="space-y-3">
-                                                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
-                                                            const key = `schedule_${day.toLowerCase()}`;
-                                                            const keyStart = `${key}_start`;
-                                                            const keyEnd = `${key}_end`;
-                                                            const isActive = newCamera[key] !== false;
-
-                                                            return (
-                                                                <div key={day} className={`grid grid-cols-12 gap-2 items-center text-sm ${!isActive ? 'opacity-50' : ''}`}>
-                                                                    <div className="col-span-4 flex items-center space-x-2">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                                                            checked={isActive}
-                                                                            onChange={(e) => setNewCamera({ ...newCamera, [key]: e.target.checked })}
-                                                                        />
-                                                                        <span className="font-medium w-20">{day}</span>
-                                                                    </div>
-                                                                    <div className="col-span-8 flex items-center space-x-2">
-                                                                        <input
-                                                                            type="time"
-                                                                            className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs"
-                                                                            value={newCamera[keyStart] || "00:00"}
-                                                                            onChange={(e) => setNewCamera({ ...newCamera, [keyStart]: e.target.value })}
-                                                                            disabled={!isActive}
-                                                                        />
-                                                                        <span className="text-muted-foreground">-</span>
-                                                                        <input
-                                                                            type="time"
-                                                                            className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs"
-                                                                            value={newCamera[keyEnd] || "23:59"}
-                                                                            onChange={(e) => setNewCamera({ ...newCamera, [keyEnd]: e.target.value })}
-                                                                            disabled={!isActive}
-                                                                        />
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            <div className="border-t border-border my-4"></div>
-                                            <SectionHeader title="Automatic Detection" description="Motion detection tuning options" />
-                                            <div className="space-y-1">
+                                                <SectionHeader title="Frame Rate" description="Frames captured per second" />
                                                 <Slider
-                                                    label="Motion Sensitivity (Threshold)"
-                                                    value={newCamera.threshold || 1500}
-                                                    onChange={(val) => setNewCamera({ ...newCamera, threshold: val })}
-                                                    min={100}
-                                                    max={10000}
-                                                    step={100}
+                                                    label="Frame Rate"
+                                                    value={newCamera.framerate}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, framerate: val })}
+                                                    min={1}
+                                                    max={30}
+                                                    step={1}
+                                                    unit=" fps"
+                                                    marks={['1', '5', '10', '15', '20', '25', '30']}
                                                 />
-                                                <div className="flex justify-between text-[10px] text-muted-foreground px-1 -mt-2">
-                                                    <span>High Sensitivity</span>
-                                                    <span>Low Sensitivity</span>
+                                            </div>
+                                        )}
+
+
+
+                                        {activeTab === 'overlay' && (
+                                            <div className="space-y-6">
+                                                <SectionHeader title="Text Overlay" description="Configure on-screen text display" />
+
+                                                {/* Left Text */}
+                                                <div className="space-y-2">
+                                                    <label className="text-sm font-medium">Left Text</label>
+                                                    <select
+                                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                        value={
+                                                            newCamera.text_left === '' ? 'disabled' :
+                                                                newCamera.text_left === '%$' ? 'name' :
+                                                                    newCamera.text_left === '%Y-%m-%d %H:%M:%S' ? 'timestamp' :
+                                                                        'custom'
+                                                        }
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            if (val === 'disabled') setNewCamera({ ...newCamera, text_left: '' });
+                                                            else if (val === 'name') setNewCamera({ ...newCamera, text_left: '%$' });
+                                                            else if (val === 'timestamp') setNewCamera({ ...newCamera, text_left: '%Y-%m-%d %H:%M:%S' });
+                                                            else if (val === 'custom') setNewCamera({ ...newCamera, text_left: 'Custom Text' });
+                                                        }}
+                                                    >
+                                                        <option value="name">Camera Name</option>
+                                                        <option value="timestamp">Timestamp</option>
+                                                        <option value="custom">Custom Text</option>
+                                                        <option value="disabled">Disabled</option>
+                                                    </select>
+                                                    {/* Custom Input */}
+                                                    {!['', '%$', '%Y-%m-%d %H:%M:%S'].includes(newCamera.text_left) && (
+                                                        <input
+                                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-2"
+                                                            value={newCamera.text_left}
+                                                            onChange={(e) => setNewCamera({ ...newCamera, text_left: e.target.value })}
+                                                            placeholder="Enter custom text"
+                                                        />
+                                                    )}
                                                 </div>
-                                                <p className="text-[11px] text-muted-foreground pt-1">
-                                                    Controls how many pixels must change to trigger motion. <br />
-                                                    <span className="font-semibold">Lower value (left)</span> = Detects small movements (falling leaves, bugs). <br />
-                                                    <span className="font-semibold">Higher value (right)</span> = Detects only big objects (people, cars).
-                                                </p>
-                                            </div>
-                                            <Toggle
-                                                label="Despeckle Filter"
-                                                checked={newCamera.despeckle_filter}
-                                                onChange={(val) => setNewCamera({ ...newCamera, despeckle_filter: val })}
-                                            />
 
-                                            <SectionHeader title="Capture Settings" description="Pre/post motion capture options" />
-                                            <InputField
-                                                label="Motion Gap"
-                                                type="number"
-                                                value={newCamera.motion_gap}
-                                                onChange={(val) => setNewCamera({ ...newCamera, motion_gap: val })}
-                                                unit="seconds"
-                                            />
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <InputField
-                                                    label="Captured Before"
-                                                    type="number"
-                                                    value={newCamera.captured_before}
-                                                    onChange={(val) => {
-                                                        // Enforce max 5s limit
-                                                        if (val > 5) val = 5;
-                                                        setNewCamera({ ...newCamera, captured_before: val })
-                                                    }}
-                                                    unit="seconds"
-                                                    max={5}
-                                                    min={0}
+                                                {/* Right Text */}
+                                                <div className="space-y-2">
+                                                    <label className="text-sm font-medium">Right Text</label>
+                                                    <select
+                                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                        value={
+                                                            newCamera.text_right === '' ? 'disabled' :
+                                                                newCamera.text_right === '%$' ? 'name' :
+                                                                    newCamera.text_right === '%Y-%m-%d %H:%M:%S' ? 'timestamp' :
+                                                                        'custom'
+                                                        }
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            if (val === 'disabled') setNewCamera({ ...newCamera, text_right: '' });
+                                                            else if (val === 'name') setNewCamera({ ...newCamera, text_right: '%$' });
+                                                            else if (val === 'timestamp') setNewCamera({ ...newCamera, text_right: '%Y-%m-%d %H:%M:%S' });
+                                                            else if (val === 'custom') setNewCamera({ ...newCamera, text_right: 'Custom Text' });
+                                                        }}
+                                                    >
+                                                        <option value="name">Camera Name</option>
+                                                        <option value="timestamp">Timestamp</option>
+                                                        <option value="custom">Custom Text</option>
+                                                        <option value="disabled">Disabled</option>
+                                                    </select>
+                                                    {!['', '%$', '%Y-%m-%d %H:%M:%S'].includes(newCamera.text_right) && (
+                                                        <input
+                                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-2"
+                                                            value={newCamera.text_right}
+                                                            onChange={(e) => setNewCamera({ ...newCamera, text_right: e.target.value })}
+                                                            placeholder="Enter custom text"
+                                                        />
+                                                    )}
+                                                </div>
+
+                                                <Slider
+                                                    label="Text Scale"
+                                                    value={newCamera.text_scale || 1}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, text_scale: val })}
+                                                    min={1}
+                                                    max={50}
+                                                    step={1}
+                                                    unit="x"
                                                 />
-                                                <InputField
-                                                    label="Captured After"
-                                                    type="number"
-                                                    value={newCamera.captured_after}
-                                                    onChange={(val) => setNewCamera({ ...newCamera, captured_after: val })}
-                                                    unit="seconds"
-                                                />
                                             </div>
-                                            <InputField
-                                                label="Minimum Motion Frames"
-                                                type="number"
-                                                value={newCamera.min_motion_frames}
-                                                onChange={(val) => setNewCamera({ ...newCamera, min_motion_frames: val })}
-                                                unit="frames"
-                                            />
+                                        )}
 
-
-                                        </div>
-                                    )}
-
-                                    {activeTab === 'still_images' && (
-                                        <div className="space-y-6">
-                                            <SectionHeader title="Still Image Settings" description="Configure snapshot recording options" />
-                                            <Toggle
-                                                label="Auto-save Snapshots on Motion"
-                                                checked={newCamera.picture_recording_mode === 'Motion Triggered'}
-                                                onChange={(val) => setNewCamera({ ...newCamera, picture_recording_mode: val ? 'Motion Triggered' : 'Manual' })}
-                                            />
-                                            <Slider
-                                                label="Image Quality"
-                                                value={newCamera.picture_quality}
-                                                onChange={(val) => setNewCamera({ ...newCamera, picture_quality: val })}
-                                                min={10}
-                                                max={100}
-                                                step={5}
-                                                unit="%"
-                                                marks={['10%', '25%', '50%', '75%', '100%']}
-                                            />
-                                            <SectionHeader title="File Naming" />
-                                            <InputField
-                                                label="Image File Name"
-                                                value={newCamera.picture_file_name}
-                                                onChange={(val) => setNewCamera({ ...newCamera, picture_file_name: val })}
-                                                placeholder="%Y-%m-%d/%H-%M-%S-%q"
-                                            />
-                                            <SelectField
-                                                label="Preserve Pictures"
-                                                value={newCamera.preserve_pictures}
-                                                onChange={(val) => setNewCamera({ ...newCamera, preserve_pictures: val })}
-                                                options={['Forever', 'For One Month', 'For One Week', 'For One Day']}
-                                            />
-                                            <InputField
-                                                label="Maximum Pictures Storage (GB)"
-                                                type="number"
-                                                value={newCamera.max_pictures_storage_gb}
-                                                onChange={(val) => setNewCamera({ ...newCamera, max_pictures_storage_gb: val })}
-                                                unit="GB"
-                                            />
-                                            {stats?.details?.cameras?.[editingId] && (
-                                                <div className="-mt-4 mb-6 p-4 bg-muted/30 rounded-lg border border-border">
-                                                    <div className="flex items-center justify-between mb-3">
-                                                        <div className="flex items-center space-x-2">
-                                                            <div className="p-1.5 bg-green-500/10 rounded text-green-500">
-                                                                <Image className="w-4 h-4" />
+                                        {activeTab === 'movies' && (
+                                            <div className="space-y-6">
+                                                <SectionHeader title="Recording Settings" description="Configure video recording options" />
+                                                <SelectField
+                                                    label="Recording Mode"
+                                                    value={newCamera.recording_mode}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, recording_mode: val })}
+                                                    options={['Motion Triggered', 'Continuous', 'Off']}
+                                                />
+                                                <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/50 p-3 rounded-lg text-xs mb-4">
+                                                    <Toggle
+                                                        label="Passthrough Recording (CPU Saver)"
+                                                        checked={!!newCamera.movie_passthrough}
+                                                        onChange={(val) => setNewCamera({ ...newCamera, movie_passthrough: val })}
+                                                    />
+                                                    <p className="mt-1 text-muted-foreground ml-1">
+                                                        Directly saves the video stream without re-encoding. <br />
+                                                        <span className="font-semibold text-green-600 dark:text-green-400">Pros:</span> Near-zero CPU usage, original quality. <br />
+                                                        <span className="font-semibold text-red-600 dark:text-red-400">Cons:</span> No Text Overylays, potential start delay, MP4 container only.
+                                                    </p>
+                                                </div>
+                                                <Slider
+                                                    label="Movie Quality"
+                                                    value={newCamera.movie_quality}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, movie_quality: val })}
+                                                    min={10}
+                                                    max={100}
+                                                    step={5}
+                                                    unit="%"
+                                                    marks={['10%', '25%', '50%', '75%', '100%']}
+                                                />
+                                                <Slider
+                                                    label="Maximum Movie Length"
+                                                    value={newCamera.max_movie_length || 120}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, max_movie_length: val })}
+                                                    min={60}
+                                                    max={300}
+                                                    step={30}
+                                                    unit=" sec"
+                                                    marks={['1m', '2m', '3m', '4m', '5m']}
+                                                    help="Recording segments will be split at this length"
+                                                />
+                                                <SectionHeader title="File Naming" />
+                                                <InputField
+                                                    label="Movie File Name"
+                                                    value={newCamera.movie_file_name}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, movie_file_name: val })}
+                                                    placeholder="%Y-%m-%d/%H-%M-%S"
+                                                />
+                                                <SelectField
+                                                    label="Preserve Movies"
+                                                    value={newCamera.preserve_movies}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, preserve_movies: val })}
+                                                    options={['Forever', 'For One Month', 'For One Week', 'For One Day']}
+                                                />
+                                                <SectionHeader title="Storage Limit" description="Auto-delete old files when limit is reached" />
+                                                {stats?.details?.cameras?.[editingId] && (
+                                                    <div className="mb-6 p-4 bg-muted/30 rounded-lg border border-border">
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <div className="flex items-center space-x-2">
+                                                                <div className="p-1.5 bg-blue-500/10 rounded text-blue-500">
+                                                                    <Film className="w-4 h-4" />
+                                                                </div>
+                                                                <span className="font-semibold text-sm">Movies Storage</span>
                                                             </div>
-                                                            <span className="font-semibold text-sm">Snapshots Storage</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleCleanup(editingId, 'video')}
+                                                                className="text-xs flex items-center bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 px-2 py-1 rounded transition-colors"
+                                                                title="Enforce storage limits now"
+                                                            >
+                                                                <Trash2 className="w-3 h-3 mr-1" />
+                                                                Clean Up
+                                                            </button>
                                                         </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleCleanup(editingId, 'snapshot')}
-                                                            className="text-xs flex items-center bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 px-2 py-1 rounded transition-colors"
-                                                            title="Enforce storage limits now"
-                                                        >
-                                                            <Trash2 className="w-3 h-3 mr-1" />
-                                                            Clean Up
-                                                        </button>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-4 mb-3">
-                                                        <div>
-                                                            <p className="text-xs text-muted-foreground">Disk Usage</p>
-                                                            <p className="text-lg font-bold">{stats.details.cameras[editingId].images.size_gb} GB</p>
+                                                        <div className="grid grid-cols-2 gap-4 mb-3">
+                                                            <div>
+                                                                <p className="text-xs text-muted-foreground">Disk Usage</p>
+                                                                <p className="text-lg font-bold">{stats.details.cameras[editingId].movies.size_gb} GB</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-xs text-muted-foreground">Total Files</p>
+                                                                <p className="text-lg font-bold">{stats.details.cameras[editingId].movies.count}</p>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <p className="text-xs text-muted-foreground">Total Files</p>
-                                                            <p className="text-lg font-bold">{stats.details.cameras[editingId].images.count}</p>
-                                                        </div>
-                                                    </div>
 
-                                                    {/* Progress Bar */}
-                                                    <div className="space-y-1">
-                                                        <div className="flex justify-between text-xs">
-                                                            <span className="text-muted-foreground">
-                                                                {newCamera.max_pictures_storage_gb > 0
-                                                                    ? `${Math.round((stats.details.cameras[editingId].images.size_gb / newCamera.max_pictures_storage_gb) * 100)}% Used`
-                                                                    : 'Unlimited Storage'}
-                                                            </span>
-                                                            <span className="text-muted-foreground">
-                                                                Limit: {newCamera.max_pictures_storage_gb > 0 ? `${newCamera.max_pictures_storage_gb} GB` : 'None'}
-                                                            </span>
+                                                        {/* Progress Bar */}
+                                                        <div className="space-y-1">
+                                                            <div className="flex justify-between text-xs">
+                                                                <span className="text-muted-foreground">
+                                                                    {newCamera.max_storage_gb > 0
+                                                                        ? `${Math.round((stats.details.cameras[editingId].movies.size_gb / newCamera.max_storage_gb) * 100)}% Used`
+                                                                        : 'Unlimited Storage'}
+                                                                </span>
+                                                                <span className="text-muted-foreground">
+                                                                    Limit: {newCamera.max_storage_gb > 0 ? `${newCamera.max_storage_gb} GB` : 'None'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="h-2 w-full bg-secondary/50 rounded-full overflow-hidden">
+                                                                <div
+                                                                    className={`h-full ${newCamera.max_storage_gb > 0 && stats.details.cameras[editingId].movies.size_gb > newCamera.max_storage_gb ? 'bg-red-500' : 'bg-blue-500'}`}
+                                                                    style={{
+                                                                        width: newCamera.max_storage_gb > 0
+                                                                            ? `${Math.min((stats.details.cameras[editingId].movies.size_gb / newCamera.max_storage_gb) * 100, 100)}%`
+                                                                            : '0%'
+                                                                    }}
+                                                                />
+                                                            </div>
                                                         </div>
-                                                        <div className="h-2 w-full bg-secondary/50 rounded-full overflow-hidden">
-                                                            <div
-                                                                className={`h-full ${newCamera.max_pictures_storage_gb > 0 && stats.details.cameras[editingId].images.size_gb > newCamera.max_pictures_storage_gb ? 'bg-red-500' : 'bg-green-500'}`}
-                                                                style={{
-                                                                    width: newCamera.max_pictures_storage_gb > 0
-                                                                        ? `${Math.min((stats.details.cameras[editingId].images.size_gb / newCamera.max_pictures_storage_gb) * 100, 100)}%`
-                                                                        : '0%'
+                                                    </div>
+                                                )}
+                                                <InputField
+                                                    label="Maximum Storage (GB)"
+                                                    type="number"
+                                                    value={newCamera.max_storage_gb || 0}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, max_storage_gb: val })}
+                                                    unit="GB"
+                                                    placeholder="0 = unlimited"
+                                                />
+                                                <p className="text-xs text-muted-foreground">Set to 0 for unlimited storage. When exceeded, oldest files are deleted.</p>
+                                            </div>
+                                        )}
+
+                                        {activeTab === 'motion' && (
+                                            <div className="space-y-6">
+                                                <SectionHeader title="Detection Schedule" description="When should motion detection be active?" />
+                                                <SelectField
+                                                    label="Motion Schedule Mode"
+                                                    value={newCamera.detect_motion_mode}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, detect_motion_mode: val })}
+                                                    options={['Always', 'Working Schedule', 'Manual Toggle']}
+                                                />
+
+                                                {newCamera.detect_motion_mode === 'Working Schedule' && (
+                                                    <div className="bg-muted/30 p-4 rounded-lg border border-border">
+                                                        <div className="flex justify-between items-center mb-4">
+                                                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Weekly Schedule</p>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const monActive = newCamera.schedule_monday !== false;
+                                                                    const monStart = newCamera.schedule_monday_start || "00:00";
+                                                                    const monEnd = newCamera.schedule_monday_end || "23:59";
+
+                                                                    const updates = {};
+                                                                    ['tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
+                                                                        updates[`schedule_${day}`] = monActive;
+                                                                        updates[`schedule_${day}_start`] = monStart;
+                                                                        updates[`schedule_${day}_end`] = monEnd;
+                                                                    });
+                                                                    setNewCamera(prev => ({ ...prev, ...updates }));
+                                                                    showToast('Copied Monday settings to all days', 'success');
                                                                 }}
-                                                            />
+                                                                className="text-xs bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded transition-colors flex items-center"
+                                                            >
+                                                                <Copy className="w-3 h-3 mr-1" />
+                                                                Copy Mon to All
+                                                            </button>
+                                                        </div>
+
+                                                        <div className="space-y-3">
+                                                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
+                                                                const key = `schedule_${day.toLowerCase()}`;
+                                                                const keyStart = `${key}_start`;
+                                                                const keyEnd = `${key}_end`;
+                                                                const isActive = newCamera[key] !== false;
+
+                                                                return (
+                                                                    <div key={day} className={`grid grid-cols-12 gap-2 items-center text-sm ${!isActive ? 'opacity-50' : ''}`}>
+                                                                        <div className="col-span-4 flex items-center space-x-2">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                                                                checked={isActive}
+                                                                                onChange={(e) => setNewCamera({ ...newCamera, [key]: e.target.checked })}
+                                                                            />
+                                                                            <span className="font-medium w-20">{day}</span>
+                                                                        </div>
+                                                                        <div className="col-span-8 flex items-center space-x-2">
+                                                                            <input
+                                                                                type="time"
+                                                                                className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs"
+                                                                                value={newCamera[keyStart] || "00:00"}
+                                                                                onChange={(e) => setNewCamera({ ...newCamera, [keyStart]: e.target.value })}
+                                                                                disabled={!isActive}
+                                                                            />
+                                                                            <span className="text-muted-foreground">-</span>
+                                                                            <input
+                                                                                type="time"
+                                                                                className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs"
+                                                                                value={newCamera[keyEnd] || "23:59"}
+                                                                                onChange={(e) => setNewCamera({ ...newCamera, [keyEnd]: e.target.value })}
+                                                                                disabled={!isActive}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
                                                     </div>
-                                                </div>
-                                            )}
-                                            <Toggle
-                                                label="Show Manual Snapshot Button"
-                                                checked={newCamera.enable_manual_snapshots}
-                                                onChange={(val) => setNewCamera({ ...newCamera, enable_manual_snapshots: val })}
-                                            />
-                                            <p className="text-xs text-muted-foreground">Enables the 'Take Snapshot' button in Live View.</p>
-                                        </div>
-                                    )}
+                                                )}
 
-                                    {activeTab === 'notifications' && (
-                                        <div className="space-y-8">
-                                            {/* Email Section */}
-                                            <div className="space-y-4">
-                                                <SectionHeader title="Email Notifications" description="Send alerts via SMTP Email" />
-
-                                                {/* Motion Email */}
-                                                <div className="space-y-3">
-                                                    <Toggle
-                                                        label="Send Email on Start"
-                                                        checked={newCamera.notify_start_email}
-                                                        onChange={(val) => setNewCamera({ ...newCamera, notify_start_email: val })}
+                                                <div className="border-t border-border my-4"></div>
+                                                <SectionHeader title="Automatic Detection" description="Motion detection tuning options" />
+                                                <div className="space-y-1">
+                                                    <Slider
+                                                        label="Motion Sensitivity (Threshold)"
+                                                        value={newCamera.threshold || 1500}
+                                                        onChange={(val) => setNewCamera({ ...newCamera, threshold: val })}
+                                                        min={100}
+                                                        max={10000}
+                                                        step={100}
                                                     />
-                                                    {newCamera.notify_start_email && (
-                                                        <div className="ml-9 p-3 bg-muted/30 rounded-lg border border-border space-y-3 animate-in fade-in slide-in-from-top-1">
-                                                            <InputField
-                                                                label="Recipient"
-                                                                value={newCamera.notify_email_address}
-                                                                onChange={(val) => setNewCamera({ ...newCamera, notify_email_address: val })}
-                                                                placeholder="Leave empty to use Global Settings"
-                                                            />
-                                                            <Toggle
-                                                                label="Attach Snapshot Image"
-                                                                checked={newCamera.notify_attach_image_email !== false}
-                                                                onChange={(val) => setNewCamera({ ...newCamera, notify_attach_image_email: val })}
-                                                                compact={true}
-                                                            />
-                                                            <div className="flex justify-end">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleTestNotification('email', { recipient: newCamera.notify_email_address })}
-                                                                    className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
-                                                                >
-                                                                    Test Email
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Health Email */}
-                                                <div className="space-y-3">
-                                                    <Toggle
-                                                        label="Notify Health via Email"
-                                                        checked={newCamera.notify_health_email}
-                                                        onChange={(val) => setNewCamera({ ...newCamera, notify_health_email: val })}
-                                                    />
-                                                    {newCamera.notify_health_email && (
-                                                        <div className="ml-9 p-3 bg-muted/30 rounded-lg border border-border animate-in fade-in slide-in-from-top-1">
-                                                            <InputField
-                                                                label="Health Recipient"
-                                                                value={newCamera.notify_health_email_recipient}
-                                                                onChange={(val) => setNewCamera({ ...newCamera, notify_health_email_recipient: val })}
-                                                                placeholder="Leave empty to use Global Settings"
-                                                            />
-                                                            <div className="flex justify-end mt-2">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleTestNotification('email', { recipient: newCamera.notify_health_email_recipient })}
-                                                                    className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
-                                                                >
-                                                                    Test Health Email
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* Telegram Section */}
-                                            <div className="space-y-4">
-                                                <SectionHeader title="Telegram Notifications" description="Send alerts via Telegram Bot" />
-
-                                                {/* Motion Telegram */}
-                                                <div className="space-y-3">
-                                                    <Toggle
-                                                        label="Send Telegram Message"
-                                                        checked={newCamera.notify_start_telegram}
-                                                        onChange={(val) => setNewCamera({ ...newCamera, notify_start_telegram: val })}
-                                                    />
-                                                    {newCamera.notify_start_telegram && (
-                                                        <div className="ml-9 p-3 bg-muted/30 rounded-lg border border-border space-y-3 animate-in fade-in slide-in-from-top-1">
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                                <InputField
-                                                                    label="Bot Token"
-                                                                    value={newCamera.notify_telegram_token}
-                                                                    onChange={(val) => setNewCamera({ ...newCamera, notify_telegram_token: val })}
-                                                                    placeholder="Global Default"
-                                                                />
-                                                                <InputField
-                                                                    label="Chat ID"
-                                                                    value={newCamera.notify_telegram_chat_id}
-                                                                    onChange={(val) => setNewCamera({ ...newCamera, notify_telegram_chat_id: val })}
-                                                                    placeholder="Global Default"
-                                                                />
-                                                            </div>
-                                                            <Toggle
-                                                                label="Attach Snapshot Image"
-                                                                checked={newCamera.notify_attach_image_telegram !== false}
-                                                                onChange={(val) => setNewCamera({ ...newCamera, notify_attach_image_telegram: val })}
-                                                                compact={true}
-                                                            />
-                                                            <div className="flex justify-end">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleTestNotification('telegram', {
-                                                                        telegram_bot_token: newCamera.notify_telegram_token,
-                                                                        telegram_chat_id: newCamera.notify_telegram_chat_id
-                                                                    })}
-                                                                    className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
-                                                                >
-                                                                    Test Telegram
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Health Telegram */}
-                                                <div className="space-y-3">
-                                                    <Toggle
-                                                        label="Notify Health via Telegram"
-                                                        checked={newCamera.notify_health_telegram}
-                                                        onChange={(val) => setNewCamera({ ...newCamera, notify_health_telegram: val })}
-                                                    />
-                                                    {newCamera.notify_health_telegram && (
-                                                        <div className="ml-9 p-3 bg-muted/30 rounded-lg border border-border animate-in fade-in slide-in-from-top-1">
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                                <InputField
-                                                                    label="Health Bot Token"
-                                                                    value={newCamera.notify_health_telegram_token}
-                                                                    onChange={(val) => setNewCamera({ ...newCamera, notify_health_telegram_token: val })}
-                                                                    placeholder="Global Default"
-                                                                />
-                                                                <InputField
-                                                                    label="Health Chat ID"
-                                                                    value={newCamera.notify_health_telegram_chat_id}
-                                                                    onChange={(val) => setNewCamera({ ...newCamera, notify_health_telegram_chat_id: val })}
-                                                                    placeholder="Global Default"
-                                                                />
-                                                            </div>
-                                                            <div className="flex justify-end mt-2">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleTestNotification('telegram', {
-                                                                        telegram_bot_token: newCamera.notify_health_telegram_token,
-                                                                        telegram_chat_id: newCamera.notify_health_telegram_chat_id
-                                                                    })}
-                                                                    className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
-                                                                >
-                                                                    Test Health Telegram
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* Webhook Section */}
-                                            <div className="space-y-4">
-                                                <SectionHeader title="Webhook Notifications" description="Call external URL on events" />
-
-                                                {/* Motion Webhook */}
-                                                <div className="space-y-3">
-                                                    <div className="flex flex-col gap-2">
-                                                        <Toggle
-                                                            label="Call Webhook on Start"
-                                                            checked={newCamera.notify_start_webhook}
-                                                            onChange={(val) => setNewCamera({ ...newCamera, notify_start_webhook: val })}
-                                                        />
-                                                        <Toggle
-                                                            label="Call Webhook on End"
-                                                            checked={newCamera.notify_end_webhook}
-                                                            onChange={(val) => setNewCamera({ ...newCamera, notify_end_webhook: val })}
-                                                        />
+                                                    <div className="flex justify-between text-[10px] text-muted-foreground px-1 -mt-2">
+                                                        <span>High Sensitivity</span>
+                                                        <span>Low Sensitivity</span>
                                                     </div>
-                                                    {(newCamera.notify_start_webhook || newCamera.notify_end_webhook) && (
-                                                        <div className="ml-9 p-3 bg-muted/30 rounded-lg border border-border animate-in fade-in slide-in-from-top-1">
-                                                            <InputField
-                                                                label="Webhook URL"
-                                                                value={newCamera.notify_webhook_url}
-                                                                onChange={(val) => setNewCamera({ ...newCamera, notify_webhook_url: val })}
-                                                                placeholder="Leave empty to use Global Settings"
-                                                            />
-                                                            <div className="flex justify-end mt-2">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleTestNotification('webhook', { notify_webhook_url: newCamera.notify_webhook_url })}
-                                                                    className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
-                                                                >
-                                                                    Test Webhook
-                                                                </button>
+                                                    <p className="text-[11px] text-muted-foreground pt-1">
+                                                        Controls how many pixels must change to trigger motion. <br />
+                                                        <span className="font-semibold">Lower value (left)</span> = Detects small movements (falling leaves, bugs). <br />
+                                                        <span className="font-semibold">Higher value (right)</span> = Detects only big objects (people, cars).
+                                                    </p>
+                                                </div>
+                                                <Toggle
+                                                    label="Despeckle Filter"
+                                                    checked={newCamera.despeckle_filter}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, despeckle_filter: val })}
+                                                />
+
+                                                <SectionHeader title="Capture Settings" description="Pre/post motion capture options" />
+                                                <InputField
+                                                    label="Motion Gap"
+                                                    type="number"
+                                                    value={newCamera.motion_gap}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, motion_gap: val })}
+                                                    unit="seconds"
+                                                />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <InputField
+                                                        label="Captured Before"
+                                                        type="number"
+                                                        value={newCamera.captured_before}
+                                                        onChange={(val) => {
+                                                            // Enforce max 5s limit
+                                                            if (val > 5) val = 5;
+                                                            setNewCamera({ ...newCamera, captured_before: val })
+                                                        }}
+                                                        unit="seconds"
+                                                        max={5}
+                                                        min={0}
+                                                    />
+                                                    <InputField
+                                                        label="Captured After"
+                                                        type="number"
+                                                        value={newCamera.captured_after}
+                                                        onChange={(val) => setNewCamera({ ...newCamera, captured_after: val })}
+                                                        unit="seconds"
+                                                    />
+                                                </div>
+                                                <InputField
+                                                    label="Minimum Motion Frames"
+                                                    type="number"
+                                                    value={newCamera.min_motion_frames}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, min_motion_frames: val })}
+                                                    unit="frames"
+                                                />
+
+
+                                            </div>
+                                        )}
+
+                                        {activeTab === 'still_images' && (
+                                            <div className="space-y-6">
+                                                <SectionHeader title="Still Image Settings" description="Configure snapshot recording options" />
+                                                <Toggle
+                                                    label="Auto-save Snapshots on Motion"
+                                                    checked={newCamera.picture_recording_mode === 'Motion Triggered'}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, picture_recording_mode: val ? 'Motion Triggered' : 'Manual' })}
+                                                />
+                                                <Slider
+                                                    label="Image Quality"
+                                                    value={newCamera.picture_quality}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, picture_quality: val })}
+                                                    min={10}
+                                                    max={100}
+                                                    step={5}
+                                                    unit="%"
+                                                    marks={['10%', '25%', '50%', '75%', '100%']}
+                                                />
+                                                <SectionHeader title="File Naming" />
+                                                <InputField
+                                                    label="Image File Name"
+                                                    value={newCamera.picture_file_name}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, picture_file_name: val })}
+                                                    placeholder="%Y-%m-%d/%H-%M-%S-%q"
+                                                />
+                                                <SelectField
+                                                    label="Preserve Pictures"
+                                                    value={newCamera.preserve_pictures}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, preserve_pictures: val })}
+                                                    options={['Forever', 'For One Month', 'For One Week', 'For One Day']}
+                                                />
+                                                <InputField
+                                                    label="Maximum Pictures Storage (GB)"
+                                                    type="number"
+                                                    value={newCamera.max_pictures_storage_gb}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, max_pictures_storage_gb: val })}
+                                                    unit="GB"
+                                                />
+                                                {stats?.details?.cameras?.[editingId] && (
+                                                    <div className="-mt-4 mb-6 p-4 bg-muted/30 rounded-lg border border-border">
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <div className="flex items-center space-x-2">
+                                                                <div className="p-1.5 bg-green-500/10 rounded text-green-500">
+                                                                    <Image className="w-4 h-4" />
+                                                                </div>
+                                                                <span className="font-semibold text-sm">Snapshots Storage</span>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleCleanup(editingId, 'snapshot')}
+                                                                className="text-xs flex items-center bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 px-2 py-1 rounded transition-colors"
+                                                                title="Enforce storage limits now"
+                                                            >
+                                                                <Trash2 className="w-3 h-3 mr-1" />
+                                                                Clean Up
+                                                            </button>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-4 mb-3">
+                                                            <div>
+                                                                <p className="text-xs text-muted-foreground">Disk Usage</p>
+                                                                <p className="text-lg font-bold">{stats.details.cameras[editingId].images.size_gb} GB</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-xs text-muted-foreground">Total Files</p>
+                                                                <p className="text-lg font-bold">{stats.details.cameras[editingId].images.count}</p>
                                                             </div>
                                                         </div>
-                                                    )}
+
+                                                        {/* Progress Bar */}
+                                                        <div className="space-y-1">
+                                                            <div className="flex justify-between text-xs">
+                                                                <span className="text-muted-foreground">
+                                                                    {newCamera.max_pictures_storage_gb > 0
+                                                                        ? `${Math.round((stats.details.cameras[editingId].images.size_gb / newCamera.max_pictures_storage_gb) * 100)}% Used`
+                                                                        : 'Unlimited Storage'}
+                                                                </span>
+                                                                <span className="text-muted-foreground">
+                                                                    Limit: {newCamera.max_pictures_storage_gb > 0 ? `${newCamera.max_pictures_storage_gb} GB` : 'None'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="h-2 w-full bg-secondary/50 rounded-full overflow-hidden">
+                                                                <div
+                                                                    className={`h-full ${newCamera.max_pictures_storage_gb > 0 && stats.details.cameras[editingId].images.size_gb > newCamera.max_pictures_storage_gb ? 'bg-red-500' : 'bg-green-500'}`}
+                                                                    style={{
+                                                                        width: newCamera.max_pictures_storage_gb > 0
+                                                                            ? `${Math.min((stats.details.cameras[editingId].images.size_gb / newCamera.max_pictures_storage_gb) * 100, 100)}%`
+                                                                            : '0%'
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <Toggle
+                                                    label="Show Manual Snapshot Button"
+                                                    checked={newCamera.enable_manual_snapshots}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, enable_manual_snapshots: val })}
+                                                />
+                                                <p className="text-xs text-muted-foreground">Enables the 'Take Snapshot' button in Live View.</p>
+                                            </div>
+                                        )}
+
+                                        {activeTab === 'notifications' && (
+                                            <div className="space-y-8">
+                                                {/* Email Section */}
+                                                <div className="space-y-4">
+                                                    <SectionHeader title="Email Notifications" description="Send alerts via SMTP Email" />
+
+                                                    {/* Motion Email */}
+                                                    <div className="space-y-3">
+                                                        <Toggle
+                                                            label="Send Email on Start"
+                                                            checked={newCamera.notify_start_email}
+                                                            onChange={(val) => setNewCamera({ ...newCamera, notify_start_email: val })}
+                                                        />
+                                                        {newCamera.notify_start_email && (
+                                                            <div className="ml-9 p-3 bg-muted/30 rounded-lg border border-border space-y-3 animate-in fade-in slide-in-from-top-1">
+                                                                <InputField
+                                                                    label="Recipient"
+                                                                    value={newCamera.notify_email_address}
+                                                                    onChange={(val) => setNewCamera({ ...newCamera, notify_email_address: val })}
+                                                                    placeholder="Leave empty to use Global Settings"
+                                                                />
+                                                                <Toggle
+                                                                    label="Attach Snapshot Image"
+                                                                    checked={newCamera.notify_attach_image_email !== false}
+                                                                    onChange={(val) => setNewCamera({ ...newCamera, notify_attach_image_email: val })}
+                                                                    compact={true}
+                                                                />
+                                                                <div className="flex justify-end">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleTestNotification('email', { recipient: newCamera.notify_email_address })}
+                                                                        className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
+                                                                    >
+                                                                        Test Email
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Health Email */}
+                                                    <div className="space-y-3">
+                                                        <Toggle
+                                                            label="Notify Health via Email"
+                                                            checked={newCamera.notify_health_email}
+                                                            onChange={(val) => setNewCamera({ ...newCamera, notify_health_email: val })}
+                                                        />
+                                                        {newCamera.notify_health_email && (
+                                                            <div className="ml-9 p-3 bg-muted/30 rounded-lg border border-border animate-in fade-in slide-in-from-top-1">
+                                                                <InputField
+                                                                    label="Health Recipient"
+                                                                    value={newCamera.notify_health_email_recipient}
+                                                                    onChange={(val) => setNewCamera({ ...newCamera, notify_health_email_recipient: val })}
+                                                                    placeholder="Leave empty to use Global Settings"
+                                                                />
+                                                                <div className="flex justify-end mt-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleTestNotification('email', { recipient: newCamera.notify_health_email_recipient })}
+                                                                        className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
+                                                                    >
+                                                                        Test Health Email
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
 
-                                                {/* Health Webhook */}
-                                                <div className="space-y-3">
-                                                    <Toggle
-                                                        label="Notify Health via Webhook"
-                                                        checked={newCamera.notify_health_webhook}
-                                                        onChange={(val) => setNewCamera({ ...newCamera, notify_health_webhook: val })}
-                                                    />
-                                                    {newCamera.notify_health_webhook && (
-                                                        <div className="ml-9 p-3 bg-muted/30 rounded-lg border border-border animate-in fade-in slide-in-from-top-1">
-                                                            <InputField
-                                                                label="Health Webhook URL"
-                                                                value={newCamera.notify_health_webhook_url}
-                                                                onChange={(val) => setNewCamera({ ...newCamera, notify_health_webhook_url: val })}
-                                                                placeholder="Leave empty to use Global Settings"
-                                                            />
-                                                            <div className="flex justify-end mt-2">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleTestNotification('webhook', { notify_webhook_url: newCamera.notify_health_webhook_url })}
-                                                                    className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
-                                                                >
-                                                                    Test Health Webhook
-                                                                </button>
+                                                {/* Telegram Section */}
+                                                <div className="space-y-4">
+                                                    <SectionHeader title="Telegram Notifications" description="Send alerts via Telegram Bot" />
+
+                                                    {/* Motion Telegram */}
+                                                    <div className="space-y-3">
+                                                        <Toggle
+                                                            label="Send Telegram Message"
+                                                            checked={newCamera.notify_start_telegram}
+                                                            onChange={(val) => setNewCamera({ ...newCamera, notify_start_telegram: val })}
+                                                        />
+                                                        {newCamera.notify_start_telegram && (
+                                                            <div className="ml-9 p-3 bg-muted/30 rounded-lg border border-border space-y-3 animate-in fade-in slide-in-from-top-1">
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                                    <InputField
+                                                                        label="Bot Token"
+                                                                        value={newCamera.notify_telegram_token}
+                                                                        onChange={(val) => setNewCamera({ ...newCamera, notify_telegram_token: val })}
+                                                                        placeholder="Global Default"
+                                                                    />
+                                                                    <InputField
+                                                                        label="Chat ID"
+                                                                        value={newCamera.notify_telegram_chat_id}
+                                                                        onChange={(val) => setNewCamera({ ...newCamera, notify_telegram_chat_id: val })}
+                                                                        placeholder="Global Default"
+                                                                    />
+                                                                </div>
+                                                                <Toggle
+                                                                    label="Attach Snapshot Image"
+                                                                    checked={newCamera.notify_attach_image_telegram !== false}
+                                                                    onChange={(val) => setNewCamera({ ...newCamera, notify_attach_image_telegram: val })}
+                                                                    compact={true}
+                                                                />
+                                                                <div className="flex justify-end">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleTestNotification('telegram', {
+                                                                            telegram_bot_token: newCamera.notify_telegram_token,
+                                                                            telegram_chat_id: newCamera.notify_telegram_chat_id
+                                                                        })}
+                                                                        className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
+                                                                    >
+                                                                        Test Telegram
+                                                                    </button>
+                                                                </div>
                                                             </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Health Telegram */}
+                                                    <div className="space-y-3">
+                                                        <Toggle
+                                                            label="Notify Health via Telegram"
+                                                            checked={newCamera.notify_health_telegram}
+                                                            onChange={(val) => setNewCamera({ ...newCamera, notify_health_telegram: val })}
+                                                        />
+                                                        {newCamera.notify_health_telegram && (
+                                                            <div className="ml-9 p-3 bg-muted/30 rounded-lg border border-border animate-in fade-in slide-in-from-top-1">
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                                    <InputField
+                                                                        label="Health Bot Token"
+                                                                        value={newCamera.notify_health_telegram_token}
+                                                                        onChange={(val) => setNewCamera({ ...newCamera, notify_health_telegram_token: val })}
+                                                                        placeholder="Global Default"
+                                                                    />
+                                                                    <InputField
+                                                                        label="Health Chat ID"
+                                                                        value={newCamera.notify_health_telegram_chat_id}
+                                                                        onChange={(val) => setNewCamera({ ...newCamera, notify_health_telegram_chat_id: val })}
+                                                                        placeholder="Global Default"
+                                                                    />
+                                                                </div>
+                                                                <div className="flex justify-end mt-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleTestNotification('telegram', {
+                                                                            telegram_bot_token: newCamera.notify_health_telegram_token,
+                                                                            telegram_chat_id: newCamera.notify_health_telegram_chat_id
+                                                                        })}
+                                                                        className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
+                                                                    >
+                                                                        Test Health Telegram
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Webhook Section */}
+                                                <div className="space-y-4">
+                                                    <SectionHeader title="Webhook Notifications" description="Call external URL on events" />
+
+                                                    {/* Motion Webhook */}
+                                                    <div className="space-y-3">
+                                                        <div className="flex flex-col gap-2">
+                                                            <Toggle
+                                                                label="Call Webhook on Start"
+                                                                checked={newCamera.notify_start_webhook}
+                                                                onChange={(val) => setNewCamera({ ...newCamera, notify_start_webhook: val })}
+                                                            />
+                                                            <Toggle
+                                                                label="Call Webhook on End"
+                                                                checked={newCamera.notify_end_webhook}
+                                                                onChange={(val) => setNewCamera({ ...newCamera, notify_end_webhook: val })}
+                                                            />
                                                         </div>
-                                                    )}
+                                                        {(newCamera.notify_start_webhook || newCamera.notify_end_webhook) && (
+                                                            <div className="ml-9 p-3 bg-muted/30 rounded-lg border border-border animate-in fade-in slide-in-from-top-1">
+                                                                <InputField
+                                                                    label="Webhook URL"
+                                                                    value={newCamera.notify_webhook_url}
+                                                                    onChange={(val) => setNewCamera({ ...newCamera, notify_webhook_url: val })}
+                                                                    placeholder="Leave empty to use Global Settings"
+                                                                />
+                                                                <div className="flex justify-end mt-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleTestNotification('webhook', { notify_webhook_url: newCamera.notify_webhook_url })}
+                                                                        className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
+                                                                    >
+                                                                        Test Webhook
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Health Webhook */}
+                                                    <div className="space-y-3">
+                                                        <Toggle
+                                                            label="Notify Health via Webhook"
+                                                            checked={newCamera.notify_health_webhook}
+                                                            onChange={(val) => setNewCamera({ ...newCamera, notify_health_webhook: val })}
+                                                        />
+                                                        {newCamera.notify_health_webhook && (
+                                                            <div className="ml-9 p-3 bg-muted/30 rounded-lg border border-border animate-in fade-in slide-in-from-top-1">
+                                                                <InputField
+                                                                    label="Health Webhook URL"
+                                                                    value={newCamera.notify_health_webhook_url}
+                                                                    onChange={(val) => setNewCamera({ ...newCamera, notify_health_webhook_url: val })}
+                                                                    placeholder="Leave empty to use Global Settings"
+                                                                />
+                                                                <div className="flex justify-end mt-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleTestNotification('webhook', { notify_webhook_url: newCamera.notify_health_webhook_url })}
+                                                                        className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
+                                                                    >
+                                                                        Test Health Webhook
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
 
-                                </div>
-                                <div className="flex justify-between items-center pt-4 border-t border-border mt-4">
-                                    {editingId && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowCopyModal(true)}
-                                            className="flex items-center space-x-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 py-2 rounded-lg transition-colors"
-                                        >
-                                            <Copy className="w-4 h-4" />
-                                            <span>Copy Settings to...</span>
-                                        </button>
-                                    )}
-                                    {!editingId && <div></div>} {/* Spacer */}
-
-                                    <div className="flex space-x-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowAddModal(false)}
-                                            className="px-4 py-2 text-sm font-medium hover:bg-accent rounded-lg"
-                                        >
-                                            Cancel
-                                        </button>
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-4 border-t border-border mt-4 gap-4">
                                         {editingId && (
                                             <button
                                                 type="button"
-                                                onClick={(e) => handleCreate(e, false)}
-                                                className="px-4 py-2 text-primary hover:bg-primary/10 text-sm font-medium rounded-lg transition-colors border border-primary/20"
+                                                onClick={() => setShowCopyModal(true)}
+                                                className="flex items-center justify-center space-x-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 py-2 rounded-lg transition-colors border border-blue-100 dark:border-blue-900/30 sm:border-none"
                                             >
-                                                Apply
+                                                <Copy className="w-4 h-4" />
+                                                <span>Copy Settings to...</span>
                                             </button>
                                         )}
-                                        <button
-                                            type="submit"
-                                            className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90"
-                                        >
-                                            {editingId ? 'Save Changes' : 'Create Camera'}
-                                        </button>
+                                        {!editingId && <div className="hidden sm:block"></div>} {/* Spacer */}
+
+                                        <div className="flex space-x-3 w-full sm:w-auto">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAddModal(false)}
+                                                className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium hover:bg-accent rounded-lg border border-border sm:border-none"
+                                            >
+                                                Cancel
+                                            </button>
+                                            {editingId && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => handleCreate(e, false)}
+                                                    className="flex-1 sm:flex-none px-4 py-2 text-primary hover:bg-primary/10 text-sm font-medium rounded-lg transition-colors border border-primary/20"
+                                                >
+                                                    Apply
+                                                </button>
+                                            )}
+                                            <button
+                                                type="submit"
+                                                className="flex-1 sm:flex-none px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90"
+                                            >
+                                                {editingId ? 'Save Changes' : 'Create Camera'}
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            </form>
+                                </form>
+                            </div>
                         </div>
-                    </div >
+                    </Portal>
                 )
             }
 
             {/* Copy Settings Modal */}
             {
                 showCopyModal && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
-                        <div className="bg-card p-6 rounded-xl w-full max-w-md border border-border shadow-xl">
-                            <h3 className="text-lg font-bold mb-2">Copy Settings</h3>
-                            <p className="text-sm text-muted-foreground mb-4">
-                                Select cameras to overwrite with current settings. <br />
-                                <span className="text-xs text-yellow-600 dark:text-yellow-400">Warning: This will replace configuration for selected cameras.</span>
-                            </p>
+                    <Portal>
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[2000] lg:pl-64 p-4">
+                            <div className="bg-card p-6 rounded-xl w-full max-w-md border border-border shadow-xl">
+                                <h3 className="text-lg font-bold mb-2">Copy Settings</h3>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Select cameras to overwrite with current settings. <br />
+                                    <span className="text-xs text-yellow-600 dark:text-yellow-400">Warning: This will replace configuration for selected cameras.</span>
+                                </p>
 
-                            <div className="space-y-2 max-h-[300px] overflow-y-auto mb-6 bg-muted/20 p-2 rounded-lg border border-border/50">
-                                {cameras.filter(c => c.id !== editingId).map(cam => (
-                                    <div
-                                        key={cam.id}
-                                        className="flex items-center p-2 hover:bg-accent rounded cursor-pointer"
-                                        onClick={() => {
-                                            if (copyTargets.includes(cam.id)) {
-                                                setCopyTargets(copyTargets.filter(id => id !== cam.id));
-                                            } else {
-                                                setCopyTargets([...copyTargets, cam.id]);
-                                            }
-                                        }}
-                                    >
-                                        <div className={`w-5 h-5 mr-3 rounded border-2 flex items-center justify-center transition-colors ${copyTargets.includes(cam.id)
-                                            ? 'bg-primary border-primary'
-                                            : 'border-gray-400 dark:border-gray-500'
-                                            }`}>
-                                            {copyTargets.includes(cam.id) && (
-                                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            )}
+                                <div className="space-y-2 max-h-[300px] overflow-y-auto mb-6 bg-muted/20 p-2 rounded-lg border border-border/50">
+                                    {cameras.filter(c => c.id !== editingId).map(cam => (
+                                        <div
+                                            key={cam.id}
+                                            className="flex items-center p-2 hover:bg-accent rounded cursor-pointer"
+                                            onClick={() => {
+                                                if (copyTargets.includes(cam.id)) {
+                                                    setCopyTargets(copyTargets.filter(id => id !== cam.id));
+                                                } else {
+                                                    setCopyTargets([...copyTargets, cam.id]);
+                                                }
+                                            }}
+                                        >
+                                            <div className={`w-5 h-5 mr-3 rounded border-2 flex items-center justify-center transition-colors ${copyTargets.includes(cam.id)
+                                                ? 'bg-primary border-primary'
+                                                : 'border-gray-400 dark:border-gray-500'
+                                                }`}>
+                                                {copyTargets.includes(cam.id) && (
+                                                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                )}
+                                            </div>
+                                            <span className="font-medium">{cam.name}</span>
+                                            <span className="text-xs text-muted-foreground ml-auto">{cam.resolution_width}x{cam.resolution_height}</span>
                                         </div>
-                                        <span className="font-medium">{cam.name}</span>
-                                        <span className="text-xs text-muted-foreground ml-auto">{cam.resolution_width}x{cam.resolution_height}</span>
-                                    </div>
-                                ))}
-                                {cameras.filter(c => c.id !== editingId).length === 0 && (
-                                    <p className="text-sm text-center py-4 text-muted-foreground">No other cameras available.</p>
-                                )}
-                            </div>
+                                    ))}
+                                    {cameras.filter(c => c.id !== editingId).length === 0 && (
+                                        <p className="text-sm text-center py-4 text-muted-foreground">No other cameras available.</p>
+                                    )}
+                                </div>
 
-                            <div className="flex justify-end space-x-3">
-                                <button
-                                    onClick={() => { setShowCopyModal(false); setCopyTargets([]); }}
-                                    className="px-4 py-2 text-sm font-medium hover:bg-accent rounded-lg"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleCopySettings}
-                                    disabled={copyTargets.length === 0}
-                                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                                >
-                                    <Copy className="w-4 h-4 mr-2" />
-                                    Copy to {copyTargets.length} Cameras
-                                </button>
+                                <div className="flex justify-end space-x-3">
+                                    <button
+                                        onClick={() => { setShowCopyModal(false); setCopyTargets([]); }}
+                                        className="px-4 py-2 text-sm font-medium hover:bg-accent rounded-lg"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleCopySettings}
+                                        disabled={copyTargets.length === 0}
+                                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                                    >
+                                        <Copy className="w-4 h-4 mr-2" />
+                                        Copy to {copyTargets.length} Cameras
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </Portal>
                 )
             }
             {/* Bulk Actions Floating Bar */}
@@ -2122,7 +2127,7 @@ export const Cameras = () => {
             {/* Global Processing Overlay */}
             {
                 isProcessing && (
-                    <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[100] flex flex-col items-center justify-center animate-in fade-in duration-300">
+                    <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[140] flex flex-col items-center justify-center animate-in fade-in duration-300">
                         <div className="bg-card border border-border p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm text-center">
                             <div className="flex items-center justify-center space-x-6 mb-6">
                                 <div className="p-3 bg-primary/10 rounded-2xl">
