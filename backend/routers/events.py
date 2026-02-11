@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -314,7 +314,12 @@ def is_within_schedule(camera: models.Camera):
         return current_time_str >= start_str or current_time_str <= end_str
 
 @router.post("/webhook")
-async def webhook_event(request: Request, payload: dict, db: Session = Depends(database.get_db)):
+async def webhook_event(
+    request: Request, 
+    payload: dict, 
+    background_tasks: BackgroundTasks, 
+    db: Session = Depends(database.get_db)
+):
     # Verify Secret
     secret_header = request.headers.get("X-Webhook-Secret")
     # Use dedicated WEBHOOK_SECRET if set, otherwise fallback to SECRET_KEY
@@ -345,108 +350,17 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
         logger.info(f"[WEBHOOK] Event outside schedule: {camera.name}. Saving anyway to prevent orphans.")
         # return {"status": "ignored", "reason": "outside schedule"}
 
-    if event_type == "movie_end":
-        file_path = payload.get("file_path")
-        logger.info(f"[WEBHOOK] Saving movie event for {camera.name}: {file_path}")
-        
-        # Calculate file size
-        if file_path and file_path.startswith("/var/lib/motion"):
-            local_path = file_path.replace("/var/lib/motion", "/data", 1)
-        elif file_path and file_path.startswith("/var/lib/vibe/recordings"):
-             local_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
-        else:
-             local_path = None
-             
-        file_size = 0
-        if local_path and os.path.exists(local_path):
-            file_size = os.path.getsize(local_path)
-
-        # Remove from active cameras on movie end
-        if camera_id in ACTIVE_CAMERAS:
-            del ACTIVE_CAMERAS[camera_id]
-        
-        ts_str = payload.get("timestamp")
-        try:
-            ts = datetime.datetime.fromisoformat(ts_str)
-        except:
-            ts = datetime.datetime.now().astimezone()
-
-        # Get Duration using ffprobe
-        ts_end = None
-        if local_path and os.path.exists(local_path):
-            # Security: Prevent argument injection if filename starts with -
-            if os.path.basename(local_path).startswith("-"):
-                 logger.warning(f"[WEBHOOK] Skipped processing unsafe filename: {local_path}")
-                 local_path = None
-            
-        if local_path and os.path.exists(local_path):
-            try:
-                cmd = [
-                    "ffprobe", "-v", "error", "-show_entries", "format=duration",
-                    "-of", "default=noprint_wrappers=1:nokey=1", local_path
-                ]
-                result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                if result.returncode == 0:
-                    duration_sec = float(result.stdout.strip())
-                    ts_end = ts + datetime.timedelta(seconds=duration_sec)
-                    logger.info(f"[WEBHOOK] Video duration: {duration_sec}s")
-            except Exception as e:
-                logger.error(f"[WEBHOOK] Failed to get duration: {e}")
-
-        event_data = schemas.EventCreate(
+    elif event_type == "movie_end" or event_type == "picture_save":
+        # Process heavy file operations in background to keep event loop responsive
+        background_tasks.add_task(
+            process_webhook_file_event,
             camera_id=camera_id,
-            timestamp_start=ts,
-            timestamp_end=ts_end,
-            type="video",
-            event_type="motion",
-            file_path=file_path,
-            file_size=file_size,
-            width=payload.get("width"),
-            height=payload.get("height"),
-            motion_score=0.0
+            event_type=event_type,
+            payload=payload,
+            in_schedule=in_schedule
         )
-        
-        # Generate Thumbnail
-        try:
-            if local_path and os.path.exists(local_path):
-                # /data/Camera1/xxx.mp4 -> /data/Camera1/xxx.jpg
-                base, _ = os.path.splitext(local_path)
-                local_thumb = f"{base}.jpg"
-                
-                # DB path
-                base_db, _ = os.path.splitext(file_path)
-                db_thumb = f"{base_db}.jpg"
-                
-                # Run ffmpeg to extract frame at 1s or 0s
-                # -ss 1 : seek 1 second
-                # -vframes 1: output 1 frame
-                subprocess.run([
-                    "ffmpeg", "-y", "-i", local_path, 
-                    "-ss", "00:00:01", "-vframes", "1", "-vf", "scale=320:-1",
-                    local_thumb
-                ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                
-                if os.path.exists(local_thumb):
-                    event_data.thumbnail_path = db_thumb
-                    logger.info(f"[WEBHOOK] Thumbnail generated: {db_thumb}")
-        except Exception as e:
-            logger.error(f"[WEBHOOK] Failed to generate thumbnail: {e}")
+        return {"status": "processing"}
 
-        try:
-            crud.create_event(db, event_data)
-            logger.info(f"[WEBHOOK] Event saved successfully")
-            # Notification for movie end (if configured and within schedule)
-            if in_schedule:
-                send_notifications(camera.id, "movie_end", payload)
-        except (IntegrityError, Exception) as e:
-            # Check for ForeignKeyViolation (camera deleted while we were processing)
-            err_str = str(e).lower()
-            if "foreignkeyviolation" in err_str or "foreign key constraint" in err_str:
-                logger.warning(f"[WEBHOOK] Camera {camera_id} was deleted during processing. Cleaning up.")
-                cleanup_orphaned_file(file_path, camera_id)
-            else:
-                logger.error(f"[WEBHOOK] ERROR saving event: {e}")
-            
     elif event_type == "event_start":
         logger.info(f"[WEBHOOK] Motion event started for camera {camera.name} (ID: {camera_id})")
         ACTIVE_CAMERAS[camera_id] = payload.get("timestamp")
@@ -455,7 +369,6 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
 
     elif event_type == "camera_health":
         logger.info(f"[WEBHOOK] Health event for camera {camera.name} (ID: {camera_id}): {payload.get('message')}")
-        
         # Update Health Cache immediately for UI responsiveness
         try:
             from health_service import HEALTH_CACHE
@@ -464,10 +377,9 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
                 HEALTH_CACHE[camera.id] = new_status
         except ImportError:
             pass
-            
         # Always send health notifications regardless of schedule (it's a system alert)
         send_notifications(camera.id, "camera_health", payload)
-            
+
     elif event_type == "motion_on":
         # Purely for UI reactive feedback
         LIVE_MOTION[camera_id] = payload.get("timestamp")
@@ -478,17 +390,32 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
         if camera_id in LIVE_MOTION:
             del LIVE_MOTION[camera_id]
         return {"status": "motion_off_captured"}
-    elif event_type == "picture_save":
-        file_path = payload.get("file_path")
-        logger.info(f"[WEBHOOK] Saving picture event for {camera.name}: {file_path}")
         
-        # Calculate file size
-        if file_path and file_path.startswith("/var/lib/motion"):
+    return {"status": "received"}
+
+def process_webhook_file_event(camera_id: int, event_type: str, payload: dict, in_schedule: bool):
+    """
+    Background task for heavy I/O operations (ffprobe, ffmpeg, DB writes).
+    Prevents the main API event loop from blocking.
+    """
+    db = database.SessionLocal()
+    try:
+        camera = crud.get_camera(db, camera_id)
+        if not camera:
+            return
+
+        file_path = payload.get("file_path")
+        if not file_path:
+            return
+
+        # Map path
+        if file_path.startswith("/var/lib/motion"):
             local_path = file_path.replace("/var/lib/motion", "/data", 1)
-        elif file_path and file_path.startswith("/var/lib/vibe/recordings"):
+        elif file_path.startswith("/var/lib/vibe/recordings"):
              local_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
         else:
              local_path = None
+
         file_size = 0
         if local_path and os.path.exists(local_path):
             file_size = os.path.getsize(local_path)
@@ -501,26 +428,74 @@ async def webhook_event(request: Request, payload: dict, db: Session = Depends(d
 
         event_data = schemas.EventCreate(
             camera_id=camera_id,
-            timestamp_start=ts, 
-            type="snapshot",
+            timestamp_start=ts,
+            type="video" if event_type == "movie_end" else "snapshot",
             event_type="motion",
             file_path=file_path,
             file_size=file_size,
             width=payload.get("width"),
             height=payload.get("height"),
-            thumbnail_path=file_path, # Use same for now
             motion_score=0.0
         )
+
+        if event_type == "movie_end":
+            # Remove from active cameras on movie end
+            if camera_id in ACTIVE_CAMERAS:
+                del ACTIVE_CAMERAS[camera_id]
+
+            # Get Duration using ffprobe
+            if local_path and os.path.exists(local_path):
+                # Security: Prevent argument injection
+                if not os.path.basename(local_path).startswith("-"):
+                    try:
+                        cmd = [
+                            "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                            "-of", "default=noprint_wrappers=1:nokey=1", local_path
+                        ]
+                        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=10)
+                        if result.returncode == 0:
+                            duration_sec = float(result.stdout.strip())
+                            event_data.timestamp_end = ts + datetime.timedelta(seconds=duration_sec)
+                    except Exception as e:
+                        logger.error(f"[BG-WORK] ffprobe failed: {e}")
+
+            # Generate Thumbnail
+            try:
+                if local_path and os.path.exists(local_path):
+                    base, _ = os.path.splitext(local_path)
+                    local_thumb = f"{base}.jpg"
+                    base_db, _ = os.path.splitext(file_path)
+                    db_thumb = f"{base_db}.jpg"
+                    
+                    subprocess.run([
+                        "ffmpeg", "-y", "-i", local_path, 
+                        "-ss", "00:00:01", "-vframes", "1", "-vf", "scale=320:-1",
+                        local_thumb
+                    ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
+                    
+                    if os.path.exists(local_thumb):
+                        event_data.thumbnail_path = db_thumb
+            except Exception as e:
+                logger.error(f"[BG-WORK] Thumbnail failed: {e}")
+        else:
+            # For picture_save, thumbnail is the same as image
+            event_data.thumbnail_path = file_path
+
         try:
             crud.create_event(db, event_data)
-        except (IntegrityError, Exception) as e:
-            # Check for ForeignKeyViolation (camera deleted while we were processing)
+            if in_schedule:
+                send_notifications(camera.id, event_type, payload)
+        except Exception as e:
             err_str = str(e).lower()
             if "foreignkeyviolation" in err_str or "foreign key constraint" in err_str:
-                logger.warning(f"[WEBHOOK] Camera {camera_id} was deleted during processing. Cleaning up snapshot.")
                 cleanup_orphaned_file(file_path, camera_id)
             else:
-                logger.error(f"[WEBHOOK] ERROR saving picture event: {e}")
+                logger.error(f"[BG-WORK] DB Error: {e}")
+
+    except Exception as e:
+        logger.error(f"[BG-WORK] General error: {e}")
+    finally:
+        db.close()
         
     return {"status": "received"}
 

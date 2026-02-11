@@ -175,14 +175,11 @@ class CameraBase(BaseModel):
                 ip_str = socket.gethostbyname(hostname)
                 ip = ipaddress.ip_address(ip_str)
                 if ip.is_loopback or ip.is_private or ip.is_reserved:
-                    # Allow docker internal if user REALLY wants? 
-                    # Usually we want to BLOCK access to other containers like 'engine' or 'db'
-                    # But user might want to webhook to Home Assistant on same LAN.
-                    # This is tricky. Let's block Loopback and Link Local.
-                    # Blocking Private (192.168.x) might break Home Assistant integration.
-                    # Compromise: Block Loopback, 127.0.0.0/8
-                    if ip.is_loopback:
-                        raise ValueError('Webhook cannot target loopback IP')
+                    # Strict SSRF Protection: Block access to internal/private networks
+                    # This prevents targeting other containers (db, engine) or local services.
+                    # Exception: User might need local IPs for Home Assistant, 
+                    # but for security we block by default.
+                    raise ValueError(f'Webhook cannot target private or reserved IP ranges ({ip_str})')
             except socket.gaierror:
                 pass # DNS fail - might be unreachable, but let requests handle it?
                 
