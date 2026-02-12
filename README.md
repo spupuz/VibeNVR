@@ -61,10 +61,7 @@ We only collect **non-sensitive, anonymous** technical data:
 - **Feature Flags**: A simple indicator if notifications are configured (no addresses or tokens).
 
 ### How often?
-The report is sent once **30 seconds after startup** and then **once every 24 hours**.
-
-### Customization
-You can set a custom Scarf Pixel ID by adding `SCARF_PIXEL_ID` to your `.env` file or `docker-compose.yml`.
+The report is sent once **30 seconds after startup** and then **once every 24 hours**.
 
 ### Opt-out
 Your privacy is paramount. You can disable telemetry at any time:
