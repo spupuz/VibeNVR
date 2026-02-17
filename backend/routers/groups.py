@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Any
 import crud, schemas, database, models, motion_service, auth_service
 
 router = APIRouter(
@@ -9,20 +9,30 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("", response_model=List[schemas.CameraGroup])
-def read_groups(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
-    return crud.get_groups(db, skip=skip, limit=limit)
+@router.get("", response_model=List[Any])
+def read_groups(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
+    user, is_token = auth_info
+    groups = crud.get_groups(db, skip=skip, limit=limit)
+    if is_token:
+        # Return sanitized groups (masking camera details)
+        return [schemas.CameraGroupSummary.from_orm(g) for g in groups]
+    return [schemas.CameraGroup.from_orm(g) for g in groups]
 
 @router.post("", response_model=schemas.CameraGroup)
 def create_group(group: schemas.CameraGroupCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     return crud.create_group(db, group=group)
 
-@router.get("/{group_id}", response_model=schemas.CameraGroup)
-def read_group(group_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
+@router.get("/{group_id}", response_model=Any)
+def read_group(group_id: int, db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
+    user, is_token = auth_info
     db_group = crud.get_group(db, group_id=group_id)
     if db_group is None:
         raise HTTPException(status_code=404, detail="Group not found")
-    return db_group
+    
+    if is_token:
+        # Return sanitized group
+        return schemas.CameraGroupSummary.from_orm(db_group)
+    return schemas.CameraGroup.from_orm(db_group)
 
 @router.delete("/{group_id}")
 def delete_group(group_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):

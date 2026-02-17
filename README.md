@@ -29,6 +29,7 @@ This software is currently in active beta development. The database schema is st
 | ⚡ **Passthrough Recording** | Direct Stream Copy support for near-zero CPU usage recording (experimental, with auto-fallback). |
 | 🎯 **Smart Motion Detection** | Native motion detection with adjustable sensitivity, gap, and pre/post-capture buffers. |
 | 📅 **Event Timeline** | Unified browser for movie recordings and high-res snapshots with instant filters. |
+| 🔑 **API Access Tokens** | Secure, read-only API tokens for 3rd party integrations (Homepage, etc.). |
 | 💾 **Storage Management** | Automated background cleanup (FIFO) and **Bulk Deletion** tools. |
 | 📁 **Camera Groups** | Organize cameras into custom groups for logical multi-view management. |
 | 🕙 **Timezone Synchronization** | Full ISO 8601 support ensures perfect timing between engine, backend, and UI. |
@@ -61,7 +62,8 @@ We only collect **non-sensitive, anonymous** technical data:
 - **Feature Flags**: A simple indicator if notifications are configured (no addresses or tokens).
 
 ### How often?
-The report is sent once **30 seconds after startup** and then **once every 24 hours**.
+The report is sent once **30 seconds after startup** and then **once every 24 hours**.
+
 
 ### Opt-out
 Your privacy is paramount. You can disable telemetry at any time:
@@ -145,6 +147,44 @@ And define the volume at the end of the file:
 ```yaml
 volumes:
   vibenvr_data:
+```
+
+---
+
+---
+
+## 🏠 Dashboard Integration (Homepage)
+
+VibeNVR integrates perfectly with [gethomepage.dev](https://gethomepage.dev/) using the `customapi` widget.
+
+**Example `services.yaml` configuration:**
+
+```yaml
+- VibeNVR:
+    icon: mdi-cctv
+    href: http://your-vibenvr-ip:8080/
+    description: Video Surveillance
+    server: your-docker-host # Optional: Requires docker socket access in Homepage
+    container: vibenvr-backend
+    widget:
+      type: customapi
+      url: http://your-vibenvr-ip:8080/api/v1/homepage/stats
+      headers:
+        X-API-Key: "your-api-token-here"
+      method: GET
+      mappings:
+        - field: cameras_online
+          label: Online
+        - field: events_today
+          label: Events (24h)
+        - field: storage_used_gb
+          label: Storage (GB)
+        - field: uptime
+          label: Uptime
+        - field: cameras_recording
+          label: Recording
+        - field: storage_total_gb
+          label: Total Disk (GB)
 ```
 
 ---

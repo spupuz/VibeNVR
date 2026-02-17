@@ -128,6 +128,17 @@ def migrate():
     # Users
     add_column_if_not_exists(engine, "users", "avatar_path", "VARCHAR")
 
+    # API Tokens (Fallback creation if create_all missed it)
+    with engine.connect() as conn:
+        try:
+            # Simple check if table exists
+            conn.execute(text("SELECT 1 FROM api_tokens LIMIT 1"))
+        except:
+            print("Creating api_tokens table via migration...")
+            models.ApiToken.__table__.create(engine)
+            conn.commit()
+            print("api_tokens table created.")
+
 if __name__ == "__main__":
     print("Starting migration...")
     migrate()

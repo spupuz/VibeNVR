@@ -264,8 +264,9 @@ def read_events(
     type: Optional[str] = None, 
     date: Optional[str] = None,
     db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(auth_service.get_current_user)
+    auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)
 ):
+    user, is_token = auth_info
     events = crud.get_events(db, skip=skip, limit=limit, camera_id=camera_id, type=type, date=date)
     return events
 # Track active motion events globally
@@ -275,7 +276,8 @@ ACTIVE_CAMERAS = {}
 LIVE_MOTION = {}
 
 @router.get("/status")
-def get_motion_status(current_user: models.User = Depends(auth_service.get_current_user)):
+def get_motion_status(auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
+    user, is_token = auth_info
     """Returns list of camera IDs currently detecting motion and/or recording, plus health info"""
     from health_service import HEALTH_CACHE
     return {
@@ -548,10 +550,10 @@ def delete_event(event_id: int, db: Session = Depends(database.get_db), current_
     return event
 
 @router.get("/{event_id}/download")
-def download_event(event_id: int, token: str):
+async def download_event(event_id: int, token: str):
     """Download event file with proper headers for cross-origin support"""
     with database.get_db_ctx() as db:
-        auth_service.get_user_from_token(token, db)
+        await auth_service.get_user_from_token(token, db)
         event = db.query(models.Event).filter(models.Event.id == event_id).first()
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")

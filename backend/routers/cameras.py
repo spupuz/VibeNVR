@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 import crud, schemas, database, motion_service, storage_service, probe_service, auth_service, models, health_service
 import json, asyncio, tarfile, io, re, os
 from urllib.parse import urlparse
-from typing import Optional, List
+from typing import Optional, List, Any
 import datetime
 
 router = APIRouter(
@@ -93,17 +93,26 @@ def create_camera(camera: schemas.CameraCreate, db: Session = Depends(database.g
     motion_service.generate_motion_config(db)
     return new_camera
 
-@router.get("", response_model=List[schemas.Camera])
-def read_cameras(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
+@router.get("", response_model=List[Any])
+def read_cameras(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
+    user, is_token = auth_info
     cameras = crud.get_cameras(db, skip=skip, limit=limit)
-    return cameras
+    if is_token:
+        # Return sanitized summary for 3rd party integrations
+        return [schemas.CameraSummary.from_orm(c) for c in cameras]
+    return [schemas.Camera.from_orm(c) for c in cameras]
 
-@router.get("/{camera_id}", response_model=schemas.Camera)
-def read_camera(camera_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
+@router.get("/{camera_id}", response_model=Any)
+def read_camera(camera_id: int, db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
+    user, is_token = auth_info
     db_camera = crud.get_camera(db, camera_id=camera_id)
     if db_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
-    return db_camera
+    
+    if is_token:
+        # Return sanitized summary for 3rd party integrations
+        return schemas.CameraSummary.from_orm(db_camera)
+    return schemas.Camera.from_orm(db_camera)
 
 @router.put("/{camera_id}", response_model=schemas.Camera)
 def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks: BackgroundTasks, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
@@ -249,7 +258,7 @@ import httpx
 async def get_camera_frame(camera_id: int, token: str):
     """Proxy a single JPEG frame from the engine (for polling mode)"""
     with database.get_db_ctx() as db:
-        auth_service.get_user_from_token(token, db)
+        await auth_service.get_user_from_token(token, db)
         db_camera = crud.get_camera(db, camera_id=camera_id)
         if db_camera is None:
             raise HTTPException(status_code=404, detail="Camera not found")
@@ -278,7 +287,7 @@ async def get_camera_frame(camera_id: int, token: str):
 async def stream_camera(camera_id: int, token: str):
     """Proxy the MJPEG stream from Motion to bypass CORS issues"""
     with database.get_db_ctx() as db:
-        auth_service.get_user_from_token(token, db)
+        await auth_service.get_user_from_token(token, db)
         db_camera = crud.get_camera(db, camera_id=camera_id)
         if db_camera is None:
             raise HTTPException(status_code=404, detail="Camera not found")

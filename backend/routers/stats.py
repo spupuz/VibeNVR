@@ -191,7 +191,8 @@ def start_realtime_collector():
 start_realtime_collector()
 
 @router.get("")
-def get_stats(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
+def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
+    user, is_token = auth_info
     from sqlalchemy import func, text
     
     # 1. Active Cameras
@@ -410,7 +411,8 @@ def get_stats(db: Session = Depends(database.get_db), current_user: models.User 
     }
 
 @router.get("/history")
-def get_stats_history(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
+def get_stats_history(db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
+    user, is_token = auth_info
     """
     Returns hourly event counts for the last 24 hours.
     """
@@ -471,7 +473,8 @@ def get_stats_history(db: Session = Depends(database.get_db), current_user: mode
         return []
 
 @router.get("/resources-history")
-def get_resources_history(current_user: models.User = Depends(auth_service.get_current_user)):
+def get_resources_history(auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
+    user, is_token = auth_info
     """
     Returns CPU and memory usage history for the last hour (up to 60 data points).
     Data is collected every minute by a background thread.

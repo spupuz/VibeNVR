@@ -8,6 +8,7 @@ import { Button } from '../components/ui/Button';
 import { CollapsibleSection } from '../components/ui/CollapsibleSection';
 
 import { Avatar } from '../components/ui/Avatar';
+import { ApiTokenManager } from '../components/ApiTokenManager';
 
 export const Settings = () => {
     const { user, token } = useAuth();
@@ -636,6 +637,15 @@ export const Settings = () => {
                         </table>
                     </div>
                 </CollapsibleSection>
+            )}
+
+
+            {/* API Tokens (Admin Only) */}
+            {user?.role === 'admin' && (
+                <ApiTokenManager
+                    isOpen={openSection === 'api-tokens'}
+                    onToggle={toggleSection}
+                />
             )}
 
             {/* Storage Settings */}
