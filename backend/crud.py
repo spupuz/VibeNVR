@@ -148,3 +148,40 @@ def update_group_cameras(db: Session, group_id: int, camera_ids: list[int]):
     db.commit()
     db.refresh(db_group)
     return db_group
+
+# API Tokens
+def create_api_token(db: Session, name: str, token_hash: str, user_id: int):
+    """Create a new API token"""
+    db_token = models.ApiToken(name=name, token_hash=token_hash, created_by_user_id=user_id)
+    db.add(db_token)
+    db.commit()
+    db.refresh(db_token)
+    return db_token
+
+def get_api_tokens(db: Session, user_id: int = None):
+    """List all API tokens (optionally filtered by user)"""
+    query = db.query(models.ApiToken)
+    if user_id:
+        query = query.filter(models.ApiToken.created_by_user_id == user_id)
+    return query.all()
+
+def get_api_token_by_hash(db: Session, token_hash: str):
+    """Find token by hash (for authentication)"""
+    return db.query(models.ApiToken).filter(models.ApiToken.token_hash == token_hash).first()
+
+def update_token_last_used(db: Session, token_id: int):
+    """Update last used timestamp"""
+    from datetime import datetime
+    token = db.query(models.ApiToken).filter(models.ApiToken.id == token_id).first()
+    if token:
+        token.last_used_at = datetime.now()
+        db.commit()
+
+def delete_api_token(db: Session, token_id: int):
+    """Delete an API token"""
+    token = db.query(models.ApiToken).filter(models.ApiToken.id == token_id).first()
+    if token:
+        db.delete(token)
+        db.commit()
+        return True
+    return False

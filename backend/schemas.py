@@ -310,8 +310,63 @@ class CameraGroup(CameraGroupBase):
     class Config:
         from_attributes = True
 
+class CameraSummary(BaseModel):
+    """Sanitized camera schema for public API access (no sensitive URLs/tokens)"""
+    id: int
+    name: str
+    location: Optional[str] = None
+    is_active: bool
+    resolution_width: int
+    resolution_height: int
+    framerate: int
+    recording_mode: str
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class CameraGroupSummary(CameraGroupBase):
+    """Sanitized group schema (contains sanitized camera summaries)"""
+    id: int
+    cameras: list[CameraSummary] = []
+    
+    class Config:
+        from_attributes = True
+
 class GroupAction(BaseModel):
     action: str  # enable_motion, disable_motion, copy_settings
     source_camera_id: Optional[int] = None
     target_camera_ids: Optional[list[int]] = None
+
+# API Tokens
+class ApiTokenCreate(BaseModel):
+    name: str
+
+class ApiTokenResponse(BaseModel):
+    id: int
+    name: str
+    token: Optional[str] = None  # Present only on creation
+    created_at: datetime
+    last_used_at: Optional[datetime] = None
+    is_active: bool
+    
+    class Config:
+        from_attributes = True
+
+class HomepageStats(BaseModel):
+    """Schema for Homepage integration statistics"""
+    cameras_total: int
+    cameras_online: int
+    cameras_recording: int
+    events_today: int
+    events_this_week: int
+    events_this_month: int
+    last_event_time: Optional[str] = None
+    last_event_camera: Optional[str] = None
+    storage_used_gb: float
+    storage_total_gb: float
+    storage_percent: int
+    uptime: str
+
+
 

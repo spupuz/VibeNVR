@@ -163,8 +163,10 @@ def redact_line(line: str) -> str:
     line = re.sub(r'(token|access_token|Authorization)=\s*[\w\-\.]+', r'\1=REDACTED', line)
     line = re.sub(r'Bearer\s+[\w\-\.]+', r'Bearer REDACTED', line)
     
-    # 2. Redact Passwords (in URLs or JSON)
-    line = re.sub(r'(password|pwd|secret|client_secret)=[\w\-\.!@#$%^&*()]+', r'\1=REDACTED', line)
+    # 2. Redact Passwords and API Keys (in URLs, Headers or JSON)
+    line = re.sub(r'(password|pwd|secret|client_secret|X-API-Key)=[\w\-\.!@#$%^&*()]+', r'\1=REDACTED', line)
+    # Also handle 'X-API-Key': '...' format potentially in logs
+    line = re.sub(r"X-API-Key':\s*'[^']+'", "X-API-Key': 'REDACTED'", line)
     
     # 3. Redact IPs (preserve localhost)
     # Regex for IPv4

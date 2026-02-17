@@ -27,7 +27,6 @@ class Camera(Base):
 
     
 
-
     # Movies
     movie_file_name = Column(String, default="%Y-%m-%d/%H-%M-%S")
     movie_quality = Column(Integer, default=75)
@@ -180,3 +179,16 @@ class User(Base):
     role = Column(String, default="viewer") # "admin", "viewer"
     avatar_path = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class ApiToken(Base):
+    __tablename__ = "api_tokens"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)  # Configurable name
+    token_hash = Column(String, unique=True, index=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    is_active = Column(Boolean, default=True)
+    
+    created_by = relationship("User")

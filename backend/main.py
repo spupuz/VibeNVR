@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
-from routers import cameras, events, stats, settings, auth, users, groups, logs
+from routers import cameras, events, stats, settings, auth, users, groups, logs, homepage, api_tokens
 import threading
 import storage_service
 import motion_service
@@ -15,8 +15,11 @@ import re
 class TokenRedactingFilter(logging.Filter):
     def filter(self, record):
         # Redact token from the message itself
-        if isinstance(record.msg, str) and "token=" in record.msg:
-            record.msg = re.sub(r"token=[^&\s]*", "token=REDACTED", record.msg)
+        if isinstance(record.msg, str):
+            if "token=" in record.msg:
+                record.msg = re.sub(r"token=[^&\s]*", "token=REDACTED", record.msg)
+            if "X-API-Key" in record.msg:
+                record.msg = re.sub(r"X-API-Key[^\s]*[:=]\s*['\"]?[^'\"]+['\"]?", "X-API-Key: REDACTED", record.msg)
         
         # Redact token from uvicorn access log arguments (client, method, path, etc)
         if hasattr(record, "args") and record.args:
@@ -184,6 +187,8 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(groups.router)
 app.include_router(logs.router)
+app.include_router(homepage.router, prefix="/v1")
+app.include_router(api_tokens.router, prefix="/v1")
 
 from fastapi.responses import FileResponse
 import os
@@ -194,7 +199,7 @@ from fastapi import HTTPException, Depends
 async def get_secure_media(file_path: str, token: str):
     # Release DB connection early
     with database.get_db_ctx() as db:
-        auth_service.get_user_from_token(token, db)
+        await auth_service.get_user_from_token(token, db)
     
     # Security Validation: Ensure path is within /data/
     # Normalize path to prevent traversals like /data/../etc/passwd
