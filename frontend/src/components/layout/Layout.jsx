@@ -9,7 +9,7 @@ export const Layout = ({ children, activeTab, onTabChange, theme, toggleTheme })
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
-        <div className="min-h-screen bg-background text-foreground flex">
+        <div className="min-h-screen bg-background text-foreground flex overflow-x-hidden relative">
             {/* Mobile overlay */}
             {sidebarOpen && (
                 <div
@@ -47,8 +47,8 @@ export const Layout = ({ children, activeTab, onTabChange, theme, toggleTheme })
                     <div className="w-10" /> {/* Spacer for centering */}
                 </div>
 
-                <main className={`flex-1 overflow-y-auto ${isLivePage ? 'p-0 w-full' : 'p-4 lg:p-8'}`}>
-                    <div className={isLivePage ? "w-full min-h-full flex flex-col" : "max-w-7xl mx-auto"}>
+                <main className={`flex-1 overflow-y-auto overflow-x-hidden ${isLivePage ? 'p-0 w-full' : 'px-5 py-4 lg:p-8'}`}>
+                    <div className={isLivePage ? "w-full min-h-full flex flex-col" : "w-full max-w-7xl mx-auto"}>
                         {children}
                     </div>
                 </main>

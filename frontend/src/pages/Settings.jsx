@@ -494,7 +494,7 @@ export const Settings = () => {
     }, [token]);
 
     return (
-        <div className="space-y-8 relative">
+        <div className="space-y-8 relative w-full overflow-x-hidden">
 
 
             <div>
@@ -582,7 +582,7 @@ export const Settings = () => {
                         </form>
                     )}
 
-                    <div className="rounded-lg border border-border overflow-hidden overflow-x-auto mt-4">
+                    <div className="rounded-lg border border-border overflow-x-auto mt-4 w-full">
                         <table className="w-full text-sm">
                             <thead className="bg-muted/40 text-left">
                                 <tr>
@@ -595,10 +595,10 @@ export const Settings = () => {
                             <tbody>
                                 {users.map(u => (
                                     <tr key={u.id} className="border-t border-border hover:bg-muted/10">
-                                        <td className="p-3 font-medium flex items-center gap-3">
+                                        <td className="p-3 font-medium flex items-center gap-3 overflow-hidden">
                                             <Avatar user={u} size="xs" />
-                                            {u.username}
-                                            {u.id === user.id && <span className="text-[10px] bg-primary/20 text-primary px-1.5 rounded">You</span>}
+                                            <span className="truncate">{u.username}</span>
+                                            {u.id === user.id && <span className="text-[10px] bg-primary/20 text-primary px-1.5 shrink-0 rounded">You</span>}
                                         </td>
                                         <td className="p-3">
                                             <span className={'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ' +
@@ -658,10 +658,10 @@ export const Settings = () => {
                     isOpen={openSection === 'storage'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                        <div>
-                            <h3 className="font-semibold text-lg">Storage Management</h3>
-                            <p className="text-sm text-muted-foreground">Control disk space usage for recordings</p>
+                    <div className="flex items-center space-x-3 pb-4 border-b border-border sm:hidden">
+                        <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold text-lg leading-tight">Storage Management</h3>
+                            <p className="text-sm text-muted-foreground mt-1">Control disk space usage for recordings</p>
                         </div>
                     </div>
 
@@ -696,7 +696,7 @@ export const Settings = () => {
                                 type="number"
                                 value={globalSettings.max_global_storage_gb}
                                 onChange={(e) => setGlobalSettings({ ...globalSettings, max_global_storage_gb: parseFloat(e.target.value) || 0 })}
-                                className="w-full max-w-xs bg-background border border-input rounded-lg px-3 py-2"
+                                className="w-full max-w-full sm:max-w-xs bg-background border border-input rounded-lg px-3 py-2"
                                 min="0"
                                 step="1"
                             />
@@ -725,7 +725,7 @@ export const Settings = () => {
                             <select
                                 value={globalSettings.cleanup_interval_hours}
                                 onChange={(e) => setGlobalSettings({ ...globalSettings, cleanup_interval_hours: parseInt(e.target.value) })}
-                                className="w-full max-w-xs bg-background border border-input rounded-lg px-3 py-2"
+                                className="w-full max-w-full sm:max-w-xs bg-background border border-input rounded-lg px-3 py-2"
                             >
                                 <option value="1">Every Hour</option>
                                 <option value="6">Every 6 Hours</option>
@@ -744,10 +744,10 @@ export const Settings = () => {
                     {user?.role === 'admin' && (
                         <div className="pt-4 border-t border-border mt-4">
                             <h4 className="text-sm font-semibold mb-3">Bulk Deletion</h4>
-                            <div className="flex flex-wrap gap-3">
+                            <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3">
                                 <Button
                                     variant="outline"
-                                    className="border-red-500/50 text-red-500 hover:bg-red-500/10"
+                                    className="w-full sm:w-auto border-red-500/50 text-red-500 hover:bg-red-500/10 py-3 h-auto min-h-[44px]"
                                     onClick={() => setConfirmConfig({
                                         isOpen: true,
                                         title: 'Delete All Videos',
@@ -768,13 +768,13 @@ export const Settings = () => {
                                         }
                                     })}
                                 >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Delete All Videos
+                                    <Trash2 className="w-4 h-4 mr-2 shrink-0" />
+                                    <span className="truncate sm:whitespace-normal">Delete All Videos</span>
                                 </Button>
 
                                 <Button
                                     variant="outline"
-                                    className="border-red-500/50 text-red-500 hover:bg-red-500/10"
+                                    className="w-full sm:w-auto border-red-500/50 text-red-500 hover:bg-red-500/10 py-3 h-auto min-h-[44px]"
                                     onClick={() => setConfirmConfig({
                                         isOpen: true,
                                         title: 'Delete All Pictures',
@@ -795,8 +795,8 @@ export const Settings = () => {
                                         }
                                     })}
                                 >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Delete All Pictures
+                                    <Trash2 className="w-4 h-4 mr-2 shrink-0" />
+                                    <span className="truncate sm:whitespace-normal">Delete All Pictures</span>
                                 </Button>
                             </div>
                         </div>
@@ -815,16 +815,16 @@ export const Settings = () => {
                     isOpen={openSection === 'privacy'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                        <div>
+                    <div className="flex items-center space-x-3 pb-4 border-b border-border sm:hidden">
+                        <div className="min-w-0 flex-1">
                             <h3 className="font-semibold text-lg">Privacy & Analytics</h3>
-                            <p className="text-sm text-muted-foreground">Manage how anonymous data is collected</p>
+                            <p className="text-sm text-muted-foreground mt-1">Manage how anonymous data is collected</p>
                         </div>
                     </div>
 
                     <div className="space-y-6 pt-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="col-span-1">
+                            <div className="md:col-span-1">
                                 <label className="block text-sm font-medium mb-1">Enable Anonymous Telemetry</label>
                                 <p className="text-xs text-muted-foreground">
                                     Share basic, non-sensitive usage data to help us improve VibeNVR.
@@ -841,7 +841,7 @@ export const Settings = () => {
                                     <strong>No IP addresses, camera names, samples or personal data are ever collected.</strong>
                                 </p>
                             </div>
-                            <div className="col-span-2 space-y-4">
+                            <div className="md:col-span-2 space-y-4">
                                 <div>
                                     <button
                                         type="button"
@@ -889,10 +889,10 @@ export const Settings = () => {
                     isOpen={openSection === 'liveview'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                        <div>
+                    <div className="flex items-center space-x-3 pb-4 border-b border-border sm:hidden">
+                        <div className="min-w-0 flex-1">
                             <h3 className="font-semibold text-lg">Live View Layout</h3>
-                            <p className="text-sm text-muted-foreground">Customize how cameras are displayed</p>
+                            <p className="text-sm text-muted-foreground mt-1">Customize how cameras are displayed</p>
                         </div>
                     </div>
 
@@ -902,7 +902,7 @@ export const Settings = () => {
                             <select
                                 value={liveViewColumns}
                                 onChange={(e) => setLiveViewColumns(e.target.value)}
-                                className="w-full max-w-xs bg-background border border-input rounded-lg px-3 py-2"
+                                className="w-full max-w-full sm:max-w-xs bg-background border border-input rounded-lg px-3 py-2"
                             >
                                 <option value="auto">Auto (Based on camera count)</option>
                                 <option value="1">1 Column</option>
@@ -928,10 +928,10 @@ export const Settings = () => {
                     isOpen={openSection === 'general'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                        <div>
+                    <div className="flex items-center space-x-3 pb-4 border-b border-border sm:hidden">
+                        <div className="min-w-0 flex-1">
                             <h3 className="font-semibold text-lg">General Preferences</h3>
-                            <p className="text-sm text-muted-foreground">Configure global application defaults</p>
+                            <p className="text-sm text-muted-foreground mt-1">Configure global application defaults</p>
                         </div>
                     </div>
 
@@ -961,10 +961,10 @@ export const Settings = () => {
                     isOpen={openSection === 'notifications'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                        <div>
+                    <div className="flex items-center space-x-3 pb-4 border-b border-border sm:hidden">
+                        <div className="min-w-0 flex-1">
                             <h3 className="font-semibold text-lg">Notification Settings</h3>
-                            <p className="text-sm text-muted-foreground">Configure global Email and Telegram credentials</p>
+                            <p className="text-sm text-muted-foreground mt-1">Configure global Email and Telegram credentials</p>
                         </div>
                     </div>
 
@@ -987,7 +987,7 @@ export const Settings = () => {
                                 <span className="font-semibold text-primary">Note:</span> These global credentials will be used for all cameras unless a camera specifically overrides them in its own settings.
                             </p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="col-span-2 md:col-span-1">
+                                <div className="md:col-span-1">
                                     <label className="block text-xs font-medium mb-1">SMTP Server</label>
                                     <input
                                         type="text"
@@ -997,7 +997,7 @@ export const Settings = () => {
                                         onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_server: e.target.value })}
                                     />
                                 </div>
-                                <div className="col-span-2 md:col-span-1">
+                                <div className="md:col-span-1">
                                     <label className="block text-xs font-medium mb-1">SMTP Port</label>
                                     <input
                                         type="text"
@@ -1027,7 +1027,7 @@ export const Settings = () => {
                                         onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_password: e.target.value })}
                                     />
                                 </div>
-                                <div className="col-span-2 md:col-span-1">
+                                <div className="md:col-span-1">
                                     <label className="block text-xs font-medium mb-1">Sender Email ("From")</label>
                                     <input
                                         type="email"
@@ -1037,7 +1037,7 @@ export const Settings = () => {
                                         onChange={(e) => setGlobalSettings({ ...globalSettings, smtp_from_email: e.target.value })}
                                     />
                                 </div>
-                                <div className="col-span-2 md:col-span-1">
+                                <div className="md:col-span-1">
                                     <label className="block text-xs font-medium mb-1">Default Email Recipient ("To")</label>
                                     <input
                                         type="email"
@@ -1167,10 +1167,10 @@ export const Settings = () => {
                     isOpen={openSection === 'maintenance'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                        <div>
+                    <div className="flex items-center space-x-3 pb-4 border-b border-border sm:hidden">
+                        <div className="min-w-0 flex-1">
                             <h3 className="font-semibold text-lg">Maintenance</h3>
-                            <p className="text-sm text-muted-foreground">Manual system maintenance tasks</p>
+                            <p className="text-sm text-muted-foreground mt-1">Manual system maintenance tasks</p>
                         </div>
                     </div>
                     <div className="space-y-4">
@@ -1282,7 +1282,7 @@ export const Settings = () => {
                     <div className="grid grid-cols-1 gap-6">
                         {/* Live View Throttling */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
-                            <div className="col-span-1">
+                            <div className="md:col-span-1">
                                 <label className="block text-sm font-medium mb-1">Live View FPS Throttle (Nth Frame)</label>
                                 <p className="text-xs text-muted-foreground">
                                     Controls how often the Live View stream is updated.
@@ -1291,7 +1291,7 @@ export const Settings = () => {
                                     <strong>Higher value = Less CPU usage</strong>, but choppier live video.
                                 </p>
                             </div>
-                            <div className="col-span-2">
+                            <div className="md:col-span-2">
                                 <input
                                     type="number"
                                     min="1" max="10"
@@ -1305,7 +1305,7 @@ export const Settings = () => {
 
                         {/* Motion Throttling */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
-                            <div className="col-span-1">
+                            <div className="md:col-span-1">
                                 <label className="block text-sm font-medium mb-1">Motion Detection FPS Throttle</label>
                                 <p className="text-xs text-muted-foreground">
                                     Controls how often the motion detection algorithm runs.
@@ -1315,7 +1315,7 @@ export const Settings = () => {
                                     Too high (e.g. &gt; 5) might miss very fast moving objects.
                                 </p>
                             </div>
-                            <div className="col-span-2">
+                            <div className="md:col-span-2">
                                 <input
                                     type="number"
                                     min="1" max="10"
@@ -1329,7 +1329,7 @@ export const Settings = () => {
 
                         {/* Pre-Capture Throttling */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
-                            <div className="col-span-1">
+                            <div className="md:col-span-1">
                                 <label className="block text-sm font-medium mb-1">Pre-Capture Buffer FPS divisor</label>
                                 <p className="text-xs text-muted-foreground">
                                     Reduces the RAM usage of the pre-trigger buffer by storing fewer frames.
@@ -1338,7 +1338,7 @@ export const Settings = () => {
                                     <strong>Higher value = Less RAM usage</strong>.
                                 </p>
                             </div>
-                            <div className="col-span-2">
+                            <div className="md:col-span-2">
                                 <input
                                     type="number"
                                     min="1" max="10"
@@ -1352,7 +1352,7 @@ export const Settings = () => {
 
                         {/* Live View Height */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
-                            <div className="col-span-1">
+                            <div className="md:col-span-1">
                                 <label className="block text-sm font-medium mb-1">Live View Resolution Limit (Height)</label>
                                 <p className="text-xs text-muted-foreground">
                                     If a camera's resolution is higher than this (e.g. 1080p), it will be downscaled for the Live View stream in the browser.
@@ -1361,7 +1361,7 @@ export const Settings = () => {
                                     <strong>Lower value (e.g. 480 or 720) = Much Lower Bandwidth & CPU</strong>.
                                 </p>
                             </div>
-                            <div className="col-span-2">
+                            <div className="md:col-span-2">
                                 <input
                                     type="number"
                                     min="240" max="2160" step="2"
@@ -1375,7 +1375,7 @@ export const Settings = () => {
 
                         {/* Motion Analysis Height */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
-                            <div className="col-span-1">
+                            <div className="md:col-span-1">
                                 <label className="block text-sm font-medium mb-1">Motion Analysis Resolution (Height)</label>
                                 <p className="text-xs text-muted-foreground">
                                     Internal resolution used <i>strictly</i> for detecting motion. Does not affect recording or live view.
@@ -1385,7 +1385,7 @@ export const Settings = () => {
                                     180px is usually enough for human detection.
                                 </p>
                             </div>
-                            <div className="col-span-2">
+                            <div className="md:col-span-2">
                                 <input
                                     type="number"
                                     min="64" max="1080" step="2"
@@ -1399,7 +1399,7 @@ export const Settings = () => {
 
                         {/* Live View Quality */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
-                            <div className="col-span-1">
+                            <div className="md:col-span-1">
                                 <label className="block text-sm font-medium mb-1">Live View JPEG Quality</label>
                                 <p className="text-xs text-muted-foreground">
                                     Compression level for the specific Live View stream.
@@ -1408,7 +1408,7 @@ export const Settings = () => {
                                     <strong>Higher (90+) = Better looking live view</strong> but higher bandwidth.
                                 </p>
                             </div>
-                            <div className="col-span-2">
+                            <div className="md:col-span-2">
                                 <input
                                     type="number"
                                     min="10" max="100"
@@ -1510,18 +1510,18 @@ export const Settings = () => {
                     isOpen={openSection === 'backup'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                        <div>
-                            <h3 className="font-semibold text-lg">Backup & Restore</h3>
-                            <p className="text-sm text-muted-foreground">Export or Import system configuration (Settings, Cameras, Groups)</p>
+                    <div className="flex items-center space-x-3 pb-4 border-b border-border sm:hidden">
+                        <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold text-lg leading-tight">Backup & Restore</h3>
+                            <p className="text-sm text-muted-foreground mt-1">Export or Import system configuration</p>
                         </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2">
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-2">
                         <button
                             onClick={handleExport}
-                            className="w-full sm:w-auto h-11 px-6 flex items-center justify-center space-x-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-bold shadow-sm active:scale-95"
+                            className="w-full sm:w-auto h-auto min-h-[44px] px-6 py-3 flex items-center justify-center space-x-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-bold shadow-sm active:scale-95"
                         >
-                            <Download className="w-4 h-4" />
+                            <Download className="w-4 h-4 shrink-0" />
                             <span>Export Config</span>
                         </button>
 
@@ -1533,9 +1533,9 @@ export const Settings = () => {
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                             />
                             <button
-                                className="w-full sm:w-auto h-11 px-6 flex items-center justify-center space-x-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-bold shadow-sm"
+                                className="w-full sm:w-auto h-auto min-h-[44px] px-6 py-3 flex items-center justify-center space-x-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-bold shadow-sm"
                             >
-                                <Upload className="w-4 h-4" />
+                                <Upload className="w-4 h-4 shrink-0" />
                                 <span>Import Config</span>
                             </button>
                         </div>
@@ -1551,7 +1551,7 @@ export const Settings = () => {
             {/* Save Button */}
             {
                 user?.role === 'admin' && (
-                    <div className="sticky bottom-0 z-50 bg-background/95 backdrop-blur py-4 border-t border-border mt-8 flex justify-end">
+                    <div className="sticky bottom-0 z-50 bg-background/95 backdrop-blur py-4 border-t border-border mt-8 flex justify-center sm:justify-end">
                         <button
                             onClick={handleSave}
                             className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors shadow-lg"
