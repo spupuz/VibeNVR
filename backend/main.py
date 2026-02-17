@@ -162,9 +162,9 @@ import json
 try:
     with open("package.json", "r") as f:
         data = json.load(f)
-        VERSION = data.get("version", "1.0.0")
+        VERSION = data.get("version", "1.18.1")
 except:
-    VERSION = "1.0.0"
+    VERSION = "1.18.1"
 
 app = FastAPI(title="VibeNVR API", version=VERSION, lifespan=lifespan)
 # CORS configuration

@@ -121,7 +121,7 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
             isOpen={isOpen}
             onToggle={onToggle}
         >
-            <div className="flex justify-between items-center pb-4 border-b border-border">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pb-4 border-b border-border">
                 <div>
                     <h3 className="font-semibold text-lg">API Access Tokens</h3>
                     <p className="text-sm text-muted-foreground">Manage tokens for external tools like Homepage</p>
@@ -129,6 +129,7 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                 {!createdToken && (
                     <Button
                         size="sm"
+                        className="w-full sm:w-auto"
                         onClick={() => setIsCreating(!isCreating)}
                         variant={isCreating ? "ghost" : "default"}
                     >
@@ -168,8 +169,8 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
 
             {isCreating && !createdToken && (
                 <form onSubmit={handleCreateToken} className="bg-muted/30 p-4 rounded-lg border border-border my-4">
-                    <div className="flex gap-4 items-end">
-                        <div className="flex-1">
+                    <div className="flex flex-col sm:flex-row gap-4 items-end">
+                        <div className="w-full sm:flex-1">
                             <label className="text-xs font-medium mb-1 block">Token Name / Description</label>
                             <input
                                 type="text"
@@ -180,17 +181,17 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                                 required
                             />
                         </div>
-                        <Button type="submit" size="sm">Generate</Button>
+                        <Button type="submit" size="sm" className="w-full sm:w-auto">Generate</Button>
                     </div>
                 </form>
             )}
 
-            <div className="mt-4 border border-border rounded-lg overflow-hidden">
+            <div className="mt-4 border border-border rounded-lg overflow-x-auto w-full">
                 <table className="w-full text-sm">
                     <thead className="bg-muted/40 text-left">
                         <tr>
                             <th className="p-3 font-medium text-muted-foreground">Name</th>
-                            <th className="p-3 font-medium text-muted-foreground">Created</th>
+                            <th className="p-3 font-medium text-muted-foreground hidden sm:table-cell">Created</th>
                             <th className="p-3 font-medium text-muted-foreground">Last Used</th>
                             <th className="p-3 font-medium text-muted-foreground text-right">Actions</th>
                         </tr>
@@ -200,13 +201,15 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                             <tr key={t.id} className="border-t border-border hover:bg-muted/10">
                                 <td className="p-3 font-medium">
                                     <div className="flex items-center gap-2">
-                                        <Key className="w-3 h-3 text-muted-foreground" />
-                                        {t.name}
+                                        <Key className="w-3 h-3 text-muted-foreground shrink-0" />
+                                        <span className="truncate max-w-[120px] sm:max-w-none" title={t.name}>{t.name}</span>
                                     </div>
                                 </td>
-                                <td className="p-3 text-muted-foreground">{new Date(t.created_at).toLocaleDateString()}</td>
+                                <td className="p-3 text-muted-foreground hidden sm:table-cell">{new Date(t.created_at).toLocaleDateString()}</td>
                                 <td className="p-3 text-muted-foreground">
-                                    {t.last_used_at ? new Date(t.last_used_at).toLocaleString() : 'Never'}
+                                    <span className="whitespace-nowrap">
+                                        {t.last_used_at ? new Date(t.last_used_at).toLocaleDateString() : 'Never'}
+                                    </span>
                                 </td>
                                 <td className="p-3 text-right">
                                     <button
