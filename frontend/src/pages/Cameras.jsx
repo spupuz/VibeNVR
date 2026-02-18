@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { Portal } from '../components/ui/Portal';
+import { Button } from '../components/ui/Button';
 
 const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSelect }) => {
     const { user, token } = useAuth();
@@ -28,7 +29,11 @@ const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSe
                         onSelect?.(camera.id);
                     }}
                 >
-                    {isSelected && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
+                    {isSelected && (
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+                        </svg>
+                    )}
                 </div>
             )}
 
@@ -84,7 +89,9 @@ const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSe
             <div className="flex justify-end p-4 bg-muted/10 border-t border-border space-x-2">
                 {user?.role === 'admin' && (
                     <>
-                        <button
+                        <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={async () => {
                                 try {
                                     const res = await fetch(`/api/cameras/${camera.id}/export`, {
@@ -115,25 +122,29 @@ const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSe
                                     showToast("Export error: " + e.message, "error");
                                 }
                             }}
-                            className="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40 rounded-lg transition-colors"
+                            className="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40"
                             title="Export Camera Settings"
                         >
                             <Download className="w-5 h-5" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => onEdit(camera)}
-                            className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-colors"
+                            className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/40"
                             title="Edit Camera"
                         >
                             <Edit className="w-5 h-5" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => onDelete(camera.id)}
-                            className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
+                            className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40"
                             title="Delete Camera"
                         >
                             <Trash2 className="w-5 h-5" />
-                        </button>
+                        </Button>
                     </>
                 )}
             </div>
@@ -185,6 +196,8 @@ export const Cameras = () => {
     const [cameras, setCameras] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
+    const fileInputRef = useRef(null);
+    const motionEyeInputRef = useRef(null);
     const [newCamera, setNewCamera] = useState({
         name: '',
         rtsp_url: '',
@@ -713,7 +726,7 @@ export const Cameras = () => {
                     {user?.role === 'admin' && view === 'cameras' && (
                         <>
 
-                            <button
+                            <Button
                                 onClick={() => {
                                     setEditingId(null);
                                     setNewCamera({
@@ -771,13 +784,13 @@ export const Cameras = () => {
                                     });
                                     setShowAddModal(true);
                                 }}
-                                className="flex items-center justify-center space-x-2 bg-primary text-primary-foreground px-3 sm:px-4 h-10 rounded-lg hover:bg-primary/90 transition-colors whitespace-nowrap text-sm font-medium shrink-0"
                             >
-                                <Plus className="w-4 h-4" />
+                                <Plus className="w-4 h-4 mr-2" />
                                 <span>Add Camera</span>
-                            </button>
+                            </Button>
 
-                            <button
+                            <Button
+                                variant="outline"
                                 onClick={async () => {
                                     try {
                                         const res = await fetch('/api/cameras/export/all', {
@@ -808,93 +821,107 @@ export const Cameras = () => {
                                         showToast('Export error: ' + e.message, 'error');
                                     }
                                 }}
-                                className="flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-3 sm:px-4 h-10 rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md whitespace-nowrap text-sm font-medium shrink-0"
                                 title="Export all cameras to JSON"
                             >
-                                <Download className="w-4 h-4" />
+                                <Download className="w-4 h-4 mr-2" />
                                 <span>Export All</span>
-                            </button>
-                            <div className="flex gap-0 shrink-0">
-                                <label className="flex items-center justify-center space-x-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 h-10 rounded-l-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md cursor-pointer whitespace-nowrap text-sm font-medium" title="Import cameras from VibeNVR JSON">
-                                    <Upload className="w-4 h-4" />
-                                    <span>Import</span>
-                                    <input
-                                        type="file"
-                                        accept=".json"
-                                        className="hidden"
-                                        disabled={isProcessing}
-                                        onChange={async (e) => {
-                                            const file = e.target.files?.[0];
-                                            if (!file) return;
-                                            setProcessingMessage({ title: 'Importing Cameras', text: 'Uploading and processing VibeNVR configuration...' });
-                                            setIsProcessing(true);
-                                            showToast('Importing cameras...', 'info');
-                                            const formData = new FormData();
-                                            formData.append('file', file);
-                                            try {
-                                                const res = await fetch('/api/cameras/import', {
-                                                    method: 'POST',
-                                                    body: formData,
-                                                    headers: { Authorization: `Bearer ${token}` }
-                                                });
-                                                if (res.ok) {
-                                                    const data = await res.json();
-                                                    showToast(data.message, 'success');
-                                                    fetchCameras();
-                                                } else {
-                                                    const err = await res.json();
-                                                    showToast('Import failed: ' + (err.detail || 'Unknown error'), 'error');
-                                                }
-                                            } catch (err) {
-                                                showToast('Import failed: ' + err.message, 'error');
-                                            } finally {
-                                                setIsProcessing(false);
+                            </Button>
+
+                            <div className="flex gap-px shrink-0">
+                                {/* Hidden inputs triggered by buttons */}
+                                <input
+                                    type="file"
+                                    accept=".json"
+                                    className="hidden"
+                                    ref={fileInputRef}
+                                    disabled={isProcessing}
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        setProcessingMessage({ title: 'Importing Cameras', text: 'Uploading and processing VibeNVR configuration...' });
+                                        setIsProcessing(true);
+                                        showToast('Importing cameras...', 'info');
+                                        const formData = new FormData();
+                                        formData.append('file', file);
+                                        try {
+                                            const res = await fetch('/api/cameras/import', {
+                                                method: 'POST',
+                                                body: formData,
+                                                headers: { Authorization: `Bearer ${token}` }
+                                            });
+                                            if (res.ok) {
+                                                const data = await res.json();
+                                                showToast(data.message, 'success');
+                                                fetchCameras();
+                                            } else {
+                                                const err = await res.json();
+                                                showToast('Import failed: ' + (err.detail || 'Unknown error'), 'error');
                                             }
-                                            e.target.value = '';
-                                        }}
-                                    />
-                                </label>
-                                <label className="flex items-center justify-center px-2.5 h-10 bg-indigo-600 text-white rounded-r-lg hover:bg-indigo-700 transition-all shadow-sm hover:shadow-md cursor-pointer text-sm font-medium border-l border-white/20" title="Import from MotionEye backup (.tar.gz)">
+                                        } catch (err) {
+                                            showToast('Import failed: ' + err.message, 'error');
+                                        } finally {
+                                            setIsProcessing(false);
+                                        }
+                                        e.target.value = '';
+                                    }}
+                                />
+                                <input
+                                    type="file"
+                                    accept=".tar.gz"
+                                    className="hidden"
+                                    ref={motionEyeInputRef}
+                                    disabled={isProcessing}
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        setProcessingMessage({ title: 'MotionEye Import', text: 'Extracting backup and configuring cameras...' });
+                                        setIsProcessing(true);
+                                        showToast('Importing from MotionEye...', 'info');
+                                        const formData = new FormData();
+                                        formData.append('file', file);
+                                        try {
+                                            const res = await fetch('/api/cameras/import/motioneye', {
+                                                method: 'POST',
+                                                body: formData,
+                                                headers: { Authorization: `Bearer ${token}` }
+                                            });
+                                            if (res.ok) {
+                                                const data = await res.json();
+                                                showToast(data.message, 'success');
+                                                fetchCameras();
+                                            } else {
+                                                const err = await res.json();
+                                                showToast('MotionEye Import failed: ' + (err.detail || 'Unknown error'), 'error');
+                                            }
+                                        } catch (err) {
+                                            showToast('Import error: ' + err.message, 'error');
+                                        } finally {
+                                            setIsProcessing(false);
+                                        }
+                                        e.target.value = '';
+                                    }}
+                                />
+
+                                <Button
+                                    variant="outline"
+                                    className="rounded-r-none border-r-0"
+                                    onClick={() => fileInputRef.current.click()}
+                                    title="Import cameras from VibeNVR JSON"
+                                >
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    <span>Import</span>
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="rounded-l-none"
+                                    onClick={() => motionEyeInputRef.current.click()}
+                                    title="Import from MotionEye backup (.tar.gz)"
+                                >
                                     <div className="flex flex-col items-center leading-tight">
                                         <span className="text-[10px] opacity-70">from</span>
                                         <span className="text-xs">MotionEye</span>
                                     </div>
-                                    <input
-                                        type="file"
-                                        accept=".tar.gz"
-                                        className="hidden"
-                                        disabled={isProcessing}
-                                        onChange={async (e) => {
-                                            const file = e.target.files?.[0];
-                                            if (!file) return;
-                                            setProcessingMessage({ title: 'MotionEye Import', text: 'Extracting backup and configuring cameras...' });
-                                            setIsProcessing(true);
-                                            showToast('Importing from MotionEye...', 'info');
-                                            const formData = new FormData();
-                                            formData.append('file', file);
-                                            try {
-                                                const res = await fetch('/api/cameras/import/motioneye', {
-                                                    method: 'POST',
-                                                    body: formData,
-                                                    headers: { Authorization: `Bearer ${token}` }
-                                                });
-                                                if (res.ok) {
-                                                    const data = await res.json();
-                                                    showToast(data.message, 'success');
-                                                    fetchCameras();
-                                                } else {
-                                                    const err = await res.json();
-                                                    showToast('MotionEye Import failed: ' + (err.detail || 'Unknown error'), 'error');
-                                                }
-                                            } catch (err) {
-                                                showToast('Import error: ' + err.message, 'error');
-                                            } finally {
-                                                setIsProcessing(false);
-                                            }
-                                            e.target.value = '';
-                                        }}
-                                    />
-                                </label>
+                                </Button>
                             </div>
                         </>
                     )}
@@ -1055,25 +1082,27 @@ export const Cameras = () => {
                     <Portal>
                         <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-[2000] overflow-y-auto pt-20 sm:pt-6 p-4 lg:pl-64">
                             <div className="bg-card p-4 sm:p-6 rounded-xl w-full max-w-lg border border-border relative">
-                                <button
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => {
                                         setShowAddModal(false);
                                         setEditingId(null);
                                     }}
-                                    className="absolute right-4 top-4 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted/50 transition-colors"
+                                    className="absolute right-4 top-4 h-8 w-8 p-0 hover:bg-muted/50"
                                 >
                                     <X className="w-5 h-5" />
-                                </button>
+                                </Button>
                                 <h3 className="text-xl font-bold mb-4 pr-8">{editingId ? `Edit ${newCamera.name} (ID: ${editingId})` : 'Add New Camera'}</h3>
 
                                 {/* Tabs */}
                                 {!editingId && (
-                                    <div className="mb-4 p-4 bg-muted/30 rounded-lg border border-border">
-                                        <label className="block text-sm font-medium mb-2">Clone Settings From (Optional)</label>
-                                        <select
-                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                            onChange={(e) => {
-                                                const sourceId = parseInt(e.target.value);
+                                    <div className="mb-4">
+                                        <SelectField
+                                            label="Clone Settings From (Optional)"
+                                            className="w-full"
+                                            onChange={(val) => {
+                                                const sourceId = parseInt(val);
                                                 const sourceCam = cameras.find(c => c.id === sourceId);
                                                 if (sourceCam) {
                                                     // Clone everything but unique identity fields and active status
@@ -1089,12 +1118,11 @@ export const Cameras = () => {
                                                     }));
                                                 }
                                             }}
-                                        >
-                                            <option value="">-- Start Fresh --</option>
-                                            {cameras.map(c => (
-                                                <option key={c.id} value={c.id}>{c.name}</option>
-                                            ))}
-                                        </select>
+                                            options={[
+                                                { value: '', label: '-- Start Fresh --' },
+                                                ...cameras.map(c => ({ value: c.id, label: c.name }))
+                                            ]}
+                                        />
                                     </div>
                                 )}
 
@@ -1164,67 +1192,47 @@ export const Cameras = () => {
                                                 <SectionHeader title="Connection" description="Video source configuration" />
                                                 <div className="bg-muted/30 p-4 rounded-lg border border-border space-y-4">
                                                     <div className="grid grid-cols-2 gap-4">
-                                                        <div className="space-y-2">
-                                                            <label className="text-sm font-medium">Username (Optional)</label>
-                                                            <input
-                                                                type="text"
-                                                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                                value={newCamera.rtsp_username || ''}
-                                                                onChange={(e) => {
-                                                                    const user = e.target.value;
-                                                                    const pass = newCamera.rtsp_password || '';
-                                                                    const host = newCamera.rtsp_host || '';
-                                                                    const url = `rtsp://${user}${pass ? ':' + pass : ''}${user || pass ? '@' : ''}${host}`;
-                                                                    setNewCamera({ ...newCamera, rtsp_username: user, rtsp_url: url });
-                                                                }}
-                                                                placeholder="admin"
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <label className="text-sm font-medium">Password (Optional)</label>
-                                                            <div className="relative">
-                                                                <input
-                                                                    type={newCamera.show_password ? "text" : "password"}
-                                                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm pr-10"
-                                                                    value={newCamera.rtsp_password || ''}
-                                                                    onChange={(e) => {
-                                                                        const pass = e.target.value;
-                                                                        const user = newCamera.rtsp_username || '';
-                                                                        const host = newCamera.rtsp_host || '';
-                                                                        const url = `rtsp://${user}${pass ? ':' + pass : ''}${user || pass ? '@' : ''}${host}`;
-                                                                        setNewCamera({ ...newCamera, rtsp_password: pass, rtsp_url: url });
-                                                                    }}
-                                                                    placeholder="••••••"
-                                                                />
-                                                                <button
-                                                                    type="button"
-                                                                    className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
-                                                                    onClick={() => setNewCamera({ ...newCamera, show_password: !newCamera.show_password })}
-                                                                >
-                                                                    {newCamera.show_password ? "Hide" : "Show"}
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-medium">RTSP Host & Path</label>
-                                                        <input
-                                                            type="text"
-                                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                            value={newCamera.rtsp_host || ''}
-                                                            onChange={(e) => {
-                                                                const host = e.target.value;
-                                                                const user = newCamera.rtsp_username || '';
+                                                        <InputField
+                                                            label="Username (Optional)"
+                                                            value={newCamera.rtsp_username || ''}
+                                                            onChange={(val) => {
                                                                 const pass = newCamera.rtsp_password || '';
-                                                                const url = `rtsp://${user}${pass ? ':' + pass : ''}${user || pass ? '@' : ''}${host}`;
-                                                                setNewCamera({ ...newCamera, rtsp_host: host, rtsp_url: url });
+                                                                const host = newCamera.rtsp_host || '';
+                                                                const url = `rtsp://${val}${pass ? ':' + pass : ''}${val || pass ? '@' : ''}${host}`;
+                                                                setNewCamera({ ...newCamera, rtsp_username: val, rtsp_url: url });
                                                             }}
-                                                            placeholder="192.168.1.100:554/stream1"
+                                                            placeholder="admin"
+                                                        />
+                                                        <InputField
+                                                            label="Password (Optional)"
+                                                            type={newCamera.show_password ? "text" : "password"}
+                                                            value={newCamera.rtsp_password || ''}
+                                                            onChange={(val) => {
+                                                                const user = newCamera.rtsp_username || '';
+                                                                const host = newCamera.rtsp_host || '';
+                                                                const url = `rtsp://${user}${val ? ':' + val : ''}${user || val ? '@' : ''}${host}`;
+                                                                setNewCamera({ ...newCamera, rtsp_password: val, rtsp_url: url });
+                                                            }}
+                                                            placeholder="••••••"
+                                                            showPasswordToggle
+                                                            showPassword={newCamera.show_password}
+                                                            onTogglePassword={() => setNewCamera({ ...newCamera, show_password: !newCamera.show_password })}
                                                         />
                                                     </div>
 
-                                                    <div className="text-xs text-muted-foreground break-all">
+                                                    <InputField
+                                                        label="RTSP Host & Path"
+                                                        value={newCamera.rtsp_host || ''}
+                                                        onChange={(val) => {
+                                                            const user = newCamera.rtsp_username || '';
+                                                            const pass = newCamera.rtsp_password || '';
+                                                            const url = `rtsp://${user}${pass ? ':' + pass : ''}${user || pass ? '@' : ''}${val}`;
+                                                            setNewCamera({ ...newCamera, rtsp_host: val, rtsp_url: url });
+                                                        }}
+                                                        placeholder="192.168.1.100:554/stream1"
+                                                    />
+
+                                                    <div className="text-[10px] text-muted-foreground break-all p-2 bg-background/50 rounded border border-border/50">
                                                         <span className="font-semibold">Full URL:</span> {
                                                             newCamera.rtsp_url?.replace(/:([^:@]+)@/, ':********@') || ''
                                                         }
@@ -1247,7 +1255,7 @@ export const Cameras = () => {
                                                 {newCamera.auto_resolution !== false ? (
                                                     <div className="space-y-2">
                                                         <label className="text-sm font-medium">Video Resolution</label>
-                                                        <div className="px-3 py-2 bg-muted/50 rounded-md border border-border text-muted-foreground">
+                                                        <div className="px-3 py-2 bg-muted/50 rounded-lg border border-border text-muted-foreground">
                                                             {newCamera.resolution_width}x{newCamera.resolution_height} (Auto-Detected)
                                                         </div>
                                                         <p className="text-xs text-muted-foreground">Resolution will be detected automatically when you save.</p>
@@ -1303,73 +1311,65 @@ export const Cameras = () => {
                                                 <SectionHeader title="Text Overlay" description="Configure on-screen text display" />
 
                                                 {/* Left Text */}
-                                                <div className="space-y-2">
-                                                    <label className="text-sm font-medium">Left Text</label>
-                                                    <select
-                                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                        value={
-                                                            newCamera.text_left === '' ? 'disabled' :
-                                                                newCamera.text_left === '%$' ? 'name' :
-                                                                    newCamera.text_left === '%Y-%m-%d %H:%M:%S' ? 'timestamp' :
-                                                                        'custom'
-                                                        }
-                                                        onChange={(e) => {
-                                                            const val = e.target.value;
-                                                            if (val === 'disabled') setNewCamera({ ...newCamera, text_left: '' });
-                                                            else if (val === 'name') setNewCamera({ ...newCamera, text_left: '%$' });
-                                                            else if (val === 'timestamp') setNewCamera({ ...newCamera, text_left: '%Y-%m-%d %H:%M:%S' });
-                                                            else if (val === 'custom') setNewCamera({ ...newCamera, text_left: 'Custom Text' });
-                                                        }}
-                                                    >
-                                                        <option value="name">Camera Name</option>
-                                                        <option value="timestamp">Timestamp</option>
-                                                        <option value="custom">Custom Text</option>
-                                                        <option value="disabled">Disabled</option>
-                                                    </select>
-                                                    {/* Custom Input */}
-                                                    {!['', '%$', '%Y-%m-%d %H:%M:%S'].includes(newCamera.text_left) && (
-                                                        <input
-                                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-2"
-                                                            value={newCamera.text_left}
-                                                            onChange={(e) => setNewCamera({ ...newCamera, text_left: e.target.value })}
-                                                            placeholder="Enter custom text"
-                                                        />
-                                                    )}
-                                                </div>
+                                                <SelectField
+                                                    label="Left Text"
+                                                    value={
+                                                        newCamera.text_left === '' ? 'disabled' :
+                                                            newCamera.text_left === '%$' ? 'name' :
+                                                                newCamera.text_left === '%Y-%m-%d %H:%M:%S' ? 'timestamp' :
+                                                                    'custom'
+                                                    }
+                                                    onChange={(val) => {
+                                                        if (val === 'disabled') setNewCamera({ ...newCamera, text_left: '' });
+                                                        else if (val === 'name') setNewCamera({ ...newCamera, text_left: '%$' });
+                                                        else if (val === 'timestamp') setNewCamera({ ...newCamera, text_left: '%Y-%m-%d %H:%M:%S' });
+                                                        else if (val === 'custom') setNewCamera({ ...newCamera, text_left: 'Custom Text' });
+                                                    }}
+                                                    options={[
+                                                        { value: 'name', label: 'Camera Name' },
+                                                        { value: 'timestamp', label: 'Timestamp' },
+                                                        { value: 'custom', label: 'Custom Text' },
+                                                        { value: 'disabled', label: 'Disabled' }
+                                                    ]}
+                                                />
+                                                {/* Custom Input */}
+                                                {!['', '%$', '%Y-%m-%d %H:%M:%S'].includes(newCamera.text_left) && (
+                                                    <InputField
+                                                        value={newCamera.text_left}
+                                                        onChange={(val) => setNewCamera({ ...newCamera, text_left: val })}
+                                                        placeholder="Enter custom text"
+                                                    />
+                                                )}
 
                                                 {/* Right Text */}
-                                                <div className="space-y-2">
-                                                    <label className="text-sm font-medium">Right Text</label>
-                                                    <select
-                                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                        value={
-                                                            newCamera.text_right === '' ? 'disabled' :
-                                                                newCamera.text_right === '%$' ? 'name' :
-                                                                    newCamera.text_right === '%Y-%m-%d %H:%M:%S' ? 'timestamp' :
-                                                                        'custom'
-                                                        }
-                                                        onChange={(e) => {
-                                                            const val = e.target.value;
-                                                            if (val === 'disabled') setNewCamera({ ...newCamera, text_right: '' });
-                                                            else if (val === 'name') setNewCamera({ ...newCamera, text_right: '%$' });
-                                                            else if (val === 'timestamp') setNewCamera({ ...newCamera, text_right: '%Y-%m-%d %H:%M:%S' });
-                                                            else if (val === 'custom') setNewCamera({ ...newCamera, text_right: 'Custom Text' });
-                                                        }}
-                                                    >
-                                                        <option value="name">Camera Name</option>
-                                                        <option value="timestamp">Timestamp</option>
-                                                        <option value="custom">Custom Text</option>
-                                                        <option value="disabled">Disabled</option>
-                                                    </select>
-                                                    {!['', '%$', '%Y-%m-%d %H:%M:%S'].includes(newCamera.text_right) && (
-                                                        <input
-                                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-2"
-                                                            value={newCamera.text_right}
-                                                            onChange={(e) => setNewCamera({ ...newCamera, text_right: e.target.value })}
-                                                            placeholder="Enter custom text"
-                                                        />
-                                                    )}
-                                                </div>
+                                                <SelectField
+                                                    label="Right Text"
+                                                    value={
+                                                        newCamera.text_right === '' ? 'disabled' :
+                                                            newCamera.text_right === '%$' ? 'name' :
+                                                                newCamera.text_right === '%Y-%m-%d %H:%M:%S' ? 'timestamp' :
+                                                                    'custom'
+                                                    }
+                                                    onChange={(val) => {
+                                                        if (val === 'disabled') setNewCamera({ ...newCamera, text_right: '' });
+                                                        else if (val === 'name') setNewCamera({ ...newCamera, text_right: '%$' });
+                                                        else if (val === 'timestamp') setNewCamera({ ...newCamera, text_right: '%Y-%m-%d %H:%M:%S' });
+                                                        else if (val === 'custom') setNewCamera({ ...newCamera, text_right: 'Custom Text' });
+                                                    }}
+                                                    options={[
+                                                        { value: 'name', label: 'Camera Name' },
+                                                        { value: 'timestamp', label: 'Timestamp' },
+                                                        { value: 'custom', label: 'Custom Text' },
+                                                        { value: 'disabled', label: 'Disabled' }
+                                                    ]}
+                                                />
+                                                {!['', '%$', '%Y-%m-%d %H:%M:%S'].includes(newCamera.text_right) && (
+                                                    <InputField
+                                                        value={newCamera.text_right}
+                                                        onChange={(val) => setNewCamera({ ...newCamera, text_right: val })}
+                                                        placeholder="Enter custom text"
+                                                    />
+                                                )}
 
                                                 <Slider
                                                     label="Text Scale"
@@ -1390,7 +1390,11 @@ export const Cameras = () => {
                                                     label="Recording Mode"
                                                     value={newCamera.recording_mode}
                                                     onChange={(val) => setNewCamera({ ...newCamera, recording_mode: val })}
-                                                    options={['Motion Triggered', 'Continuous', 'Off']}
+                                                    options={[
+                                                        { value: 'Motion Triggered', label: 'Motion Triggered' },
+                                                        { value: 'Continuous', label: 'Continuous' },
+                                                        { value: 'Off', label: 'Off' }
+                                                    ]}
                                                 />
                                                 <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/50 p-3 rounded-lg text-xs mb-4">
                                                     <Toggle
@@ -1436,7 +1440,12 @@ export const Cameras = () => {
                                                     label="Preserve Movies"
                                                     value={newCamera.preserve_movies}
                                                     onChange={(val) => setNewCamera({ ...newCamera, preserve_movies: val })}
-                                                    options={['Forever', 'For One Month', 'For One Week', 'For One Day']}
+                                                    options={[
+                                                        { value: 'Forever', label: 'Forever' },
+                                                        { value: 'For One Month', label: 'For One Month' },
+                                                        { value: 'For One Week', label: 'For One Week' },
+                                                        { value: 'For One Day', label: 'For One Day' }
+                                                    ]}
                                                 />
                                                 <SectionHeader title="Storage Limit" description="Auto-delete old files when limit is reached" />
                                                 {stats?.details?.cameras?.[editingId] && (
@@ -1448,15 +1457,16 @@ export const Cameras = () => {
                                                                 </div>
                                                                 <span className="font-semibold text-sm">Movies Storage</span>
                                                             </div>
-                                                            <button
+                                                            <Button
                                                                 type="button"
+                                                                variant="outline"
+                                                                size="sm"
                                                                 onClick={() => handleCleanup(editingId, 'video')}
-                                                                className="text-xs flex items-center bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 px-2 py-1 rounded transition-colors"
-                                                                title="Enforce storage limits now"
+                                                                className="h-7 text-[10px] px-2 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 border-red-200 dark:border-red-900/50"
                                                             >
                                                                 <Trash2 className="w-3 h-3 mr-1" />
                                                                 Clean Up
-                                                            </button>
+                                                            </Button>
                                                         </div>
                                                         <div className="grid grid-cols-2 gap-4 mb-3">
                                                             <div>
@@ -1513,15 +1523,21 @@ export const Cameras = () => {
                                                     label="Motion Schedule Mode"
                                                     value={newCamera.detect_motion_mode}
                                                     onChange={(val) => setNewCamera({ ...newCamera, detect_motion_mode: val })}
-                                                    options={['Always', 'Working Schedule', 'Manual Toggle']}
+                                                    options={[
+                                                        { value: 'Always', label: 'Always' },
+                                                        { value: 'Working Schedule', label: 'Working Schedule' },
+                                                        { value: 'Manual Toggle', label: 'Manual Toggle' }
+                                                    ]}
                                                 />
 
                                                 {newCamera.detect_motion_mode === 'Working Schedule' && (
                                                     <div className="bg-muted/30 p-4 rounded-lg border border-border">
                                                         <div className="flex justify-between items-center mb-4">
                                                             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Weekly Schedule</p>
-                                                            <button
+                                                            <Button
                                                                 type="button"
+                                                                variant="outline"
+                                                                size="sm"
                                                                 onClick={() => {
                                                                     const monActive = newCamera.schedule_monday !== false;
                                                                     const monStart = newCamera.schedule_monday_start || "00:00";
@@ -1536,11 +1552,11 @@ export const Cameras = () => {
                                                                     setNewCamera(prev => ({ ...prev, ...updates }));
                                                                     showToast('Copied Monday settings to all days', 'success');
                                                                 }}
-                                                                className="text-xs bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded transition-colors flex items-center"
+                                                                className="h-7 text-[10px] px-2 bg-primary/5 hover:bg-primary/10 text-primary border-primary/20"
                                                             >
                                                                 <Copy className="w-3 h-3 mr-1" />
                                                                 Copy Mon to All
-                                                            </button>
+                                                            </Button>
                                                         </div>
 
                                                         <div className="space-y-3">
@@ -1564,7 +1580,7 @@ export const Cameras = () => {
                                                                         <div className="col-span-8 flex items-center space-x-2">
                                                                             <input
                                                                                 type="time"
-                                                                                className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs"
+                                                                                className="flex-1 rounded-lg border border-input bg-background px-2 py-1 text-xs focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                                                                                 value={newCamera[keyStart] || "00:00"}
                                                                                 onChange={(e) => setNewCamera({ ...newCamera, [keyStart]: e.target.value })}
                                                                                 disabled={!isActive}
@@ -1572,7 +1588,7 @@ export const Cameras = () => {
                                                                             <span className="text-muted-foreground">-</span>
                                                                             <input
                                                                                 type="time"
-                                                                                className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs"
+                                                                                className="flex-1 rounded-lg border border-input bg-background px-2 py-1 text-xs focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                                                                                 value={newCamera[keyEnd] || "23:59"}
                                                                                 onChange={(e) => setNewCamera({ ...newCamera, [keyEnd]: e.target.value })}
                                                                                 disabled={!isActive}
@@ -1683,7 +1699,12 @@ export const Cameras = () => {
                                                     label="Preserve Pictures"
                                                     value={newCamera.preserve_pictures}
                                                     onChange={(val) => setNewCamera({ ...newCamera, preserve_pictures: val })}
-                                                    options={['Forever', 'For One Month', 'For One Week', 'For One Day']}
+                                                    options={[
+                                                        { value: 'Forever', label: 'Forever' },
+                                                        { value: 'For One Month', label: 'For One Month' },
+                                                        { value: 'For One Week', label: 'For One Week' },
+                                                        { value: 'For One Day', label: 'For One Day' }
+                                                    ]}
                                                 />
                                                 <InputField
                                                     label="Maximum Pictures Storage (GB)"
@@ -1701,15 +1722,16 @@ export const Cameras = () => {
                                                                 </div>
                                                                 <span className="font-semibold text-sm">Snapshots Storage</span>
                                                             </div>
-                                                            <button
+                                                            <Button
                                                                 type="button"
+                                                                variant="outline"
+                                                                size="sm"
                                                                 onClick={() => handleCleanup(editingId, 'snapshot')}
-                                                                className="text-xs flex items-center bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 px-2 py-1 rounded transition-colors"
-                                                                title="Enforce storage limits now"
+                                                                className="h-7 text-[10px] px-2 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 border-red-200 dark:border-red-900/50"
                                                             >
                                                                 <Trash2 className="w-3 h-3 mr-1" />
                                                                 Clean Up
-                                                            </button>
+                                                            </Button>
                                                         </div>
                                                         <div className="grid grid-cols-2 gap-4 mb-3">
                                                             <div>
@@ -1784,13 +1806,15 @@ export const Cameras = () => {
                                                                     compact={true}
                                                                 />
                                                                 <div className="flex justify-end">
-                                                                    <button
+                                                                    <Button
                                                                         type="button"
+                                                                        variant="outline"
+                                                                        size="sm"
                                                                         onClick={() => handleTestNotification('email', { recipient: newCamera.notify_email_address })}
-                                                                        className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
+                                                                        className="h-8 text-xs font-medium"
                                                                     >
                                                                         Test Email
-                                                                    </button>
+                                                                    </Button>
                                                                 </div>
                                                             </div>
                                                         )}
@@ -1812,13 +1836,15 @@ export const Cameras = () => {
                                                                     placeholder="Leave empty to use Global Settings"
                                                                 />
                                                                 <div className="flex justify-end mt-2">
-                                                                    <button
+                                                                    <Button
                                                                         type="button"
+                                                                        variant="outline"
+                                                                        size="sm"
                                                                         onClick={() => handleTestNotification('email', { recipient: newCamera.notify_health_email_recipient })}
-                                                                        className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
+                                                                        className="h-8 text-xs font-medium"
                                                                     >
                                                                         Test Health Email
-                                                                    </button>
+                                                                    </Button>
                                                                 </div>
                                                             </div>
                                                         )}
@@ -1859,16 +1885,18 @@ export const Cameras = () => {
                                                                     compact={true}
                                                                 />
                                                                 <div className="flex justify-end">
-                                                                    <button
+                                                                    <Button
                                                                         type="button"
+                                                                        variant="outline"
+                                                                        size="sm"
                                                                         onClick={() => handleTestNotification('telegram', {
                                                                             telegram_bot_token: newCamera.notify_telegram_token,
                                                                             telegram_chat_id: newCamera.notify_telegram_chat_id
                                                                         })}
-                                                                        className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
+                                                                        className="h-8 text-xs font-medium"
                                                                     >
                                                                         Test Telegram
-                                                                    </button>
+                                                                    </Button>
                                                                 </div>
                                                             </div>
                                                         )}
@@ -1898,16 +1926,18 @@ export const Cameras = () => {
                                                                     />
                                                                 </div>
                                                                 <div className="flex justify-end mt-2">
-                                                                    <button
+                                                                    <Button
                                                                         type="button"
+                                                                        variant="outline"
+                                                                        size="sm"
                                                                         onClick={() => handleTestNotification('telegram', {
                                                                             telegram_bot_token: newCamera.notify_health_telegram_token,
                                                                             telegram_chat_id: newCamera.notify_health_telegram_chat_id
                                                                         })}
-                                                                        className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
+                                                                        className="h-8 text-xs font-medium"
                                                                     >
                                                                         Test Health Telegram
-                                                                    </button>
+                                                                    </Button>
                                                                 </div>
                                                             </div>
                                                         )}
@@ -1941,13 +1971,15 @@ export const Cameras = () => {
                                                                     placeholder="Leave empty to use Global Settings"
                                                                 />
                                                                 <div className="flex justify-end mt-2">
-                                                                    <button
+                                                                    <Button
                                                                         type="button"
+                                                                        variant="outline"
+                                                                        size="sm"
                                                                         onClick={() => handleTestNotification('webhook', { notify_webhook_url: newCamera.notify_webhook_url })}
-                                                                        className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
+                                                                        className="h-8 text-xs font-medium"
                                                                     >
                                                                         Test Webhook
-                                                                    </button>
+                                                                    </Button>
                                                                 </div>
                                                             </div>
                                                         )}
@@ -1969,13 +2001,15 @@ export const Cameras = () => {
                                                                     placeholder="Leave empty to use Global Settings"
                                                                 />
                                                                 <div className="flex justify-end mt-2">
-                                                                    <button
+                                                                    <Button
                                                                         type="button"
+                                                                        variant="outline"
+                                                                        size="sm"
                                                                         onClick={() => handleTestNotification('webhook', { notify_webhook_url: newCamera.notify_health_webhook_url })}
-                                                                        className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-md hover:bg-accent transition-colors flex items-center shadow-sm"
+                                                                        className="h-8 text-xs font-medium"
                                                                     >
                                                                         Test Health Webhook
-                                                                    </button>
+                                                                    </Button>
                                                                 </div>
                                                             </div>
                                                         )}
@@ -1987,40 +2021,43 @@ export const Cameras = () => {
                                     </div>
                                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-4 border-t border-border mt-4 gap-4">
                                         {editingId && (
-                                            <button
+                                            <Button
                                                 type="button"
+                                                variant="outline"
                                                 onClick={() => setShowCopyModal(true)}
-                                                className="flex items-center justify-center space-x-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 py-2 rounded-lg transition-colors border border-blue-100 dark:border-blue-900/30 sm:border-none"
+                                                className="flex items-center justify-center space-x-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-4 py-2 rounded-lg transition-colors border-blue-100 dark:border-blue-900/30 w-full sm:w-auto"
                                             >
                                                 <Copy className="w-4 h-4" />
                                                 <span>Copy Settings to...</span>
-                                            </button>
+                                            </Button>
                                         )}
                                         {!editingId && <div className="hidden sm:block"></div>} {/* Spacer */}
 
                                         <div className="flex space-x-3 w-full sm:w-auto">
-                                            <button
+                                            <Button
                                                 type="button"
+                                                variant="ghost"
                                                 onClick={() => setShowAddModal(false)}
-                                                className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium hover:bg-accent rounded-lg border border-border sm:border-none"
+                                                className="flex-1 sm:flex-none border border-border sm:border-none"
                                             >
                                                 Cancel
-                                            </button>
+                                            </Button>
                                             {editingId && (
-                                                <button
+                                                <Button
                                                     type="button"
+                                                    variant="outline"
                                                     onClick={(e) => handleCreate(e, false)}
-                                                    className="flex-1 sm:flex-none px-4 py-2 text-primary hover:bg-primary/10 text-sm font-medium rounded-lg transition-colors border border-primary/20"
+                                                    className="flex-1 sm:flex-none text-primary hover:bg-primary/10 border-primary/20"
                                                 >
                                                     Apply
-                                                </button>
+                                                </Button>
                                             )}
-                                            <button
+                                            <Button
                                                 type="submit"
-                                                className="flex-1 sm:flex-none px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90"
+                                                className="flex-1 sm:flex-none"
                                             >
                                                 {editingId ? 'Save Changes' : 'Create Camera'}
-                                            </button>
+                                            </Button>
                                         </div>
                                     </div>
                                 </form>
@@ -2075,20 +2112,20 @@ export const Cameras = () => {
                                 </div>
 
                                 <div className="flex justify-end space-x-3">
-                                    <button
+                                    <Button
+                                        variant="ghost"
                                         onClick={() => { setShowCopyModal(false); setCopyTargets([]); }}
-                                        className="px-4 py-2 text-sm font-medium hover:bg-accent rounded-lg"
                                     >
                                         Cancel
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                         onClick={handleCopySettings}
                                         disabled={copyTargets.length === 0}
-                                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                                        className="bg-blue-600 hover:bg-blue-700 text-white"
                                     >
                                         <Copy className="w-4 h-4 mr-2" />
                                         Copy to {copyTargets.length} Cameras
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         </div>
