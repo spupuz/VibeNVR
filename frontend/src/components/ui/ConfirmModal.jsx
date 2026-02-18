@@ -1,12 +1,13 @@
 import { AlertTriangle, X } from 'lucide-react';
 import { Portal } from './Portal';
+import { Button } from './Button';
 
 export const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel', variant = 'danger' }) => {
     if (!isOpen) return null;
 
     const variants = {
-        danger: 'bg-red-500 hover:bg-red-600 text-white',
-        primary: 'bg-primary hover:bg-primary/90 text-primary-foreground',
+        danger: 'destructive',
+        primary: 'default',
     };
 
     return (
@@ -25,18 +26,18 @@ export const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, conf
                         </p>
                     </div>
                     <div className="bg-muted/30 p-4 flex gap-3 justify-end border-t border-border">
-                        <button
+                        <Button
+                            variant="ghost"
                             onClick={onCancel}
-                            className="px-4 py-2 rounded-xl text-sm font-medium hover:bg-muted transition-colors"
                         >
                             {cancelText}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={onConfirm}
-                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${variants[variant]}`}
+                            variant={variants[variant]}
                         >
                             {confirmText}
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>

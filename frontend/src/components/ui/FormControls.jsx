@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, Eye, EyeOff } from 'lucide-react';
 
 // Tooltip Component
 export const Tooltip = ({ text, children }) => {
@@ -96,27 +96,42 @@ export const Slider = ({ value, onChange, min = 0, max = 100, step = 1, label, u
 };
 
 // Input Field Component
-export const InputField = ({ value, onChange, label, type = 'text', placeholder = '', unit = '', className = '', help = '' }) => (
-    <div className={className}>
-        <div className="block mb-1">
-            <LabelWithHelp label={label} help={help} />
+export const InputField = ({ value, onChange, label, type = 'text', placeholder = '', unit = '', className = '', help = '', showPasswordToggle = false }) => {
+    const [showPassword, setShowPassword] = useState(false);
+    const isPassword = type === 'password';
+    const actualType = isPassword && showPassword ? 'text' : type;
+
+    return (
+        <div className={className}>
+            <div className="block mb-1">
+                <LabelWithHelp label={label} help={help} />
+            </div>
+            <div className="relative">
+                <input
+                    type={actualType}
+                    value={value || ''}
+                    onChange={(e) => onChange(type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)}
+                    placeholder={placeholder}
+                    className="w-full bg-background border border-input rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                />
+                {unit && !isPassword && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                        {unit}
+                    </span>
+                )}
+                {isPassword && showPasswordToggle && (
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                    >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                )}
+            </div>
         </div>
-        <div className="relative">
-            <input
-                type={type}
-                value={value || ''}
-                onChange={(e) => onChange(type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)}
-                placeholder={placeholder}
-                className="w-full bg-background border border-input rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-            />
-            {unit && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    {unit}
-                </span>
-            )}
-        </div>
-    </div>
-);
+    );
+};
 
 // Select Field Component
 export const SelectField = ({ value, onChange, label, options = [], className = '', help = '' }) => (
