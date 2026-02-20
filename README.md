@@ -42,12 +42,7 @@ This software is currently in active beta development. The database schema is st
 
 ## 🔒 Security & Architecture
 
-VibeNVR is built with security as a priority. Recent updates have hardened the system considerably:
-
-1.  **Authenticated Media**: Static files (videos/snapshots) are **NOT** served publicly. All media access requires a valid JWT token, passed either via Headers or securely signed Query Parameters.
-2.  **Protected Internal Ports**: By default, the Backend (5000) and Engine (8000) bind only to `127.0.0.1`. They are **NOT** accessible from the outside world, preventing direct attacks on the API or streams.
-3.  **Two-Factor Authentication (2FA)**: Time-based One-Time Password (TOTP) support for an extra layer of account security. Includes **Trusted Devices** functionality to securely skip 2FA prompts on recognized personal machines, and robust **Recovery Codes** as a fail-safe against lockout.
-4. **Reverse Proxy Ready**: The system is designed to sit behind a Reverse Proxy (like Nginx Proxy Manager) which handles SSL termination and external access.
+VibeNVR is built with security as a priority. For detailed information regarding our security model, authenticated media, internal port protection, vulnerability reporting, and Role-Based Access Control (RBAC), please see our dedicated [Security Documentation](SECURITY.md).
 
 ---
 
