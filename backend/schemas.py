@@ -282,6 +282,7 @@ class UserBase(BaseModel):
 class TOTPSetupResponse(BaseModel):
     secret: str
     otpauth_url: str
+    recovery_codes: Optional[List[str]] = None
 
 class TOTPVerify(BaseModel):
     code: str

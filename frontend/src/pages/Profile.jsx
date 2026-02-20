@@ -19,9 +19,12 @@ export const Profile = () => {
 
     // 2FA State
     const [is2FASetupOpen, setIs2FASetupOpen] = useState(false);
-    const [setupData, setSetupData] = useState(null); // { secret, otpauth_url }
+    const [setupData, setSetupData] = useState(null); // { secret, otpauth_url, recovery_codes }
     const [setupCode, setSetupCode] = useState('');
     const [verifying2FA, setVerifying2FA] = useState(false);
+    const [showRecoveryCodes, setShowRecoveryCodes] = useState(false);
+    const [recoveryCodes, setRecoveryCodes] = useState([]);
+    const [regeneratingCodes, setRegeneratingCodes] = useState(false);
 
     // Trusted Devices State
     const [trustedDevices, setTrustedDevices] = useState([]);
@@ -206,11 +209,12 @@ export const Profile = () => {
             });
 
             if (res.ok) {
-                showToast('2FA Enabled Successfully!', 'success');
-                setIs2FASetupOpen(false);
+                showToast('2FA Enabled Successfully! Please save your recovery codes.', 'success');
+                setRecoveryCodes(setupData.recovery_codes || []);
+                setShowRecoveryCodes(true);
                 setSetupData(null);
                 setSetupCode('');
-                await checkAuth(); // Refresh user state
+                // Note: user state (checkAuth) will be refreshed when the user closes the modal
             } else {
                 const err = await res.json();
                 showToast('Verification failed: ' + err.detail, 'error');
@@ -251,6 +255,52 @@ export const Profile = () => {
         } catch (err) {
             showToast('Failed to disable 2FA: ' + err.message, 'error');
         }
+    };
+
+    const handleRegenerateCodes = async () => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Regenerate Recovery Codes',
+            message: 'Are you sure you want to regenerate your recovery codes? Your old codes will immediately stop working.',
+            variant: 'danger',
+            onConfirm: async () => {
+                closeConfirmModal();
+                setRegeneratingCodes(true);
+                try {
+                    const res = await fetch('/api/auth/2fa/recovery-codes', {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        setRecoveryCodes(data.recovery_codes);
+                        setShowRecoveryCodes(true);
+                        showToast('Recovery codes regenerated successfully', 'success');
+                    } else {
+                        showToast('Failed to regenerate recovery codes', 'error');
+                    }
+                } catch (err) {
+                    showToast('Error regenerating codes: ' + err.message, 'error');
+                } finally {
+                    setRegeneratingCodes(false);
+                }
+            }
+        });
+    };
+
+    const handleDownloadCodes = () => {
+        const text = `VibeNVR 2FA Recovery Codes\nGenerated: ${new Date().toLocaleString()}\n\n` +
+            recoveryCodes.join('   ') +
+            `\n\nKeep these safe! Each code can only be used once.`;
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'vibenvr-recovery-codes.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     };
 
     if (!user) return null;
@@ -363,6 +413,47 @@ export const Profile = () => {
                 </div>
             )}
 
+            {/* Recovery Codes Modal */}
+            {showRecoveryCodes && (
+                <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl p-6 space-y-6">
+                        <div className="border-b border-border pb-4">
+                            <h3 className="text-xl font-bold flex items-center gap-2 text-primary">
+                                <Shield className="w-6 h-6" />
+                                Save Your Recovery Codes
+                            </h3>
+                            <p className="text-sm text-muted-foreground mt-2">
+                                If you lose access to your authenticator app, you can use these backup codes to sign in.
+                                <strong> Each code can only be used once.</strong>
+                            </p>
+                        </div>
+
+                        <div className="bg-muted p-4 rounded-lg border border-border">
+                            <div className="grid grid-cols-2 gap-4 font-mono text-sm tracking-wider">
+                                {recoveryCodes.map((code, idx) => (
+                                    <div key={idx} className="bg-background px-3 py-2 rounded text-center border shadow-sm">
+                                        {code}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-border">
+                            <Button variant="outline" onClick={handleDownloadCodes} className="flex gap-2">
+                                Download as TXT
+                            </Button>
+                            <Button onClick={async () => {
+                                setShowRecoveryCodes(false);
+                                setIs2FASetupOpen(false);
+                                await checkAuth();
+                            }}>
+                                I Have Saved Them
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div>
                 <h2 className="text-3xl font-bold tracking-tight">My Profile</h2>
                 <p className="text-muted-foreground mt-2">Manage your account settings and preferences.</p>
@@ -460,15 +551,22 @@ export const Profile = () => {
                                             </p>
                                         </div>
                                     </div>
-                                    {user.is_2fa_enabled ? (
-                                        <Button variant="outline" size="sm" onClick={handleDisable2FA} className="w-full sm:w-auto text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-900">
-                                            Disable 2FA
-                                        </Button>
-                                    ) : (
-                                        <Button variant="outline" size="sm" onClick={start2FASetup} className="w-full sm:w-auto">
-                                            Enable 2FA
-                                        </Button>
-                                    )}
+                                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-3 sm:mt-0">
+                                        {user.is_2fa_enabled ? (
+                                            <>
+                                                <Button variant="outline" size="sm" onClick={handleRegenerateCodes} disabled={regeneratingCodes} className="w-full sm:w-auto">
+                                                    Regenerate Codes
+                                                </Button>
+                                                <Button variant="outline" size="sm" onClick={handleDisable2FA} className="w-full sm:w-auto text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-900">
+                                                    Disable 2FA
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <Button variant="outline" size="sm" onClick={start2FASetup} className="w-full sm:w-auto">
+                                                Enable 2FA
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Trusted Devices List */}
