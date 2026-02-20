@@ -185,3 +185,24 @@ def delete_api_token(db: Session, token_id: int):
         db.commit()
         return True
     return False
+
+# Recovery Codes
+def create_recovery_codes(db: Session, user_id: int, hashed_codes: list[str]):
+    codes = [models.RecoveryCode(user_id=user_id, code_hash=hash_val) for hash_val in hashed_codes]
+    db.add_all(codes)
+    db.commit()
+
+def get_recovery_codes(db: Session, user_id: int):
+    return db.query(models.RecoveryCode).filter(models.RecoveryCode.user_id == user_id).all()
+
+def delete_recovery_code(db: Session, code_id: int):
+    code = db.query(models.RecoveryCode).filter(models.RecoveryCode.id == code_id).first()
+    if code:
+        db.delete(code)
+        db.commit()
+        return True
+    return False
+
+def delete_all_recovery_codes(db: Session, user_id: int):
+    db.query(models.RecoveryCode).filter(models.RecoveryCode.user_id == user_id).delete()
+    db.commit()

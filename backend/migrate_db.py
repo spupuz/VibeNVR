@@ -151,6 +151,16 @@ def migrate():
             conn.commit()
             print("trusted_devices table created.")
 
+    # Recovery Codes (Fallback creation)
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("SELECT 1 FROM recovery_codes LIMIT 1"))
+        except:
+            print("Creating recovery_codes table via migration...")
+            models.RecoveryCode.__table__.create(engine)
+            conn.commit()
+            print("recovery_codes table created.")
+
 if __name__ == "__main__":
     print("Starting migration...")
     migrate()

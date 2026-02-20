@@ -18,6 +18,7 @@ async def login_for_access_token(
     trust_device: Optional[bool] = Form(False),
     device_name: Optional[str] = Form(None),
     device_token: Optional[str] = Form(None), # Client can send existing token to validate trust
+    recovery_code: Optional[str] = Form(None), # Client can send a backup code instead of TOTP
     db: Session = Depends(database.get_db)
 ):
     user = crud.get_user_by_username(db, username=form_data.username)
@@ -53,21 +54,48 @@ async def login_for_access_token(
         print(f"DEBUG: No device token provided. 2FA enabled: {user.is_2fa_enabled}")
     
     if user.is_2fa_enabled and not is_trusted:
-        if not totp_code:
+        if not totp_code and not recovery_code:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="2FA_REQUIRED",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        if not auth_service.verify_totp(user.totp_secret, totp_code):
-             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid 2FA Code",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+        # Prefer validation via Recovery Code if provided
+        if recovery_code:
+            # Hash the input and check DB
+            code_hash = auth_service.get_password_hash(recovery_code)
+            # Find a match (We can't easily query by hash if it's Argon2/bcrypt because salts differ)
+            # We must iterate or use a simple hash like SHA-256 for recovery codes so we can query them directly.
+            # Using verify_password is safer but slower. Let's iterate user's codes.
+            db_codes = crud.get_recovery_codes(db, user.id)
+            valid_code_id = None
+            for db_code in db_codes:
+                if auth_service.verify_password(recovery_code, db_code.code_hash):
+                    valid_code_id = db_code.id
+                    break
+                    
+            if not valid_code_id:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid Recovery Code",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            
+            # Code is valid, consume it (delete it)
+            crud.delete_recovery_code(db, valid_code_id)
+            print(f"DEBUG: Consumed recovery code {valid_code_id} for user {user.username}")
+            
+        else:
+            # Validating via TOTP code
+            if not auth_service.verify_totp(user.totp_secret, totp_code):
+                 raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid 2FA Code",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
         
-        # Code is valid. Check if user wants to trust this device
+        # Code is valid (either TOTP or Recovery). Check if user wants to trust this device
         if trust_device:
             import secrets
             new_token = secrets.token_urlsafe(32)
@@ -78,16 +106,6 @@ async def login_for_access_token(
             )
             db.add(new_device)
             db.commit()
-            # We will return this token. 
-            # Note: We can't easily add field to Token response without changing schema/frontend expectations globally
-            # But the schema is just pydantic. we can add an extra field to the JSON response.
-            # However, `response_model=schemas.Token` restricts it.
-            # We can use a custom response or just rely on the fact that FastAPI filters extra fields 
-            # UNLESS we update the Token schema or return a subclass.
-            # Let's simple return it as an extra field and update schema if needed, OR 
-            # use a trick to pass it.
-            # Actually, standard OAuth2 doesn't have a standardized "device_token" but we can add it.
-            # Let's update `schemas.Token` (or create a TokenWithDevice subclass) to include optional device_token
             output_device_token = new_token
 
     access_token_expires = timedelta(minutes=auth_service.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -104,17 +122,27 @@ async def login_for_access_token(
 
 @router.post("/2fa/setup", response_model=schemas.TOTPSetupResponse)
 def setup_2fa(current_user: models.User = Depends(auth_service.get_current_user), db: Session = Depends(database.get_db)):
-    """Generate a new TOTP secret for the user."""
+    """Generate a new TOTP secret for the user and 10 recovery codes."""
     secret = auth_service.generate_totp_secret()
     
     # Temporarily store the secret but don't enable it yet
     current_user.totp_secret = secret
+    
+    # Generate 10 random recovery codes
+    import secrets
+    recovery_codes = [secrets.token_hex(4) for _ in range(10)]
+    hashed_codes = [auth_service.get_password_hash(code) for code in recovery_codes]
+    
+    # Wipe any existing codes and save new ones
+    crud.delete_all_recovery_codes(db, current_user.id)
+    crud.create_recovery_codes(db, current_user.id, hashed_codes)
+    
     db.commit()
     
     # Generate otpauth URL for QR Code
     otpauth_url = auth_service.get_totp_uri(secret, current_user.username)
     
-    return {"secret": secret, "otpauth_url": otpauth_url}
+    return {"secret": secret, "otpauth_url": otpauth_url, "recovery_codes": recovery_codes}
 
 @router.post("/2fa/enable")
 def enable_2fa(
@@ -138,8 +166,24 @@ def disable_2fa(current_user: models.User = Depends(auth_service.get_current_use
     """Disable 2FA for the current user."""
     current_user.is_2fa_enabled = False
     current_user.totp_secret = None
+    crud.delete_all_recovery_codes(db, current_user.id)
     db.commit()
     return {"status": "2FA disabled"}
+
+@router.post("/2fa/recovery-codes")
+def regenerate_recovery_codes(current_user: models.User = Depends(auth_service.get_current_user), db: Session = Depends(database.get_db)):
+    """Regenerate recovery codes for a user who already has 2FA enabled."""
+    if not current_user.is_2fa_enabled:
+        raise HTTPException(status_code=400, detail="2FA must be enabled first")
+        
+    import secrets
+    recovery_codes = [secrets.token_hex(4) for _ in range(10)]
+    hashed_codes = [auth_service.get_password_hash(code) for code in recovery_codes]
+    
+    crud.delete_all_recovery_codes(db, current_user.id)
+    crud.create_recovery_codes(db, current_user.id, hashed_codes)
+    
+    return {"recovery_codes": recovery_codes}
 
 @router.get("/devices", response_model=list[schemas.TrustedDevice])
 def list_trusted_devices(current_user: models.User = Depends(auth_service.get_current_user), db: Session = Depends(database.get_db)):

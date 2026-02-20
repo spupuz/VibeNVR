@@ -8,6 +8,8 @@ export const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [totpCode, setTotpCode] = useState('');
+    const [recoveryCode, setRecoveryCode] = useState('');
+    const [useRecoveryCode, setUseRecoveryCode] = useState(false);
     const [require2FA, setRequire2FA] = useState(false);
     const [error, setError] = useState('');
 
@@ -53,8 +55,13 @@ export const Login = () => {
                 console.log("DEBUG: No device token found in localStorage");
             }
 
-            if (require2FA && totpCode) {
-                formData.append('totp_code', totpCode);
+            if (require2FA) {
+                if (useRecoveryCode && recoveryCode) {
+                    formData.append('recovery_code', recoveryCode);
+                } else if (!useRecoveryCode && totpCode) {
+                    formData.append('totp_code', totpCode);
+                }
+
                 if (trustDevice) {
                     formData.append('trust_device', 'true');
                     formData.append('device_name', deviceName);
@@ -151,21 +158,41 @@ export const Login = () => {
                             </div>
                         </>
                     ) : (
-                        <div className="space-y-2 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <label className="text-sm font-medium text-center block">Two-Factor Authenticator Code</label>
-                            <input
-                                type="text"
-                                className="w-full text-center text-2xl tracking-[0.5em] font-mono py-3 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
-                                placeholder="000000"
-                                maxLength={6}
-                                value={totpCode}
-                                onChange={(e) => setTotpCode(e.target.value.replace(/[^0-9]/g, ''))}
-                                autoFocus
-                                required
-                            />
-                            <p className="text-xs text-center text-muted-foreground">
-                                Open your authenticator app and enter the 6-digit code.
-                            </p>
+                        <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                            {useRecoveryCode ? (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-center block">Recovery Code</label>
+                                    <input
+                                        type="text"
+                                        className="w-full text-center text-xl tracking-wider font-mono py-3 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
+                                        placeholder="Enter recovery code"
+                                        value={recoveryCode}
+                                        onChange={(e) => setRecoveryCode(e.target.value)}
+                                        autoFocus
+                                        required
+                                    />
+                                    <p className="text-xs text-center text-muted-foreground">
+                                        Enter one of your 8-character recovery codes.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-center block">Two-Factor Authenticator Code</label>
+                                    <input
+                                        type="text"
+                                        className="w-full text-center text-2xl tracking-[0.5em] font-mono py-3 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
+                                        placeholder="000000"
+                                        maxLength={6}
+                                        value={totpCode}
+                                        onChange={(e) => setTotpCode(e.target.value.replace(/[^0-9]/g, ''))}
+                                        autoFocus
+                                        required
+                                    />
+                                    <p className="text-xs text-center text-muted-foreground">
+                                        Open your authenticator app and enter the 6-digit code.
+                                    </p>
+                                </div>
+                            )}
                             <div className="flex flex-col space-y-3 pt-2">
                                 <div className="flex items-center justify-center space-x-2">
                                     <input
@@ -204,13 +231,27 @@ export const Login = () => {
                         </Button>
 
                         {require2FA && (
-                            <button
-                                type="button"
-                                onClick={() => { setRequire2FA(false); setTotpCode(''); setError(''); }}
-                                className="w-full text-sm text-muted-foreground hover:text-primary transition-colors"
-                            >
-                                Back to Login
-                            </button>
+                            <div className="flex flex-col space-y-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setUseRecoveryCode(!useRecoveryCode);
+                                        setTotpCode('');
+                                        setRecoveryCode('');
+                                        setError('');
+                                    }}
+                                    className="w-full text-sm text-primary hover:text-primary/80 transition-colors"
+                                >
+                                    {useRecoveryCode ? "Use Authenticator App Instead" : "Lost device? Use Recovery Code"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { setRequire2FA(false); setTotpCode(''); setRecoveryCode(''); setError(''); setUseRecoveryCode(false); }}
+                                    className="w-full text-sm text-muted-foreground hover:text-primary transition-colors"
+                                >
+                                    Back to Login
+                                </button>
+                            </div>
                         )}
                     </div>
                 </form>
