@@ -10,6 +10,8 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 ![VibeNVR Demo](docs/screenshots/vibenvr_video.webp)
 
 > **Project Status**: This is a **Vibe Coding Project**. Extensive testing has been performed to ensure stability, but we are always **open to new help** and contributions from the community!
+> 
+> **Language Policy**: Please note that **English is the official and only supported language** of this project. All code, user interface elements, commit messages, issues, and documentation (including wikis) must be written strictly in English to maintain consistency and accessibility for the global community.
 
 ---
 ## ⚠️ Beta Disclaimer
