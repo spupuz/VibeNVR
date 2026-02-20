@@ -172,6 +172,8 @@ logger.info(f"Connecting to {safe_url}")
 
 ## Security & Data Privacy
 
+> **CRITICAL**: All AI agents must read and strictly adhere to [SECURITY.md](SECURITY.md).
+
 - **Sanitize everything**: Every input from the user or the network must be validated using Pydantic schemas.
 - **Mask logs and telemetry**: Ensure that no sensitive information is ever written to logs or telemetry streams.
 - **Role-Based Access Control (RBAC)**: Always check for `current_user` role when implementing new API endpoints.
@@ -179,7 +181,7 @@ logger.info(f"Connecting to {safe_url}")
 ## AI-Assisted Contributions
 
 ### Required Reading
-1. **Must read**: [CONTEXT.md](CONTEXT.md)
+1. **Must read**: [CONTEXT.md](CONTEXT.md) and [SECURITY.md](SECURITY.md)
 2. **Must follow**: Code conventions (Python PEP8, React Hooks rules).
 
 ### Contribution Template

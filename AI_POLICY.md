@@ -6,7 +6,7 @@ VibeNVR has clear rules for AI-assisted contributions:
 
 - **Pull requests created by AI must have been fully verified with human testing.** AI must not create hypothetically correct code that hasn't been tested. You must run the development environment, verify both frontend and backend work correctly, and manually test your changes. You must not allow AI to write code for platforms or environments you don't have access to manually test on.
 
-- **Code must follow VibeNVR's existing patterns.** Before writing code, read [AGENTS.md](AGENTS.md) for technical guidance. AI-generated code that ignores project conventions (Python PEP8, React Hooks rules, Pydantic Schema validation) will be rejected.
+- **Code must follow VibeNVR's existing patterns.** Before writing code, read [AGENTS.md](AGENTS.md) for technical guidance and [SECURITY.md](SECURITY.md) for data protection architectures. AI-generated code that ignores project conventions (Python PEP8, React Hooks rules, Pydantic Schema validation, RBAC) will be rejected.
 
 - **Issues and discussions can use AI assistance but must have a full human-in-the-loop.** This means that any content generated with AI must have been reviewed *and edited* by a human before submission. AI is very good at being overly verbose and including noise that distracts from the main point. Humans must do their research and trim this down.
 
@@ -47,4 +47,4 @@ This section exists to be transparent about the project's use of AI and to clari
 
 ## Technical Guidance for AI Tools
 
-If you're using AI tools to contribute to VibeNVR, ensure your AI is configured with our coding standards. See [AGENTS.md](AGENTS.md) for architecture patterns, anti-patterns to avoid, and project-specific conventions that will help AI tools generate code that matches our standards. 
+If you're using AI tools to contribute to VibeNVR, ensure your AI is configured with our coding standards. See [AGENTS.md](AGENTS.md) for architecture patterns, anti-patterns to avoid, and [SECURITY.md](SECURITY.md) for security and data privacy conventions that will help AI tools generate code that matches our standards.
