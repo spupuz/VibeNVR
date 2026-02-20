@@ -178,6 +178,8 @@ class User(Base):
     hashed_password = Column(String)
     role = Column(String, default="viewer") # "admin", "viewer"
     avatar_path = Column(String, nullable=True)
+    totp_secret = Column(String, nullable=True)
+    is_2fa_enabled = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class ApiToken(Base):
@@ -192,3 +194,16 @@ class ApiToken(Base):
     is_active = Column(Boolean, default=True)
     
     created_by = relationship("User")
+
+class TrustedDevice(Base):
+    __tablename__ = "trusted_devices"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, nullable=True) # e.g. "Chrome on Linux"
+    last_used = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=True) # Optional, can rely on manual revocation or cleanup job
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", backref="trusted_devices")

@@ -127,6 +127,8 @@ def migrate():
 
     # Users
     add_column_if_not_exists(engine, "users", "avatar_path", "VARCHAR")
+    add_column_if_not_exists(engine, "users", "totp_secret", "VARCHAR")
+    add_column_if_not_exists(engine, "users", "is_2fa_enabled", "BOOLEAN", False)
 
     # API Tokens (Fallback creation if create_all missed it)
     with engine.connect() as conn:
@@ -138,6 +140,16 @@ def migrate():
             models.ApiToken.__table__.create(engine)
             conn.commit()
             print("api_tokens table created.")
+
+    # Trusted Devices (Fallback creation)
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("SELECT 1 FROM trusted_devices LIMIT 1"))
+        except:
+            print("Creating trusted_devices table via migration...")
+            models.TrustedDevice.__table__.create(engine)
+            conn.commit()
+            print("trusted_devices table created.")
 
 if __name__ == "__main__":
     print("Starting migration...")

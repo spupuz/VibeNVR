@@ -7,7 +7,14 @@ import { Button } from '../components/ui/Button';
 export const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [totpCode, setTotpCode] = useState('');
+    const [require2FA, setRequire2FA] = useState(false);
     const [error, setError] = useState('');
+
+    // Trusted Device State
+    const [trustDevice, setTrustDevice] = useState(false);
+    const [deviceName, setDeviceName] = useState(`Browser on ${navigator.platform}`);
+
     const { login } = useAuth();
     const navigate = useNavigate();
 
@@ -37,6 +44,23 @@ export const Login = () => {
             formData.append('username', username);
             formData.append('password', password);
 
+            // Send existing device token if available
+            const deviceToken = localStorage.getItem('vibe_device_token');
+            if (deviceToken) {
+                console.log("DEBUG: Sending device token", deviceToken.substring(0, 10) + "...");
+                formData.append('device_token', deviceToken);
+            } else {
+                console.log("DEBUG: No device token found in localStorage");
+            }
+
+            if (require2FA && totpCode) {
+                formData.append('totp_code', totpCode);
+                if (trustDevice) {
+                    formData.append('trust_device', 'true');
+                    formData.append('device_name', deviceName);
+                }
+            }
+
             const res = await fetch('/api/auth/login', {
                 method: 'POST',
                 body: formData,
@@ -44,6 +68,15 @@ export const Login = () => {
 
             if (res.ok) {
                 const data = await res.json();
+
+                // Save new device token if received
+                if (data.device_token) {
+                    console.log("DEBUG: Received new device token", data.device_token.substring(0, 10));
+                    localStorage.setItem('vibe_device_token', data.device_token);
+                } else {
+                    console.log("DEBUG: No device token in response");
+                }
+
                 const userRes = await fetch('/api/auth/me', {
                     headers: { Authorization: `Bearer ${data.access_token}` }
                 });
@@ -53,6 +86,12 @@ export const Login = () => {
                     navigate('/');
                 }
             } else {
+                const errData = await res.json();
+                if (errData.detail === '2FA_REQUIRED') {
+                    setRequire2FA(true);
+                    setError(''); // Clear previous errors
+                    return;
+                }
                 setError('Invalid username or password');
             }
         } catch (err) {
@@ -73,47 +112,107 @@ export const Login = () => {
                     <div className="text-center">
                         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Welcome Back</h1>
                         <p className="text-gray-500 text-sm sm:text-base mt-1">
-                            Enter your credentials to access VibeNVR
+                            {require2FA ? 'Enter your 2FA code' : 'Enter your credentials to access VibeNVR'}
                         </p>
                     </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Username</label>
-                        <div className="relative">
-                            <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    {!require2FA ? (
+                        <>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Username</label>
+                                <div className="relative">
+                                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                    <input
+                                        type="text"
+                                        className="w-full pl-9 pr-3 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
+                                        placeholder="admin"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Password</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                    <input
+                                        type="password"
+                                        className="w-full pl-9 pr-3 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
+                                        placeholder="••••••••"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="space-y-2 animate-in fade-in slide-in-from-right-4 duration-300">
+                            <label className="text-sm font-medium text-center block">Two-Factor Authenticator Code</label>
                             <input
                                 type="text"
-                                className="w-full pl-9 pr-3 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
-                                placeholder="admin"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                className="w-full text-center text-2xl tracking-[0.5em] font-mono py-3 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
+                                placeholder="000000"
+                                maxLength={6}
+                                value={totpCode}
+                                onChange={(e) => setTotpCode(e.target.value.replace(/[^0-9]/g, ''))}
+                                autoFocus
                                 required
                             />
-                        </div>
-                    </div>
+                            <p className="text-xs text-center text-muted-foreground">
+                                Open your authenticator app and enter the 6-digit code.
+                            </p>
+                            <div className="flex flex-col space-y-3 pt-2">
+                                <div className="flex items-center justify-center space-x-2">
+                                    <input
+                                        type="checkbox"
+                                        id="trust-device"
+                                        className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                                        checked={trustDevice}
+                                        onChange={(e) => setTrustDevice(e.target.checked)}
+                                    />
+                                    <label htmlFor="trust-device" className="text-sm text-muted-foreground select-none cursor-pointer">
+                                        Trust this device (skip 2FA next time)
+                                    </label>
+                                </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Password</label>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <input
-                                type="password"
-                                className="w-full pl-9 pr-3 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                            />
+                                {trustDevice && (
+                                    <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Device Name</label>
+                                        <input
+                                            type="text"
+                                            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                                            placeholder="e.g. My MacBook"
+                                            value={deviceName}
+                                            onChange={(e) => setDeviceName(e.target.value)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
-                    <Button className="w-full py-2.5" type="submit">
-                        Sign In
-                    </Button>
+                    <div className="space-y-3">
+                        <Button className="w-full py-2.5" type="submit">
+                            {require2FA ? 'Verify & Login' : 'Sign In'}
+                        </Button>
+
+                        {require2FA && (
+                            <button
+                                type="button"
+                                onClick={() => { setRequire2FA(false); setTotpCode(''); setError(''); }}
+                                className="w-full text-sm text-muted-foreground hover:text-primary transition-colors"
+                            >
+                                Back to Login
+                            </button>
+                        )}
+                    </div>
                 </form>
 
                 <p className="text-center text-xs text-muted-foreground">

@@ -24,7 +24,7 @@ This software is currently in active beta development. The database schema is st
 |---------|-------------|
 | 🖥️ **Modern Web Interface** | Ultra-premium UI built with React, Vite, and Lucide icons. |
 | 🎨 **Customizable Dashboard** | Toggle widgets and graphs to suit your monitoring needs. |
-| 🛡️ **Secure by Design** | Full JWT authentication for API, streams, and static media. No unauthorized access. |
+| 🛡️ **Secure by Design** | Full JWT authentication, **2FA with Trusted Devices**, and protected internal ports. |
 | 📷 **Advanced Video Engine** | Custom Python engine using OpenCV & FFmpeg for RTSP streaming and processing. |
 | ⚡ **Passthrough Recording** | Direct Stream Copy support for near-zero CPU usage recording (experimental, with auto-fallback). |
 | 🎯 **Smart Motion Detection** | Native motion detection with adjustable sensitivity, gap, and pre/post-capture buffers. |
@@ -44,7 +44,8 @@ VibeNVR is built with security as a priority. Recent updates have hardened the s
 
 1.  **Authenticated Media**: Static files (videos/snapshots) are **NOT** served publicly. All media access requires a valid JWT token, passed either via Headers or securely signed Query Parameters.
 2.  **Protected Internal Ports**: By default, the Backend (5000) and Engine (8000) bind only to `127.0.0.1`. They are **NOT** accessible from the outside world, preventing direct attacks on the API or streams.
-3. **Reverse Proxy Ready**: The system is designed to sit behind a Reverse Proxy (like Nginx Proxy Manager) which handles SSL termination and external access.
+3.  **Two-Factor Authentication (2FA)**: Time-based One-Time Password (TOTP) support for an extra layer of account security. Includes **Trusted Devices** functionality to securely skip 2FA prompts on recognized personal machines.
+4. **Reverse Proxy Ready**: The system is designed to sit behind a Reverse Proxy (like Nginx Proxy Manager) which handles SSL termination and external access.
 
 ---
 

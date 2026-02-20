@@ -3,7 +3,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { Button } from '../components/ui/Button';
 import { Avatar } from '../components/ui/Avatar';
-import { Camera, Key, Mail, Shield, Upload, X, User as UserIcon } from 'lucide-react';
+import { Camera, Key, Mail, Shield, Upload, X, User as UserIcon, Smartphone, Check, Copy, Laptop, Trash2, Loader2, Calendar } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import { formatDistanceToNow } from 'date-fns';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 
 export const Profile = () => {
     const { user, token, checkAuth } = useAuth();
@@ -13,6 +16,87 @@ export const Profile = () => {
     // Password Change State
     const [pwdModalOpen, setPwdModalOpen] = useState(false);
     const [pwdForm, setPwdForm] = useState({ old_password: '', new_password: '', confirm_password: '' });
+
+    // 2FA State
+    const [is2FASetupOpen, setIs2FASetupOpen] = useState(false);
+    const [setupData, setSetupData] = useState(null); // { secret, otpauth_url }
+    const [setupCode, setSetupCode] = useState('');
+    const [verifying2FA, setVerifying2FA] = useState(false);
+
+    // Trusted Devices State
+    const [trustedDevices, setTrustedDevices] = useState([]);
+    const [loadingDevices, setLoadingDevices] = useState(false);
+
+    // Confirm Modal State
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+        variant: 'danger'
+    });
+
+    const closeConfirmModal = () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+    };
+
+    React.useEffect(() => {
+        if (user?.is_2fa_enabled) {
+            fetchTrustedDevices();
+        }
+    }, [user, token]);
+
+    const fetchTrustedDevices = async () => {
+        setLoadingDevices(true);
+        try {
+            const res = await fetch('/api/auth/devices', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setTrustedDevices(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch devices", err);
+        } finally {
+            setLoadingDevices(false);
+        }
+    };
+
+    const handleRevokeDevice = (deviceId) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Revoke Device',
+            message: 'Are you sure you want to revoke this device? You will need 2FA to login from it again.',
+            variant: 'danger',
+            onConfirm: () => {
+                revokeDevice(deviceId);
+                closeConfirmModal();
+            }
+        });
+    };
+
+    const revokeDevice = async (deviceId) => {
+        try {
+            const res = await fetch(`/api/auth/devices/${deviceId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                showToast('Device revoked successfully', 'success');
+                fetchTrustedDevices();
+
+                // Check if we revoked current device
+                // We can't easily know strictly by ID without storing it in state from login
+                // But we can check if the list is empty? No.
+            } else {
+                showToast('Failed to revoke device', 'error');
+            }
+        } catch (err) {
+            showToast('Failed to revoke device: ' + err.message, 'error');
+        }
+    };
 
     const handleAvatarUpload = async (e) => {
         const file = e.target.files?.[0];
@@ -87,14 +171,96 @@ export const Profile = () => {
         }
     };
 
+    const start2FASetup = async () => {
+        try {
+            const res = await fetch('/api/auth/2fa/setup', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setSetupData(data);
+                setIs2FASetupOpen(true);
+            } else {
+                showToast('Failed to initialize 2FA setup', 'error');
+            }
+        } catch (err) {
+            showToast('Failed to initialize 2FA setup: ' + err.message, 'error');
+        }
+    };
+
+    const verifyAndEnable2FA = async () => {
+        if (!setupCode || setupCode.length !== 6) {
+            showToast('Please enter a valid 6-digit code', 'error');
+            return;
+        }
+        setVerifying2FA(true);
+        try {
+            const res = await fetch('/api/auth/2fa/enable', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ code: setupCode })
+            });
+
+            if (res.ok) {
+                showToast('2FA Enabled Successfully!', 'success');
+                setIs2FASetupOpen(false);
+                setSetupData(null);
+                setSetupCode('');
+                await checkAuth(); // Refresh user state
+            } else {
+                const err = await res.json();
+                showToast('Verification failed: ' + err.detail, 'error');
+            }
+        } catch (err) {
+            showToast('Verification failed: ' + err.message, 'error');
+        } finally {
+            setVerifying2FA(false);
+        }
+    };
+
+    const handleDisable2FA = () => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Disable 2FA',
+            message: 'Are you sure you want to disable 2FA? This will make your account less secure.',
+            variant: 'danger',
+            onConfirm: () => {
+                disable2FA();
+                closeConfirmModal();
+            }
+        });
+    };
+
+    const disable2FA = async () => {
+        try {
+            const res = await fetch('/api/auth/2fa/disable', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                showToast('2FA Disabled', 'success');
+                await checkAuth(); // Refresh user state
+            } else {
+                showToast('Failed to disable 2FA', 'error');
+            }
+        } catch (err) {
+            showToast('Failed to disable 2FA: ' + err.message, 'error');
+        }
+    };
+
     if (!user) return null;
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
+        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-10">
             {/* Password Modal */}
             {pwdModalOpen && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-card w-full max-w-md rounded-xl border border-border shadow-2xl p-6 space-y-4">
+                    <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-6 space-y-4">
                         <div className="flex justify-between items-center border-b border-border pb-4">
                             <h3 className="text-lg font-bold flex items-center gap-2">
                                 <Key className="w-5 h-5 text-primary" />
@@ -140,6 +306,59 @@ export const Profile = () => {
                                 <Button type="submit">Update Password</Button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* 2FA Setup Modal */}
+            {is2FASetupOpen && setupData && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-card w-full max-w-sm rounded-2xl border border-border shadow-2xl p-6 space-y-6">
+                        <div className="flex justify-between items-center border-b border-border pb-4">
+                            <h3 className="text-lg font-bold flex items-center gap-2">
+                                <Smartphone className="w-5 h-5 text-primary" />
+                                Setup 2FA
+                            </h3>
+                            <button onClick={() => { setIs2FASetupOpen(false); setSetupCode(''); }} className="text-muted-foreground hover:text-foreground">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="bg-white p-4 rounded-lg flex justify-center border border-gray-200">
+                                <QRCodeSVG value={setupData.otpauth_url} size={200} />
+                            </div>
+
+                            <div className="text-center space-y-2">
+                                <p className="text-sm text-muted-foreground">Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)</p>
+                                <div className="text-xs font-mono bg-muted p-2 rounded border border-border break-all select-all flex items-center justify-center gap-2">
+                                    {setupData.secret}
+                                    <button onClick={() => navigator.clipboard.writeText(setupData.secret)} className="hover:text-primary" title="Copy Secret">
+                                        <Copy className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="pt-2">
+                                <label className="text-sm font-medium mb-1 block">Enter 6-digit Code</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-background border border-input rounded-lg px-3 py-2 text-center text-xl tracking-widest font-mono focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                    required
+                                    placeholder="000 000"
+                                    maxLength={6}
+                                    value={setupCode}
+                                    onChange={e => setSetupCode(e.target.value.replace(/[^0-9]/g, ''))}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-4 border-t border-border">
+                            <Button variant="outline" onClick={() => { setIs2FASetupOpen(false); setSetupCode(''); }}>Cancel</Button>
+                            <Button onClick={verifyAndEnable2FA} disabled={verifying2FA}>
+                                {verifying2FA ? 'Verifying...' : 'Enable 2FA'}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -204,25 +423,109 @@ export const Profile = () => {
 
                             <div className="grid gap-2">
                                 <label className="text-sm font-medium text-muted-foreground">Security</label>
-                                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border">
+
+                                {/* Password Row */}
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted/30 rounded-lg border border-border gap-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-primary/10 rounded-full text-primary">
+                                        <div className="p-2 bg-primary/10 rounded-full text-primary shrink-0">
                                             <Key className="w-4 h-4" />
                                         </div>
                                         <div>
                                             <p className="font-medium">Password</p>
-                                            <p className="text-xs text-muted-foreground">Last changed: Never</p>
+                                            <p className="text-xs text-muted-foreground">Secure your account</p>
                                         </div>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => setPwdModalOpen(true)}>
+                                    <Button variant="outline" size="sm" onClick={() => setPwdModalOpen(true)} className="w-full sm:w-auto">
                                         Change Password
                                     </Button>
                                 </div>
+
+                                {/* 2FA Row */}
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted/30 rounded-lg border border-border mt-2 gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-full shrink-0 ${user.is_2fa_enabled ? 'bg-green-100 text-green-600 dark:bg-green-900/30' : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30'}`}>
+                                            <Smartphone className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <p className="font-medium">Two-Factor Authentication</p>
+                                                {user.is_2fa_enabled && (
+                                                    <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold border border-green-200">ENABLED</span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                {user.is_2fa_enabled
+                                                    ? 'Your account is secured with 2FA.'
+                                                    : 'Add an extra layer of security.'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {user.is_2fa_enabled ? (
+                                        <Button variant="outline" size="sm" onClick={handleDisable2FA} className="w-full sm:w-auto text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-900">
+                                            Disable 2FA
+                                        </Button>
+                                    ) : (
+                                        <Button variant="outline" size="sm" onClick={start2FASetup} className="w-full sm:w-auto">
+                                            Enable 2FA
+                                        </Button>
+                                    )}
+                                </div>
+
+                                {/* Trusted Devices List */}
+                                {user.is_2fa_enabled && (
+                                    <div className="pt-4 border-t border-border mt-4">
+                                        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                                            <Laptop className="w-4 h-4 text-primary" />
+                                            Trusted Devices
+                                        </h4>
+
+                                        {loadingDevices ? (
+                                            <p className="text-sm text-muted-foreground">Loading devices...</p>
+                                        ) : trustedDevices.length === 0 ? (
+                                            <p className="text-sm text-muted-foreground italic">No trusted devices found.</p>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                {trustedDevices.map(device => (
+                                                    <div key={device.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border text-sm">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="p-2 bg-muted rounded-full">
+                                                                <Laptop className="w-4 h-4 text-muted-foreground" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-medium">{device.name || 'Unknown Device'}</p>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    Last used {formatDistanceToNow(new Date(device.last_used))} ago
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleRevokeDevice(device.id)}
+                                                            className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-full transition-colors"
+                                                            title="Revoke Device"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Confirm Modal */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                variant={confirmModal.variant}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={closeConfirmModal}
+            />
         </div>
     );
 };
