@@ -37,6 +37,5 @@ frontend/.env
 
 # VibeNVR Specific
 # We keep webhook.sh as it is source code
-CONTEXT.md
 WIKI_LOCAL_RECOVERY.md
 WIKI_HOME.md
