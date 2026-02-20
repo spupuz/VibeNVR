@@ -42,7 +42,6 @@ export const Settings = () => {
         opt_motion_analysis_height: 180,
         opt_live_view_quality: 60,
         opt_snapshot_quality: 90,
-        opt_snapshot_quality: 90,
         opt_ffmpeg_preset: 'ultrafast',
         opt_pre_capture_fps_throttle: 1,
         opt_verbose_engine_logs: false,
@@ -296,7 +295,6 @@ export const Settings = () => {
                     opt_live_view_height_limit: parseInt(data.opt_live_view_height_limit?.value) || 720,
                     opt_motion_analysis_height: parseInt(data.opt_motion_analysis_height?.value) || 180,
                     opt_live_view_quality: parseInt(data.opt_live_view_quality?.value) || 60,
-                    opt_snapshot_quality: parseInt(data.opt_snapshot_quality?.value) || 90,
                     opt_snapshot_quality: parseInt(data.opt_snapshot_quality?.value) || 90,
                     opt_ffmpeg_preset: data.opt_ffmpeg_preset?.value || 'ultrafast',
                     opt_pre_capture_fps_throttle: parseInt(data.opt_pre_capture_fps_throttle?.value) || 1,
@@ -602,23 +600,30 @@ export const Settings = () => {
                                         <td className="p-3 text-muted-foreground hidden sm:table-cell">
                                             {new Date(u.created_at).toLocaleDateString()}
                                         </td>
-                                        <td className="p-3 text-right flex justify-end gap-1">
-                                            <button
-                                                onClick={() => openPasswordModal(u)}
-                                                className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground rounded transition-colors"
-                                                title="Change Password"
-                                            >
-                                                <Key className="w-4 h-4" />
-                                            </button>
-                                            {u.id !== user.id && (
-                                                <button
-                                                    onClick={() => handleDeleteUser(u.id)}
-                                                    className="p-1.5 hover:bg-red-100 text-red-500 rounded transition-colors"
-                                                    title="Delete User"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            )}
+                                        <td className="p-3 text-right">
+                                            <div className="flex justify-end gap-1">
+                                                {u.id !== user.id && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => openPasswordModal(u)}
+                                                        className="h-8 border-dashed"
+                                                        title="Change Password"
+                                                    >
+                                                        <Key className="w-3.5 h-3.5 sm:mr-2" />
+                                                        <span className="hidden sm:inline">Change Password</span>
+                                                    </Button>
+                                                )}
+                                                {u.id !== user.id && (
+                                                    <button
+                                                        onClick={() => handleDeleteUser(u.id)}
+                                                        className="p-1.5 hover:bg-red-100 text-red-500 rounded transition-colors"
+                                                        title="Delete User"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -1467,6 +1472,68 @@ export const Settings = () => {
                     </div>
                 )
             }
+            {/* Password Change Modal */}
+            {pwdModalOpen && (
+                <div className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="relative bg-card border border-border rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+                        <div className="flex justify-between items-center mb-4 border-b border-border pb-4">
+                            <h3 className="text-xl font-bold flex items-center gap-2">
+                                <Key className="w-5 h-5 text-primary" />
+                                {pwdTargetUser ? `Change Password: ${pwdTargetUser.username}` : 'Change Password'}
+                            </h3>
+                            <button
+                                onClick={() => setPwdModalOpen(false)}
+                                className="text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handlePasswordUpdate} className="space-y-4">
+                            {/* Only show Old Password if changing own password */}
+                            {!pwdTargetUser && (
+                                <InputField
+                                    label="Current Password"
+                                    type="password"
+                                    value={pwdForm.old_password}
+                                    onChange={(val) => setPwdForm({ ...pwdForm, old_password: val })}
+                                    required
+                                />
+                            )}
+
+                            <InputField
+                                label="New Password"
+                                type="password"
+                                value={pwdForm.new_password}
+                                onChange={(val) => setPwdForm({ ...pwdForm, new_password: val })}
+                                required
+                            />
+
+                            <InputField
+                                label="Confirm New Password"
+                                type="password"
+                                value={pwdForm.confirm_password}
+                                onChange={(val) => setPwdForm({ ...pwdForm, confirm_password: val })}
+                                required
+                            />
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-border mt-6">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setPwdModalOpen(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button type="submit">
+                                    Update Password
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             <ConfirmModal
                 {...confirmConfig}
                 onCancel={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}

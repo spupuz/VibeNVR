@@ -104,7 +104,7 @@ def set_setting(db: Session, key: str, value: str, description: str = None):
     return setting
 
 @router.get("")
-def get_all_settings(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
+def get_all_settings(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Get all system settings"""
     settings = db.query(models.SystemSettings).all()
     return {s.key: {"value": s.value, "description": s.description} for s in settings}
@@ -112,6 +112,11 @@ def get_all_settings(db: Session = Depends(database.get_db), current_user: model
 @router.get("/{key}")
 def get_setting_by_key(key: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
     """Get a specific setting by key"""
+    if current_user.role != "admin":
+        safe_keys = ["default_landing_page", "telemetry_enabled", "instance_id"]
+        if key not in safe_keys:
+            raise HTTPException(status_code=403, detail="Not authorized to access this setting")
+            
     setting = db.query(models.SystemSettings).filter(models.SystemSettings.key == key).first()
     if not setting:
         # Fallback to DEFAULT_SETTINGS if available

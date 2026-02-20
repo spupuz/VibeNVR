@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 import crud, database, models
 
 import os
+import pyotp
 
 # Secret key for JWT (Should be in env var in production)
 SECRET_KEY = os.getenv("SECRET_KEY", "vibenvr-super-secret-key-change-me")
@@ -22,6 +23,18 @@ def verify_password(plain_password, hashed_password):
 
 def get_password_hash(password):
     return pwd_context.hash(password)
+
+def generate_totp_secret():
+    return pyotp.random_base32()
+
+def verify_totp(secret: str, code: str):
+    if not secret:
+        return False
+    totp = pyotp.TOTP(secret)
+    return totp.verify(code, valid_window=1)
+
+def get_totp_uri(secret: str, username: str):
+    return pyotp.TOTP(secret).provisioning_uri(name=username, issuer_name="VibeNVR")
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()

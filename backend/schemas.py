@@ -276,7 +276,15 @@ class Event(EventBase):
 class UserBase(BaseModel):
     username: str
     email: Optional[str] = None
-    role: str = "viewer"
+    role: Optional[str] = "viewer"
+    is_2fa_enabled: Optional[bool] = False
+
+class TOTPSetupResponse(BaseModel):
+    secret: str
+    otpauth_url: str
+
+class TOTPVerify(BaseModel):
+    code: str
 
 class UserCreate(UserBase):
     password: str
@@ -293,6 +301,7 @@ class User(UserBase):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    device_token: Optional[str] = None
 
 class TokenData(BaseModel):
     username: Optional[str] = None
@@ -367,6 +376,15 @@ class HomepageStats(BaseModel):
     storage_total_gb: float
     storage_percent: int
     uptime: str
+
+class TrustedDevice(BaseModel):
+    id: int
+    name: Optional[str] = None
+    last_used: datetime
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 
 

@@ -55,7 +55,7 @@ Always prioritize using standardized UI components located in `@/components/ui/`
 ### Layout & Feedback
 
 - **Section Headers**: Use `SectionHeader` for consistent grouping.
-- **Modals**: Use `Portal` and `ConfirmModal`.
+- **Modals**: Use `Portal` for custom overlays and `ConfirmModal` for all confirm/alert dialogs (Do NOT use native `window.confirm()` or `window.alert()`).
 - **Toast**: Use the `useToast` hook for user feedback.
 
 ## 🖋️ Typography
