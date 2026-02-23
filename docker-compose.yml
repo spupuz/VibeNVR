@@ -13,6 +13,8 @@ services:
       - vibe-network
     depends_on:
       - backend
+    restart: unless-stopped
+    init: true
     privileged: false # Set to true for Proxmox/OMV/LXC if you see permission errors
 
   backend:
@@ -22,12 +24,12 @@ services:
     container_name: vibenvr-backend
     privileged: false # Set to true for Proxmox/OMV/LXC if you see permission errors
     restart: unless-stopped
+    init: true
     ports:
       - "${VIBENVR_BACKEND_PORT:-5005}:5000"
     volumes:
       - ./backend:/app
       - ./frontend/package.json:/app/package.json
-      - ${VIBENVR_DATA:-vibenvr_data}:/data
       - ${VIBENVR_DATA:-vibenvr_data}:/data
 
     environment:
@@ -36,8 +38,16 @@ services:
       - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
       - WEBHOOK_SECRET=${WEBHOOK_SECRET:-vibe_secure_key_9823748923748923_change_in_prod}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
-    command: >
-      sh -c "mkdir -p /data/logs && chmod 777 /data/logs && touch /data/logs/backend.log && uvicorn main:app --host 0.0.0.0 --port 5000 2>&1 | tee -a /data/logs/backend.log"
+    entrypoint: [ "/bin/sh", "./entrypoint.sh" ]
+    stop_grace_period: 30s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.depends-on=engine,db"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - vibe-network
     # ─────────────────────────────────────────────────────────────────────────
@@ -63,6 +73,8 @@ services:
       context: ./engine
     container_name: vibenvr-engine
     restart: unless-stopped
+    init: true
+    shm_size: '512mb'
     ports:
       - "5001:8000"
     volumes:
@@ -89,8 +101,16 @@ services:
     #         - driver: nvidia
     #           count: 1
     #           capabilities: [gpu]
-    command: >
-      sh -c "mkdir -p /var/lib/vibe/recordings/logs && touch /var/lib/vibe/recordings/logs/engine.log && python3 -u main.py 2>&1 | grep --line-buffered -v 'SEI type 764' | tee -a /var/lib/vibe/recordings/logs/engine.log"
+    entrypoint: [ "/bin/sh", "./entrypoint.sh" ]
+    stop_grace_period: 30s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.depends-on=db"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     # Fix for Proxmox/pve kernel: socket.socketpair() Permission denied
     security_opt:
       - seccomp:unconfined
@@ -116,6 +136,8 @@ services:
   db:
     image: postgres:15-alpine
     container_name: vibenvr-db
+    restart: always
+    init: true
     # Fix for Proxmox/pve kernel: Unix socket Permission denied
     security_opt:
       - seccomp:unconfined
@@ -135,7 +157,11 @@ services:
       start_period: 30s
     networks:
       - vibe-network
-    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     # ─────────────────────────────────────────────────────────────────────────
     # TROUBLESHOOTING: Permission Errors on Proxmox/PVE Kernel, Synology, QNAP
     # ─────────────────────────────────────────────────────────────────────────

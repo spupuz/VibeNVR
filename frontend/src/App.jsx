@@ -13,6 +13,7 @@ import { Logs } from './pages/Logs';
 import { Profile } from './pages/Profile';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
+import { SystemInitializing } from './components/SystemInitializing';
 
 const ProtectedRoute = ({ children }) => {
     const { isAuthenticated, loading } = useAuth();
@@ -23,7 +24,7 @@ const ProtectedRoute = ({ children }) => {
 function AppContent() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { isAuthenticated, loading, token } = useAuth();
+    const { isAuthenticated, loading, token, isBackendReady } = useAuth();
 
     // Theme logic
     const [theme, setTheme] = useState(() => {
@@ -103,6 +104,10 @@ function AppContent() {
     };
 
     if (loading) return <div className="flex items-center justify-center h-screen bg-background"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+
+    if (!isBackendReady) {
+        return <SystemInitializing />;
+    }
 
     return (
         <Routes>

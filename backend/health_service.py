@@ -50,8 +50,8 @@ async def check_camera_health():
     
     while True:
         try:
-            # wait 30 seconds between checks
-            await asyncio.sleep(30)
+            # fast interval for quick recovery after engine restart
+            await asyncio.sleep(10)
             
             async with httpx.AsyncClient(timeout=5.0) as client:
                 try:
@@ -61,8 +61,41 @@ async def check_camera_health():
                         continue
                         
                     engine_status = response.json()
+                    
+                    # AUTO-RECOVERY: If engine is reachable but has NO cameras, 
+                    # yet we have active cameras in DB, trigger a re-sync.
+                    # This happens if the Engine container was restarted.
+                    if not engine_status:
+                        import motion_service
+                        from models import Camera
+                        # Use same lock as main.py to prevent redundant syncs
+                        if motion_service.sync_lock.acquire(blocking=False):
+                            try:
+                                with database.get_db_ctx() as db:
+                                    active_cams_count = db.query(Camera).filter(Camera.is_active == True).count()
+                                    if active_cams_count > 0:
+                                        logger.info(f"Health check: Engine is empty but {active_cams_count} cameras should be active. Triggering automatic camera re-sync...")
+                                        
+                                        def run_sync():
+                                            try:
+                                                with database.get_db_ctx() as db_inner:
+                                                    motion_service.generate_motion_config(db_inner)
+                                            except Exception as sync_e:
+                                                logger.error(f"Health check: Background re-sync failed: {sync_e}")
+
+                                        import threading
+                                        threading.Thread(target=run_sync, daemon=True).start()
+                                        
+                                        # Skip immediate engine_status update since sync is async
+                                        # The next loop iteration will pick up the results
+                            finally:
+                                motion_service.sync_lock.release()
+                        else:
+                            # If sync is already happening, just wait for next iteration
+                            pass
                 except Exception as e:
-                    logger.error(f"Health check: Failed to connect to Engine: {e}")
+                    # Use warning for expected connectivity issues during restarts
+                    logger.warning(f"Health check: Cannot reach Engine (VibeEngine might be starting or stopped)")
                     continue
 
                 with database.get_db_ctx() as db:
