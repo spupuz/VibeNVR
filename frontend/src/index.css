@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/**
+ * Note: If your editor shows "Unknown at rule @apply", this is because standard CSS 
+ * does not recognize Tailwind directives. This does NOT affect the build.
+ * In VS Code, you can fix this by installing the "Tailwind CSS IntelliSense" extension
+ * or setting "css.lint.unknownAtRules": "ignore" in your settings.
+ */
+
 /* 
   VibeNVR Design System Tokens
   Colors are defined using HSL variables for easy manipulation and dark mode support.
