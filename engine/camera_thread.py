@@ -22,13 +22,7 @@ class StreamReader(threading.Thread):
         super().__init__(daemon=True)
         self.camera_id = camera_id
         self.camera_id = camera_id
-        # Sanitize URL: replace // with / in path, but preserve rtsp://
-        # Split by protocol to be safe
-        if "://" in url:
-            proto, rest = url.split("://", 1)
-            self.url = f"{proto}://{rest.replace('//', '/')}"
-        else:
-            self.url = url.replace("//", "/")
+        self.url = url
         self.camera_name = camera_name
         self.event_callback = event_callback
         self.latest_frame = None

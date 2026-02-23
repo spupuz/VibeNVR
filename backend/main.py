@@ -1,5 +1,4 @@
 import os
-from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 from routers import cameras, events, stats, settings, auth, users, groups, logs, homepage, api_tokens
@@ -8,6 +7,12 @@ import storage_service
 import motion_service
 import database
 import auth_service
+import requests
+from fastapi import FastAPI, BackgroundTasks, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
+from models import Camera # Fixed missing import
 
 import logging
 import re
@@ -100,7 +105,8 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"Log setup warning: {e}")
 
-    for i in range(15):
+    retry_count = 0
+    while True:
         try:
             Base.metadata.create_all(bind=engine)
             print("Database connection established.")
@@ -119,7 +125,8 @@ async def lifespan(app: FastAPI):
                 
             break
         except Exception as e:
-            print(f"Waiting for Database ({i+1}/15)...")
+            retry_count += 1
+            print(f"Waiting for Database (Attempt {retry_count})...")
             time.sleep(2)
 
     # Start background tasks
@@ -179,6 +186,26 @@ app.add_middleware(
     expose_headers=["Content-Disposition"],
 )
 
+@app.exception_handler(OperationalError)
+async def database_exception_handler(request: Request, exc: OperationalError):
+    import logging
+    logger = logging.getLogger("uvicorn.error")
+    logger.error(f"Database Connectivity Error: {exc}")
+    
+    return JSONResponse(
+        status_code=503,
+        content={
+            "status": "error",
+            "message": "Database connection lost or unavailable.",
+            "detail": "Connection to the database failed. This usually happens during database maintenance or container restarts.",
+            "components": {
+                "database": "lost",
+                "engine": "unknown", # Backend can't check engine status without DB (often) or it's unknown in this context
+                "backend": "ok"
+            }
+        }
+    )
+
 app.include_router(cameras.router)
 app.include_router(events.router)
 app.include_router(stats.router)
@@ -218,6 +245,61 @@ async def get_secure_media(file_path: str, token: str):
 def read_root():
     return {"message": "Welcome to VibeNVR API"}
 
+# Removed local lock, moving to motion_service.py
+
 @app.get("/health")
-def health_check():
-    return {"status": "ok"}
+async def health_check(background_tasks: BackgroundTasks):
+    health_status = {"status": "ok", "components": {}}
+    is_healthy = True
+
+    # 1. Check Database
+    try:
+        with database.get_db_ctx() as db:
+            db.execute(text("SELECT 1"))
+        health_status["components"]["database"] = "ok"
+    except Exception as e:
+        health_status["components"]["database"] = f"error: {str(e)}"
+        is_healthy = False
+
+    # 2. Check Engine
+    try:
+        # We use the stats endpoint as a lightweight ping
+        resp = requests.get("http://engine:8000/stats", timeout=2)
+        if resp.status_code == 200:
+            engine_data = resp.json()
+            health_status["components"]["engine"] = "ok"
+            
+            # PROACTIVE SYNC: If engine is alive but has 0 active cameras,
+            # and we have active cameras in DB, trigger a re-sync.
+            if engine_data.get("active_cameras") == 0:
+                 with database.get_db_ctx() as db:
+                     active_cams_count = db.query(Camera).filter(Camera.is_active == True).count()
+                     if active_cams_count > 0:
+                         # Use a lock to prevent spawning dozens of sync threads if health is polled rapidly
+                         if motion_service.sync_lock.acquire(blocking=False):
+                             print("Health check: Engine is empty. Triggering proactive re-sync...", flush=True)
+                             
+                             def do_sync():
+                                 try:
+                                     with database.get_db_ctx() as db_inner:
+                                         motion_service.generate_motion_config(db_inner)
+                                 finally:
+                                     motion_service.sync_lock.release()
+                                     
+                             background_tasks.add_task(do_sync)
+        else:
+            health_status["components"]["engine"] = f"error: status_code {resp.status_code}"
+            is_healthy = False
+    except Exception as e:
+        health_status["components"]["engine"] = f"unreachable"
+        # Only log connectivity errors as warnings to avoid cluttering logs during restarts
+        import logging
+        logger = logging.getLogger("uvicorn.error")
+        logger.warning(f"Health check: Engine is unreachable at {resp.url if 'resp' in locals() else 'http://engine:8000'}")
+        is_healthy = False
+
+    if not is_healthy:
+        health_status["status"] = "error"
+        return JSONResponse(status_code=503, content=health_status)
+
+    return health_status

@@ -36,6 +36,4 @@ frontend/.env
 .docker/
 
 # VibeNVR Specific
-# We keep webhook.sh as it is source code
-WIKI_LOCAL_RECOVERY.md
-WIKI_HOME.md
+local_wiki/

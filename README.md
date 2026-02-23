@@ -11,6 +11,8 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 
 > **Project Status**: This is a **Vibe Coding Project**. Extensive testing has been performed to ensure stability, but we are always **open to new help** and contributions from the community!
 > 
+> ⚠️ **IMPORTANT**: When updating, always check the **[Release Notes](https://github.com/spupuz/VibeNVR/releases)** and ensure your `docker-compose.prod.yml` and `.env` are synchronized with the latest version.
+> 
 > **Language Policy**: Please note that **English is the official and only supported language** of this project. All code, user interface elements, commit messages, issues, and documentation (including wikis) must be written strictly in English to maintain consistency and accessibility for the global community.
 
 ---
@@ -120,6 +122,18 @@ Your privacy is paramount. You can disable telemetry at any time:
 3.  **Start the service**:
     ```bash
     docker compose -f docker-compose.prod.yml up -d
+    ```
+
+### 🔄 Updating VibeNVR
+When a new version is released:
+1.  **Pull the latest repository changes**:
+    ```bash
+    git pull
+    ```
+2.  **Check for Configuration Changes**: ⚠️ Always review the **Release Notes** and check if `docker-compose.prod.yml` or your `.env` file requires updates.
+3.  **Rebuild and Restart**:
+    ```bash
+    docker compose -f docker-compose.prod.yml up -d --pull always
     ```
 
 ---

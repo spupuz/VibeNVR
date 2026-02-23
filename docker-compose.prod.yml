@@ -14,6 +14,7 @@ services:
     depends_on:
       - backend
     restart: always
+    init: true
     privileged: false # Set to true for Proxmox/OMV/LXC if you see permission errors
 
   backend:
@@ -38,8 +39,17 @@ services:
       engine:
         condition: service_started
     restart: always
-    command: >
-      sh -c "mkdir -p /data/logs && chmod 777 /data/logs && touch /data/logs/backend.log && uvicorn main:app --host 0.0.0.0 --port 5000 2>&1 | tee -a /data/logs/backend.log"
+    init: true
+    entrypoint: [ "/bin/sh", "./entrypoint.sh" ]
+    stop_grace_period: 30s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.depends-on=engine,db"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - vibe-network
     # ─────────────────────────────────────────────────────────────────────────
@@ -86,8 +96,18 @@ services:
     #           count: 1
     #           capabilities: [gpu]
     restart: always
-    command: >
-      sh -c "mkdir -p /var/lib/vibe/recordings/logs && touch /var/lib/vibe/recordings/logs/engine.log && python3 -u main.py 2>&1 | grep --line-buffered -v 'SEI type 764' | tee -a /var/lib/vibe/recordings/logs/engine.log"
+    init: true
+    shm_size: '512mb'
+    entrypoint: [ "/bin/sh", "./entrypoint.sh" ]
+    stop_grace_period: 30s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.depends-on=db"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     # Fix for Proxmox/pve kernel: socket.socketpair() Permission denied
     security_opt:
       - seccomp:unconfined
@@ -113,6 +133,8 @@ services:
   db:
     image: postgres:15-alpine
     container_name: vibenvr-db
+    restart: always
+    init: true
     # Fix for Proxmox/pve kernel: Unix socket Permission denied
     security_opt:
       - seccomp:unconfined
@@ -132,7 +154,11 @@ services:
       start_period: 30s
     networks:
       - vibe-network
-    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     # ─────────────────────────────────────────────────────────────────────────
     # TROUBLESHOOTING: Permission Errors on Proxmox/PVE Kernel, Synology, QNAP
     # ─────────────────────────────────────────────────────────────────────────

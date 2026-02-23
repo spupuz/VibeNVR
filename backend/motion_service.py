@@ -10,6 +10,9 @@ from models import Camera, SystemSettings
 # VibeEngine Control URL
 ENGINE_BASE_URL = "http://engine:8000"
 
+# Global lock for camera synchronization
+sync_lock = threading.Lock()
+
 def get_optimization_settings(db: Session) -> dict:
     """Read optimization settings from DB with defaults (if not initialized yet)"""
     # Defaults must match routers/settings.py
@@ -93,17 +96,15 @@ def generate_motion_config(db: Session):
     
     # Check for engine availability
     import time
-    max_retries = 5
-    for i in range(max_retries):
+    retry_count = 0
+    while True:
         try:
             # Check if engine is alive first
             requests.get(f"{ENGINE_BASE_URL}/", timeout=2)
             break
         except:
-            if i == max_retries - 1:
-                print("VibeEngine not reachable after multiple retries. Cameras will not start automatically.")
-                return
-            print(f"Waiting for VibeEngine... (Retry {i+1}/{max_retries})")
+            retry_count += 1
+            print(f"Waiting for VibeEngine... (Attempt {retry_count})", flush=True)
             time.sleep(5)
 
     # Sync global config first
@@ -130,7 +131,9 @@ def generate_motion_config(db: Session):
     # 2. Stop inactive cameras that might still be running in the engine
     # Fetch ALL cameras to find those that are i-active
     all_cams = db.query(Camera).all()
+    print(f"Sync check: Found {len(all_cams)} total cameras in DB", flush=True)
     for cam in all_cams:
+        print(f"Sync check: Camera {cam.id} ({cam.name}) is_active={cam.is_active}", flush=True)
         if not cam.is_active:
              # Try to stop it just in case
              stop_camera(cam.id)

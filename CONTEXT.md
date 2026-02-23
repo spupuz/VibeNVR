@@ -22,6 +22,7 @@
 3. **RBAC**: Remember that `admin` (full access) and `viewer` (read-only) roles exist. Always verify permissions for destructive or configuration actions.
 4. **Security & Vulnerabilities**: **CRITICAL**. Review and adhere to `SECURITY.md`. Always verify that code changes do not introduce security vulnerabilities (e.g., IDOR, Injection, Unprotected Endpoints). Proactively sanitize inputs and verify user roles for every sensitive API or Action.
 5. **Data Masking & Privacy**: Logs, telemetry, and debugging outputs MUST ALWAYS be filtered to exclude sensitive data (passwords, tokens, credentials in RTSP URLs). Use existing filters (`TokenRedactingFilter` in `main.py`) or implement new ones as needed.
+6. **Log Rotation**: **CRITICAL**. Ensure all log outputs (Docker logs and file logs) are subject to rotation and size limits to prevent host disk exhaustion.
 
 ## 🏷️ Versioning Strategy
 
