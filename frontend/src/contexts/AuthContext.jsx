@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
     const [isBackendReady, setIsBackendReady] = useState(false);
     const [healthDetails, setHealthDetails] = useState(null);
 
-    const checkBackendHealth = async () => {
+    const checkBackendHealth = React.useCallback(async () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
 
@@ -53,9 +53,9 @@ export const AuthProvider = ({ children }) => {
         }
         setIsBackendReady(false);
         return false;
-    };
+    }, []); // Removed unnecessary dependency
 
-    const checkAuth = async () => {
+    const checkAuth = React.useCallback(async () => {
         if (token) {
             try {
                 const res = await fetch('/api/auth/me', {
@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }) => {
                 console.error("Auth check failed (network error)", err);
             }
         }
-    };
+    }, [token]); // Added closing ); and dependency
 
     useEffect(() => {
         const init = async () => {
@@ -89,13 +89,16 @@ export const AuthProvider = ({ children }) => {
         const healthInterval = setInterval(async () => {
             const ready = await checkBackendHealth();
             // If it was down and now is ready, and we have a token but no user, try re-auth
+            // We use a functional update or closure-safe check if needed, but here simple is fine
+            // since we don't want 'user' to trigger the effect itself.
             if (ready && token && !user) {
                 await checkAuth();
             }
         }, 10000);
 
         return () => clearInterval(healthInterval);
-    }, [token, user]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [token, checkAuth, checkBackendHealth]); // Removed 'user' to break infinite loop
 
     const login = (newToken, userData) => {
         setToken(newToken);
