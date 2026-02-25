@@ -214,10 +214,10 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                                 <td className="p-3 text-right">
                                     <button
                                         onClick={() => setConfirmDelete({ isOpen: true, tokenId: t.id })}
-                                        className="p-1.5 hover:bg-red-100 text-red-500 rounded transition-colors"
+                                        className="p-2 hover:bg-red-100 text-red-500 rounded-lg transition-colors"
                                         title="Revoke Token"
                                     >
-                                        <Trash2 className="w-4 h-4" />
+                                        <Trash2 className="w-5 h-5" />
                                     </button>
                                 </td>
                             </tr>

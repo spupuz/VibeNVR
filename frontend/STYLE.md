@@ -45,6 +45,10 @@ Always prioritize using standardized UI components located in `@/components/ui/`
   - `destructive`: Dangerous actions (Delete, Remove).
   - `secondary`: Alternative to default, often lighter background. Use sparingly if `outline` or `ghost` fits better.
   - Sizes: `default`, `sm`, `lg`, `icon`.
+- **Action Icons in Tables/Lists**: For individual actions on rows (like edit, delete, password reset):
+  - Do **NOT** use the full `<Button>` component to avoid overly aggressive padding and borders.
+  - Use native `<button>` elements with this exact class structure: `className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"`.
+  - Icon sizes within these buttons must be strictly `w-5 h-5` to ensure perfect visibility.
 - **Inputs**: Use `InputField`.
   - Supports: `label`, `error`, `icon`, `unit`, `showPasswordToggle`.
 - **Selects**: Use `SelectField`.
