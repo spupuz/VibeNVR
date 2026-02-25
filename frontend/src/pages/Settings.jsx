@@ -513,13 +513,7 @@ export const Settings = () => {
                     isOpen={openSection === 'users'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
-                        <div className="flex items-center space-x-3">
-                            <div>
-                                <h3 className="font-semibold text-lg">User Management</h3>
-                                <p className="text-sm text-muted-foreground">Manage system access and roles</p>
-                            </div>
-                        </div>
+                    <div className="flex justify-end mb-4">
                         <Button
                             variant={isCreatingUser ? "ghost" : "default"}
                             size="sm"
@@ -572,7 +566,78 @@ export const Settings = () => {
                         </form>
                     )}
 
-                    <div className="rounded-lg border border-border overflow-x-auto mt-4 w-full">
+                    {/* Mobile: User Cards (Zero Horizontal Scroll) */}
+                    <div className="grid grid-cols-1 gap-3 sm:hidden mt-4">
+                        {users.map(u => (
+                            <div key={u.id} className="p-4 bg-muted/10 border border-border/50 rounded-xl space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <Avatar user={u} size="xs" />
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-sm truncate">{u.username}</p>
+                                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wider ${u.role === 'admin' ? 'bg-purple-100/10 text-purple-500 border border-purple-500/20' : 'bg-gray-100/10 text-gray-500 border border-gray-500/20'}`}>
+                                                {u.role}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {u.id === user.id && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold uppercase">You</span>}
+                                </div>
+                                <div className="flex justify-end gap-2 pt-3 border-t border-border/30">
+                                    <Button
+                                        size="xs"
+                                        variant="outline"
+                                        className="h-8 px-3 text-[11px] font-bold"
+                                        onClick={() => {
+                                            setPwdTargetUser(u);
+                                            setPwdModalOpen(true);
+                                        }}
+                                    >
+                                        <Key className="w-3.5 h-3.5 mr-1.5" />
+                                        PWD
+                                    </Button>
+                                    {u.id !== user.id && (
+                                        <Button
+                                            size="xs"
+                                            variant="destructive"
+                                            className="h-8 px-3 text-[11px] font-bold"
+                                            onClick={() => {
+                                                setConfirmConfig({
+                                                    isOpen: true,
+                                                    title: 'Delete User',
+                                                    message: `Are you sure you want to delete user "${u.username}"? This action cannot be undone.`,
+                                                    onConfirm: async () => {
+                                                        try {
+                                                            const res = await fetch(`/api/users/${u.id}`, {
+                                                                method: 'DELETE',
+                                                                headers: { Authorization: `Bearer ${token}` }
+                                                            });
+                                                            if (res.ok) {
+                                                                showToast('User deleted successfully', 'success');
+                                                                fetchUsers();
+                                                            } else {
+                                                                const data = await res.json();
+                                                                showToast('Failed: ' + data.detail, 'error');
+                                                            }
+                                                        } catch (err) {
+                                                            showToast('Error: ' + err.message, 'error');
+                                                        }
+                                                        setConfirmConfig({ isOpen: false });
+                                                    },
+                                                    onCancel: () => setConfirmConfig({ isOpen: false })
+                                                });
+                                            }}
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                            DEL
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Desktop: User Table */}
+                    <div className="hidden sm:block rounded-lg border border-border overflow-hidden mt-4 w-full">
                         <table className="w-full text-sm">
                             <thead className="bg-muted/40 text-left">
                                 <tr>
@@ -602,26 +667,53 @@ export const Settings = () => {
                                         </td>
                                         <td className="p-3 text-right">
                                             <div className="flex justify-end gap-1">
+                                                <Button
+                                                    size="xs"
+                                                    variant="outline"
+                                                    className="h-8 w-8 p-0"
+                                                    onClick={() => {
+                                                        setPwdTargetUser(u);
+                                                        setPwdModalOpen(true);
+                                                    }}
+                                                    title="Change Password"
+                                                >
+                                                    <Key className="w-4 h-4" />
+                                                </Button>
                                                 {u.id !== user.id && (
                                                     <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => openPasswordModal(u)}
-                                                        className="h-8 border-dashed"
-                                                        title="Change Password"
-                                                    >
-                                                        <Key className="w-3.5 h-3.5 sm:mr-2" />
-                                                        <span className="hidden sm:inline">Change Password</span>
-                                                    </Button>
-                                                )}
-                                                {u.id !== user.id && (
-                                                    <button
-                                                        onClick={() => handleDeleteUser(u.id)}
-                                                        className="p-1.5 hover:bg-red-100 text-red-500 rounded transition-colors"
+                                                        size="xs"
+                                                        variant="destructive"
+                                                        className="h-8 w-8 p-0"
+                                                        onClick={() => {
+                                                            setConfirmConfig({
+                                                                isOpen: true,
+                                                                title: 'Delete User',
+                                                                message: `Are you sure you want to delete user "${u.username}"? This action cannot be undone.`,
+                                                                onConfirm: async () => {
+                                                                    try {
+                                                                        const res = await fetch(`/api/users/${u.id}`, {
+                                                                            method: 'DELETE',
+                                                                            headers: { Authorization: `Bearer ${token}` }
+                                                                        });
+                                                                        if (res.ok) {
+                                                                            showToast('User deleted successfully', 'success');
+                                                                            fetchUsers();
+                                                                        } else {
+                                                                            const data = await res.json();
+                                                                            showToast('Failed: ' + data.detail, 'error');
+                                                                        }
+                                                                    } catch (err) {
+                                                                        showToast('Error: ' + err.message, 'error');
+                                                                    }
+                                                                    setConfirmConfig({ isOpen: false });
+                                                                },
+                                                                onCancel: () => setConfirmConfig({ isOpen: false })
+                                                            });
+                                                        }}
                                                         title="Delete User"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
-                                                    </button>
+                                                    </Button>
                                                 )}
                                             </div>
                                         </td>
@@ -655,12 +747,6 @@ export const Settings = () => {
                     isOpen={openSection === 'storage'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex items-center space-x-3 pb-4 border-b border-border sm:hidden">
-                        <div className="min-w-0 flex-1">
-                            <h3 className="font-semibold text-lg leading-tight">Storage Management</h3>
-                            <p className="text-sm text-muted-foreground mt-1">Control disk space usage for recordings</p>
-                        </div>
-                    </div>
 
                     <div className="space-y-4">
                         {/* Storage Occupation Display */}
@@ -799,36 +885,47 @@ export const Settings = () => {
                     isOpen={openSection === 'privacy'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex items-center space-x-3 pb-4 border-b border-border sm:hidden">
-                        <div className="min-w-0 flex-1">
-                            <h3 className="font-semibold text-lg">Privacy & Analytics</h3>
-                            <p className="text-sm text-muted-foreground mt-1">Manage how anonymous data is collected</p>
-                        </div>
-                    </div>
 
                     <div className="space-y-6 pt-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="md:col-span-1 space-y-4">
+                            <div className="md:col-span-1 space-y-4 bg-muted/10 p-4 rounded-xl border border-border/50">
                                 <Toggle
                                     label="Enable Anonymous Telemetry"
                                     checked={globalSettings.telemetry_enabled}
                                     onChange={(val) => setGlobalSettings({ ...globalSettings, telemetry_enabled: val })}
                                 />
-                                <p className="text-[10px] text-muted-foreground">Default: On — helps the development team.</p>
+                                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                                    Helping the development team improve VibeNVR by sharing anonymous usage statistics. No sensitive data is ever collected.
+                                </p>
 
                                 {globalSettings.telemetry_enabled && (
-                                    <div className="pt-2 border-t border-border">
+                                    <div className="pt-4 border-t border-border/50 flex flex-col gap-2">
                                         <Button
                                             size="sm"
                                             variant="outline"
                                             onClick={handleManualTelemetry}
                                             disabled={isReportingTelemetry}
+                                            className="w-full justify-center"
                                         >
                                             <Send className="w-4 h-4 mr-2" />
                                             {isReportingTelemetry ? 'Sending...' : 'Send Report Now'}
                                         </Button>
-                                        <p className="text-[10px] text-muted-foreground mt-1">
-                                            Manually trigger a telemetry report for testing.
+                                        <a
+                                            href="https://vibenvr-telemetry.spupuz.workers.dev/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center justify-center gap-2 p-3 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-all duration-200 group no-underline"
+                                        >
+                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                <LayoutDashboard className="w-4 h-4" />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-[10px] font-bold uppercase tracking-wider leading-none mb-1">Public Analytics</p>
+                                                <p className="text-[9px] text-muted-foreground leading-tight">View global usage stats</p>
+                                            </div>
+                                        </a>
+                                        <p className="text-[9px] text-muted-foreground text-center px-2">
+                                            Manually trigger a report for testing or view global anonymous statistics.
                                         </p>
                                     </div>
                                 )}
@@ -837,64 +934,103 @@ export const Settings = () => {
                             <div className="md:col-span-2 space-y-4">
                                 {/* Data Table */}
                                 <div>
-                                    <h4 className="text-sm font-semibold mb-2">Data sent (anonymous, no personal info)</h4>
-                                    <div className="rounded-lg border border-border overflow-hidden text-xs">
+                                    <h4 className="text-sm font-semibold mb-3 mt-4">Data sent (anonymous)</h4>
+
+                                    {/* Mobile: Vertical Stacked Cards (Zero Horizontal Scroll) */}
+                                    <div className="grid grid-cols-1 sm:hidden gap-3 px-1">
+                                        {[
+                                            { field: 'instance_id', example: 'a1b2c3-...', note: 'Random UUID generated at boot' },
+                                            { field: 'version', example: '1.19.1', note: 'Installed VibeNVR version' },
+                                            { field: 'os', example: 'Linux', note: 'Operating system type' },
+                                            { field: 'arch', example: 'x86_64', note: 'CPU architecture' },
+                                            { field: 'cpu', example: '8', note: 'Logical CPU cores' },
+                                            { field: 'cpu_model', example: 'Intel Core...', note: 'Processor commercial name' },
+                                            { field: 'ram', example: '32', note: 'Total system RAM GB' },
+                                            { field: 'gpu', example: 'True/False', note: 'HW acceleration status' },
+                                            { field: 'cameras', example: '4', note: 'Total cameras configured' },
+                                            { field: 'groups', example: '2', note: 'Total camera groups' },
+                                            { field: 'events', example: '1400', note: 'Recorded events in DB' },
+                                            { field: 'notifications', example: 'True/False', note: 'Notification status' },
+                                            { field: 'country', example: 'IT', note: 'Added by Cloudflare' },
+                                        ].map(row => (
+                                            <div key={row.field} className="p-3 bg-muted/20 border border-border/50 rounded-xl flex flex-col gap-2">
+                                                <div className="flex justify-between items-start">
+                                                    <span className="font-mono text-[10px] text-primary/80 font-bold uppercase tracking-wider">{row.field}</span>
+                                                    <span className="text-xs font-medium">{row.example}</span>
+                                                </div>
+                                                <p className="text-[10px] text-muted-foreground leading-relaxed border-t border-border/30 pt-2 opacity-80">
+                                                    {row.note}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Desktop: Standard Table */}
+                                    <div className="hidden sm:block rounded-xl border border-border overflow-hidden text-xs">
                                         <table className="w-full">
                                             <thead className="bg-muted/40 text-left">
                                                 <tr>
-                                                    <th className="p-2 font-medium text-muted-foreground w-1/3">Field</th>
-                                                    <th className="p-2 font-medium text-muted-foreground">Example</th>
-                                                    <th className="p-2 font-medium text-muted-foreground hidden sm:table-cell">Notes</th>
+                                                    <th className="p-3 font-medium text-muted-foreground w-1/3">Field</th>
+                                                    <th className="p-3 font-medium text-muted-foreground">Example</th>
+                                                    <th className="p-3 font-medium text-muted-foreground">Notes</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-border">
                                                 {[
-                                                    { field: 'instance_id', example: 'a1b2c3-...', note: 'Random UUID, generated once at first boot' },
+                                                    { field: 'instance_id', example: 'a1b2c3-...', note: 'Random UUID generated at boot' },
                                                     { field: 'version', example: '1.19.1', note: 'Installed VibeNVR version' },
                                                     { field: 'os', example: 'Linux', note: 'Operating system type' },
-                                                    { field: 'arch', example: 'x86_64', note: 'CPU architecture (x86_64, aarch64...)' },
-                                                    { field: 'cpu', example: '8', note: 'Number of logical CPU cores' },
-                                                    { field: 'cpu_model', example: 'Intel Core i7-...', note: 'Processor commercial name' },
-                                                    { field: 'ram', example: '32', note: 'Total system RAM in GB (rounded)' },
-                                                    { field: 'gpu', example: 'True/False', note: 'Whether HW acceleration is enabled' },
-                                                    { field: 'cameras', example: '4', note: 'Total number of cameras configured' },
-                                                    { field: 'groups', example: '2', note: 'Total number of camera groups' },
-                                                    { field: 'events', example: '1400', note: 'Total DB count of recorded events' },
-                                                    { field: 'notifications', example: 'True/False', note: 'Whether any notification is configured' },
-                                                    { field: 'country', example: 'IT', note: 'Added by Cloudflare — no IP is ever stored' },
+                                                    { field: 'arch', example: 'x86_64', note: 'CPU architecture' },
+                                                    { field: 'cpu', example: '8', note: 'Logical CPU cores' },
+                                                    { field: 'cpu_model', example: 'Intel Core...', note: 'Processor commercial name' },
+                                                    { field: 'ram', example: '32', note: 'Total system RAM GB' },
+                                                    { field: 'gpu', example: 'True/False', note: 'HW acceleration status' },
+                                                    { field: 'cameras', example: '4', note: 'Total cameras configured' },
+                                                    { field: 'groups', example: '2', note: 'Total camera groups' },
+                                                    { field: 'events', example: '1400', note: 'Recorded events in DB' },
+                                                    { field: 'notifications', example: 'True/False', note: 'Notification status' },
+                                                    { field: 'country', example: 'IT', note: 'Added by Cloudflare' },
                                                 ].map(row => (
                                                     <tr key={row.field} className="hover:bg-muted/10">
-                                                        <td className="p-2 font-mono text-primary/80">{row.field}</td>
-                                                        <td className="p-2 text-muted-foreground">{row.example}</td>
-                                                        <td className="p-2 text-muted-foreground hidden sm:table-cell">{row.note}</td>
+                                                        <td className="p-3 font-mono text-primary/80">{row.field}</td>
+                                                        <td className="p-3 text-muted-foreground">{row.example}</td>
+                                                        <td className="p-3 text-muted-foreground">{row.note}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
                                         </table>
                                     </div>
-                                    <p className="text-[10px] text-muted-foreground mt-2 font-medium">
+                                    <p className="text-[10px] text-muted-foreground mt-3 font-medium">
                                         No IP addresses, camera names, stream URLs, usernames, or passwords are ever collected.
                                     </p>
                                 </div>
 
                                 {/* Endpoints */}
                                 <div>
-                                    <h4 className="text-sm font-semibold mb-2">Destinations</h4>
-                                    <div className="space-y-2">
-                                        <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-muted/20">
-                                            <span className="mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 shrink-0">PRIMARY</span>
+                                    <h4 className="text-sm font-semibold mb-3">Destinations</h4>
+                                    <div className="space-y-3">
+                                        <div className="flex flex-col sm:flex-row sm:items-start gap-3 p-4 rounded-xl border border-border bg-muted/20 shadow-sm">
+                                            <div className="flex items-center justify-between sm:block">
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-500/20 text-green-500 dark:text-green-400 shrink-0">PRIMARY</span>
+                                            </div>
                                             <div className="min-w-0">
-                                                <p className="text-xs font-semibold">Cloudflare Analytics Engine</p>
-                                                <p className="text-[10px] text-muted-foreground mt-0.5 break-all">vibenvr-telemetry.spupuz.workers.dev</p>
-                                                <p className="text-[10px] text-muted-foreground mt-1">Fully anonymous — IP is processed by Cloudflare edge and discarded, only the country code is stored.</p>
+                                                <p className="text-sm font-semibold">Cloudflare Analytics Engine</p>
+                                                <p className="text-xs text-muted-foreground mt-0.5 break-all font-mono opacity-80">vibenvr-telemetry.spupuz.workers.dev</p>
+                                                <p className="text-[11px] text-muted-foreground/90 mt-2 leading-relaxed">
+                                                    Fully anonymous — IP is processed by Cloudflare edge and discarded, only the country code is stored.
+                                                </p>
                                             </div>
                                         </div>
-                                        <div className="flex items-start gap-3 p-3 rounded-lg border border-border/50 bg-muted/10 opacity-60">
-                                            <span className="mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 shrink-0 whitespace-nowrap">DEPRECATED</span>
+                                        <div className="flex flex-col sm:flex-row sm:items-start gap-3 p-4 rounded-xl border border-border/50 bg-muted/10 opacity-70">
+                                            <div className="flex items-center justify-between sm:block">
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-500 dark:text-amber-400 shrink-0 whitespace-nowrap">DEPRECATED</span>
+                                            </div>
                                             <div className="min-w-0">
-                                                <p className="text-xs font-semibold">Scarf.sh pixel</p>
-                                                <p className="text-[10px] text-muted-foreground mt-0.5 break-all">static.scarf.sh</p>
-                                                <p className="text-[10px] text-muted-foreground mt-1">Still active for continuity. Will be removed in a future release in favour of Cloudflare Analytics.</p>
+                                                <p className="text-sm font-semibold opacity-80">Scarf.sh pixel</p>
+                                                <p className="text-xs text-muted-foreground mt-0.5 break-all font-mono opacity-60">static.scarf.sh</p>
+                                                <p className="text-[11px] text-muted-foreground/80 mt-2 leading-relaxed">
+                                                    Still active for continuity. Will be removed in a future release in favour of Cloudflare Analytics.
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
@@ -915,12 +1051,6 @@ export const Settings = () => {
                     isOpen={openSection === 'liveview'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex items-center space-x-3 pb-4 border-b border-border sm:hidden">
-                        <div className="min-w-0 flex-1">
-                            <h3 className="font-semibold text-lg">Live View Layout</h3>
-                            <p className="text-sm text-muted-foreground mt-1">Customize how cameras are displayed</p>
-                        </div>
-                    </div>
 
                     <div className="space-y-4">
                         <SelectField
@@ -951,12 +1081,6 @@ export const Settings = () => {
                     isOpen={openSection === 'general'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex items-center space-x-3 pb-4 border-b border-border sm:hidden">
-                        <div className="min-w-0 flex-1">
-                            <h3 className="font-semibold text-lg">General Preferences</h3>
-                            <p className="text-sm text-muted-foreground mt-1">Configure global application defaults</p>
-                        </div>
-                    </div>
 
                     <div className="max-w-xs">
                         <SelectField
@@ -984,12 +1108,6 @@ export const Settings = () => {
                     isOpen={openSection === 'notifications'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex items-center space-x-3 pb-4 border-b border-border sm:hidden">
-                        <div className="min-w-0 flex-1">
-                            <h3 className="font-semibold text-lg">Notification Settings</h3>
-                            <p className="text-sm text-muted-foreground mt-1">Configure global Email and Telegram credentials</p>
-                        </div>
-                    </div>
 
                     <div className="space-y-6">
                         {/* SMTP Section */}
@@ -1140,12 +1258,6 @@ export const Settings = () => {
                     isOpen={openSection === 'maintenance'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex items-center space-x-3 pb-4 border-b border-border sm:hidden">
-                        <div className="min-w-0 flex-1">
-                            <h3 className="font-semibold text-lg">Maintenance</h3>
-                            <p className="text-sm text-muted-foreground mt-1">Manual system maintenance tasks</p>
-                        </div>
-                    </div>
                     <div className="space-y-4">
                         <div>
                             <Button
@@ -1236,12 +1348,6 @@ export const Settings = () => {
                     isOpen={openSection === 'advanced'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex items-center space-x-3 pb-4 border-b border-border">
-                        <div>
-                            <h3 className="font-semibold text-lg">Advanced Optimization</h3>
-                            <p className="text-sm text-muted-foreground">Fine-tune performance parameters for CPU and Bandwidth control.</p>
-                        </div>
-                    </div>
 
                     <div className="bg-amber-500/10 border border-amber-500/20 text-amber-700 p-4 rounded-lg text-sm">
                         <strong className="flex items-center gap-2">WARNING:</strong>
@@ -1468,12 +1574,6 @@ export const Settings = () => {
                     isOpen={openSection === 'backup'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex items-center space-x-3 pb-4 border-b border-border sm:hidden">
-                        <div className="min-w-0 flex-1">
-                            <h3 className="font-semibold text-lg leading-tight">Backup & Restore</h3>
-                            <p className="text-sm text-muted-foreground mt-1">Export or Import system configuration</p>
-                        </div>
-                    </div>
                     <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-2">
                         <Button
                             onClick={handleExport}

@@ -124,17 +124,38 @@ Your privacy is paramount. You can disable telemetry at any time:
     docker compose -f docker-compose.prod.yml up -d
     ```
 
-### 🔄 Updating VibeNVR
-When a new version is released:
-1.  **Pull the latest repository changes**:
-    ```bash
-    git pull
-    ```
-2.  **Check for Configuration Changes**: ⚠️ Always review the **Release Notes** and check if `docker-compose.prod.yml` or your `.env` file requires updates.
-3.  **Rebuild and Restart**:
-    ```bash
-    docker compose -f docker-compose.prod.yml up -d --pull always
-    ```
+### 📊 Public Telemetry
+VibeNVR maintains a public, anonymous telemetry dashboard where you can see global usage statistics, active versions, and hardware trends:
+**[View Public Telemetry Dashboard](https://vibenvr-telemetry.spupuz.workers.dev/)**
+
+### 🔄 Updating VibeNVR (1.19.1+)
+When a new version is released, follow these steps to ensure a clean update:
+
+1. **Back up your .env file**:
+   ```bash
+   cp .env .env.bak
+   ```
+
+2. **Retrieve the new production compose file**:
+   Ensure you are in the project root.
+   ```bash
+   curl -O https://raw.githubusercontent.com/spupuz/VibeNVR/main/docker-compose.prod.yml
+   ```
+
+3. **Pull the new 1.19.1 images**:
+   ```bash
+   docker compose -f docker-compose.prod.yml pull
+   ```
+
+4. **Stop the current stack**:
+   ```bash
+   docker compose -f docker-compose.prod.yml down
+   ```
+
+5. **Start the new stack**:
+   ```bash
+   docker compose -f docker-compose.prod.yml up -d
+   ```
 
 ---
 
