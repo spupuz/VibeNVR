@@ -18,6 +18,21 @@ def get_system_info():
     cpu_count = psutil.cpu_count(logical=True)
     ram_gb = round(psutil.virtual_memory().total / (1024**3))
     
+    # Extract precise processor model (platform.processor() can be empty on Linux)
+    processor = platform.processor()
+    if not processor and platform.system() == "Linux":
+        try:
+            with open("/proc/cpuinfo", "r") as f:
+                for line in f:
+                    if line.strip().startswith("model name"):
+                        processor = line.split(":", 1)[1].strip()
+                        break
+        except Exception:
+            pass
+    
+    if not processor:
+        processor = "unknown"
+        
     # Check for Hardware Acceleration settings
     hw_accel = os.environ.get("HW_ACCEL", "false").lower() == "true"
     hw_type = os.environ.get("HW_ACCEL_TYPE", "none")
@@ -26,7 +41,7 @@ def get_system_info():
         "os": platform.system(),
         "arch": platform.machine(),
         "release": platform.release(),
-        "processor": platform.processor(),
+        "processor": processor,
         "cpu_count": cpu_count,
         "ram_gb": ram_gb,
         "gpu_active": hw_accel,
@@ -94,15 +109,13 @@ def send_telemetry():
         sys_info = get_system_info()
         version = get_app_version()
 
-        # Scarf.sh endpoint
-        scarf_id = "vibenvr-telemetry"
-        # Updated URL with expanded fields
-        # Scarf.sh endpoint - PIXEL MODE
-        # Using a pixel tracking approach where data is sent as query parameters
-        # We use the direct static.scarf.sh URL with the Pixel ID to avoid custom domain CNAME issues.
-        # Pixel ID provided by user: 700f4179-a88d-4a34-accc-1ea0c17ac231
-        pixel_id = os.environ.get("SCARF_PIXEL_ID", "700f4179-a88d-4a34-accc-1ea0c17ac231")
-        tracking_url = f"https://static.scarf.sh/a.png?x-pxid={pixel_id}"
+        # VibeNVR Telemetry Worker (Cloudflare) - Primary endpoint
+        # Default URL points to the Cloudflare Worker which securely captures metrics
+        # without logging any IP address. Override via CLOUDFLARE_TELEMETRY_URL env var.
+        cf_telemetry_url = os.environ.get(
+            "CLOUDFLARE_TELEMETRY_URL",
+            "https://vibenvr-telemetry.spupuz.workers.dev/telemetry.png"
+        )
         
         try:
             headers = {
@@ -115,6 +128,7 @@ def send_telemetry():
                 "os": sys_info["os"],
                 "arch": sys_info["arch"],
                 "cpu": sys_info["cpu_count"],
+                "cpu_model": sys_info["processor"],
                 "ram": sys_info["ram_gb"],
                 "gpu": sys_info["gpu_active"],
                 "cameras": metrics["cameras"],
@@ -123,18 +137,33 @@ def send_telemetry():
                 "notifications": metrics["notifications"]
             }
             
-            logger.info(f"Reporting telemetry (Pixel Mode): {payload}")
+            logger.info(f"Reporting telemetry: {payload}")
             
-            # Send GET request with params query string
-            response = requests.get(tracking_url, params=payload, headers=headers, timeout=10)
+            # --- Primary: Cloudflare Analytics Worker ---
+            try:
+                cf_response = requests.get(cf_telemetry_url, params=payload, headers=headers, timeout=10)
+                if cf_response.ok:
+                    logger.info(f"Telemetry sent to Cloudflare Worker (Status: {cf_response.status_code})")
+                else:
+                    logger.warning(f"Cloudflare Worker returned status: {cf_response.status_code}")
+            except Exception as cf_err:
+                logger.error(f"Failed to send telemetry to Cloudflare: {cf_err}")
+
+            # --- Secondary (DEPRECATED): Scarf.sh Pixel ---
+            # Scarf.sh will be removed in a future release.
+            # Only forwards a subset of fields (Scarf ignores unknown query params).
+            try:
+                pixel_id = os.environ.get("SCARF_PIXEL_ID", "700f4179-a88d-4a34-accc-1ea0c17ac231")
+                scarf_url = f"https://static.scarf.sh/a.png?x-pxid={pixel_id}"
+                scarf_response = requests.get(scarf_url, params=payload, headers=headers, timeout=10)
+                if scarf_response.ok:
+                    logger.info(f"[DEPRECATED] Telemetry also sent to Scarf.sh (Status: {scarf_response.status_code})")
+                else:
+                    logger.warning(f"[DEPRECATED] Scarf.sh returned status: {scarf_response.status_code}")
+            except Exception as scarf_err:
+                logger.error(f"[DEPRECATED] Failed to send telemetry to Scarf.sh: {scarf_err}")
             
-            if response.ok:
-                logger.info(f"Telemetry report sent successfully (Status: {response.status_code})")
-                logger.info(f"Telemetry URL: {response.url}")
-            else:
-                logger.warning(f"Telemetry report sent but Scarf returned status: {response.status_code}")
-            
-            return response.status_code
+            return 200
             
         except Exception as e:
             logger.error(f"Failed to send telemetry: {e}")
