@@ -808,33 +808,16 @@ export const Settings = () => {
 
                     <div className="space-y-6 pt-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="md:col-span-1">
-                                <label className="block text-sm font-medium mb-1">Enable Anonymous Telemetry</label>
-                                <p className="text-xs text-muted-foreground">
-                                    Share basic, non-sensitive usage data to help us improve VibeNVR.
-                                    <br /><br />
-                                    We collect:
-                                    <ul className="list-disc list-inside mt-1 space-y-0.5 opacity-80">
-                                        <li>Application version</li>
-                                        <li>Hardware profile (CPU, RAM, GPU status)</li>
-                                        <li>Usage metrics (Cameras, Groups, Events)</li>
-                                        <li>OS and Hardware architecture</li>
-                                        <li>Anonymized feature flags (Notifications)</li>
-                                    </ul>
-                                    <br />
-                                    <strong>No IP addresses, camera names, samples or personal data are ever collected.</strong>
-                                </p>
-                            </div>
-                            <div className="md:col-span-2 space-y-4 pt-1">
+                            <div className="md:col-span-1 space-y-4">
                                 <Toggle
                                     label="Enable Anonymous Telemetry"
                                     checked={globalSettings.telemetry_enabled}
                                     onChange={(val) => setGlobalSettings({ ...globalSettings, telemetry_enabled: val })}
                                 />
-                                <p className="text-[10px] text-muted-foreground">Default: On (Helps development!)</p>
+                                <p className="text-[10px] text-muted-foreground">Default: On — helps the development team.</p>
 
                                 {globalSettings.telemetry_enabled && (
-                                    <div className="pt-4 border-t border-border">
+                                    <div className="pt-2 border-t border-border">
                                         <Button
                                             size="sm"
                                             variant="outline"
@@ -845,10 +828,77 @@ export const Settings = () => {
                                             {isReportingTelemetry ? 'Sending...' : 'Send Report Now'}
                                         </Button>
                                         <p className="text-[10px] text-muted-foreground mt-1">
-                                            Manually trigger a report for testing or to update Scarf dashboard.
+                                            Manually trigger a telemetry report for testing.
                                         </p>
                                     </div>
                                 )}
+                            </div>
+
+                            <div className="md:col-span-2 space-y-4">
+                                {/* Data Table */}
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2">Data sent (anonymous, no personal info)</h4>
+                                    <div className="rounded-lg border border-border overflow-hidden text-xs">
+                                        <table className="w-full">
+                                            <thead className="bg-muted/40 text-left">
+                                                <tr>
+                                                    <th className="p-2 font-medium text-muted-foreground w-1/3">Field</th>
+                                                    <th className="p-2 font-medium text-muted-foreground">Example</th>
+                                                    <th className="p-2 font-medium text-muted-foreground hidden sm:table-cell">Notes</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-border">
+                                                {[
+                                                    { field: 'instance_id', example: 'a1b2c3-...', note: 'Random UUID, generated once at first boot' },
+                                                    { field: 'version', example: '1.19.1', note: 'Installed VibeNVR version' },
+                                                    { field: 'os', example: 'Linux', note: 'Operating system type' },
+                                                    { field: 'arch', example: 'x86_64', note: 'CPU architecture (x86_64, aarch64...)' },
+                                                    { field: 'cpu', example: '8', note: 'Number of logical CPU cores' },
+                                                    { field: 'cpu_model', example: 'Intel Core i7-...', note: 'Processor commercial name' },
+                                                    { field: 'ram', example: '32', note: 'Total system RAM in GB (rounded)' },
+                                                    { field: 'gpu', example: 'True/False', note: 'Whether HW acceleration is enabled' },
+                                                    { field: 'cameras', example: '4', note: 'Total number of cameras configured' },
+                                                    { field: 'groups', example: '2', note: 'Total number of camera groups' },
+                                                    { field: 'events', example: '1400', note: 'Total DB count of recorded events' },
+                                                    { field: 'notifications', example: 'True/False', note: 'Whether any notification is configured' },
+                                                    { field: 'country', example: 'IT', note: 'Added by Cloudflare — no IP is ever stored' },
+                                                ].map(row => (
+                                                    <tr key={row.field} className="hover:bg-muted/10">
+                                                        <td className="p-2 font-mono text-primary/80">{row.field}</td>
+                                                        <td className="p-2 text-muted-foreground">{row.example}</td>
+                                                        <td className="p-2 text-muted-foreground hidden sm:table-cell">{row.note}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-2 font-medium">
+                                        No IP addresses, camera names, stream URLs, usernames, or passwords are ever collected.
+                                    </p>
+                                </div>
+
+                                {/* Endpoints */}
+                                <div>
+                                    <h4 className="text-sm font-semibold mb-2">Destinations</h4>
+                                    <div className="space-y-2">
+                                        <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-muted/20">
+                                            <span className="mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 shrink-0">PRIMARY</span>
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-semibold">Cloudflare Analytics Engine</p>
+                                                <p className="text-[10px] text-muted-foreground mt-0.5 break-all">vibenvr-telemetry.spupuz.workers.dev</p>
+                                                <p className="text-[10px] text-muted-foreground mt-1">Fully anonymous — IP is processed by Cloudflare edge and discarded, only the country code is stored.</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-3 p-3 rounded-lg border border-border/50 bg-muted/10 opacity-60">
+                                            <span className="mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 shrink-0 whitespace-nowrap">DEPRECATED</span>
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-semibold">Scarf.sh pixel</p>
+                                                <p className="text-[10px] text-muted-foreground mt-0.5 break-all">static.scarf.sh</p>
+                                                <p className="text-[10px] text-muted-foreground mt-1">Still active for continuity. Will be removed in a future release in favour of Cloudflare Analytics.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
