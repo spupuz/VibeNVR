@@ -555,15 +555,15 @@ export const Profile = () => {
                                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-3 sm:mt-0">
                                         {user.is_2fa_enabled ? (
                                             <>
-                                                <Button variant="outline" size="sm" onClick={handleRegenerateCodes} disabled={regeneratingCodes} className="w-full sm:w-auto">
+                                                <Button variant="outline" onClick={handleRegenerateCodes} disabled={regeneratingCodes} className="w-full sm:w-auto px-6 font-semibold">
                                                     Regenerate Codes
                                                 </Button>
-                                                <Button variant="outline" size="sm" onClick={handleDisable2FA} className="w-full sm:w-auto text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-900">
+                                                <Button variant="outline" onClick={handleDisable2FA} className="w-full sm:w-auto px-6 font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-900">
                                                     Disable 2FA
                                                 </Button>
                                             </>
                                         ) : (
-                                            <Button variant="outline" size="sm" onClick={start2FASetup} className="w-full sm:w-auto">
+                                            <Button variant="outline" onClick={start2FASetup} className="w-full sm:w-auto px-6 font-semibold">
                                                 Enable 2FA
                                             </Button>
                                         )}

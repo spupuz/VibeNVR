@@ -493,7 +493,7 @@ export const Settings = () => {
     }, [token]);
 
     return (
-        <div className="space-y-8 relative w-full overflow-x-hidden">
+        <div className="space-y-8 relative w-full pb-24">
 
 
             <div>
@@ -583,23 +583,18 @@ export const Settings = () => {
                                     {u.id === user.id && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold uppercase">You</span>}
                                 </div>
                                 <div className="flex justify-end gap-2 pt-3 border-t border-border/30">
-                                    <Button
-                                        size="xs"
-                                        variant="outline"
-                                        className="h-8 px-3 text-[11px] font-bold"
+                                    <button
                                         onClick={() => {
                                             setPwdTargetUser(u);
                                             setPwdModalOpen(true);
                                         }}
+                                        className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
+                                        title="Change Password"
                                     >
-                                        <Key className="w-3.5 h-3.5 mr-1.5" />
-                                        PWD
-                                    </Button>
+                                        <Key className="w-5 h-5" />
+                                    </button>
                                     {u.id !== user.id && (
-                                        <Button
-                                            size="xs"
-                                            variant="destructive"
-                                            className="h-8 px-3 text-[11px] font-bold"
+                                        <button
                                             onClick={() => {
                                                 setConfirmConfig({
                                                     isOpen: true,
@@ -626,104 +621,103 @@ export const Settings = () => {
                                                     onCancel: () => setConfirmConfig({ isOpen: false })
                                                 });
                                             }}
+                                            className="p-2 hover:bg-red-100 text-red-500 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
+                                            title="Delete User"
                                         >
-                                            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                                            DEL
-                                        </Button>
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
                                     )}
                                 </div>
                             </div>
                         ))}
                     </div>
 
-                    {/* Desktop: User Table */}
-                    <div className="hidden sm:block rounded-lg border border-border overflow-hidden mt-4 w-full">
-                        <table className="w-full text-sm">
-                            <thead className="bg-muted/40 text-left">
-                                <tr>
-                                    <th className="p-3 font-medium text-muted-foreground">Username</th>
-                                    <th className="p-3 font-medium text-muted-foreground">Role</th>
-                                    <th className="p-3 font-medium text-muted-foreground hidden sm:table-cell">Created</th>
-                                    <th className="p-3 font-medium text-muted-foreground text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {users.map(u => (
-                                    <tr key={u.id} className="border-t border-border hover:bg-muted/10">
-                                        <td className="p-3 font-medium flex items-center gap-3 overflow-hidden">
-                                            <Avatar user={u} size="xs" />
-                                            <span className="truncate">{u.username}</span>
-                                            {u.id === user.id && <span className="text-[10px] bg-primary/20 text-primary px-1.5 shrink-0 rounded">You</span>}
-                                        </td>
-                                        <td className="p-3">
-                                            <span className={'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ' +
-                                                (u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800')
-                                            }>
-                                                {u.role}
-                                            </span>
-                                        </td>
-                                        <td className="p-3 text-muted-foreground hidden sm:table-cell">
-                                            {new Date(u.created_at).toLocaleDateString()}
-                                        </td>
-                                        <td className="p-3 text-right">
-                                            <div className="flex justify-end gap-1">
-                                                <Button
-                                                    size="xs"
-                                                    variant="outline"
-                                                    className="h-8 w-8 p-0"
-                                                    onClick={() => {
-                                                        setPwdTargetUser(u);
-                                                        setPwdModalOpen(true);
-                                                    }}
-                                                    title="Change Password"
-                                                >
-                                                    <Key className="w-4 h-4" />
-                                                </Button>
-                                                {u.id !== user.id && (
-                                                    <Button
-                                                        size="xs"
-                                                        variant="destructive"
-                                                        className="h-8 w-8 p-0"
-                                                        onClick={() => {
-                                                            setConfirmConfig({
-                                                                isOpen: true,
-                                                                title: 'Delete User',
-                                                                message: `Are you sure you want to delete user "${u.username}"? This action cannot be undone.`,
-                                                                onConfirm: async () => {
-                                                                    try {
-                                                                        const res = await fetch(`/api/users/${u.id}`, {
-                                                                            method: 'DELETE',
-                                                                            headers: { Authorization: `Bearer ${token}` }
-                                                                        });
-                                                                        if (res.ok) {
-                                                                            showToast('User deleted successfully', 'success');
-                                                                            fetchUsers();
-                                                                        } else {
-                                                                            const data = await res.json();
-                                                                            showToast('Failed: ' + data.detail, 'error');
-                                                                        }
-                                                                    } catch (err) {
-                                                                        showToast('Error: ' + err.message, 'error');
-                                                                    }
-                                                                    setConfirmConfig({ isOpen: false });
-                                                                },
-                                                                onCancel: () => setConfirmConfig({ isOpen: false })
-                                                            });
-                                                        }}
-                                                        title="Delete User"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </td>
+                    <div className="hidden sm:block w-full overflow-x-auto mt-4 rounded-lg border border-border">
+                        <div className="min-w-[600px]">
+                            <table className="w-full text-sm">
+                                <thead className="bg-muted/40 text-left">
+                                    <tr>
+                                        <th className="p-3 font-medium text-muted-foreground">Username</th>
+                                        <th className="p-3 font-medium text-muted-foreground">Role</th>
+                                        <th className="p-3 font-medium text-muted-foreground hidden sm:table-cell">Created</th>
+                                        <th className="p-3 font-medium text-muted-foreground text-right">Actions</th>
                                     </tr>
-                                ))}
-                                {users.length === 0 && (
-                                    <tr><td colSpan="4" className="p-4 text-center text-muted-foreground">No users found</td></tr>
-                                )}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {users.map(u => (
+                                        <tr key={u.id} className="border-t border-border hover:bg-muted/10">
+                                            <td className="p-3 font-medium flex items-center gap-3 overflow-hidden">
+                                                <Avatar user={u} size="xs" />
+                                                <span className="truncate">{u.username}</span>
+                                                {u.id === user.id && <span className="text-[10px] bg-primary/20 text-primary px-1.5 shrink-0 rounded">You</span>}
+                                            </td>
+                                            <td className="p-3">
+                                                <span className={'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ' +
+                                                    (u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800')
+                                                }>
+                                                    {u.role}
+                                                </span>
+                                            </td>
+                                            <td className="p-3 text-muted-foreground hidden sm:table-cell">
+                                                {new Date(u.created_at).toLocaleDateString()}
+                                            </td>
+                                            <td className="p-3 text-right">
+                                                <div className="flex justify-end gap-2 pr-1">
+                                                    <button
+                                                        onClick={() => {
+                                                            setPwdTargetUser(u);
+                                                            setPwdModalOpen(true);
+                                                        }}
+                                                        className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
+                                                        title="Change Password"
+                                                    >
+                                                        <Key className="w-5 h-5" />
+                                                    </button>
+                                                    {u.id !== user.id && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setConfirmConfig({
+                                                                    isOpen: true,
+                                                                    title: 'Delete User',
+                                                                    message: `Are you sure you want to delete user "${u.username}"? This action cannot be undone.`,
+                                                                    onConfirm: async () => {
+                                                                        try {
+                                                                            const res = await fetch(`/api/users/${u.id}`, {
+                                                                                method: 'DELETE',
+                                                                                headers: { Authorization: `Bearer ${token}` }
+                                                                            });
+                                                                            if (res.ok) {
+                                                                                showToast('User deleted successfully', 'success');
+                                                                                fetchUsers();
+                                                                            } else {
+                                                                                const data = await res.json();
+                                                                                showToast('Failed: ' + data.detail, 'error');
+                                                                            }
+                                                                        } catch (err) {
+                                                                            showToast('Error: ' + err.message, 'error');
+                                                                        }
+                                                                        setConfirmConfig({ isOpen: false });
+                                                                    },
+                                                                    onCancel: () => setConfirmConfig({ isOpen: false })
+                                                                });
+                                                            }}
+                                                            className="p-2 hover:bg-red-100 text-red-500 rounded-lg transition-colors"
+                                                            title="Delete User"
+                                                        >
+                                                            <Trash2 className="w-5 h-5" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {users.length === 0 && (
+                                        <tr><td colSpan="4" className="p-4 text-center text-muted-foreground">No users found</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
                     </div>
                 </CollapsibleSection>
             )}
@@ -1611,7 +1605,7 @@ export const Settings = () => {
             {/* Save Button */}
             {
                 user?.role === 'admin' && (
-                    <div className="sticky bottom-0 z-50 bg-background/95 backdrop-blur py-4 border-t border-border mt-8 flex justify-center sm:justify-end">
+                    <div className="sticky bottom-0 z-30 bg-background/95 backdrop-blur py-4 border-t border-border mt-8 flex justify-center sm:justify-end">
                         <button
                             onClick={handleSave}
                             className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors shadow-lg"
