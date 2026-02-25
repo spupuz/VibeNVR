@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink, Github, Heart, Video, Star } from 'lucide-react';
+import { ExternalLink, Github, Heart, Video, Star, LayoutDashboard } from 'lucide-react';
 import packageJson from '../../package.json';
 
 export const About = () => {
@@ -81,6 +81,15 @@ export const About = () => {
                                     className="w-5 h-5"
                                 />
                                 <span>Buy me a coffee</span>
+                            </a>
+                            <a
+                                href="https://vibenvr-telemetry.spupuz.workers.dev/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center space-x-2 bg-blue-500 text-white px-6 py-3 rounded-full font-bold hover:bg-blue-600 hover:scale-105 hover:shadow-xl transition-all duration-300 w-64"
+                            >
+                                <LayoutDashboard className="w-5 h-5" />
+                                <span>Public Telemetry</span>
                             </a>
                             <a
                                 href="https://www.producthunt.com/products/vibenvr?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-vibenvr"

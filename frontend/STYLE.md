@@ -70,3 +70,25 @@ Always prioritize using standardized UI components located in `@/components/ui/`
 - **Separation of Concerns**: Keep business logic in hooks or parent components; presentational logic in UI components.
 - **Responsive Design**: Always test on mobile and desktop breakpoints. Use `sm:`, `md:`, `lg:` prefixes.
 - **Dark Mode**: Use `dark:` variants for any custom color classes not covered by CSS variables.
+
+## 📱 Mobile-First Perfection (Zero Scroll)
+
+To ensure a premium experience on small devices like the iPhone SE (375px), follow these strict mobile layout rules:
+
+### 1. Zero Horizontal Scroll
+- **Mandatory Fit**: All content must fit within a 375px viewport without triggering horizontal overflow.
+- **Responsive Tables**: Never use standard tables (`<table>`) on mobile if they contain more than 2-3 columns. Use `hidden sm:block` for the table and create a mobile-only card view.
+
+### 2. Vertical-Stacked Data Pattern
+- Use **Vertical-Stacked Cards** for data lists (Telemetry, User Management, etc.) on mobile.
+- Each card should use `bg-muted/10` or `bg-card` with a subtle `border-border/50`.
+- **Layout**: Label (uppercase, mono, small) on top or side, followed by the Value.
+- **Description**: Place descriptions below the value with a subtle `border-t` and lower opacity.
+
+### 3. Spacing & Hit Targets
+- **Expansive Spacing**: Maintain `space-y-8` between main sections even on mobile to preserve a premium, "airy" feel. Avoid over-compacting.
+- **Hit Targets**: All interactive elements (buttons, toggles) should have a minimum height of `min-h-[44px]` on mobile to ensure easy tapping.
+- **Action Grouping**: Use `flex-col` or `flex-wrap` with `gap-2` for button groups to prevent overlap.
+
+### 4. Icon-Only Optimization
+- For dense lists on mobile, prefer icon-only buttons with clear tooltips and `size="xs"` or `size="sm"` padding to save width, while maintaining the `44px` target area where possible.
