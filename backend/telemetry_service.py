@@ -34,8 +34,22 @@ def get_system_info():
         processor = "unknown"
         
     # Check for Hardware Acceleration settings
-    hw_accel = os.environ.get("HW_ACCEL", "false").lower() == "true"
-    hw_type = os.environ.get("HW_ACCEL_TYPE", "none")
+    # Since telemetry runs in the backend but HW_ACCEL is defined in the engine,
+    # we try to fetch the real status from the engine API.
+    hw_accel = False
+    hw_type = "unknown"
+    try:
+        # Internal engine stats endpoint
+        resp = requests.get("http://engine:8000/stats", timeout=2)
+        if resp.ok:
+            data = resp.json()
+            # We mark as active if the engine reports 'ready' (available) or 'active' (in use)
+            hw_accel = data.get("hw_accel_status") in ["ready", "active"]
+            hw_type = data.get("hw_accel_type", "unknown")
+    except Exception:
+        # Fallback to backend env (usually false)
+        hw_accel = os.environ.get("HW_ACCEL", "false").lower() == "true"
+        hw_type = os.environ.get("HW_ACCEL_TYPE", "none")
     
     return {
         "os": platform.system(),
@@ -151,11 +165,15 @@ def send_telemetry():
 
             # --- Secondary (DEPRECATED): Scarf.sh Pixel ---
             # Scarf.sh will be removed in a future release.
-            # Only forwards a subset of fields (Scarf ignores unknown query params).
+            # We send both 'cpu' and 'cpu_model' for maximum compatibility with existing Scarf patterns.
             try:
                 pixel_id = os.environ.get("SCARF_PIXEL_ID", "700f4179-a88d-4a34-accc-1ea0c17ac231")
                 scarf_url = f"https://static.scarf.sh/a.png?x-pxid={pixel_id}"
-                scarf_response = requests.get(scarf_url, params=payload, headers=headers, timeout=10)
+                
+                scarf_payload = payload.copy()
+                scarf_payload["cpu"] = sys_info["processor"] # Scarf often expects processors in 'cpu'
+                
+                scarf_response = requests.get(scarf_url, params=scarf_payload, headers=headers, timeout=10)
                 if scarf_response.ok:
                     logger.info(f"[DEPRECATED] Telemetry also sent to Scarf.sh (Status: {scarf_response.status_code})")
                 else:
