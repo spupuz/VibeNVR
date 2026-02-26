@@ -48,9 +48,9 @@ VibeNVR is built with security as a priority. For detailed information regarding
 
 ---
 
-## 📊 Telemetry & Privacy
-
-VibeNVR includes basic, anonymous telemetry to help me understand how the community is using the software and prioritize improvements. 
+### 📊 Public Telemetry
+VibeNVR maintains a public, anonymous telemetry dashboard where you can see global usage statistics, active versions, and hardware trends:
+**[View Public Telemetry Dashboard](https://vibenvr-telemetry.spupuz.workers.dev/)**
 
 ### What is collected?
 We only collect **non-sensitive, anonymous** technical data:
@@ -124,11 +124,7 @@ Your privacy is paramount. You can disable telemetry at any time:
     docker compose -f docker-compose.prod.yml up -d
     ```
 
-### 📊 Public Telemetry
-VibeNVR maintains a public, anonymous telemetry dashboard where you can see global usage statistics, active versions, and hardware trends:
-**[View Public Telemetry Dashboard](https://vibenvr-telemetry.spupuz.workers.dev/)**
-
-### 🔄 Updating VibeNVR (1.19.1+)
+### 🔄 Updating VibeNVR 
 When a new version is released, follow these steps to ensure a clean update:
 
 1. **Back up your .env file**:
@@ -142,7 +138,7 @@ When a new version is released, follow these steps to ensure a clean update:
    curl -O https://raw.githubusercontent.com/spupuz/VibeNVR/main/docker-compose.prod.yml
    ```
 
-3. **Pull the new 1.19.1 images**:
+3. **Pull the new images**:
    ```bash
    docker compose -f docker-compose.prod.yml pull
    ```
@@ -382,3 +378,4 @@ This project is open source and available under the [MIT License](LICENSE).
 <p align="center">
   Made with ❤️ by <a href="https://github.com/spupuz">spupuz</a>
 </p>
+
