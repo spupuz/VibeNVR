@@ -58,8 +58,9 @@ All configuration is done via the `.env` file in the project root. Below is a co
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `SECRET_KEY` | *(insecure default)* | **Change this.** Used to sign JWT tokens. Generate with: `openssl rand -hex 32`. The app **will not start** if set to the built-in default key. |
+| `SECRET_KEY` | *(insecure default)* | **Change this.** Used to sign JWT tokens (min 32 chars). In production, the app **will not start** if set to a built-in default or weak key, unless `ALLOW_WEAK_SECRET=true` is set. |
 | `WEBHOOK_SECRET` | *(insecure default)* | Shared secret between backend and engine for internal webhook verification. Generate with: `openssl rand -hex 32`. |
+| `ALLOW_WEAK_SECRET` | `false` | Set to `true` to bypass the `SECRET_KEY` security check in production (NOT RECOMMENDED). |
 
 ```env
 SECRET_KEY=your_64_char_random_hex_here
@@ -205,10 +206,11 @@ As a last resort, use `privileged: true` on the affected service.
 
 ### Backend fails to start
 
-Check that `SECRET_KEY` is not set to one of the default values. The app will print a critical error and exit if it detects an insecure key:
-```
-!! CRITICAL SECURITY ERROR: You are using the default SECRET_KEY. !!
-```
+If the backend fails to start with a `SystemExit: 1`, check that `SECRET_KEY` is not set to one of the default values and is at least 32 characters long.
+
+In production (`ENVIRONMENT=production`), the app will strictly enforce this. To bypass it for troubleshooting, you can set `ALLOW_WEAK_SECRET=true` in your `.env` file, though this is **not recommended** for actual production use.
+
+In non-production environments, it will only print a loud warning but will allow the application to start.
 
 ### Cameras not connecting
 
