@@ -88,14 +88,26 @@ async def lifespan(app: FastAPI):
         "change_this_to_a_long_random_string",
         "vibe_secure_key_9823748923748923_change_in_prod",  # .env dev default
     ]
-    if auth_service.SECRET_KEY in default_keys or len(auth_service.SECRET_KEY) < 32:
+    
+    is_weak_key = auth_service.SECRET_KEY in default_keys or len(auth_service.SECRET_KEY) < 32
+    if is_weak_key:
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        print("!! CRITICAL SECURITY ERROR: You are using the default or a weak SECRET_KEY.     !!")
-        print("!! The application will not start.                                              !!")
-        print("!! Please set a secure SECRET_KEY (min 32 chars) in your .env file.             !!")
+        print("!! WARNING: You are using a default or a weak SECRET_KEY.                     !!")
+        print("!! This is a security risk. Please set a secure SECRET_KEY in your .env file. !!")
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        import sys
-        sys.exit(1)
+        
+        # Only exit if in production and not explicitly bypassed
+        if os.getenv("ENVIRONMENT", "production").lower() == "production":
+             if os.getenv("ALLOW_WEAK_SECRET", "false").lower() != "true":
+                 print("!! CRITICAL: Strict security is enabled (ENVIRONMENT=production).       !!")
+                 print("!! The application will not start with a weak key.                      !!")
+                 print("!! To bypass this (NOT RECOMMENDED), set ALLOW_WEAK_SECRET=true.         !!")
+                 print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                 import sys
+                 sys.exit(1)
+             else:
+                 print("!! WARNING: Bypassing weak SECRET_KEY check in production.              !!")
+                 print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
     # Wait for DB to be ready
     import time
