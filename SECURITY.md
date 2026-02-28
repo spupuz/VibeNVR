@@ -72,8 +72,10 @@ VibeNVR's code includes specific mitigations against common attack vectors:
 6. **Log Masking & Privacy**:
    - The centralized log router (`backend/routers/logs.py`) and the custom `TokenRedactingFilter` in `main.py` automatically mask stdout logs.
    - **Nginx Access Logs**: The frontend Nginx configuration (`nginx.conf`) uses a custom `log_format` and `map` logic to automatically redact `?token=` values from access logs before they are written to disk. This ensures that even if the token fallback is used for media streaming, the JWT is not persisted in the proxy logs.
-7. **File Upload Validation**:
-   - The application **refuses to start** if `SECRET_KEY` matches any known-weak default value or is shorter than 32 characters. A clear error is printed and the process exits with code 1.
+7. **SECRET_KEY Security Enforcement**:
+   - In development or non-standard environments, using a weak or default `SECRET_KEY` triggers a **loud warning** in the logs but allows the application to proceed for troubleshooting.
+   - If `ENVIRONMENT=production` (default), the application **refuses to start** with a weak key (shorter than 32 chars or a known default) to ensure critical security.
+   - **Bypass**: If strictly necessary, set `ALLOW_WEAK_SECRET=true` in your `.env` to override the production exit (NOT RECOMMENDED).
 
 ## ⚠️ Known Accepted Trade-offs
 
