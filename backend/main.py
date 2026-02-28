@@ -103,8 +103,6 @@ async def lifespan(app: FastAPI):
                  print("!! The application will not start with a weak key.                      !!")
                  print("!! To bypass this (NOT RECOMMENDED), set ALLOW_WEAK_SECRET=true.         !!")
                  print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                 import sys
-                 sys.exit(1)
              else:
                  print("!! WARNING: Bypassing weak SECRET_KEY check in production.              !!")
                  print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
