@@ -25,21 +25,18 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Clone the wiki repository (handle empty wiki case)
-          if ! git clone "$WIKI_URL" wiki_temp; then
-            echo "Wiki repo might be empty or inaccessible. Attempting to initialize..."
-            mkdir wiki_temp
-            cd wiki_temp
-            git init
-            git remote add origin "$WIKI_URL"
-            cd ..
-          fi
+          # Clone the wiki repository
+          git clone "$WIKI_URL" wiki_temp
+          
+          # Clean up existing files in the wiki repo (preserve .git)
+          # We use -mindepth 1 to avoid deleting the wiki_temp directory itself
+          find wiki_temp -mindepth 1 -not -path '*/.*' -delete
           
           # Copy files from our wiki directory to the cloned repo
           cp -r wiki/* wiki_temp/
           
           cd wiki_temp
-          git add .
+          git add -A .
           if git diff-index --quiet HEAD; then
             echo "No changes to sync."
           else
