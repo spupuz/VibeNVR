@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'local_wiki/**'
+      - 'wiki/**'
   workflow_dispatch:
 
 jobs:
@@ -16,6 +16,6 @@ jobs:
       - name: Sync Wiki
         uses: Andrew-Chen-Wang/github-wiki-action@v4
         with:
-          path: local_wiki
+          path: wiki
           token: ${{ secrets.GITHUB_TOKEN }}
           strategy: sync
