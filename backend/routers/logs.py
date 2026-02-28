@@ -159,27 +159,31 @@ FILES_MAP = {
 }
 
 def redact_line(line: str) -> str:
-    # 1. Redact JWT Tokens / Bearer tokens
-    line = re.sub(r'(token|access_token|Authorization)=\s*[\w\-\.]+', r'\1=REDACTED', line)
-    line = re.sub(r'Bearer\s+[\w\-\.]+', r'Bearer REDACTED', line)
+    # 1. Redact credentials in URLs (rtsp://user:pass@host)
+    line = re.sub(r'([a-z]+://[^:]+:)([^@]+)(@)', r'\1***\3', line)
     
-    # 2. Redact Passwords and API Keys (in URLs, Headers or JSON)
-    line = re.sub(r'(password|pwd|secret|client_secret|X-API-Key)=[\w\-\.!@#$%^&*()]+', r'\1=REDACTED', line)
-    # Also handle 'X-API-Key': '...' format potentially in logs
-    line = re.sub(r"X-API-Key':\s*'[^']+'", "X-API-Key': 'REDACTED'", line)
+    # 2. Sensitive keys list
+    sensitive_keys = r'password|pwd|secret|token|access_token|Authorization|X-API-Key|client_secret|totp_secret|media_token'
     
-    # 3. Redact IPs (preserve localhost)
-    # Regex for IPv4
+    # 3. Handle Bearer tokens specifically (to avoid overlap with Authorization header masking)
+    line = re.sub(r'(?i)Bearer\s+[\w\-\.]+', r'Bearer REDACTED', line)
+    
+    # 4. Handle JSON/YAML/Quoted formats: "key": "value" or 'key': 'value'
+    # Quotes around the key are optional, but quotes around the value are handled.
+    line = re.sub(rf'(?i)(["\']?({sensitive_keys})["\']?\s*[:=]\s*["\'])([^"\']+)(["\'])', r'\1***\4', line)
+    
+    # 5. Handle unquoted key-value pairs: key=value or key: value
+    # We avoid matching if it was already handled by quotes or if it's Bearer
+    # Use negative lookahead/lookbehind if needed, but simple order often works
+    line = re.sub(rf'(?i)\b({sensitive_keys})\b\s*[:=]\s*(?!Bearer )[\w\-\.!@#$%^&*()]+', r'\1=REDACTED', line)
+    
+    # 6. Redact IPs (preserve localhost 127.0.0.1)
     ip_pattern = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
-    
     def mask_ip(match):
         ip = match.group(0)
-        # Preserve loopback
         if ip.startswith("127."):
             return ip
-        # Preserve internal docker subnet (often 172.)? User said NO IP. So we mask all external.
         return "XXX.XXX.XXX.XXX"
-        
     line = re.sub(ip_pattern, mask_ip, line)
     
     return line

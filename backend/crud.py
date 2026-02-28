@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 import models, schemas
 
@@ -42,7 +43,7 @@ def get_events(db: Session, skip: int = 0, limit: int = 100, camera_id: int = No
     if date:
         # Assuming date is YYYY-MM-DD
         # Use a range to handle timezone correctly
-        import datetime
+        # Use a range to handle timezone correctly
         from zoneinfo import ZoneInfo
         
         # Get local timezone from env or default to Europe/Rome as per docker-compose
@@ -51,9 +52,9 @@ def get_events(db: Session, skip: int = 0, limit: int = 100, camera_id: int = No
         local_tz = ZoneInfo(tz_name)
         
         # Parse date and set to start of day in local timezone
-        naive_start = datetime.datetime.strptime(date, '%Y-%m-%d')
+        naive_start = datetime.strptime(date, '%Y-%m-%d')
         start_date = naive_start.replace(tzinfo=local_tz)
-        end_date = start_date + datetime.timedelta(days=1)
+        end_date = start_date + timedelta(days=1)
         
         query = query.filter(models.Event.timestamp_start >= start_date)
         query = query.filter(models.Event.timestamp_start < end_date)
@@ -150,9 +151,9 @@ def update_group_cameras(db: Session, group_id: int, camera_ids: list[int]):
     return db_group
 
 # API Tokens
-def create_api_token(db: Session, name: str, token_hash: str, user_id: int):
+def create_api_token(db: Session, name: str, token_hash: str, user_id: int, expires_at: datetime = None):
     """Create a new API token"""
-    db_token = models.ApiToken(name=name, token_hash=token_hash, created_by_user_id=user_id)
+    db_token = models.ApiToken(name=name, token_hash=token_hash, created_by_user_id=user_id, expires_at=expires_at)
     db.add(db_token)
     db.commit()
     db.refresh(db_token)
@@ -171,10 +172,9 @@ def get_api_token_by_hash(db: Session, token_hash: str):
 
 def update_token_last_used(db: Session, token_id: int):
     """Update last used timestamp"""
-    from datetime import datetime
     token = db.query(models.ApiToken).filter(models.ApiToken.id == token_id).first()
     if token:
-        token.last_used_at = datetime.now()
+        token.last_used_at = datetime.now(timezone.utc)
         db.commit()
 
 def delete_api_token(db: Session, token_id: int):

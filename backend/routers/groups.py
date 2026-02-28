@@ -71,26 +71,29 @@ def perform_group_action(group_id: int, action: schemas.GroupAction, db: Session
     
     if action.action == "enable_motion":
         for cam in group.cameras:
-            # If off, move to motion triggered. If already recording (motion or continuous), stay.
+            # If currently off, try to restore previous state or default to Motion Triggered
             if cam.recording_mode == "Off":
-                cam.recording_mode = "Motion Triggered"
-            
-            # Always ensure detection is active if the group toggle is ON
-            cam.detect_motion_mode = "Always"
-            modified_count += 1
+                # Restore previous mode if it was something useful (Continuous or Motion Triggered)
+                if cam.previous_recording_mode and cam.previous_recording_mode != "Off":
+                    cam.recording_mode = cam.previous_recording_mode
+                else:
+                    cam.recording_mode = "Motion Triggered"
+                
+                # After enabling, we can clear the previous mode or set it to Off 
+                # to indicate it was enabled by this master action
+                cam.previous_recording_mode = "Off" 
+                modified_count += 1
             
     elif action.action == "disable_motion":
         for cam in group.cameras:
-            # Only disable if it was purely motion recording. Continuous remains active.
-            if cam.recording_mode == "Motion Triggered":
+            # Save current state before turning off
+            if cam.recording_mode != "Off":
+                cam.previous_recording_mode = cam.recording_mode
                 cam.recording_mode = "Off"
-            
-            # Turn off detection for the group toggle
-            cam.detect_motion_mode = "Off"
-            modified_count += 1
+                modified_count += 1
 
     elif action.action == "copy_settings":
-        if current_user.role != "admin":
+        if not auth_service.is_admin(current_user):
             raise HTTPException(status_code=403, detail="Admin privileges required for copy_settings")
             
         if not action.source_camera_id:

@@ -77,26 +77,35 @@ def create_camera(
 
 ### React Authentication Pattern
 
-The frontend uses `AuthContext` to manage the JWT token. Always check for token existence before making API calls.
+The frontend uses `AuthContext` to manage the JWT token in memory. **Do not use `localStorage` for the token** — it is vulnerable to XSS. The token is persisted across page reloads via a `HttpOnly` cookie (`auth_token`) set by the backend on login.
 
 ```jsx
 // frontend/src/contexts/AuthContext.jsx (Pattern)
 export const AuthProvider = ({ children }) => {
-    const [token, setToken] = useState(localStorage.getItem('vibe_token'));
-    
-    // ...
-    
-    useEffect(() => {
-        if (token) {
-             const initAuth = async () => {
-                 const res = await fetch('/api/auth/me', {
-                     headers: { Authorization: `Bearer ${token}` }
-                 });
-                 // ...
-             }
-             initAuth();
+    // Token in memory ONLY — never in localStorage
+    const [token, setToken] = useState(null);
+
+    // On page reload: bootstrap session from HttpOnly cookie (server-side read)
+    const bootstrapFromCookie = useCallback(async () => {
+        const res = await fetch('/api/auth/me-from-cookie', { credentials: 'include' });
+        if (res.ok) {
+            const { user, access_token } = await res.json();
+            setUser(user);
+            setToken(access_token); // stored in memory, not localStorage
         }
-    }, [token]);
+    }, []);
+
+    const login = (newToken, userData) => {
+        setToken(newToken); // HttpOnly cookie already set by backend response
+        setUser(userData);
+        // No localStorage
+    };
+
+    const logout = async () => {
+        setToken(null);
+        setUser(null);
+        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    };
 };
 ```
 
@@ -113,8 +122,12 @@ class CameraBase(BaseModel):
     @field_validator('rtsp_url')
     @classmethod
     def validate_rtsp_url(cls, v: str) -> str:
-        if v and v.strip().lower().startswith('file://'):
-            raise ValueError('Local file access via file:// is not allowed')
+        if v:
+            v_lower = v.strip().lower()
+            if not v_lower.startswith(('rtsp://', 'rtsps://', 'http://', 'https://')):
+                raise ValueError('URL must start with valid protocols')
+            if 'localhost' in v_lower or '127.0.0.1' in v_lower:
+                raise ValueError('Localhost access is not allowed')
         return v
 ```
 
@@ -160,11 +173,11 @@ def delete_camera(
     current_user: models.User = Depends(auth_service.get_current_active_admin)
 ):
 ### Anti-Pattern 4: Raw Logs
-**Bad**: Logging sensitive data (URLs with credentials, tokens) directly.
+**Bad**: Logging sensitive data (URLs with credentials, tokens) directly without context.
 ```python
-logger.info(f"Connecting to {rtsp_url}") # BAD! Exposes credentials.
+logger.info(f"Connecting to {rtsp_url}") # BAD! Exposes credentials in stdout.
 ```
-**Good**: Filter sensitive data or use placeholders.
+**Good**: While the **centralized log router** (`backend/routers/logs.py`) automatically masks stdout logs, it is best practice to sanitize URLs before logging using `re.sub`.
 ```python
 safe_url = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', rtsp_url)
 logger.info(f"Connecting to {safe_url}")

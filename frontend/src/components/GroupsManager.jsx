@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 
-export const GroupsManager = ({ cameras }) => {
+export const GroupsManager = ({ cameras, onUpdate }) => {
     const { token, user } = useAuth();
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -195,6 +195,7 @@ export const GroupsManager = ({ cameras }) => {
                         showToast(`Action completed. Modified ${data.modified_count} cameras.`, 'success');
                         setCopyingGroup(null);
                         fetchGroups(); // Refresh groups to update UI
+                        if (onUpdate) onUpdate(); // Refresh cameras in parent component
                     } else {
                         const err = await res.json();
                         showToast('Action failed: ' + err.detail, 'error');
@@ -270,7 +271,7 @@ export const GroupsManager = ({ cameras }) => {
                                 {/* Motion Toggle in Top Right */}
                                 <div className="flex items-center bg-muted/30 rounded-lg p-1 border border-border flex-shrink-0" title="Toggle Motion Detection for Group">
                                     <div className="mr-2 flex items-center">
-                                        {group.cameras.length > 0 && group.cameras.every(c => c.detect_motion_mode === 'Always') ? (
+                                        {group.cameras.length > 0 && group.cameras.every(c => c.recording_mode !== 'Off') ? (
                                             <Play className="w-3 h-3 text-green-500 mr-1" />
                                         ) : (
                                             <Pause className="w-3 h-3 text-muted-foreground mr-1" />
@@ -279,7 +280,7 @@ export const GroupsManager = ({ cameras }) => {
                                     </div>
                                     <Toggle
                                         compact={true}
-                                        checked={group.cameras.length > 0 && group.cameras.every(c => c.detect_motion_mode === 'Always')}
+                                        checked={group.cameras.length > 0 && group.cameras.every(c => c.recording_mode !== 'Off')}
                                         onChange={(val) => handleAction(group.id, val ? 'enable_motion' : 'disable_motion')}
                                     />
                                 </div>

@@ -947,7 +947,7 @@ export const Cameras = () => {
 
             {
                 view === 'groups' ? (
-                    <GroupsManager cameras={cameras} />
+                    <GroupsManager cameras={cameras} onUpdate={fetchCameras} />
                 ) : loading ? (
                     <div className="flex justify-center p-12"><Activity className="animate-spin w-8 h-8 text-primary" /></div>
                 ) : (

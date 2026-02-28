@@ -34,14 +34,10 @@ export const Avatar = ({ user, className = "", size = "md", onClick }) => {
     const bgColor = useMemo(() => getColorFromString(user?.username), [user?.username]);
     const initial = user?.username ? user.username[0].toUpperCase() : '?';
 
-    // Construct media URL with token if needed (handled by backend auth usually, but for images we might need a token param if using img tag directly on protected endpoint)
-    // However, the Context in App.jsx usually handles Auth header for fetch.
-    // For <img> tags, we need to append the token to the URL if the endpoint is protected.
-    // Looking at main.py, /media/ endpoints need ?token=XYZ
+    // Media URLs now use HttpOnly cookies for authentication.
 
-    const token = localStorage.getItem('vibe_token');
     const avatarUrl = user?.avatar_path
-        ? `/api/media/${user.avatar_path}?token=${token}`
+        ? `/api/media/${user.avatar_path}?v=${encodeURIComponent(user.avatar_path)}`
         : null;
 
     if (avatarUrl) {

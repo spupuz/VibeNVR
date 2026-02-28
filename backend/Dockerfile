@@ -9,7 +9,7 @@ COPY backend/requirements.txt .
 # but we can try to use a lighter base or specific flags if needed. 
 # Actually, let's switch to proper static build pattern:
 # Switch to apt-get for ffmpeg to avoid download failures from third-party sites
-RUN apt-get update && apt-get upgrade -y && apt-get install -y curl xz-utils tzdata ffmpeg && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get upgrade -y && apt-get install -y curl xz-utils tzdata ffmpeg libmagic1 && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir --upgrade pip wheel && \
     pip install --no-cache-dir -r requirements.txt
 

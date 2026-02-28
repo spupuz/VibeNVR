@@ -1,21 +1,33 @@
 import os
-from fastapi.middleware.cors import CORSMiddleware
-from database import engine, Base
-from routers import cameras, events, stats, settings, auth, users, groups, logs, homepage, api_tokens
+import logging
+import json
+import asyncio
+import tarfile
+import io
+import re
 import threading
-import storage_service
-import motion_service
-import database
-import auth_service
+from typing import Optional
+from urllib.parse import urlparse
+
 import requests
 from fastapi import FastAPI, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
-from models import Camera # Fixed missing import
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
-import logging
-import re
+import database
+from database import engine, Base
+from routers import cameras, events, stats, settings, auth, users, groups, logs, homepage, api_tokens
+import auth_service
+import crud
+import models
+import storage_service
+import motion_service
+from models import Camera 
 
 class TokenRedactingFilter(logging.Filter):
     def filter(self, record):
@@ -33,9 +45,9 @@ class TokenRedactingFilter(logging.Filter):
                 if isinstance(arg, str):
                     if "token=" in arg:
                         new_args[i] = re.sub(r"token=[^&\s]*", "token=REDACTED", arg)
-                    # Redact RTSP credentials
-                    if "rtsp://" in arg:
-                        new_args[i] = re.sub(r"rtsp://([^:]+):([^@]+)@", r"rtsp://\1:***@", arg)
+                    # Redact sensitive credentials in URLs
+                    if "://" in arg and "@" in arg:
+                        new_args[i] = re.sub(r"://[^@]+@", r"://***@", arg)
             record.args = tuple(new_args)
         return True
 
@@ -71,11 +83,19 @@ from contextlib import asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup actions
     # Check for Default Secret Key (Security Warning)
-    if auth_service.SECRET_KEY == "vibenvr-super-secret-key-change-me":
+    default_keys = [
+        "vibenvr-super-secret-key-change-me",
+        "change_this_to_a_long_random_string",
+        "vibe_secure_key_9823748923748923_change_in_prod",  # .env dev default
+    ]
+    if auth_service.SECRET_KEY in default_keys or len(auth_service.SECRET_KEY) < 32:
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        print("!! SECURITY WARNING: You are using the default SECRET_KEY.                      !!")
-        print("!! Please set a secure SECRET_KEY in your .env file for production use.       !!")
+        print("!! CRITICAL SECURITY ERROR: You are using the default or a weak SECRET_KEY.     !!")
+        print("!! The application will not start.                                              !!")
+        print("!! Please set a secure SECRET_KEY (min 32 chars) in your .env file.             !!")
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        import sys
+        sys.exit(1)
 
     # Wait for DB to be ready
     import time
@@ -173,9 +193,35 @@ try:
 except:
     VERSION = "1.18.2"
 
-app = FastAPI(title="VibeNVR API", version=VERSION, lifespan=lifespan)
+_is_dev = os.getenv("ENVIRONMENT", "production").lower() == "dev"
+app = FastAPI(
+    title="VibeNVR API",
+    version=VERSION,
+    lifespan=lifespan,
+    docs_url="/docs" if _is_dev else None,
+    redoc_url="/redoc" if _is_dev else None,
+)
+
+# Rate Limiter setup
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # CORS configuration
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+# CORS Configuration
+# Default to empty/restrictive for security. User should set ALLOWED_ORIGINS in .env
+allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "")
+if not allowed_origins_raw:
+    # Allow localhost for development if not set
+    allowed_origins = ["http://localhost:5173", "http://localhost:5005", "http://localhost:8080"]
+else:
+    allowed_origins = allowed_origins_raw.split(",")
+
+if "*" in allowed_origins:
+    print("--------------------------------------------------------------------------------")
+    print("!! WARNING: CORS ALLOWED_ORIGINS is set to '*'.                               !!")
+    print("!! For production, set this to your specific domain (e.g., https://vibe.io).  !!")
+    print("--------------------------------------------------------------------------------")
 
 app.add_middleware(
     CORSMiddleware,
@@ -223,10 +269,23 @@ from fastapi import HTTPException, Depends
 
 # Secure media serving
 @app.get("/media/{file_path:path}")
-async def get_secure_media(file_path: str, token: str):
-    # Release DB connection early
-    with database.get_db_ctx() as db:
-        await auth_service.get_user_from_token(token, db)
+async def get_secure_media(file_path: str, request: Request, token: Optional[str] = None):
+    # Debug cookies
+    logging.debug(f"DEBUG Media: Request cookies for {file_path}: {request.cookies}")
+
+    # Try query param first (for backward compatibility), then cookie
+    media_token = token or request.cookies.get("media_token")
+    if not media_token:
+        logging.warning(f"Media Auth Fail: No token for {file_path}. Cookies present: {list(request.cookies.keys())}")
+        raise HTTPException(status_code=401, detail="Missing media authentication")
+
+    try:
+        # Release DB connection early
+        with database.get_db_ctx() as db:
+            await auth_service.get_user_from_token(media_token, db)
+    except Exception as e:
+        logging.error(f"Media Auth Fail: Invalid token for {file_path} - {str(e)}")
+        raise HTTPException(status_code=401, detail="Invalid media authentication")
     
     # Security Validation: Ensure path is within /data/
     # Normalize path to prevent traversals like /data/../etc/passwd

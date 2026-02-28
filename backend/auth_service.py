@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Union
-from jose import JWTError, jwt
+import jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -13,7 +13,7 @@ import pyotp
 # Secret key for JWT (Should be in env var in production)
 SECRET_KEY = os.getenv("SECRET_KEY", "vibenvr-super-secret-key-change-me")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 2  # 48 hours (Reduced from 7 days for security)
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
@@ -39,10 +39,11 @@ def get_totp_uri(secret: str, username: str):
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
+    # PyJWT: encode() returns str directly (unlike python-jose which returned bytes in older versions)
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -53,11 +54,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        # PyJWT: raises jwt.ExpiredSignatureError, jwt.InvalidTokenError (both subclass jwt.PyJWTError)
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-    except JWTError:
+    except jwt.PyJWTError:
         raise credentials_exception
     
     user = db.query(models.User).filter(models.User.username == username).first()
@@ -75,6 +77,15 @@ async def get_current_active_admin(current_user: models.User = Depends(get_curre
         )
     return current_user
 
+def is_admin(user: models.User) -> bool:
+    """
+    Centralized helper for inline role checks within mixed-access endpoints
+    (i.e., endpoints accessible by both admin and regular users, where admin
+    gets extra permissions). Always prefer Depends(get_current_active_admin)
+    for admin-only endpoints instead.
+    """
+    return user.role == "admin"
+
 async def get_current_user_from_query(token: str, db: Session = Depends(database.get_db)):
     """
     Alternative auth dependency extracting token from query param ?token=...
@@ -90,7 +101,7 @@ async def get_current_user_from_query(token: str, db: Session = Depends(database
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-    except JWTError:
+    except jwt.PyJWTError:
         raise credentials_exception
     
     user = db.query(models.User).filter(models.User.username == username).first()
@@ -125,7 +136,7 @@ async def get_current_user_mixed(
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-    except JWTError:
+    except jwt.PyJWTError:
         raise credentials_exception
     
     user = db.query(models.User).filter(models.User.username == username).first()
@@ -165,6 +176,13 @@ async def verify_api_token(
             detail="Invalid or inactive API Key"
         )
     
+    # Check expiration
+    if token.expires_at and token.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=401,
+            detail="API Key has expired"
+        )
+    
     # Update last_used_at
     crud.update_token_last_used(db, token.id)
     
@@ -184,6 +202,10 @@ async def verify_api_token_optional(
     if not token or not token.is_active:
         return None
         
+    # Check expiration
+    if token.expires_at and token.expires_at < datetime.now(timezone.utc):
+        return None
+
     # Update last_used_at
     crud.update_token_last_used(db, token.id)
     return token
@@ -196,7 +218,7 @@ async def get_current_user_optional(token: str = Depends(oauth2_scheme_optional)
         username: str = payload.get("sub")
         if username is None:
             return None
-    except JWTError:
+    except jwt.PyJWTError:
         return None
     
     user = db.query(models.User).filter(models.User.username == username).first()

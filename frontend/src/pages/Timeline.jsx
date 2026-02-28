@@ -100,7 +100,7 @@ const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl, onDele
                 <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-90 transition-opacity z-10">
                     {/* Download */}
                     <a
-                        href={`/api/events/${event.id}/download?token=${token}`}
+                        href={`/api/events/${event.id}/download`}
                         download
                         onClick={(e) => e.stopPropagation()}
                         className="p-1 bg-black/50 hover:bg-black/70 text-white rounded backdrop-blur-sm transition-colors"
@@ -278,8 +278,8 @@ export const Timeline = () => {
         } else if (relative.startsWith('/var/lib/vibe/recordings/')) {
             relative = relative.replace('/var/lib/vibe/recordings/', '');
         }
-        // Append token for authentication
-        return `${API_BASE}/media/${relative}?token=${token}`;
+        // Cookie handles authentication
+        return `${API_BASE}/media/${relative}`;
     };
 
     const handleDelete = async (id) => {
@@ -702,7 +702,7 @@ export const Timeline = () => {
                                     <div className="w-px h-6 bg-border mx-1"></div>
 
                                     <a
-                                        href={`/api/events/${selectedEvent.id}/download?token=${token}`}
+                                        href={`/api/events/${selectedEvent.id}/download`}
                                         download
                                         className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors"
                                     >

@@ -37,3 +37,4 @@ frontend/.env
 
 # VibeNVR Specific
 local_wiki/
+scripts/security_tests/

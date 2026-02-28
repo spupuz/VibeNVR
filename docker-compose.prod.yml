@@ -28,11 +28,15 @@ services:
       # - /etc/localtime:/etc/localtime:ro # Removed for cross-platform compatibility, use TZ
 
     environment:
-      - DATABASE_URL=postgresql://vibenvr:vibenvrpass@db:5432/vibenvr
+      - POSTGRES_USER=${POSTGRES_USER:-vibenvr}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-vibenvrpass}
+      - POSTGRES_DB=${POSTGRES_DB:-vibenvr}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-vibenvr}:${POSTGRES_PASSWORD:-vibenvrpass}@db:5432/${POSTGRES_DB:-vibenvr}
       - TZ=Europe/Rome
       - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
       - WEBHOOK_SECRET=${WEBHOOK_SECRET:-vibe_secure_key_9823748923748923_change_in_prod}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
+      - COOKIE_SECURE=${COOKIE_SECURE:-true}
     depends_on:
       db:
         condition: service_healthy
@@ -70,8 +74,13 @@ services:
   engine:
     image: spupuz/vibenvr-engine:latest
     container_name: vibenvr-engine
-    ports:
-      - "5001:5001"
+    # Security: engine API is internal only — no host port exposure.
+    # Backend communicates via Docker DNS: http://engine:8000
+    # Uncomment ONLY for local debugging:
+    # ports:
+    #   - "5001:8000"
+    expose:
+      - "8000"
     volumes:
       - ${VIBENVR_DATA:-vibenvr_data}:/var/lib/vibe/recordings
       # - /etc/localtime:/etc/localtime:ro # Removed for cross-platform compatibility, use TZ
@@ -141,13 +150,13 @@ services:
       - apparmor:unconfined
     privileged: false # Set to true for Proxmox/OMV/LXC if you see permission errors
     environment:
-      - POSTGRES_USER=vibenvr
-      - POSTGRES_PASSWORD=vibenvrpass
-      - POSTGRES_DB=vibenvr
+      - POSTGRES_USER=${POSTGRES_USER:-vibenvr}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-vibenvrpass}
+      - POSTGRES_DB=${POSTGRES_DB:-vibenvr}
     volumes:
       - ${VIBENVR_DB_DATA:-vibenvr_db_data}:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U vibenvr" ]
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-vibenvr}" ]
       interval: 5s
       timeout: 5s
       retries: 10
