@@ -26,6 +26,11 @@ export const Profile = () => {
     const [recoveryCodes, setRecoveryCodes] = useState([]);
     const [regeneratingCodes, setRegeneratingCodes] = useState(false);
 
+    // Disable 2FA password confirmation modal
+    const [disable2FAModalOpen, setDisable2FAModalOpen] = useState(false);
+    const [disable2FAPassword, setDisable2FAPassword] = useState('');
+    const [disabling2FA, setDisabling2FA] = useState(false);
+
     // Trusted Devices State
     const [trustedDevices, setTrustedDevices] = useState([]);
     const [loadingDevices, setLoadingDevices] = useState(false);
@@ -228,33 +233,37 @@ export const Profile = () => {
     };
 
     const handleDisable2FA = () => {
-        setConfirmModal({
-            isOpen: true,
-            title: 'Disable 2FA',
-            message: 'Are you sure you want to disable 2FA? This will make your account less secure.',
-            variant: 'danger',
-            onConfirm: () => {
-                disable2FA();
-                closeConfirmModal();
-            }
-        });
+        setDisable2FAPassword('');
+        setDisable2FAModalOpen(true);
     };
 
-    const disable2FA = async () => {
+    const disable2FA = async (e) => {
+        e.preventDefault();
+        if (!disable2FAPassword) return;
+        setDisabling2FA(true);
         try {
             const res = await fetch('/api/auth/2fa/disable', {
                 method: 'POST',
-                headers: { Authorization: `Bearer ${token}` }
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ password: disable2FAPassword })
             });
 
             if (res.ok) {
                 showToast('2FA Disabled', 'success');
-                await checkAuth(); // Refresh user state
+                setDisable2FAModalOpen(false);
+                setDisable2FAPassword('');
+                await checkAuth();
             } else {
-                showToast('Failed to disable 2FA', 'error');
+                const err = await res.json();
+                showToast(err.detail || 'Failed to disable 2FA', 'error');
             }
         } catch (err) {
             showToast('Failed to disable 2FA: ' + err.message, 'error');
+        } finally {
+            setDisabling2FA(false);
         }
     };
 
@@ -361,6 +370,46 @@ export const Profile = () => {
                 </div>
             )}
 
+            {/* Disable 2FA Password Confirmation Modal */}
+            {disable2FAModalOpen && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-6 space-y-4">
+                        <div className="flex justify-between items-center border-b border-border pb-4">
+                            <h3 className="text-lg font-bold flex items-center gap-2">
+                                <Shield className="w-5 h-5 text-red-500" />
+                                Disable Two-Factor Authentication
+                            </h3>
+                            <button onClick={() => { setDisable2FAModalOpen(false); setDisable2FAPassword(''); }} className="text-muted-foreground hover:text-foreground">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-lg p-3 text-sm text-red-700 dark:text-red-400">
+                            ⚠️ Disabling 2FA will make your account less secure. Confirm your current password to proceed.
+                        </div>
+                        <form onSubmit={disable2FA} className="space-y-4">
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">Current Password</label>
+                                <input
+                                    type="password"
+                                    className="w-full bg-background border border-input rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
+                                    required
+                                    autoFocus
+                                    value={disable2FAPassword}
+                                    onChange={e => setDisable2FAPassword(e.target.value)}
+                                    placeholder="Enter your current password"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2 pt-4 border-t border-border mt-4">
+                                <Button type="button" variant="outline" onClick={() => { setDisable2FAModalOpen(false); setDisable2FAPassword(''); }}>Cancel</Button>
+                                <Button type="submit" disabled={disabling2FA} className="bg-red-500 hover:bg-red-600 text-white">
+                                    {disabling2FA ? 'Disabling...' : 'Disable 2FA'}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* 2FA Setup Modal */}
             {is2FASetupOpen && setupData && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -429,10 +478,10 @@ export const Profile = () => {
                             </p>
                         </div>
 
-                        <div className="bg-muted p-4 rounded-lg border border-border">
-                            <div className="grid grid-cols-2 gap-4 font-mono text-sm tracking-wider">
+                        <div className="bg-muted p-4 rounded-lg border border-border max-h-[40vh] overflow-y-auto">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs tracking-tighter sm:text-sm sm:tracking-wider">
                                 {recoveryCodes.map((code, idx) => (
-                                    <div key={idx} className="bg-background px-3 py-2 rounded text-center border shadow-sm">
+                                    <div key={idx} className="bg-background px-3 py-2 rounded text-center border shadow-sm break-all flex items-center justify-center min-h-[40px]">
                                         {code}
                                     </div>
                                 ))}

@@ -1,12 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, Request
 from fastapi.responses import JSONResponse, Response
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 import crud, schemas, database, motion_service, storage_service, probe_service, auth_service, models, health_service
 import json, asyncio, tarfile, io, re, os
+import logging
 from urllib.parse import urlparse
 from typing import Optional, List, Any
 import datetime
+
+MAX_IMPORT_SIZE = 10 * 1024 * 1024        # 10 MB  — JSON camera import
+MAX_MOTIONEYE_IMPORT_SIZE = 200 * 1024 * 1024  # 200 MB — MotionEye .tar.gz backup
 
 router = APIRouter(
     prefix="/cameras",
@@ -255,13 +259,27 @@ from fastapi.responses import StreamingResponse, Response
 import httpx
 
 @router.get("/{camera_id}/frame")
-async def get_camera_frame(camera_id: int, token: str):
+async def get_camera_frame(camera_id: int, request: Request, token: Optional[str] = None):
     """Proxy a single JPEG frame from the engine (for polling mode)"""
-    with database.get_db_ctx() as db:
-        await auth_service.get_user_from_token(token, db)
-        db_camera = crud.get_camera(db, camera_id=camera_id)
-        if db_camera is None:
-            raise HTTPException(status_code=404, detail="Camera not found")
+    # Debug cookies
+    logging.debug(f"DEBUG: Request cookies for {camera_id}: {request.cookies}")
+    
+    media_token = token or request.cookies.get("media_token")
+    if not media_token:
+        logging.warning(f"Frame Auth Fail: No token for camera {camera_id}. Cookies present: {list(request.cookies.keys())}")
+        raise HTTPException(status_code=401, detail="Missing media authentication")
+
+    try:
+        with database.get_db_ctx() as db:
+            await auth_service.get_user_from_token(media_token, db)
+            db_camera = crud.get_camera(db, camera_id=camera_id)
+            if db_camera is None:
+                raise HTTPException(status_code=404, detail="Camera not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Frame Auth Fail: Invalid token for camera {camera_id} - {str(e)}")
+        raise HTTPException(status_code=401, detail="Invalid media authentication")
     
     frame_url = f"http://engine:8000/cameras/{camera_id}/frame"
     
@@ -284,13 +302,24 @@ async def get_camera_frame(camera_id: int, token: str):
         raise HTTPException(status_code=503, detail=f"Frame unavailable: {e}")
 
 @router.get("/{camera_id}/stream")
-async def stream_camera(camera_id: int, token: str):
+async def stream_camera(camera_id: int, request: Request, token: Optional[str] = None):
     """Proxy the MJPEG stream from Motion to bypass CORS issues"""
-    with database.get_db_ctx() as db:
-        await auth_service.get_user_from_token(token, db)
-        db_camera = crud.get_camera(db, camera_id=camera_id)
-        if db_camera is None:
-            raise HTTPException(status_code=404, detail="Camera not found")
+    media_token = token or request.cookies.get("media_token")
+    if not media_token:
+        logging.warning(f"Stream Auth Fail: No token for camera {camera_id}")
+        raise HTTPException(status_code=401, detail="Missing media authentication")
+
+    try:
+        with database.get_db_ctx() as db:
+            await auth_service.get_user_from_token(media_token, db)
+            db_camera = crud.get_camera(db, camera_id=camera_id)
+            if db_camera is None:
+                raise HTTPException(status_code=404, detail="Camera not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Stream Auth Fail: Invalid token for camera {camera_id} - {str(e)}")
+        raise HTTPException(status_code=401, detail="Invalid media authentication")
     
     # Use explicit container name for hostname stability
     # Motion used 8100+ID, VibeEngine uses API path
@@ -381,7 +410,9 @@ def export_single_camera(camera_id: int, db: Session = Depends(database.get_db),
 async def import_cameras(file: UploadFile = File(...), db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Import cameras from JSON file"""
     try:
-        content = await file.read()
+        content = await file.read(MAX_IMPORT_SIZE + 1)
+        if len(content) > MAX_IMPORT_SIZE:
+            raise HTTPException(status_code=400, detail="File too large (max 10 MB)")
         try:
             data = json.loads(content)
         except json.JSONDecodeError as e:
@@ -453,7 +484,9 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
         raise HTTPException(status_code=400, detail="File must be a .tar.gz backup from MotionEye")
     
     try:
-        content = await file.read()
+        content = await file.read(MAX_MOTIONEYE_IMPORT_SIZE + 1)
+        if len(content) > MAX_MOTIONEYE_IMPORT_SIZE:
+            raise HTTPException(status_code=400, detail="File too large (max 200 MB)")
         tar_stream = io.BytesIO(content)
         imported_count = 0
         skipped_count = 0
@@ -463,6 +496,10 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
             print(f"[IMPORT] Tar contains {len(members)} entries", flush=True)
             
             for member in members:
+                # Zip Slip / TAR path traversal guard
+                if ".." in member.name or member.name.startswith("/"):
+                    print(f"[IMPORT] Security: Skipping suspicious path in tar: {member.name}", flush=True)
+                    continue
                 filename = os.path.basename(member.name)
                 print(f"[IMPORT] Checking member: {member.name} (file: {filename})", flush=True)
                 

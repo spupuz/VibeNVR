@@ -489,7 +489,7 @@ export const Settings = () => {
 
     useEffect(() => {
         if (!token) return;
-        initDefaults();
+        fetchSettings();
     }, [token]);
 
     return (
@@ -773,8 +773,8 @@ export const Settings = () => {
                                 type="number"
                                 help="Total space allowed for recordings. The system will start deleting old recordings when this limit is reached."
                                 unit="GB"
-                                value={globalSettings.storage_quota_gb}
-                                onChange={(val) => setGlobalSettings({ ...globalSettings, storage_quota_gb: val })}
+                                value={globalSettings.max_global_storage_gb}
+                                onChange={(val) => setGlobalSettings({ ...globalSettings, max_global_storage_gb: val })}
                             />
                             <div className="space-y-2">
                                 <label className="block text-sm font-medium">Auto-Cleanup Policy</label>

@@ -3,7 +3,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [token, setToken] = useState(localStorage.getItem('vibe_token'));
+    // Token lives in memory ONLY — never in localStorage.
+    // Persistence across page reloads is handled by the HttpOnly auth_token cookie (set by backend on login).
+    const [token, setToken] = useState(null);
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isBackendReady, setIsBackendReady] = useState(false);
@@ -17,10 +19,8 @@ export const AuthProvider = ({ children }) => {
             const res = await fetch('/api/health', { signal: controller.signal });
             clearTimeout(timeoutId);
 
-            // Try to parse JSON even if status is not 200 (e.g. 503 Service Unavailable)
             const data = await res.json().catch(() => null);
             if (data) {
-                // Enrich data with explicit backend status
                 setHealthDetails({
                     ...data,
                     components: {
@@ -35,11 +35,9 @@ export const AuthProvider = ({ children }) => {
                 return true;
             }
         } catch (err) {
-            // Silence noise in console during startup
             if (err.name === 'AbortError') {
                 console.warn("Backend health check timed out after 5s");
             }
-            // Provide synthetic error status for GUI visibility
             setHealthDetails({
                 status: 'error',
                 components: {
@@ -53,7 +51,28 @@ export const AuthProvider = ({ children }) => {
         }
         setIsBackendReady(false);
         return false;
-    }, []); // Removed unnecessary dependency
+    }, []);
+
+    /**
+     * Restore session from HttpOnly cookie on page load/reload.
+     * JS never reads the cookie — the backend reads it server-side and returns
+     * the user data + access_token (so we can put it in memory for Bearer headers).
+     */
+    const bootstrapFromCookie = React.useCallback(async () => {
+        try {
+            const res = await fetch('/api/auth/me-from-cookie', {
+                credentials: 'include'
+            });
+            if (res.ok) {
+                const { user: userData, access_token } = await res.json();
+                setUser(userData);
+                setToken(access_token);
+            }
+            // 401 = no valid cookie, user needs to log in — that's expected, no error
+        } catch (err) {
+            console.error("Cookie bootstrap failed", err);
+        }
+    }, []);
 
     const checkAuth = React.useCallback(async () => {
         if (token) {
@@ -71,26 +90,22 @@ export const AuthProvider = ({ children }) => {
                 console.error("Auth check failed (network error)", err);
             }
         }
-    }, [token]); // Added closing ); and dependency
+    }, [token]);
 
     useEffect(() => {
         const init = async () => {
             const ready = await checkBackendHealth();
-            if (ready && token) {
-                await checkAuth();
+            if (ready) {
+                // Restore session from HttpOnly cookie (transparent to user on page reload)
+                await bootstrapFromCookie();
             }
             setLoading(false);
         };
 
         init();
 
-        // Continuous monitoring: Check health every 10 seconds during the session.
-        // If it goes down, isBackendReady will become false and App.jsx will show the init screen.
         const healthInterval = setInterval(async () => {
             const ready = await checkBackendHealth();
-            // If it was down and now is ready, and we have a token but no user, try re-auth
-            // We use a functional update or closure-safe check if needed, but here simple is fine
-            // since we don't want 'user' to trigger the effect itself.
             if (ready && token && !user) {
                 await checkAuth();
             }
@@ -98,18 +113,26 @@ export const AuthProvider = ({ children }) => {
 
         return () => clearInterval(healthInterval);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [token, checkAuth, checkBackendHealth]); // Removed 'user' to break infinite loop
+    }, []);
 
     const login = (newToken, userData) => {
+        // Token stored in memory only — HttpOnly cookie already set by backend on login response
         setToken(newToken);
         setUser(userData);
-        localStorage.setItem('vibe_token', newToken);
     };
 
-    const logout = () => {
+    const logout = async () => {
         setToken(null);
         setUser(null);
-        localStorage.removeItem('vibe_token');
+        // Clear HttpOnly cookies server-side — JS cannot delete httpOnly cookies directly
+        try {
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
+            });
+        } catch (err) {
+            console.error("Logout cookie clear failed", err);
+        }
     };
 
     return (

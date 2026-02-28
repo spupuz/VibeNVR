@@ -33,11 +33,15 @@ services:
       - ${VIBENVR_DATA:-vibenvr_data}:/data
 
     environment:
-      - DATABASE_URL=postgresql://vibenvr:vibenvrpass@db:5432/vibenvr
+      - POSTGRES_USER=${POSTGRES_USER:-vibenvr}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-vibenvrpass}
+      - POSTGRES_DB=${POSTGRES_DB:-vibenvr}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-vibenvr}:${POSTGRES_PASSWORD:-vibenvrpass}@db:5432/${POSTGRES_DB:-vibenvr}
       - TZ=Europe/Rome
       - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
       - WEBHOOK_SECRET=${WEBHOOK_SECRET:-vibe_secure_key_9823748923748923_change_in_prod}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
+      - COOKIE_SECURE=${COOKIE_SECURE:-true}
     entrypoint: [ "/bin/sh", "./entrypoint.sh" ]
     stop_grace_period: 30s
     labels:
@@ -75,8 +79,13 @@ services:
     restart: unless-stopped
     init: true
     shm_size: '512mb'
-    ports:
-      - "5001:8000"
+    # Security: engine API is internal only — no host port exposure.
+    # Backend communicates via Docker DNS: http://engine:8000
+    # Uncomment the lines below ONLY for local debugging:
+    # ports:
+    #   - "5001:8000"
+    expose:
+      - "8000"
     volumes:
       - ./engine:/app
       - ${VIBENVR_DATA:-vibenvr_data}:/var/lib/vibe/recordings
@@ -144,9 +153,9 @@ services:
       - apparmor:unconfined
     privileged: false # Set to true for Proxmox/OMV/LXC if you see permission errors
     environment:
-      - POSTGRES_USER=vibenvr
-      - POSTGRES_PASSWORD=vibenvrpass
-      - POSTGRES_DB=vibenvr
+      - POSTGRES_USER=${POSTGRES_USER:-vibenvr}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-vibenvrpass}
+      - POSTGRES_DB=${POSTGRES_DB:-vibenvr}
     volumes:
       - ${VIBENVR_DB_DATA:-vibenvr_db_data}:/var/lib/postgresql/data
     healthcheck:

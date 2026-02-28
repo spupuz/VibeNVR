@@ -14,6 +14,14 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 > ⚠️ **IMPORTANT**: When updating, always check the **[Release Notes](https://github.com/spupuz/VibeNVR/releases)** and ensure your `docker-compose.prod.yml` and `.env` are synchronized with the latest version.
 > 
 > **Language Policy**: Please note that **English is the official and only supported language** of this project. All code, user interface elements, commit messages, issues, and documentation (including wikis) must be written strictly in English to maintain consistency and accessibility for the global community.
+> 
+> ---
+> ### 💬 Help Us Improve!
+> We are building VibeNVR to be the best local NVR experience, and we can't do it without you. 
+> 
+> **Found a bug? Have a great idea for a feature? Want to share your setup?**
+> Please **[Open an Issue](https://github.com/spupuz/VibeNVR/issues)**! We are extremely proactive, always available to fix problems, and love adding new capabilities requested by the community. Your feedback is what drives this project forward.
+
 
 ---
 ## ⚠️ Beta Disclaimer
@@ -28,12 +36,12 @@ This software is currently in active beta development. The database schema is st
 |---------|-------------|
 | 🖥️ **Modern Web Interface** | Ultra-premium UI built with React, Vite, and Lucide icons. |
 | 🎨 **Customizable Dashboard** | Toggle widgets and graphs to suit your monitoring needs. |
-| 🛡️ **Secure by Design** | Full JWT authentication, **2FA with Trusted Devices**, and protected internal ports. |
+| 🛡️ **Secure by Design** | Full JWT authentication, **2FA with Trusted Devices**, Rate Limiting, and HttpOnly Media Cookies. |
 | 📷 **Advanced Video Engine** | Custom Python engine using OpenCV & FFmpeg for RTSP streaming and processing. |
 | ⚡ **Passthrough Recording** | Direct Stream Copy support for near-zero CPU usage recording (experimental, with auto-fallback). |
 | 🎯 **Smart Motion Detection** | Native motion detection with adjustable sensitivity, gap, and pre/post-capture buffers. |
 | 📅 **Event Timeline** | Unified browser for movie recordings and high-res snapshots with instant filters. |
-| 🔑 **API Access Tokens** | Secure, read-only API tokens for 3rd party integrations (Homepage, etc.). |
+| 🔑 **API Access Tokens** | Secure, read-only API tokens with **TTL (Expiration)** and hashed storage for 3rd party integrations. |
 | 💾 **Storage Management** | Automated background cleanup (FIFO) and **Bulk Deletion** tools. |
 | 📁 **Camera Groups** | Organize cameras into custom groups for logical multi-view management. |
 | 🕙 **Timezone Synchronization** | Full ISO 8601 support ensures perfect timing between engine, backend, and UI. |
@@ -270,6 +278,8 @@ security_opt:
 
 **Option 2: Use Privileged Mode for ALL Containers**
 
+> ⚠️ **CRITICAL WARNING**: Running containers in privileged mode bypasses Docker's isolation and grants root-level access to the host machine. Only use this if absolutely necessary on specific problematic kernels (like older Proxmox/OMV) and ensure your system is well-segmented.
+
 If Option 1 doesn't work (common on OpenMediaVault + Proxmox kernel), you MUST change `privileged: false` to `privileged: true` for **every service** (frontend, backend, engine, db) in your `docker-compose.yml`:
 
 ```yaml
@@ -337,7 +347,7 @@ docker compose up -d
 VibeNVR is split into four main microservices:
 
 *   **Frontend**: React-based SPA providing a sleek, responsive dashboard.
-*   **Backend**: FastAPI server handling logic, secure database access, and **authenticated media relay**.
+*   **Backend**: FastAPI server handling logic, secure database access, and **secure HttpOnly cookie-based media relay**.
 *   **VibeEngine**: Custom processing engine for motion detection, recording, and overlays using OpenCV.
 *   **Database**: PostgreSQL for persistent storage of camera configs and events.
 

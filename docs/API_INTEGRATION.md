@@ -8,12 +8,17 @@ VibeNVR supports two types of authentication:
 2.  **API Tokens**: Used for external integrations.
 
 ### Using API Tokens
-Tokens can be generated in the **Settings** page (Admin only).
+Tokens can be generated in the **Settings** page (Admin only). Tokens support an optional **TTL (Time-To-Live)** during creation; if set, the token will automatically expire after the specified number of days.
 To authenticate a request, include the token in the `X-API-Key` header:
 
 ```bash
 curl -H "X-API-Key: YOUR_TOKEN_HERE" http://vibenvr-ip:8000/api/v1/stats
 ```
+
+### Media Access
+Media files (snapshots, recordings) require a `media_token` cookie for authentication.
+- **Headers**: `Cookie: media_token=YOUR_JWT_TOKEN`
+- Query parameters (`?token=`) are deprecated.
 
 ## Available Endpoints
 The following endpoints support API Token authentication (Read-Only):
@@ -65,5 +70,5 @@ Use the `customapi` widget in your `services.yaml`:
 ```
 
 ## Troubleshooting
-- **401 Unauthorized**: Ensure the token is valid, active, and passed in the `X-API-Key` header.
+- **401 Unauthorized**: Ensure the token is valid, active, and passed in the `X-API-Key` header. Check if the token has **expired** if it was created with a TTL.
 - **Permission Denied**: API tokens are currently restricted to **Read-Only** access for major endpoints. Writing operations (Create/Update/Delete) still require Admin JWT session.

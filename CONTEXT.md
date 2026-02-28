@@ -59,4 +59,4 @@ To release a version (e.g., `1.15.7`):
 
 ## 📝 Current Focus
 - Enforcing English language policy across all project documentation and interfaces.
-- Finalizing Security documentation (`SECURITY.md`), 2FA recovery, and RBAC definitions.
+- Maintaining and enforcing Security documentation (`SECURITY.md`), 2FA recovery, and RBAC definitions.

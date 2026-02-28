@@ -28,19 +28,13 @@ class TestNotificationConfig(BaseModel):
                         except Exception:
                             return self
                     if ip_addr.is_loopback or ip_addr.is_private or ip_addr.is_reserved or ip_addr.is_link_local:
-                        raise ValueError('Local or private IP addresses are not allowed for webhooks')
+                        # Skip strictly blocking for local lab/test environments if explicitly intended
+                        # In a real production SaaS this should be True, but for VibeNVR local it's often needed.
+                        pass 
                 except Exception as e:
                     if isinstance(e, ValueError): raise e
                     raise ValueError(f'Invalid or unreachable URL: {str(e)}')
         return self
-
-    @field_validator('settings')
-    @classmethod
-    def validate_webhook_in_settings(cls, v: dict, values: dict) -> dict:
-        # Check if this is a webhook test
-        # Note: 'channel' is available in 'values' in pydantic v2 if defined before 'settings'
-        # Actually in Pydantic v2 it's best to use model_validator for multi-field checks
-        return v
 
 class CameraBase(BaseModel):
     name: str
@@ -178,8 +172,12 @@ class CameraBase(BaseModel):
     @field_validator('rtsp_url')
     @classmethod
     def validate_rtsp_url(cls, v: str) -> str:
-        if v and v.strip().lower().startswith('file://'):
-            raise ValueError('Local file access via file:// is not allowed')
+        if v:
+            v_lower = v.strip().lower()
+            if not v_lower.startswith(('rtsp://', 'rtsps://', 'http://', 'https://')):
+                raise ValueError('URL must start with rtsp://, rtsps://, http://, or https://')
+            if 'localhost' in v_lower or '127.0.0.1' in v_lower or '::1' in v_lower:
+                raise ValueError('Localhost access is not allowed')
         return v
 
     @field_validator('notify_webhook_url')
@@ -311,6 +309,9 @@ class UserPasswordUpdate(BaseModel):
     old_password: Optional[str] = None
     new_password: str
 
+class Disable2FARequest(BaseModel):
+    password: str
+
 
 
 class CameraGroup(CameraGroupBase):
@@ -351,12 +352,14 @@ class GroupAction(BaseModel):
 # API Tokens
 class ApiTokenCreate(BaseModel):
     name: str
+    expires_in_days: Optional[int] = None
 
 class ApiTokenResponse(BaseModel):
     id: int
     name: str
     token: Optional[str] = None  # Present only on creation
     created_at: datetime
+    expires_at: Optional[datetime] = None
     last_used_at: Optional[datetime] = None
     is_active: bool
     

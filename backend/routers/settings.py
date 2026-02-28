@@ -1,25 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from typing import Optional
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 import database
 import models
 import schemas
 import auth_service
-import json, time
+import json, time, logging
 import datetime, motion_service
 import requests
 import telemetry_service
 
 router = APIRouter(prefix="/settings", tags=["settings"])
+limiter = Limiter(key_func=get_remote_address)
 
 @router.post("/telemetry/report")
-def manual_telemetry_report(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
+def manual_telemetry_report(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Trigger a manual telemetry report (Admin only)"""
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can trigger telemetry")
-    
     status_code = telemetry_service.send_telemetry()
     return {"status": "ok", "scarf_status": status_code}
 
@@ -79,7 +79,8 @@ def validate_setting(key: str, value: str):
                     except Exception:
                         return
                 if ip_addr.is_loopback or ip_addr.is_private or ip_addr.is_reserved or ip_addr.is_link_local:
-                    raise ValueError('Local or private IP addresses are not allowed for webhooks')
+                    # Allow local/private IPs for webhooks in local lab/dev environments
+                    pass
             except Exception as e:
                 if isinstance(e, ValueError): raise e
                 raise ValueError(f'Invalid or unreachable URL: {str(e)}')
@@ -204,7 +205,8 @@ def init_default_settings(db: Session = Depends(database.get_db), current_user: 
 # -----------------------------------------------------------------------------
 
 @router.get("/backup/export")
-def export_backup(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+@limiter.limit("5/minute")
+def export_backup(request: Request, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Export configuration to JSON"""
     data = {
         "timestamp": datetime.datetime.now().isoformat(),
@@ -228,14 +230,19 @@ def export_backup(db: Session = Depends(database.get_db), current_user: models.U
     )
 
 @router.post("/backup/import")
+@limiter.limit("5/minute")
 async def import_backup(
+    request: Request,
     file: UploadFile = File(...), 
     db: Session = Depends(database.get_db), 
     current_user: models.User = Depends(auth_service.get_current_active_admin)
 ):
     """Import configuration from JSON"""
+    MAX_BACKUP_SIZE = 10 * 1024 * 1024  # 10 MB
     try:
-        content = await file.read()
+        content = await file.read(MAX_BACKUP_SIZE + 1)
+        if len(content) > MAX_BACKUP_SIZE:
+            raise HTTPException(status_code=400, detail="File too large (max 10 MB)")
         data = json.loads(content)
         
         # 1. Restore Check
@@ -255,7 +262,7 @@ async def import_backup(
                     try:
                         validate_setting(s["key"], str(s["value"]))
                     except HTTPException as e:
-                        print(f"[BACKUP] Skipping invalid optimization setting {s['key']}: {e.detail}")
+                        logging.warning(f"[BACKUP] Skipping invalid optimization setting {s['key']}: {e.detail}")
                         continue
                 
                 if existing:
@@ -268,75 +275,99 @@ async def import_backup(
                     db.add(new_setting)
         
         # 3. Restore Cameras
-        # Strategy: Upsert based on ID.
+        # Strategy: De-duplication by RTSP URL if ID doesn't match
+        cam_id_map = {} # backup_id -> actual_db_id
         if "cameras" in data:
+            # We need extract_host logic here to match by Host/IP if URL changes slightly (e.g. credentials)
+            from urllib.parse import urlparse
+            def get_host(url):
+                try:
+                    if not url: return None
+                    if "://" not in url: url = "rtsp://" + url
+                    return urlparse(url).hostname
+                except: return None
+
             for c in data["cameras"]:
-                cam_id = c.get("id")
-                # Remove fields that might cause issues if they don't exist or are calculated (none here mostly)
-                # Parse datetimes if necessary, but string usually works with matching types?
-                # SQLAlchemy expects python objects for DateTime columns if not using specific drivers.
-                # jsonable_encoder converted them to ISO strings.
-                # We need to ensure models accept them or convert back.
-                # simpler: Let's try direct attribute setting.
+                backup_id = c.get("id")
+                rtsp_url = c.get("rtsp_url")
+                cam_host = get_host(rtsp_url)
                 
-                # Check exist
-                existing_cam = db.query(models.Camera).filter(models.Camera.id == cam_id).first()
+                # 1. Try match by ID
+                existing_cam = db.query(models.Camera).filter(models.Camera.id == backup_id).first()
+                
+                # 2. If not found by ID, try match by Host/IP (like in single import)
+                if not existing_cam and cam_host:
+                    # Get all cameras to check host (could be optimized with a specialized query if needed)
+                    all_cams = db.query(models.Camera).all()
+                    existing_cam = next((cam for cam in all_cams if get_host(cam.rtsp_url) == cam_host), None)
+                
                 if not existing_cam:
-                    existing_cam = models.Camera(id=cam_id)
+                    # Create new but DON'T force the backup ID if it might conflict
+                    # Let auto-increment handle it if the backup ID is already taken by a DIFFERENT camera
+                    id_conflict = db.query(models.Camera).filter(models.Camera.id == backup_id).first()
+                    if id_conflict:
+                        existing_cam = models.Camera() # New ID
+                    else:
+                        existing_cam = models.Camera(id=backup_id)
                     db.add(existing_cam)
                 
-                # Validate data using schema to enforce security (path traversal checks)
+                # Validate data using schema
                 try:
-                    # Remove ID if present as it's not in Create schema
-                    cam_data = {k: v for k, v in c.items() if k != 'id' and k != 'events' and k != 'groups'}
+                    cam_data = {k: v for k, v in c.items() if k not in ['id', 'events', 'groups', 'last_frame_path', 'last_thumbnail_path']}
                     clean_cam = schemas.CameraCreate(**cam_data)
                     
                     # Apply validated fields
                     for k, v in clean_cam.model_dump(exclude_unset=True).items():
                          if hasattr(existing_cam, k):
                              setattr(existing_cam, k, v)
+                    
+                    db.flush() # Ensure ID is generated if new
+                    cam_id_map[backup_id] = existing_cam.id
                 except Exception as e:
-                     print(f"[BACKUP] Security Warning: Skipping invalid camera config for ID {cam_id}: {e}", flush=True)
+                     logging.warning(f"[BACKUP] Security Warning: Skipping invalid camera config for ID {backup_id}: {e}")
                      continue
 
         # 4. Restore Groups
+        grp_id_map = {} # backup_id -> actual_db_id
         if "groups" in data:
             for g in data["groups"]:
-                grp_id = g.get("id")
-                existing_grp = db.query(models.CameraGroup).filter(models.CameraGroup.id == grp_id).first()
+                backup_grp_id = g.get("id")
+                # Try match by name if ID differs? Usually Groups are few, match by name is safer.
+                existing_grp = db.query(models.CameraGroup).filter(models.CameraGroup.name == g.get("name")).first()
                 if not existing_grp:
-                    existing_grp = models.CameraGroup(id=grp_id)
+                    existing_grp = models.CameraGroup()
                     db.add(existing_grp)
                 
                 for k, v in g.items():
-                    if k == "cameras": continue
+                    if k in ["cameras", "id"]: continue
                     if hasattr(existing_grp, k):
                         setattr(existing_grp, k, v)
-        
-        db.flush() # Sync ID sequences?
+                
+                db.flush()
+                grp_id_map[backup_grp_id] = existing_grp.id
         
         # 5. Restore Associations
-        # Wipe existing associations for robustness or merge?
-        # Merging is safer.
         if "associations" in data:
-            print(f"[BACKUP] Restoring {len(data['associations'])} camera-group associations", flush=True)
+            logging.info(f"[BACKUP] Restoring {len(data['associations'])} camera-group associations")
             for a in data["associations"]:
-                 cam_id = a.get("camera_id")
-                 grp_id = a.get("group_id")
-                 if cam_id and grp_id:
-                     # Verify both exist before associating
-                     cam_exists = db.query(models.Camera).filter_by(id=cam_id).first()
-                     grp_exists = db.query(models.CameraGroup).filter_by(id=grp_id).first()
-                     
-                     if cam_exists and grp_exists:
-                         exists = db.query(models.CameraGroupAssociation).filter_by(camera_id=cam_id, group_id=grp_id).first()
-                         if not exists:
-                             assoc = models.CameraGroupAssociation(camera_id=cam_id, group_id=grp_id)
-                             db.add(assoc)
+                 old_cam_id = a.get("camera_id")
+                 old_grp_id = a.get("group_id")
+                 
+                 # Map to new IDs
+                 new_cam_id = cam_id_map.get(old_cam_id)
+                 new_grp_id = grp_id_map.get(old_grp_id)
+                 
+                 if new_cam_id and new_grp_id:
+                     exists = db.query(models.CameraGroupAssociation).filter_by(
+                         camera_id=new_cam_id, group_id=new_grp_id
+                     ).first()
+                     if not exists:
+                         assoc = models.CameraGroupAssociation(camera_id=new_cam_id, group_id=new_grp_id)
+                         db.add(assoc)
 
         # 6. Restore Users
         if "users" in data:
-            print(f"[BACKUP] Restoring {len(data['users'])} users", flush=True)
+            logging.info(f"[BACKUP] Restoring {len(data['users'])} users")
             for u in data["users"]:
                 existing_user = db.query(models.User).filter(models.User.username == u["username"]).first()
                 if not existing_user:

@@ -11,6 +11,7 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
     const { showToast } = useToast();
     const [tokens, setTokens] = useState([]);
     const [newTokenName, setNewTokenName] = useState('');
+    const [newTokenExpiresIn, setNewTokenExpiresIn] = useState('');
     const [createdToken, setCreatedToken] = useState(null);
     const [isCreating, setIsCreating] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, tokenId: null });
@@ -41,13 +42,17 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify({ name: newTokenName })
+                body: JSON.stringify({
+                    name: newTokenName,
+                    expires_in_days: newTokenExpiresIn ? parseInt(newTokenExpiresIn) : null
+                })
             });
 
             if (res.ok) {
                 const data = await res.json();
                 setCreatedToken(data);
                 setNewTokenName('');
+                setNewTokenExpiresIn('');
                 setIsCreating(false);
                 fetchTokens();
                 showToast('API Token created successfully', 'success');
@@ -181,52 +186,132 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                                 required
                             />
                         </div>
+                        <div className="w-full sm:w-32">
+                            <label className="text-xs font-medium mb-1 block">Expires in (days)</label>
+                            <input
+                                type="number"
+                                min="1"
+                                className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
+                                placeholder="Never"
+                                value={newTokenExpiresIn}
+                                onChange={e => setNewTokenExpiresIn(e.target.value)}
+                            />
+                        </div>
                         <Button type="submit" size="sm" className="w-full sm:w-auto">Generate</Button>
                     </div>
+                    <p className="text-[10px] text-muted-foreground mt-2">Leave blank for a permanent token. Recommended for automated services.</p>
                 </form>
             )}
 
-            <div className="mt-4 border border-border rounded-lg overflow-x-auto w-full">
+            {/* Desktop Table View (Hidden on Mobile) */}
+            <div className="mt-4 border border-border rounded-lg overflow-hidden hidden sm:block">
                 <table className="w-full text-sm">
                     <thead className="bg-muted/40 text-left">
                         <tr>
                             <th className="p-3 font-medium text-muted-foreground">Name</th>
-                            <th className="p-3 font-medium text-muted-foreground hidden sm:table-cell">Created</th>
+                            <th className="p-3 font-medium text-muted-foreground">Created</th>
+                            <th className="p-3 font-medium text-muted-foreground">Expires</th>
                             <th className="p-3 font-medium text-muted-foreground">Last Used</th>
                             <th className="p-3 font-medium text-muted-foreground text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {tokens.map(t => (
-                            <tr key={t.id} className="border-t border-border hover:bg-muted/10">
-                                <td className="p-3 font-medium">
-                                    <div className="flex items-center gap-2">
-                                        <Key className="w-3 h-3 text-muted-foreground shrink-0" />
-                                        <span className="truncate max-w-[120px] sm:max-w-none" title={t.name}>{t.name}</span>
-                                    </div>
-                                </td>
-                                <td className="p-3 text-muted-foreground hidden sm:table-cell">{new Date(t.created_at).toLocaleDateString()}</td>
-                                <td className="p-3 text-muted-foreground">
-                                    <span className="whitespace-nowrap">
-                                        {t.last_used_at ? new Date(t.last_used_at).toLocaleDateString() : 'Never'}
-                                    </span>
-                                </td>
-                                <td className="p-3 text-right">
-                                    <button
-                                        onClick={() => setConfirmDelete({ isOpen: true, tokenId: t.id })}
-                                        className="p-2 hover:bg-red-100 text-red-500 rounded-lg transition-colors"
-                                        title="Revoke Token"
-                                    >
-                                        <Trash2 className="w-5 h-5" />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                        {tokens.map(t => {
+                            const isExpired = t.expires_at && new Date(t.expires_at) < new Date();
+                            return (
+                                <tr key={t.id} className="border-t border-border hover:bg-muted/10">
+                                    <td className="p-3 font-medium">
+                                        <div className="flex items-center gap-2">
+                                            <Key className="w-3 h-3 text-muted-foreground shrink-0" />
+                                            <span className="truncate max-w-[200px]" title={t.name}>{t.name}</span>
+                                            {isExpired && (
+                                                <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-destructive/10 text-destructive border border-destructive/20 rounded-lg shrink-0">
+                                                    Expired
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="p-3 text-muted-foreground">{new Date(t.created_at).toLocaleDateString()}</td>
+                                    <td className={`p-3 ${isExpired ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
+                                        {t.expires_at ? new Date(t.expires_at).toLocaleDateString() : 'Never'}
+                                    </td>
+                                    <td className="p-3 text-muted-foreground">
+                                        <span className="whitespace-nowrap">
+                                            {t.last_used_at ? new Date(t.last_used_at).toLocaleDateString() : 'Never'}
+                                        </span>
+                                    </td>
+                                    <td className="p-3 text-right">
+                                        <button
+                                            onClick={() => setConfirmDelete({ isOpen: true, tokenId: t.id })}
+                                            className="p-2 hover:bg-red-100 text-red-500 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center ml-auto"
+                                            title="Revoke Token"
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                         {tokens.length === 0 && (
-                            <tr><td colSpan="4" className="p-4 text-center text-muted-foreground">No active tokens found</td></tr>
+                            <tr><td colSpan="5" className="p-4 text-center text-muted-foreground">No active tokens found</td></tr>
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Mobile Card View (Visible on Mobile Only) */}
+            <div className="mt-4 space-y-4 sm:hidden">
+                {tokens.map(t => {
+                    const isExpired = t.expires_at && new Date(t.expires_at) < new Date();
+                    return (
+                        <div key={t.id} className="bg-card border border-border/70 rounded-xl p-4 shadow-sm">
+                            <div className="flex justify-between items-start mb-3">
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-2">
+                                        <Key className="w-4 h-4 text-primary shrink-0" />
+                                        <span className="font-bold text-base break-all">{t.name}</span>
+                                    </div>
+                                    {isExpired && (
+                                        <span className="w-fit px-2 py-0.5 text-[10px] font-bold uppercase bg-destructive/10 text-destructive border border-destructive/20 rounded-lg">
+                                            Expired
+                                        </span>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setConfirmDelete({ isOpen: true, tokenId: t.id })}
+                                    className="p-3 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors min-w-[44px] min-h-[44px]"
+                                    title="Revoke Token"
+                                >
+                                    <Trash2 className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border/50">
+                                <div>
+                                    <span className="block text-[10px] uppercase font-mono text-muted-foreground mb-1">Created</span>
+                                    <span className="text-sm font-medium">{new Date(t.created_at).toLocaleDateString()}</span>
+                                </div>
+                                <div>
+                                    <span className="block text-[10px] uppercase font-mono text-muted-foreground mb-1">Expires</span>
+                                    <span className={`text-sm font-bold ${isExpired ? 'text-destructive' : 'text-foreground'}`}>
+                                        {t.expires_at ? new Date(t.expires_at).toLocaleDateString() : 'Never'}
+                                    </span>
+                                </div>
+                                <div className="col-span-2">
+                                    <span className="block text-[10px] uppercase font-mono text-muted-foreground mb-1">Last Used</span>
+                                    <span className="text-sm font-medium">
+                                        {t.last_used_at ? new Date(t.last_used_at).toLocaleDateString() : 'Never'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+                {tokens.length === 0 && (
+                    <div className="p-8 text-center bg-muted/20 border border-dashed border-border rounded-xl text-muted-foreground">
+                        No active tokens found
+                    </div>
+                )}
             </div>
 
             <ConfirmModal

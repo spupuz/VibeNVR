@@ -9,6 +9,8 @@ router = APIRouter(
     tags=["api-tokens"],
 )
 
+from datetime import datetime, timedelta, timezone
+
 @router.post("", response_model=schemas.ApiTokenResponse)
 def create_token(
     token_data: schemas.ApiTokenCreate,
@@ -19,7 +21,11 @@ def create_token(
     token = secrets.token_urlsafe(32)
     token_hash = auth_service.hash_api_token(token)
     
-    db_token = crud.create_api_token(db, token_data.name, token_hash, current_user.id)
+    expires_at = None
+    if token_data.expires_in_days:
+        expires_at = datetime.now(timezone.utc) + timedelta(days=token_data.expires_in_days)
+    
+    db_token = crud.create_api_token(db, token_data.name, token_hash, current_user.id, expires_at=expires_at)
     
     response = schemas.ApiTokenResponse.from_orm(db_token)
     response.token = token

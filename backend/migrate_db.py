@@ -130,6 +130,12 @@ def migrate():
     add_column_if_not_exists(engine, "users", "totp_secret", "VARCHAR")
     add_column_if_not_exists(engine, "users", "is_2fa_enabled", "BOOLEAN", False)
 
+    # API Tokens (New Security Features)
+    add_column_if_not_exists(engine, "api_tokens", "name", "VARCHAR", "Unnamed Token")
+    add_column_if_not_exists(engine, "api_tokens", "expires_at", "TIMESTAMP WITH TIME ZONE")
+    add_column_if_not_exists(engine, "api_tokens", "last_used_at", "TIMESTAMP WITH TIME ZONE")
+    add_column_if_not_exists(engine, "api_tokens", "is_active", "BOOLEAN", True)
+
     # API Tokens (Fallback creation if create_all missed it)
     with engine.connect() as conn:
         try:

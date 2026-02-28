@@ -1,7 +1,11 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 import crud, database, schemas, models, auth_service
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(
     prefix="/users",
@@ -38,7 +42,8 @@ def delete_user(user_id: int, db: Session = Depends(database.get_db), current_us
     return db_user
 
 @router.put("/{user_id}/password", response_model=schemas.User)
-def update_password(user_id: int, passwords: schemas.UserPasswordUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
+@limiter.limit("5/minute")
+def update_password(request: Request, user_id: int, passwords: schemas.UserPasswordUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
     # 1. Check if user exists
     db_user = crud.get_user(db, user_id=user_id)
     if not db_user:
@@ -46,7 +51,7 @@ def update_password(user_id: int, passwords: schemas.UserPasswordUpdate, db: Ses
 
     # 2. Permission Check
     is_self = current_user.id == user_id
-    is_admin = current_user.role == "admin"
+    is_admin = auth_service.is_admin(current_user)
     
     if not is_self and not is_admin:
         raise HTTPException(status_code=403, detail="Not authorized to change this password")
@@ -70,7 +75,9 @@ import uuid
 from fastapi import UploadFile, File
 
 @router.post("/{user_id}/avatar", response_model=schemas.User)
+@limiter.limit("10/minute")
 def upload_avatar(
+    request: Request,
     user_id: int, 
     file: UploadFile = File(...), 
     db: Session = Depends(database.get_db), 
@@ -78,7 +85,7 @@ def upload_avatar(
 ):
     # 1. Permission Check
     is_self = current_user.id == user_id
-    is_admin = current_user.role == "admin"
+    is_admin = auth_service.is_admin(current_user)
     
     if not is_self and not is_admin:
         raise HTTPException(status_code=403, detail="Not authorized to update this avatar")
@@ -88,16 +95,34 @@ def upload_avatar(
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # 3. Validate File
-    if not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="File must be an image")
-        
+    # 3. Validate File — check magic bytes (not just the client-declared Content-Type)
+    # Read the first 2048 bytes to detect the real MIME type
+    # MIME-to-extension whitelist: extension is derived from detected MIME, NOT from client filename
+    MIME_TO_EXT = {
+        "image/jpeg": ".jpg",
+        "image/png": ".png",
+        "image/gif": ".gif",
+        "image/webp": ".webp",
+    }
+    detected_mime = None
+    try:
+        import magic as _magic
+        header = file.file.read(2048)
+        file.file.seek(0)  # Reset for subsequent read
+        detected_mime = _magic.from_buffer(header, mime=True)
+        if detected_mime not in MIME_TO_EXT:
+            raise HTTPException(status_code=400, detail=f"File is not a supported image (detected: {detected_mime}). Allowed: JPEG, PNG, GIF, WebP.")
+    except ImportError:
+        # Fallback: trust Content-Type if libmagic is not available
+        if not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        detected_mime = file.content_type.split(";")[0].strip()
+
     # Check file size (limit to 5MB)
-    # Note: UploadFile.file is a SpooledTemporaryFile. We can check its size.
-    file.file.seek(0, 2) # Seek to end
+    file.file.seek(0, 2)  # Seek to end
     file_size = file.file.tell()
-    file.file.seek(0) # Reset to start
-    
+    file.file.seek(0)  # Reset to start
+
     if file_size > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="Image size must be less than 5MB")
 
@@ -106,10 +131,9 @@ def upload_avatar(
     avatar_dir = "/data/avatars"
     os.makedirs(avatar_dir, exist_ok=True)
 
-    # Generate filename
-    file_ext = os.path.splitext(file.filename)[1]
-    if not file_ext:
-        file_ext = ".jpg" # Default fallback
+    # Generate filename — extension is derived from detected MIME type (NOT from client filename)
+    # This prevents saving files with dangerous extensions like .php, .py, .js
+    file_ext = MIME_TO_EXT.get(detected_mime, ".jpg")
     
     # Use UUID to prevent caching issues and filename collisions
     new_filename = f"{user_id}_{uuid.uuid4()}{file_ext}"

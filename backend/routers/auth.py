@@ -1,9 +1,16 @@
+import logging
+import os
 from datetime import timedelta
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Form, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Form, Body, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+logger = logging.getLogger(__name__)
+limiter = Limiter(key_func=get_remote_address)
 import auth_service, crud, database, schemas, models
 
 router = APIRouter(
@@ -12,7 +19,10 @@ router = APIRouter(
 )
 
 @router.post("/login", response_model=schemas.Token)
+@limiter.limit("10/minute")
 async def login_for_access_token(
+    request: Request,
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(), 
     totp_code: Optional[str] = Form(None),
     trust_device: Optional[bool] = Form(False),
@@ -35,23 +45,24 @@ async def login_for_access_token(
     
     # Check if a valid trusted device token was provided
     if user.is_2fa_enabled and device_token:
-        print(f"DEBUG: Checking device token: {device_token[:10]}...")
+        logger.debug("Checking device token for user: %s", user.username)
+        hashed_device_token = auth_service.hash_api_token(device_token)
         trusted_device = db.query(models.TrustedDevice).filter(
             models.TrustedDevice.user_id == user.id,
-            models.TrustedDevice.token == device_token
+            models.TrustedDevice.token == hashed_device_token
         ).first()
         
         if trusted_device:
-            print(f"DEBUG: Device trusted! {trusted_device.name}")
+            logger.debug("Trusted device matched for user: %s (device: %s)", user.username, trusted_device.name)
             # Update last used
             trusted_device.last_used = func.now()
             db.commit()
             is_trusted = True
             output_device_token = device_token
         else:
-            print("DEBUG: Device token Invalid or not found.")
+            logger.debug("Device token not found or invalid for user: %s", user.username)
     else:
-        print(f"DEBUG: No device token provided. 2FA enabled: {user.is_2fa_enabled}")
+        logger.debug("No device token presented for user: %s", user.username)
     
     if user.is_2fa_enabled and not is_trusted:
         if not totp_code and not recovery_code:
@@ -84,7 +95,7 @@ async def login_for_access_token(
             
             # Code is valid, consume it (delete it)
             crud.delete_recovery_code(db, valid_code_id)
-            print(f"DEBUG: Consumed recovery code {valid_code_id} for user {user.username}")
+            logger.debug("Recovery code consumed for user: %s", user.username)
             
         else:
             # Validating via TOTP code
@@ -99,9 +110,10 @@ async def login_for_access_token(
         if trust_device:
             import secrets
             new_token = secrets.token_urlsafe(32)
+            hashed_new_token = auth_service.hash_api_token(new_token)
             new_device = models.TrustedDevice(
                 user_id=user.id,
-                token=new_token,
+                token=hashed_new_token,
                 name=device_name or "Unknown Device"
             )
             db.add(new_device)
@@ -113,7 +125,33 @@ async def login_for_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     
-    response_data = {"access_token": access_token, "token_type": "bearer"}
+    # Secure by default — set COOKIE_SECURE=false in .env for local HTTP testing
+    is_secure = os.getenv("COOKIE_SECURE", "true").lower() == "true"
+
+    # Set HttpOnly media_token cookie for secure media streaming/fetching
+    response.set_cookie(
+        key="media_token",
+        value=access_token,
+        httponly=True,
+        samesite="lax",
+        path="/",
+        max_age=auth_service.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        secure=is_secure
+    )
+
+    # Set HttpOnly auth_token cookie — used for session bootstrap on page reload.
+    # This keeps the JWT out of localStorage entirely, eliminating XSS token theft.
+    response.set_cookie(
+        key="auth_token",
+        value=access_token,
+        httponly=True,
+        samesite="lax",
+        path="/",
+        max_age=auth_service.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        secure=is_secure
+    )
+    logger.debug("auth_token + media_token cookies set for user: %s (secure=%s)", user.username, is_secure)
+    
     response_data = {"access_token": access_token, "token_type": "bearer"}
     if output_device_token:
         response_data["device_token"] = output_device_token
@@ -121,7 +159,8 @@ async def login_for_access_token(
     return response_data
 
 @router.post("/2fa/setup", response_model=schemas.TOTPSetupResponse)
-def setup_2fa(current_user: models.User = Depends(auth_service.get_current_user), db: Session = Depends(database.get_db)):
+@limiter.limit("5/minute")
+def setup_2fa(request: Request, current_user: models.User = Depends(auth_service.get_current_user), db: Session = Depends(database.get_db)):
     """Generate a new TOTP secret for the user and 10 recovery codes."""
     secret = auth_service.generate_totp_secret()
     
@@ -130,7 +169,7 @@ def setup_2fa(current_user: models.User = Depends(auth_service.get_current_user)
     
     # Generate 10 random recovery codes
     import secrets
-    recovery_codes = [secrets.token_hex(4) for _ in range(10)]
+    recovery_codes = [secrets.token_hex(16) for _ in range(10)]  # 128-bit entropy
     hashed_codes = [auth_service.get_password_hash(code) for code in recovery_codes]
     
     # Wipe any existing codes and save new ones
@@ -145,7 +184,9 @@ def setup_2fa(current_user: models.User = Depends(auth_service.get_current_user)
     return {"secret": secret, "otpauth_url": otpauth_url, "recovery_codes": recovery_codes}
 
 @router.post("/2fa/enable")
+@limiter.limit("5/minute")
 def enable_2fa(
+    request: Request,
     verify_data: schemas.TOTPVerify,
     current_user: models.User = Depends(auth_service.get_current_user), 
     db: Session = Depends(database.get_db)
@@ -162,8 +203,19 @@ def enable_2fa(
     return {"status": "2FA enabled"}
 
 @router.post("/2fa/disable")
-def disable_2fa(current_user: models.User = Depends(auth_service.get_current_user), db: Session = Depends(database.get_db)):
-    """Disable 2FA for the current user."""
+@limiter.limit("5/minute")
+def disable_2fa(
+    request: Request,
+    body: schemas.Disable2FARequest,
+    current_user: models.User = Depends(auth_service.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    """Disable 2FA for the current user. Requires current password confirmation."""
+    if not auth_service.verify_password(body.password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password"
+        )
     current_user.is_2fa_enabled = False
     current_user.totp_secret = None
     crud.delete_all_recovery_codes(db, current_user.id)
@@ -171,13 +223,14 @@ def disable_2fa(current_user: models.User = Depends(auth_service.get_current_use
     return {"status": "2FA disabled"}
 
 @router.post("/2fa/recovery-codes")
-def regenerate_recovery_codes(current_user: models.User = Depends(auth_service.get_current_user), db: Session = Depends(database.get_db)):
+@limiter.limit("3/minute")
+def regenerate_recovery_codes(request: Request, current_user: models.User = Depends(auth_service.get_current_user), db: Session = Depends(database.get_db)):
     """Regenerate recovery codes for a user who already has 2FA enabled."""
     if not current_user.is_2fa_enabled:
         raise HTTPException(status_code=400, detail="2FA must be enabled first")
         
     import secrets
-    recovery_codes = [secrets.token_hex(4) for _ in range(10)]
+    recovery_codes = [secrets.token_hex(16) for _ in range(10)]  # 128-bit entropy
     hashed_codes = [auth_service.get_password_hash(code) for code in recovery_codes]
     
     crud.delete_all_recovery_codes(db, current_user.id)
@@ -214,6 +267,32 @@ def auth_status(db: Session = Depends(database.get_db)):
 @router.get("/me", response_model=schemas.User)
 async def read_users_me(current_user: models.User = Depends(auth_service.get_current_user)):
     return current_user
+
+@router.post("/logout")
+def logout(response: Response):
+    """Clear all auth cookies (call on frontend logout)."""
+    response.delete_cookie("auth_token", path="/")
+    response.delete_cookie("media_token", path="/")
+    return {"status": "logged out"}
+
+@router.get("/me-from-cookie")
+async def me_from_cookie(request: Request, db: Session = Depends(database.get_db)):
+    """
+    Bootstrap endpoint: validates the HttpOnly auth_token cookie and returns
+    the current user + access_token. Used by the frontend on page reload to
+    restore in-memory token state without ever reading from localStorage.
+    The cookie is never accessible to JS — only the server reads it here.
+    """
+    token = request.cookies.get("auth_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="No session cookie")
+    user = await auth_service.get_user_from_token(token, db)
+    # Return both user and the token so the frontend can store token in-memory
+    # (needed for Authorization: Bearer headers on subsequent API calls)
+    return {
+        "user": schemas.User.model_validate(user),
+        "access_token": token
+    }
 
 @router.post("/setup", response_model=schemas.User)
 def setup_admin(user: schemas.UserCreate, db: Session = Depends(database.get_db)):

@@ -550,10 +550,15 @@ def delete_event(event_id: int, db: Session = Depends(database.get_db), current_
     return event
 
 @router.get("/{event_id}/download")
-async def download_event(event_id: int, token: str):
+async def download_event(event_id: int, request: Request, token: Optional[str] = None):
     """Download event file with proper headers for cross-origin support"""
+    # Try query param first (for backward compatibility), then cookie
+    media_token = token or request.cookies.get("media_token")
+    if not media_token:
+        raise HTTPException(status_code=401, detail="Missing media authentication")
+
     with database.get_db_ctx() as db:
-        await auth_service.get_user_from_token(token, db)
+        await auth_service.get_user_from_token(media_token, db)
         event = db.query(models.Event).filter(models.Event.id == event_id).first()
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
