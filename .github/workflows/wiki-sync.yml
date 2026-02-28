@@ -14,8 +14,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Sync Wiki
-        uses: Andrew-Chen-Wang/github-wiki-action@v4
-        with:
-          path: wiki
-          token: ${{ secrets.GITHUB_TOKEN }}
-          strategy: sync
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPOSITORY_PATH="${GITHUB_REPOSITORY}.wiki.git"
+          WIKI_URL="https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY_PATH}"
+          
+          # Clone the wiki repository
+          git clone "$WIKI_URL" wiki_temp
+          
+          # Copy files from our wiki directory to the cloned repo
+          cp -r wiki/* wiki_temp/
+          
+          cd wiki_temp
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add .
+          if git diff-index --quiet HEAD; then
+            echo "No changes to sync."
+          else
+            git commit -m "Auto-sync from main repository: ${{ github.sha }}"
+            # Wikis usually use 'master', but try 'main' as fallback
+            git push origin master || git push origin main
+          fi
