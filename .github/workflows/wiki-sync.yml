@@ -18,4 +18,4 @@ jobs:
         with:
           path: local_wiki
           token: ${{ secrets.GITHUB_TOKEN }}
-          strategy: init
+          strategy: sync
