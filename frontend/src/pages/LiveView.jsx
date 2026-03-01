@@ -19,6 +19,12 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
 
     // JPEG Polling
     useEffect(() => {
+        // Do not start polling until the JWT token is available in memory.
+        // Without this guard, polling starts with token=null → sends no Authorization
+        // header → backend returns 401 → triggers "AUTH ERROR" overlay and can cause
+        // the engine to treat it as a camera RTSP auth failure (Tapo IP ban risk).
+        if (!token) return;
+
         mountedRef.current = true;
         let timeoutId = null;
 
@@ -29,7 +35,7 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                 const frameUrl = `${API_BASE}/cameras/${camera.id}/frame?t=${Date.now()}`;
                 const response = await fetch(frameUrl, {
                     credentials: 'include',
-                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (!mountedRef.current) return;

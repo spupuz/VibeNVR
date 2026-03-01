@@ -140,6 +140,25 @@ class CameraBase(BaseModel):
         return v
 ```
 
+### Camera Connection Pattern (IP Ban Protection)
+
+To prevent cameras from banning the host IP due to rapid authentication retries (common on Tapo/TP-Link), always perform a single `ffprobe` pre-flight check before attempting a full connection with `cv2.VideoCapture()`.
+
+- **Rule**: A 401/403 result from the pre-flight check must immediately stop the thread and set an `UNAUTHORIZED` state.
+- **Rule**: Connection refused/reset errors should trigger a longer backoff (60-300s) instead of the standard 10s retry.
+
+```python
+# engine/camera_thread.py (Pattern)
+# 1. Probe first
+probe_res = subprocess.run(["ffprobe", url], capture_output=True)
+if "unauthorized" in probe_res.stderr.decode().lower():
+    self.health_status = "UNAUTHORIZED"
+    return # STOP HERE
+
+# 2. Only then connect
+self.cap = cv2.VideoCapture(url)
+```
+
 ## Anti-Patterns to Avoid
 
 ### Anti-Pattern 1: Blocking Async Logic

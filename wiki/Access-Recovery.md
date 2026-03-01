@@ -61,3 +61,4 @@ docker compose exec backend python3 -c "from database import SessionLocal; from 
 ```
 
 This command will invalidate the old codes for the user, generate 10 new temporary plaintext codes, encrypt them in the database, and print them on the screen on the server so that you can enter them during login.
+

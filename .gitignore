@@ -36,4 +36,4 @@ frontend/.env
 .docker/
 
 # VibeNVR Specific
-scripts/security_tests/
+scripts/
