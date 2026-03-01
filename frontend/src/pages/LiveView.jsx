@@ -26,8 +26,10 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
             if (!mountedRef.current) return;
 
             try {
-                const response = await fetch(`${API_BASE}/cameras/${camera.id}/frame?t=${Date.now()}`, {
-                    credentials: 'include'
+                const frameUrl = `${API_BASE}/cameras/${camera.id}/frame?t=${Date.now()}`;
+                const response = await fetch(frameUrl, {
+                    credentials: 'include',
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
                 });
 
                 if (!mountedRef.current) return;
