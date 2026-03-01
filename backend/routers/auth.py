@@ -276,17 +276,35 @@ def logout(response: Response):
     return {"status": "logged out"}
 
 @router.get("/me-from-cookie")
-async def me_from_cookie(request: Request, db: Session = Depends(database.get_db)):
+async def me_from_cookie(request: Request, response: Response, db: Session = Depends(database.get_db)):
     """
     Bootstrap endpoint: validates the HttpOnly auth_token cookie and returns
     the current user + access_token. Used by the frontend on page reload to
     restore in-memory token state without ever reading from localStorage.
     The cookie is never accessible to JS — only the server reads it here.
+
+    Also refreshes the media_token cookie on every call, ensuring it is always
+    present and uses the current COOKIE_SECURE setting — even if the user
+    previously logged in under a different scheme (HTTP vs HTTPS).
     """
     token = request.cookies.get("auth_token")
     if not token:
         raise HTTPException(status_code=401, detail="No session cookie")
     user = await auth_service.get_user_from_token(token, db)
+
+    # Always re-set media_token so it is present regardless of how the session
+    # was originally established (e.g. previous HTTPS login, or expired cookie).
+    is_secure = os.getenv("COOKIE_SECURE", "true").lower() == "true"
+    response.set_cookie(
+        key="media_token",
+        value=token,
+        httponly=True,
+        samesite="lax",
+        path="/",
+        max_age=auth_service.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        secure=is_secure
+    )
+
     # Return both user and the token so the frontend can store token in-memory
     # (needed for Authorization: Bearer headers on subsequent API calls)
     return {
