@@ -215,3 +215,21 @@ In non-production environments, it will only print a loud warning but will allow
 ### Cameras not connecting
 
 Verify the RTSP URL is reachable from inside the Docker container (not from your laptop). The `localhost` / `127.0.0.1` addresses are explicitly blocked for security reasons — use the camera's actual LAN IP.
+
+---
+
+### Live View shows "Authentication Error" / 401 on all cameras
+
+This can occur on HTTP installations with `COOKIE_SECURE=false`. Make sure you are running **v1.20.3 or later**, which resolves this by using `Authorization: Bearer` for frame requests instead of relying solely on the `media_token` cookie.
+
+**Symptoms:**
+- All camera tiles show "Authentication Error – Invalid Password"
+- Backend logs show: `Frame Auth Fail: No token for camera X. Cookies present: ['locale']`
+
+**Solution:**
+1. Update to v1.20.3+ (`docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d`)
+2. Hard-refresh the browser (**Ctrl+Shift+R**) to clear cached JavaScript
+
+**Root cause (fixed in v1.20.1–v1.20.3):**
+The Live View frame polling originally relied on an `HttpOnly media_token` cookie, which browsers do not send over HTTP when `COOKIE_SECURE=false`. Since v1.20.3, frame requests use `Authorization: Bearer` (the in-memory JWT), which works on both HTTP and HTTPS without any cookie dependency.
+

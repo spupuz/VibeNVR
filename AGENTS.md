@@ -79,6 +79,8 @@ def create_camera(
 
 The frontend uses `AuthContext` to manage the JWT token in memory. **Do not use `localStorage` for the token** — it is vulnerable to XSS. The token is persisted across page reloads via a `HttpOnly` cookie (`auth_token`) set by the backend on login.
 
+All API calls — including media endpoints (`/cameras/{id}/frame`, `/cameras/{id}/stream`) — must use `Authorization: Bearer ${token}` in the request headers. The `media_token` HttpOnly cookie is maintained as a secondary fallback but should never be the sole authentication mechanism.
+
 ```jsx
 // frontend/src/contexts/AuthContext.jsx (Pattern)
 export const AuthProvider = ({ children }) => {
@@ -107,7 +109,14 @@ export const AuthProvider = ({ children }) => {
         await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     };
 };
+
+// Correct pattern for media fetch (frame polling):
+const response = await fetch(`/api/cameras/${id}/frame?t=${Date.now()}`, {
+    credentials: 'include',
+    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+});
 ```
+
 
 ### Pydantic Schema Validation
 
