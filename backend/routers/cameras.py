@@ -261,10 +261,10 @@ import httpx
 @router.get("/{camera_id}/frame")
 async def get_camera_frame(camera_id: int, request: Request, token: Optional[str] = None):
     """Proxy a single JPEG frame from the engine (for polling mode)"""
-    # Debug cookies
-    logging.debug(f"DEBUG: Request cookies for {camera_id}: {request.cookies}")
-    
-    media_token = token or request.cookies.get("media_token")
+    # Accept token from: Authorization: Bearer header > ?token= query param > media_token cookie
+    auth_header = request.headers.get("Authorization", "")
+    bearer_token = auth_header[7:] if auth_header.startswith("Bearer ") else None
+    media_token = bearer_token or token or request.cookies.get("media_token")
     if not media_token:
         logging.warning(f"Frame Auth Fail: No token for camera {camera_id}. Cookies present: {list(request.cookies.keys())}")
         raise HTTPException(status_code=401, detail="Missing media authentication")
@@ -304,7 +304,10 @@ async def get_camera_frame(camera_id: int, request: Request, token: Optional[str
 @router.get("/{camera_id}/stream")
 async def stream_camera(camera_id: int, request: Request, token: Optional[str] = None):
     """Proxy the MJPEG stream from Motion to bypass CORS issues"""
-    media_token = token or request.cookies.get("media_token")
+    # Accept token from: Authorization: Bearer header > ?token= query param > media_token cookie
+    auth_header = request.headers.get("Authorization", "")
+    bearer_token = auth_header[7:] if auth_header.startswith("Bearer ") else None
+    media_token = bearer_token or token or request.cookies.get("media_token")
     if not media_token:
         logging.warning(f"Stream Auth Fail: No token for camera {camera_id}")
         raise HTTPException(status_code=401, detail="Missing media authentication")
