@@ -46,6 +46,7 @@ This software is currently in active beta development. The database schema is st
 | 📁 **Camera Groups** | Organize cameras into custom groups for logical multi-view management. |
 | 🕙 **Timezone Synchronization** | Full ISO 8601 support ensures perfect timing between engine, backend, and UI. |
 | 📊 **Real-time Monitoring** | Live view with adaptive frame polling and dynamic MJPEG stream proxying. |
+| 🛡️ **IP Ban Protection** | Automated `ffprobe` pre-flight checks to prevent camera lockouts due to authentication failures. |
 | 🐳 **Dockerized** | Zero-dependency deployment using Docker Compose. |
 
 ---

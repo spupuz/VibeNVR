@@ -218,18 +218,12 @@ Verify the RTSP URL is reachable from inside the Docker container (not from your
 
 ---
 
-### Live View shows "Authentication Error" / 401 on all cameras
+### Live View shows "Authentication Error" / 401 on some cameras
 
-This can occur on HTTP installations with `COOKIE_SECURE=false`. Make sure you are running **v1.20.3 or later**, which resolves this by using `Authorization: Bearer` for frame requests instead of relying solely on the `media_token` cookie.
-
-**Symptoms:**
-- All camera tiles show "Authentication Error – Invalid Password"
-- Backend logs show: `Frame Auth Fail: No token for camera X. Cookies present: ['locale']`
+If you see an "AUTH ERROR" overlay immediately on page load, it might be due to a race condition where the browser starts requesting frames before the authentication token is fully loaded in memory.
 
 **Solution:**
-1. Update to v1.20.3+ (`docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d`)
-2. Hard-refresh the browser (**Ctrl+Shift+R**) to clear cached JavaScript
-
-**Root cause (fixed in v1.20.1–v1.20.3):**
-The Live View frame polling originally relied on an `HttpOnly media_token` cookie, which browsers do not send over HTTP when `COOKIE_SECURE=false`. Since v1.20.3, frame requests use `Authorization: Bearer` (the in-memory JWT), which works on both HTTP and HTTPS without any cookie dependency.
+1. Update to **v1.20.4 or later**, which adds a "token guard" in `LiveView.jsx` to prevent polling until the JWT is available.
+2. Check that your camera credentials (Username/Password) in **Settings → Cameras** are correct. VibeNVR now includes a pre-flight safety check to prevent your camera from banning your IP if the credentials are wrong.
+3. If you suspect an IP ban (camera pingable but RTSP connection refused), power-cycle the camera and wait 5 minutes.
 

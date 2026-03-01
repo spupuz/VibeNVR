@@ -84,139 +84,201 @@ class StreamReader(threading.Thread):
                 with self.lock:
                     target_url = self.url
                 
-                # STOP if Authorized Failed (Prevent IP Ban)
+                # STOP if Auth Failed — prevents IP ban on Tapo/TP-Link cameras
                 if self.health_status == "UNAUTHORIZED":
-                     # Wait for user to update URL/Credentials
-                     time.sleep(1.0)
-                     continue
+                    # Wait for user to fix credentials in VibeNVR
+                    time.sleep(2.0)
+                    continue
 
                 if cap is None or not cap.isOpened() or self.health_status == "STARTING":
                     current_url = target_url
                     self.connected = False
-                    
+
+                    # ── PRE-FLIGHT AUTH CHECK ─────────────────────────────────────────
+                    # IMPORTANT: ffprobe runs BEFORE cv2.VideoCapture() to catch auth
+                    # errors with a single controlled probe. This prevents cv2's internal
+                    # RTSP retry mechanism from firing multiple failed auth attempts before
+                    # we can stop it — which is what triggers Tapo/TP-Link IP bans.
+                    # ─────────────────────────────────────────────────────────────────
+                    try:
+                        safe_url_log = re.sub(r'://[^@]+@', '://***:***@', current_url)
+                        logger.info(f"StreamReader ({self.camera_name}): Pre-flight probe → {safe_url_log}")
+
+                        cmd_probe = [
+                            "ffprobe", "-v", "error",
+                            "-rtsp_transport", "tcp",
+                            "-timeout", "5000000",   # 5s in microseconds
+                            current_url
+                        ]
+                        res_probe = subprocess.run(
+                            cmd_probe, stderr=subprocess.PIPE, text=True, timeout=8
+                        )
+                        probe_err = res_probe.stderr.lower()
+
+                        auth_failed = (
+                            "401" in probe_err or "unauthorized" in probe_err or
+                            "403" in probe_err or "forbidden" in probe_err or
+                            "authentication" in probe_err or "wrong username" in probe_err
+                        )
+
+                        if auth_failed:
+                            with self.lock:
+                                self.health_status = "UNAUTHORIZED"
+                                self.latest_frame = None
+                            logger.warning(
+                                f"StreamReader ({self.camera_name}): Pre-flight detected auth failure "
+                                f"(401/403). Stopping retries to prevent IP ban."
+                            )
+                            if self.last_health_report_status != "UNAUTHORIZED":
+                                self.last_health_report_status = "UNAUTHORIZED"
+                                if self.event_callback:
+                                    try:
+                                        event_data = {
+                                            "camera_id": self.camera_id,
+                                            "camera_name": self.camera_name,
+                                            "status": "UNAUTHORIZED",
+                                            "timestamp": int(time.time()),
+                                            "message": (
+                                                "Authentication failed — wrong username or password. "
+                                                "Fix credentials in VibeNVR (Settings → Cameras → Edit). "
+                                                "If this is a Tapo/TP-Link camera, restart it to clear any IP ban."
+                                            ),
+                                            "title": "🚫 Camera Authentication Failed"
+                                        }
+                                        self.event_callback(self.camera_id, 'health_status_changed', event_data)
+                                        logger.info(f"StreamReader ({self.camera_name}): UNAUTHORIZED callback sent.")
+                                    except Exception as cb_e:
+                                        logger.error(f"StreamReader ({self.camera_name}): Callback error: {cb_e}")
+                            # Do NOT call cv2.VideoCapture — skip straight back to top of loop
+                            time.sleep(2.0)
+                            continue
+
+                        # Detect Tapo IP ban (RTSP port closed after ban → connection refused/reset)
+                        conn_refused = (
+                            "connection refused" in probe_err or
+                            "connection reset" in probe_err or
+                            ("eof" in probe_err and "error" in probe_err)
+                        )
+                        if conn_refused:
+                            with self.lock:
+                                self.health_status = "UNREACHABLE"
+                                self.latest_frame = None
+                            self.consecutive_failures += 1
+                            logger.warning(
+                                f"StreamReader ({self.camera_name}): RTSP connection was refused/reset. "
+                                f"If this is a Tapo/TP-Link camera, the host IP may be temporarily banned. "
+                                f"Power-cycle the camera and fix credentials in VibeNVR."
+                            )
+                            if self.last_health_report_status != "UNREACHABLE":
+                                self.last_health_report_status = "UNREACHABLE"
+                                if self.event_callback:
+                                    try:
+                                        event_data = {
+                                            "camera_id": self.camera_id,
+                                            "camera_name": self.camera_name,
+                                            "status": "UNREACHABLE",
+                                            "timestamp": int(time.time()),
+                                            "message": (
+                                                "Camera connection refused. "
+                                                "If this is a Tapo/TP-Link camera, the server IP may be temporarily banned. "
+                                                "Power-cycle the camera and correct the credentials."
+                                            ),
+                                            "title": "📡 Camera Offline (Possible IP Ban)"
+                                        }
+                                        self.event_callback(self.camera_id, 'health_status_changed', event_data)
+                                    except Exception as cb_e:
+                                        logger.error(f"StreamReader ({self.camera_name}): Callback error: {cb_e}")
+                            # Long backoff for possible banned cameras (avoid hammering)
+                            retry_delay = min(300, 60 * self.consecutive_failures)
+                            logger.info(f"StreamReader ({self.camera_name}): Backing off {retry_delay}s (possible IP ban)...")
+                            time.sleep(retry_delay)
+                            continue
+
+                        logger.info(f"StreamReader ({self.camera_name}): Pre-flight probe OK — proceeding to connect.")
+
+                    except subprocess.TimeoutExpired:
+                        with self.lock:
+                            self.health_status = "UNREACHABLE"
+                            self.latest_frame = None
+                        self.consecutive_failures += 1
+                        logger.warning(f"StreamReader ({self.camera_name}): Pre-flight probe timed out — camera unreachable.")
+                        retry_delay = min(120, 10 * (2 ** max(0, self.consecutive_failures - 1)))
+                        time.sleep(retry_delay)
+                        continue
+                    except Exception as probe_exc:
+                        # ffprobe not found or unknown error — proceed anyway (don't block)
+                        logger.warning(f"StreamReader ({self.camera_name}): Pre-flight probe exception: {probe_exc} — proceeding to cv2.")
+
+                    # ── MAIN CONNECTION (only reached if pre-flight passed) ───────────
                     cap = cv2.VideoCapture(current_url, cv2.CAP_FFMPEG)
-                                        
+
                     if not cap.isOpened():
                         self.consecutive_failures += 1
-                        
-                        # Immediate Diagnosis (No 30s delay)
+
+                        # Secondary diagnosis: cv2 failed despite probe passing (transient/codec error)
                         try:
-                            # Use ffprobe for a quick probe to check status
                             cmd = ["ffprobe", "-v", "error", "-rtsp_transport", "tcp", current_url]
                             res = subprocess.run(cmd, stderr=subprocess.PIPE, text=True, timeout=5)
-                            
                             err_out = res.stderr.lower()
-                            logger.info(f"[DEBUG] ffprobe stderr repr: {repr(err_out)}") # Use repr to see hidden chars
-                            
-                            auth_failed = False
-                            if "401" in err_out: auth_failed = True
-                            elif "unauthorized" in err_out: auth_failed = True
-                            elif "403" in err_out: auth_failed = True
-                            elif "forbidden" in err_out: auth_failed = True
-                            
-                            if auth_failed:
-                                with self.lock: 
-                                    self.health_status = "UNAUTHORIZED"
-                                    self.latest_frame = None 
-                                logger.warning(f"StreamReader ({self.camera_name}): Authentication failed (401/403). Invoking callback...")
-                                
-                                try:
-                                    if self.event_callback:
-                                        # DEBOUNCE: Only notify if status changed
-                                        if self.last_health_report_status != "UNAUTHORIZED":
-                                            self.last_health_report_status = "UNAUTHORIZED"
-                                            try:
-                                                # Sanitize error output to remove credentials (rtsp://user:pass@)
-                                                safe_err_out = re.sub(r'://[^@]+@', '://***:***@', err_out)
-                                                event_data = {
-                                                    "camera_id": self.camera_id,
-                                                    "camera_name": self.camera_name,
-                                                    "status": "UNAUTHORIZED",
-                                                    "timestamp": int(time.time()),
-                                                    "message": "We detected an authentication error. Please check your camera username and password.",
-                                                    "title": "🚫 Camera Authentication Failed"
-                                                }
-                                                self.event_callback(self.camera_id, 'health_status_changed', event_data)
-                                                logger.info(f"StreamReader ({self.camera_name}): Callback invoked for UNAUTHORIZED.")
-                                            except Exception as cb_inner_e:
-                                                logger.error(f"StreamReader ({self.camera_name}): Inner callback error: {cb_inner_e}")
-                                    else:
-                                        logger.error(f"StreamReader ({self.camera_name}): Callback is None!")
-                                except Exception as e:
-                                    logger.error(f"StreamReader ({self.camera_name}): Failed to prepare/call callback: {e}")
-                                
-                                time.sleep(10)
-                                continue
+                            logger.info(f"[DEBUG] ffprobe stderr (post-cv2 fail): {repr(err_out)}")
 
-                            # FALLBACK: Try CURL if ffprobe didn't catch it (ffprobe sometimes masks 401 as generic IO error)
-                            # Curl is often more explicit about RTSP handshake status
-                            try:
-                                logger.info(f"StreamReader ({self.camera_name}): ffprobe inconclusive, trying curl for auth check...")
-                                # -I (HEAD) might not work for RTSP, use -v to see headers. --fail to return non-zero?
-                                # We parse the stderr/stdout for "401 Unauthorized"
-                                cmd_curl = ["curl", "-v", "--connect-timeout", "5", current_url]
-                                res_curl = subprocess.run(cmd_curl, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=6)
-                                curl_out = (res_curl.stdout + res_curl.stderr).lower()
-                                
-                                if "401 unauthorized" in curl_out or "return code: 401" in curl_out:
-                                     with self.lock:
-                                         self.health_status = "UNAUTHORIZED"
-                                         self.latest_frame = None
-                                     logger.warning(f"StreamReader ({self.camera_name}): Authentication failed (401) via CURL. Stopping retries.")
-                                     
-                                     # IMMEDIATE NOTIFICATION 
-                                     if self.last_health_report_status != "UNAUTHORIZED":
-                                         self.last_health_report_status = "UNAUTHORIZED"
-                                         if self.event_callback:
+                            auth_failed = (
+                                "401" in err_out or "unauthorized" in err_out or
+                                "403" in err_out or "forbidden" in err_out
+                            )
+
+                            if auth_failed:
+                                with self.lock:
+                                    self.health_status = "UNAUTHORIZED"
+                                    self.latest_frame = None
+                                logger.warning(f"StreamReader ({self.camera_name}): Auth failure confirmed post-cv2.")
+                                if self.last_health_report_status != "UNAUTHORIZED":
+                                    self.last_health_report_status = "UNAUTHORIZED"
+                                    if self.event_callback:
+                                        try:
                                             event_data = {
                                                 "camera_id": self.camera_id,
                                                 "camera_name": self.camera_name,
                                                 "status": "UNAUTHORIZED",
                                                 "timestamp": int(time.time()),
-                                                "message": "We detected an authentication error. Please check your camera username and password.",
+                                                "message": "Authentication failed. Please check camera credentials in VibeNVR.",
                                                 "title": "🚫 Camera Authentication Failed"
                                             }
-                                            try:
-                                                self.event_callback(self.camera_id, 'health_status_changed', event_data)
-                                            except Exception as e:
-                                                logger.error(f"Failed to callback event: {e}")
-                                     continue
+                                            self.event_callback(self.camera_id, 'health_status_changed', event_data)
+                                        except Exception as cb_e:
+                                            logger.error(f"StreamReader ({self.camera_name}): Callback error: {cb_e}")
+                                time.sleep(10)
+                                continue
 
-                            except Exception as e:
-                                # Curl failed or not found, proceed to generic unreachable
-                                logger.warning(f"StreamReader ({self.camera_name}): Curl auth check failed or timed out: {e}")
-                                pass
-
-                            # Generic Unreachable
-                            with self.lock: 
+                            # Generic unreachable
+                            with self.lock:
                                 self.health_status = "UNREACHABLE"
                                 self.latest_frame = None
-                            logger.warning(f"StreamReader ({self.camera_name}): Network unreachable. Error: {err_out[:50]}")
+                            logger.warning(f"StreamReader ({self.camera_name}): Network unreachable. Error: {err_out[:80]}")
 
-                            # IMMEDIATE NOTIFICATION for Unreachable
                             if self.last_health_report_status != "UNREACHABLE":
                                 self.last_health_report_status = "UNREACHABLE"
                                 if self.event_callback:
-                                    event_data = {
-                                        "camera_id": self.camera_id,
-                                        "camera_name": self.config.get('name', str(self.camera_id)),
-                                        "status": "UNREACHABLE",
-                                        "timestamp": int(time.time()),
-                                        "message": "Camera is unreachable. Check network or power.",
-                                        "title": "📡 Camera Offline"
-                                    }
                                     try:
+                                        event_data = {
+                                            "camera_id": self.camera_id,
+                                            "camera_name": self.camera_name,
+                                            "status": "UNREACHABLE",
+                                            "timestamp": int(time.time()),
+                                            "message": "Camera is unreachable. Check network or power.",
+                                            "title": "📡 Camera Offline"
+                                        }
                                         self.event_callback(self.camera_id, 'health_status_changed', event_data)
-                                    except Exception as e:
-                                        logger.error(f"Failed to callback event: {e}")
+                                    except Exception as cb_e:
+                                        logger.error(f"StreamReader ({self.camera_name}): Callback error: {cb_e}")
+
                         except Exception as e:
-                            with self.lock: 
+                            with self.lock:
                                 self.health_status = "UNREACHABLE"
                                 self.latest_frame = None
-                        
-                        # Exponential Backoff for generic failures
-                        # 10s, 20s, 40s, 60s... max 120s
-                        retry_delay = min(120, 10 * (2 ** (self.consecutive_failures - 1)))
+
+                        # Exponential backoff: 10s, 20s, 40s, 60s … max 120s
+                        retry_delay = min(120, 10 * (2 ** max(0, self.consecutive_failures - 1)))
                         logger.info(f"StreamReader ({self.camera_name}): Retrying in {retry_delay}s...")
                         time.sleep(retry_delay)
                         continue
