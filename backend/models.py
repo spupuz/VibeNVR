@@ -11,6 +11,7 @@ class Camera(Base):
     rtsp_url = Column(String, nullable=False)
     location = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
+    rtsp_transport = Column(String, default="tcp") # tcp | udp
     
     # Video Device
     resolution_width = Column(Integer, default=800)

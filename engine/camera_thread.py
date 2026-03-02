@@ -18,13 +18,13 @@ class StreamReader(threading.Thread):
     This ensures the buffer is constantly drained and we always 
     have the latest frame, preventing "video lag".
     """
-    def __init__(self, camera_id, url, camera_name="Unknown", event_callback=None):
+    def __init__(self, camera_id, url, camera_name="Unknown", event_callback=None, rtsp_transport="tcp"):
         super().__init__(daemon=True)
-        self.camera_id = camera_id
         self.camera_id = camera_id
         self.url = url
         self.camera_name = camera_name
         self.event_callback = event_callback
+        self.rtsp_transport = rtsp_transport
         self.latest_frame = None
         self.last_read_time = 0
         self.lock = threading.Lock()
@@ -66,17 +66,17 @@ class StreamReader(threading.Thread):
                     pass
 
             if hw_accel_type == 'nvidia':
-                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;cuda"
+                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = f"rtsp_transport;{self.rtsp_transport}|hwaccel;cuda"
             elif hw_accel_type == 'intel':
-                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;qsv"
+                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = f"rtsp_transport;{self.rtsp_transport}|hwaccel;qsv"
             elif hw_accel_type in ['amd', 'vaapi']:
-                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;vaapi"
+                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = f"rtsp_transport;{self.rtsp_transport}|hwaccel;vaapi"
             else:
-                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|hwaccel;auto"
-            logger.info(f"StreamReader ({self.camera_name}): HW acceleration configured ({hw_accel_type})")
+                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = f"rtsp_transport;{self.rtsp_transport}|hwaccel;auto"
+            logger.info(f"StreamReader ({self.camera_name}): HW acceleration configured ({hw_accel_type}) using {self.rtsp_transport}")
         else:
-            logger.info(f"StreamReader ({self.camera_name}): HW acceleration DISABLED")
-            os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
+            logger.info(f"StreamReader ({self.camera_name}): HW acceleration DISABLED using {self.rtsp_transport}")
+            os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = f"rtsp_transport;{self.rtsp_transport}"
 
         while self.running:
             try:
@@ -106,7 +106,7 @@ class StreamReader(threading.Thread):
 
                         cmd_probe = [
                             "ffprobe", "-v", "error",
-                            "-rtsp_transport", "tcp",
+                            "-rtsp_transport", self.rtsp_transport,
                             "-timeout", "5000000",   # 5s in microseconds
                             current_url
                         ]
@@ -217,7 +217,7 @@ class StreamReader(threading.Thread):
 
                         # Secondary diagnosis: cv2 failed despite probe passing (transient/codec error)
                         try:
-                            cmd = ["ffprobe", "-v", "error", "-rtsp_transport", "tcp", current_url]
+                            cmd = ["ffprobe", "-v", "error", "-rtsp_transport", self.rtsp_transport, current_url]
                             res = subprocess.run(cmd, stderr=subprocess.PIPE, text=True, timeout=5)
                             err_out = res.stderr.lower()
                             logger.info(f"[DEBUG] ffprobe stderr (post-cv2 fail): {repr(err_out)}")
@@ -388,7 +388,13 @@ class CameraThread(threading.Thread):
         self.running = False
         
         # Reader Thread
-        self.stream_reader = StreamReader(self.camera_id, self.config['rtsp_url'], self.config.get('name', str(camera_id)), event_callback=self.event_callback)
+        self.stream_reader = StreamReader(
+            self.camera_id, 
+            self.config['rtsp_url'], 
+            self.config.get('name', str(camera_id)), 
+            event_callback=self.event_callback,
+            rtsp_transport=self.config.get('rtsp_transport', 'tcp')
+        )
         
         # Frame Storage
         self.latest_frame_jpeg = None

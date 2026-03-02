@@ -85,7 +85,7 @@ def create_camera(camera: schemas.CameraCreate, db: Session = Depends(database.g
     # Auto-detect resolution if enabled
     if camera.auto_resolution and camera.rtsp_url:
         print(f"Probing stream for camera {camera.name}...", flush=True)
-        dims = probe_service.probe_stream(camera.rtsp_url)
+        dims = probe_service.probe_stream(camera.rtsp_url, rtsp_transport=camera.rtsp_transport)
         if dims:
             print(f"Detected resolution: {dims['width']}x{dims['height']}", flush=True)
             camera.resolution_width = dims['width']
@@ -140,7 +140,7 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks
     
     if camera.auto_resolution and camera.rtsp_url and (rtsp_changed or auto_res_just_enabled or is_res_default):
         print(f"Probing stream for camera {camera.name} (Trigger: {'URL Change' if rtsp_changed else 'Auto-Res Enabled/Default'})...", flush=True)
-        dims = probe_service.probe_stream(camera.rtsp_url)
+        dims = probe_service.probe_stream(camera.rtsp_url, rtsp_transport=camera.rtsp_transport)
         if dims:
             print(f"Detected resolution: {dims['width']}x{dims['height']}", flush=True)
             camera.resolution_width = dims['width']

@@ -4,7 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def probe_stream(rtsp_url: str):
+def probe_stream(rtsp_url: str, rtsp_transport: str = "tcp"):
     """
     Probes the RTSP stream using ffprobe to detect resolution.
     Returns a dict with 'width' and 'height', or None if failed.
@@ -15,7 +15,7 @@ def probe_stream(rtsp_url: str):
         "-print_format", "json",
         "-show_streams",
         "-select_streams", "v:0",  # Select first video stream
-        "-rtsp_transport", "tcp",  # Force TCP for stability
+        "-rtsp_transport", rtsp_transport,  # Use configured transport
         rtsp_url
     ]
 
