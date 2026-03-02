@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Camera, Plus, Trash2, MapPin, Activity, Edit, Download, Upload, Film, Image, Copy, X } from 'lucide-react';
+import { Camera, Plus, Trash2, MapPin, Activity, Edit, Download, Upload, Film, Image, Copy, X, Search } from 'lucide-react';
 import { Toggle, Slider, InputField, SelectField, SectionHeader } from '../components/ui/FormControls';
 import { GroupsManager } from '../components/GroupsManager';
+import { CameraScanner } from '../components/CameraScanner';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
@@ -196,6 +197,7 @@ export const Cameras = () => {
     const [cameras, setCameras] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showScanner, setShowScanner] = useState(false);
     const fileInputRef = useRef(null);
     const motionEyeInputRef = useRef(null);
     const [newCamera, setNewCamera] = useState({
@@ -611,6 +613,22 @@ export const Cameras = () => {
         }
     };
 
+    const handleScannerAdd = (discoveryData) => {
+        const hostPath = `${discoveryData.ip}${discoveryData.port && discoveryData.port !== 80 ? ':' + discoveryData.port : ''}${discoveryData.path || ''}`;
+
+        setNewCamera(prev => ({
+            ...prev,
+            name: discoveryData.name,
+            rtsp_url: discoveryData.rtsp_url,
+            rtsp_username: discoveryData.rtsp_username,
+            rtsp_password: discoveryData.rtsp_password,
+            rtsp_host: hostPath,
+            location: discoveryData.location || ''
+        }));
+        setShowAddModal(true);
+        setShowScanner(false);
+    };
+
     const handleCopySettings = async () => {
         if (copyTargets.length === 0) return;
 
@@ -791,6 +809,15 @@ export const Cameras = () => {
                             </Button>
 
                             <Button
+                                variant={showScanner ? "secondary" : "outline"}
+                                onClick={() => setShowScanner(!showScanner)}
+                                className="transition-all"
+                            >
+                                <Search className="w-4 h-4 mr-2" />
+                                <span>{showScanner ? "Hide Scanner" : "Scan Network"}</span>
+                            </Button>
+
+                            <Button
                                 variant="outline"
                                 onClick={async () => {
                                     try {
@@ -929,6 +956,13 @@ export const Cameras = () => {
                 </div>
             </div>
 
+
+            <div className={`transition-all duration-500 ease-in-out overflow-hidden ${showScanner ? 'max-h-[1000px] mb-8 opacity-100' : 'max-h-0 mb-0 opacity-0 pointer-events-none'}`}>
+                <CameraScanner
+                    onAddCamera={handleScannerAdd}
+                    existingCameras={cameras}
+                />
+            </div>
 
             {/* Tabs */}
             <div className="flex space-x-1 border-b border-border mb-6">

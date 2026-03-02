@@ -12,3 +12,6 @@ PyJWT[crypto]
 psutil
 slowapi
 python-magic
+onvif-zeep
+zeep
+sse-starlette
