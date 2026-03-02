@@ -270,7 +270,8 @@ export const Cameras = () => {
         picture_recording_mode: 'Manual',
         preserve_pictures: 'Forever',
         max_pictures_storage_gb: 0,
-        enable_manual_snapshots: true
+        enable_manual_snapshots: true,
+        rtsp_transport: 'tcp'
     });
     const [stats, setStats] = useState(null);
     const [activeTab, setActiveTab] = useState('general');
@@ -1237,6 +1238,17 @@ export const Cameras = () => {
                                                             newCamera.rtsp_url?.replace(/:([^:@]+)@/, ':********@') || ''
                                                         }
                                                     </div>
+
+                                                    <SelectField
+                                                        label="RTSP Transport"
+                                                        value={newCamera.rtsp_transport || 'tcp'}
+                                                        onChange={(val) => setNewCamera({ ...newCamera, rtsp_transport: val })}
+                                                        options={[
+                                                            { value: 'tcp', label: 'TCP (More Stable)' },
+                                                            { value: 'udp', label: 'UDP (Lower Latency)' }
+                                                        ]}
+                                                        help="TCP is recommended for most cameras. Use UDP only if you experience lag or if your camera prefers it."
+                                                    />
                                                 </div>
 
 
