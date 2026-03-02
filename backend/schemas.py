@@ -394,3 +394,68 @@ class TrustedDevice(BaseModel):
 
 
 
+
+# ONVIF Discovery
+class OnvifScanRequest(BaseModel):
+    ip_range: str # e.g. "192.168.1.0/24" or "192.168.1.1-100"
+    user: Optional[str] = ""
+    password: Optional[str] = ""
+
+    @field_validator('ip_range')
+    @classmethod
+    def validate_ip_range(cls, v: str) -> str:
+        if v:
+            # Allow CIDR or Range format, basic sanitization
+            import re
+            if not re.match(r'^[\d\.\-\/ ]+$', v):
+                raise ValueError('Invalid IP range format')
+        return v
+
+class OnvifDeepScanRequest(BaseModel):
+    ip: str
+
+    @field_validator('ip')
+    @classmethod
+    def validate_ip(cls, v: str) -> str:
+        import ipaddress
+        try:
+            ipaddress.ip_address(v)
+        except ValueError:
+            raise ValueError('Invalid IP address')
+        return v
+
+class OnvifProbeRequest(BaseModel):
+    ip: str
+    port: int
+    user: Optional[str] = ""
+    password: Optional[str] = ""
+
+    @field_validator('port')
+    @classmethod
+    def validate_port(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError('Port must be a positive integer')
+        return v
+
+    @field_validator('ip')
+    @classmethod
+    def validate_ip(cls, v: str) -> str:
+        import ipaddress
+        try:
+            ipaddress.ip_address(v)
+        except ValueError:
+            raise ValueError('Invalid IP address')
+        return v
+
+class OnvifProfile(BaseModel):
+    name: str
+    token: str
+    url: str
+
+class OnvifDeviceDetails(BaseModel):
+    ip: str
+    port: int
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    profiles: List[OnvifProfile] = []
+    auth_required: bool = False
