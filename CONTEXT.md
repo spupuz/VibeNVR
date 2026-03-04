@@ -13,8 +13,10 @@
 
 ## 📐 Architecture Overview
 - The Backend manages FFmpeg processes for each camera (via the Engine module).
-- The Frontend communicates via REST API.
+- The Frontend communicates via REST API and **WebSockets** for live streaming.
+- **Live View**: Uses the browser's native **WebCodecs API** (H.264 via WebSockets) for low-latency streaming in supported browsers (Chrome 94+, Edge 94+). Falls back automatically to MJPEG/JPEG polling for unsupported browsers.
 - Video files are stored in `/media/recordings` mapped in docker-compose.
+
 
 ## ⚠️ Important Rules for AI
 1. **Docker**: Before any major commit, suggest or perform a rebuild (`docker compose up -d --build`) to verify integrity.

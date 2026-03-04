@@ -227,3 +227,59 @@ If you see an "AUTH ERROR" overlay immediately on page load, it might be due to 
 2. Check that your camera credentials (Username/Password) in **Settings → Cameras** are correct. VibeNVR now includes a pre-flight safety check to prevent your camera from banning your IP if the credentials are wrong.
 3. If you suspect an IP ban (camera pingable but RTSP connection refused), power-cycle the camera and wait 5 minutes.
 
+---
+
+### Live View — WebCodecs H.264 Streaming
+
+From **v1.21.0**, the Live View page uses the browser's native **WebCodecs API** to display a direct H.264 stream via WebSockets, replacing the previous MJPEG/JPEG polling approach for supported browsers.
+
+#### How to verify WebCodecs is active
+
+1. Open the **Live View** page in a supported browser (Chrome 94+, Edge 94+, most Chromium-based browsers).
+2. Hover over any active camera tile. In the bottom-left info badge you will see a **`WS / H.264`** label in green if the native decoder is active, or **`JPEG Poll`** in yellow if it fell back.
+3. Open **DevTools → Network → WS** filter — you will see an active WebSocket connection to `/api/cameras/{id}/ws` receiving binary frames.
+
+#### Browser compatibility
+
+| Browser | WebCodecs Support | Streaming Mode |
+|---------|-------------------|----------------|
+| Chrome 94+ | ✅ | H.264 via WebCodecs (direct, low latency) |
+| Edge 94+ | ✅ | H.264 via WebCodecs (direct, low latency) |
+| Firefox | ❌ | Falls back to MJPEG/JPEG polling automatically |
+| Safari | Partial | Falls back to MJPEG/JPEG polling automatically |
+
+**🔴 Crucial: Secure Context Requirement**  
+WebCodecs uses the `VideoDecoder` API which is a "Powerful API" strictly limited to **Secure Contexts** by all modern browsers (Chrome, Edge, Firefox, Safari).  
+This means WebCodecs **will only work if**:
+1. You access VibeNVR via **`http://localhost:8080`** (localhost is always a secure context).
+2. You access VibeNVR via **`https://...`** (using a reverse proxy with a valid or self-signed TLS certificate).
+
+If you access VibeNVR via an insecure local IP (e.g., `http://192.168.1.100:8080`), you are in an Insecure Context. The browser will completely disable the `VideoDecoder` API, and VibeNVR will silently fall back to JPEG polling (the badge will show `JPEG Poll`).
+
+#### Reverse Proxy Configuration for WebSockets
+
+If you expose VibeNVR to the internet or your LAN via an **external reverse proxy** (to provide the required HTTPS context), you **must ensure your proxy is configured to pass WebSocket connections** (`Connection: Upgrade`). If the proxy strips these headers, the `WS / H.264` connection will fail and the NVR will fall back to JPEG polling.
+
+- **Nginx (Classic):** You must explicitly define the `Upgrade` headers in your `location` block:
+  ```nginx
+  location / {
+      proxy_pass http://192.168.1.28:8080;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+  }
+  ```
+- **Nginx Proxy Manager:** Edit your Proxy Host, go to the **Details** tab, and toggle the **"Websockets Support"** switch to ON.
+- **Caddy / Traefik:** WebSockets are supported automatically by default. No extra configuration is needed.
+- **Cloudflare Tunnels:** WebSockets are enabled by default in the Network settings, but long streams might occasionally hit Cloudflare proxy timeouts.
+
+If WebCodecs initialisation fails (unsupported codec profile, decoder error, or WS proxy failure), the player **automatically falls back** to the previous JPEG polling mechanism with no user action required.
+
+#### H.264 profile compatibility
+
+The WebCodecs player dynamically detects the exact H.264 profile of your camera by inspecting the SPS (Sequence Parameter Set) NAL unit from the raw stream. It will automatically build the correct codec string (e.g. `avc1.4d001e` for Main Profile or `avc1.64002a` for High Profile) before configuring the decoder. 
+
+If there is a decoder error or WebCodecs is unsupported, the player **automatically falls back** to the JPEG polling mechanism with no user action required.
+
+---
+
