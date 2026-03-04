@@ -124,11 +124,7 @@ export const Settings = () => {
             });
             const data = await res.json();
             if (res.ok) {
-                if (data.scarf_status === 200) {
-                    showToast('Telemetry report sent successfully!', 'success');
-                } else {
-                    showToast(`Report sent, but Scarf returned status ${data.scarf_status}. Check your Scarf pattern configuration.`, 'warning');
-                }
+                showToast('Telemetry report sent successfully!', 'success');
             } else {
                 showToast('Failed to trigger telemetry: ' + data.detail, 'error');
             }
@@ -1012,18 +1008,6 @@ export const Settings = () => {
                                                 <p className="text-xs text-muted-foreground mt-0.5 break-all font-mono opacity-80">vibenvr-telemetry.spupuz.workers.dev</p>
                                                 <p className="text-[11px] text-muted-foreground/90 mt-2 leading-relaxed">
                                                     Fully anonymous — IP is processed by Cloudflare edge and discarded, only the country code is stored.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-start gap-3 p-4 rounded-xl border border-border/50 bg-muted/10 opacity-70">
-                                            <div className="flex items-center justify-between sm:block">
-                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-500 dark:text-amber-400 shrink-0 whitespace-nowrap">DEPRECATED</span>
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-sm font-semibold opacity-80">Scarf.sh pixel</p>
-                                                <p className="text-xs text-muted-foreground mt-0.5 break-all font-mono opacity-60">static.scarf.sh</p>
-                                                <p className="text-[11px] text-muted-foreground/80 mt-2 leading-relaxed">
-                                                    Still active for continuity. Will be removed in a future release in favour of Cloudflare Analytics.
                                                 </p>
                                             </div>
                                         </div>

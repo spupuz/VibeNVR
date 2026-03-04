@@ -163,23 +163,7 @@ def send_telemetry():
             except Exception as cf_err:
                 logger.error(f"Failed to send telemetry to Cloudflare: {cf_err}")
 
-            # --- Secondary (DEPRECATED): Scarf.sh Pixel ---
-            # Scarf.sh will be removed in a future release.
-            # We send both 'cpu' and 'cpu_model' for maximum compatibility with existing Scarf patterns.
-            try:
-                pixel_id = os.environ.get("SCARF_PIXEL_ID", "700f4179-a88d-4a34-accc-1ea0c17ac231")
-                scarf_url = f"https://static.scarf.sh/a.png?x-pxid={pixel_id}"
-                
-                scarf_payload = payload.copy()
-                scarf_payload["cpu"] = sys_info["processor"] # Scarf often expects processors in 'cpu'
-                
-                scarf_response = requests.get(scarf_url, params=scarf_payload, headers=headers, timeout=10)
-                if scarf_response.ok:
-                    logger.info(f"[DEPRECATED] Telemetry also sent to Scarf.sh (Status: {scarf_response.status_code})")
-                else:
-                    logger.warning(f"[DEPRECATED] Scarf.sh returned status: {scarf_response.status_code}")
-            except Exception as scarf_err:
-                logger.error(f"[DEPRECATED] Failed to send telemetry to Scarf.sh: {scarf_err}")
+
             
             return 200
             

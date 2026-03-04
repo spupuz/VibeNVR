@@ -21,7 +21,7 @@ limiter = Limiter(key_func=get_remote_address)
 def manual_telemetry_report(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Trigger a manual telemetry report (Admin only)"""
     status_code = telemetry_service.send_telemetry()
-    return {"status": "ok", "scarf_status": status_code}
+    return {"status": "ok" if status_code == 200 else "error"}
 
 def get_setting(db: Session, key: str) -> Optional[str]:
     """Get a setting value by key"""
