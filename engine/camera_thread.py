@@ -36,6 +36,17 @@ class StreamReader(threading.Thread):
         self.last_status_check = 0
         self.consecutive_failures = 0
         self.last_health_report_status = None
+        self.ws_clients = set()
+
+    def add_ws_client(self, q, loop):
+        with self.lock:
+            self.ws_clients.add((q, loop))
+
+    def remove_ws_client(self, q):
+        with self.lock:
+            to_remove = [c for c in self.ws_clients if c[0] == q]
+            for c in to_remove:
+                self.ws_clients.remove(c)
 
     def get_health(self):
         with self.lock:
@@ -191,8 +202,9 @@ class StreamReader(threading.Thread):
                     self.connected = True
                 self.consecutive_failures = 0
 
-                # 4. Frame decode loop
-                for frame in container.decode(video=0):
+                # 4. Frame decode loop (demux to intercept raw packets)
+                import struct
+                for packet in container.demux(video=0):
                     if not self.running:
                         break
 
@@ -200,6 +212,7 @@ class StreamReader(threading.Thread):
                     with self.lock:
                         current_url = self.url
                         current_health = self.health_status
+                        clients = list(self.ws_clients)
                         
                     if current_url != target_url:
                         logger.info(f"StreamReader ({self.camera_name}): URL changed, reconnecting...")
@@ -209,13 +222,38 @@ class StreamReader(threading.Thread):
                         logger.info(f"StreamReader ({self.camera_name}): Force reconnect requested...")
                         break
 
-                    # Convert to numpy BGR array (compatible with cv2 motion detection pipeline)
-                    img = frame.to_ndarray(format='bgr24')
+                    # --- WebSocket Broadcast of Raw H.264 packets ---
+                    # packet.size == 0 means a flush/null packet (end of stream), skip those
+                    if clients and packet.size > 0:
+                        try:
+                            # pts in seconds; packet.pts is in stream time units, time_base converts to seconds
+                            pts = packet.pts
+                            if pts is not None and packet.time_base is not None:
+                                time_sec = float(pts * packet.time_base)
+                            else:
+                                time_sec = 0.0
+                            is_keyframe = 1 if packet.is_keyframe else 0
+                            # Header: <Bd = Little Endian, 1 byte uint8, 8 bytes float64
+                            header = struct.pack('<Bd', is_keyframe, time_sec)
+                            nalu_bytes = bytes(packet)
+                            full_payload = header + nalu_bytes
+                            
+                            for q, loop in clients:
+                                if not q.full():
+                                    loop.call_soon_threadsafe(q.put_nowait, full_payload)
+                        except Exception as e:
+                            logger.error(f"StreamReader ({self.camera_name}): WS Broadcast error: {e}")
 
-                    with self.lock:
-                        self.latest_frame = img
-                        self.last_read_time = time.time()
-                        self.health_status = "CONNECTED"
+                    # --- Decode to Numpy Array for Motion/Snapshot ---
+                    # packet.decode() returns a list of frames (usually 1 for video)
+                    for frame in packet.decode():
+                        # Convert to numpy BGR array (compatible with cv2 motion detection pipeline)
+                        img = frame.to_ndarray(format='bgr24')
+
+                        with self.lock:
+                            self.latest_frame = img
+                            self.last_read_time = time.time()
+                            self.health_status = "CONNECTED"
 
             except Exception as e:
                 # Catch av.error.* and general exceptions

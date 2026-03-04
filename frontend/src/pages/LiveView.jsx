@@ -4,6 +4,7 @@ import { Camera, CameraOff, Maximize2, Minimize2, Settings, Image as ImageIcon, 
 import { Toggle } from '../components/ui/FormControls';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { WebCodecsPlayer } from '../components/WebCodecsPlayer';
 
 const API_BASE = `/api`;
 
@@ -17,19 +18,22 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
     const containerRef = useRef(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
-    // JPEG Polling
+    // 'webcodecs' = primary path (VideoDecoder available)
+    // 'fallback'  = JPEG polling (VideoDecoder unavailable or hard fail)
+    const [streamMode, setStreamMode] = useState(() =>
+        'VideoDecoder' in window ? 'webcodecs' : 'fallback'
+    );
+    const useWebCodecs = streamMode === 'webcodecs';
+
+    // JPEG Polling Fallback Logic
     useEffect(() => {
-        // Do not start polling until the JWT token is available in memory.
-        // Without this guard, polling starts with token=null → sends no Authorization
-        // header → backend returns 401 → triggers "AUTH ERROR" overlay and can cause
-        // the engine to treat it as a camera RTSP auth failure (Tapo IP ban risk).
-        if (!token) return;
+        if (!token || useWebCodecs) return; // Skip if using WebCodecs
 
         mountedRef.current = true;
         let timeoutId = null;
 
         const fetchFrame = async () => {
-            if (!mountedRef.current) return;
+            if (!mountedRef.current || useWebCodecs) return;
 
             try {
                 const frameUrl = `${API_BASE}/cameras/${camera.id}/frame?t=${Date.now()}`;
@@ -38,11 +42,11 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                if (!mountedRef.current) return;
+                if (!mountedRef.current || useWebCodecs) return;
 
                 if (response.ok) {
                     const blob = await response.blob();
-                    if (!mountedRef.current) return;
+                    if (!mountedRef.current || useWebCodecs) return;
 
                     const url = URL.createObjectURL(blob);
                     setFrameSrc(prev => {
@@ -59,7 +63,7 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                 console.debug(`Frame fetch error for ${camera.id}`, err);
                 setLoadState('error');
             } finally {
-                if (mountedRef.current) {
+                if (mountedRef.current && !useWebCodecs) {
                     const delay = isFocused ? 50 : 200;
                     timeoutId = setTimeout(fetchFrame, delay);
                 }
@@ -80,7 +84,23 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                 return '';
             });
         };
-    }, [camera.id, token, index, isFocused]);
+    }, [camera.id, token, index, isFocused, useWebCodecs]);
+
+    const handleWebCodecsState = (status) => {
+        if (status === 'unsupported') {
+            // Hard fail: VideoDecoder not supported in this browser — switch permanently
+            console.warn(`[LiveView] VideoDecoder unsupported for Camera ${camera.id}. Switching to JPEG polling.`);
+            setStreamMode('fallback');
+            setLoadState('loading');
+        } else if (status === 'error') {
+            // WebCodecsPlayer exhausted all retries — fall back to JPEG polling
+            console.warn(`[LiveView] WebCodecs exhausted retries for Camera ${camera.id}. Switching to JPEG polling.`);
+            setStreamMode('fallback');
+            setLoadState('loading');
+        } else {
+            setLoadState(status);
+        }
+    };
 
     const handleFullscreen = (e) => {
         const el = e?.currentTarget?.closest('.video-container') || containerRef.current;
@@ -105,7 +125,7 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
     // Derived Display State
     const currentHealth = healthStatus || 'CONNECTED';
 
-    // If we successfully loaded a frame, we are definitely NOT offline or unauthorized, 
+    // If we successfully loaded a frame/stream, we are definitely NOT offline or unauthorized, 
     // regardless of what the (possibly stale) backend health check says.
     const isOffline = loadState === 'loaded' ? false : (loadState === 'error' || currentHealth === 'UNREACHABLE' || currentHealth === 'OFFLINE');
     const isUnauthorized = loadState === 'loaded' ? false : (loadState === 'unauthorized' || currentHealth === 'UNAUTHORIZED');
@@ -168,6 +188,16 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                     <div className="text-white/50 text-[9px] mt-0.5 font-mono">
                         {camera.resolution_width}x{camera.resolution_height}
                     </div>
+                    {streamMode === 'webcodecs' && (
+                        <div className="text-green-400/80 text-[9px] mt-0.5 font-mono">
+                            WS / H.264
+                        </div>
+                    )}
+                    {streamMode === 'fallback' && (
+                        <div className="text-yellow-400/70 text-[9px] mt-0.5 font-mono">
+                            JPEG Poll
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -224,20 +254,34 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                 <img src="/invalid-password.png" alt="Invalid Password" className="absolute inset-0 w-full h-full object-cover" />
             ) : isOffline ? (
                 <img src="/no-signal.png" alt="No Signal" className="absolute inset-0 w-full h-full object-cover" />
-            ) : frameSrc ? (
-                <img
-                    src={frameSrc}
-                    alt={camera.name}
-                    className={`absolute inset-0 w-full h-full object-contain`}
-                />
             ) : (
-                <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-black/90">
-                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                </div>
+                <>
+                    {useWebCodecs && (
+                        <WebCodecsPlayer
+                            cameraId={camera.id}
+                            onStateChange={handleWebCodecsState}
+                        />
+                    )}
+
+                    {(!useWebCodecs && frameSrc) && (
+                        <img
+                            src={frameSrc}
+                            alt={camera.name}
+                            className={`absolute inset-0 w-full h-full object-contain`}
+                        />
+                    )}
+
+                    {loadState === 'loading' && (
+                        <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-black/90">
+                            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );
 };
+
 
 export const LiveView = () => {
     const { token } = useAuth();

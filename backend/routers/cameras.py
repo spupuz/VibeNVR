@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, Request
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, Response
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 import crud, schemas, database, motion_service, storage_service, probe_service, auth_service, models, health_service
-import json, asyncio, tarfile, io, re, os
+import json, asyncio, tarfile, io, re, os, websockets
 import logging
 from urllib.parse import urlparse
 from typing import Optional, List, Any
@@ -257,6 +257,47 @@ def bulk_delete_cameras(camera_ids: List[int], db: Session = Depends(database.ge
 
 from fastapi.responses import StreamingResponse, Response
 import httpx
+
+@router.websocket("/{camera_id}/ws")
+async def websocket_camera_stream(websocket: WebSocket, camera_id: int):
+    """Proxy raw H.264 PyAV packets from engine to the frontend via WebSockets"""
+    await websocket.accept()
+    
+    # Auth check (Browser WebSocket API only supports query params or cookies)
+    token = websocket.query_params.get("token") or websocket.cookies.get("media_token")
+    if not token:
+        logging.warning(f"WS Auth Fail: No token for camera {camera_id}")
+        await websocket.close(code=1008)
+        return
+        
+    try:
+        with database.get_db_ctx() as db:
+            await auth_service.get_user_from_token(token, db)
+            db_camera = crud.get_camera(db, camera_id=camera_id)
+            if db_camera is None:
+                await websocket.close(code=1008)
+                return
+    except Exception as e:
+        logging.error(f"WS Auth Fail: Invalid token for camera {camera_id} - {str(e)}")
+        await websocket.close(code=1008)
+        return
+
+    # Connect to Engine WS
+    engine_ws_url = f"ws://engine:8000/cameras/{camera_id}/ws"
+    try:
+        async with websockets.connect(engine_ws_url) as engine_ws:
+            logging.info(f"WS Proxy connected to Engine SDK for camera {camera_id}")
+            async for message in engine_ws:
+                await websocket.send_bytes(message)
+    except websockets.exceptions.ConnectionClosed:
+        logging.info(f"Engine WS closed for camera {camera_id}")
+    except Exception as e:
+        logging.error(f"WS Proxy error for camera {camera_id}: {e}")
+    finally:
+        try:
+            await websocket.close()
+        except:
+            pass
 
 @router.get("/{camera_id}/frame")
 async def get_camera_frame(camera_id: int, request: Request, token: Optional[str] = None):

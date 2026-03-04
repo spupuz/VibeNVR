@@ -1,6 +1,7 @@
 av
 fastapi
-uvicorn
+uvicorn[standard]
+websockets
 requests
 python-multipart
 psutil

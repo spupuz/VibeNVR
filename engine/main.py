@@ -1,5 +1,6 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse, JSONResponse
+import asyncio
 from pydantic import BaseModel, field_validator
 import logging
 import psutil
@@ -299,6 +300,41 @@ def take_snapshot(camera_id: int):
 @app.get("/debug/status")
 def debug_status():
     return manager.get_status()
+
+@app.websocket("/cameras/{camera_id}/ws")
+async def camera_ws_endpoint(websocket: WebSocket, camera_id: int):
+    await websocket.accept()
+    
+    if camera_id not in manager.cameras:
+        logger.warning(f"WS client connected for camera {camera_id} but it is not running.")
+        await websocket.close()
+        return
+
+    cam_thread = manager.cameras[camera_id]
+    
+    if not hasattr(cam_thread, 'stream_reader') or not hasattr(cam_thread.stream_reader, 'add_ws_client'):
+        logger.warning(f"WS client connected for camera {camera_id} but StreamReader doesn't support WebSockets.")
+        await websocket.close()
+        return
+
+    # Buffer 120 packets (approx. 8 seconds at 15fps) before dropping
+    q = asyncio.Queue(maxsize=120)
+    loop = asyncio.get_running_loop()
+    # Need to pass queue and loop to thread-safe set
+    cam_thread.stream_reader.add_ws_client(q, loop)
+    logger.info(f"WS client attached to camera {camera_id} stream.")
+
+    try:
+        while True:
+            packet_bytes = await q.get()
+            await websocket.send_bytes(packet_bytes)
+    except WebSocketDisconnect:
+        logger.info(f"WS client disconnected from camera {camera_id} stream.")
+    except Exception as e:
+        if "close" not in str(type(e)).lower():
+            logger.error(f"WS connection error for camera {camera_id}: {e}")
+    finally:
+        cam_thread.stream_reader.remove_ws_client(q)
 
 @app.get("/cameras/{camera_id}/frame")
 def get_single_frame(camera_id: int):
