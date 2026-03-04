@@ -37,7 +37,7 @@ This software is currently in active beta development. The database schema is st
 | 🖥️ **Modern Web Interface** | Ultra-premium UI built with React, Vite, and Lucide icons. |
 | 🎨 **Customizable Dashboard** | Toggle widgets and graphs to suit your monitoring needs. |
 | 🛡️ **Secure by Design** | Full JWT authentication, **2FA with Trusted Devices**, Rate Limiting, and HttpOnly Media Cookies. |
-| 📷 **Advanced Video Engine** | Custom Python engine using OpenCV & FFmpeg for RTSP streaming and processing. |
+| 📷 **Advanced Video Engine** | Custom Python engine using PyAV & FFmpeg for RTSP streaming, with OpenCV for motion detection and image processing. |
 | ⚡ **Passthrough Recording** | Direct Stream Copy support for near-zero CPU usage recording (experimental, with auto-fallback). |
 | 🎯 **Smart Motion Detection** | Native motion detection with adjustable sensitivity, gap, and pre/post-capture buffers. |
 | 📅 **Event Timeline** | Unified browser for movie recordings and high-res snapshots with instant filters. |
@@ -349,7 +349,7 @@ VibeNVR is split into four main microservices:
 
 *   **Frontend**: React-based SPA providing a sleek, responsive dashboard.
 *   **Backend**: FastAPI server handling logic, secure database access, and **secure HttpOnly cookie-based media relay**.
-*   **VibeEngine**: Custom processing engine for motion detection, recording, and overlays using OpenCV.
+*   **VibeEngine**: Custom processing engine for motion detection, recording, and overlays. Uses PyAV for RTSP stream ingestion and OpenCV (cv2) for frame processing.
 *   **Database**: PostgreSQL for persistent storage of camera configs and events.
 
 ---

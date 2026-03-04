@@ -1,7 +1,7 @@
 import cv2
+import av
 import time
 import threading
-import queue
 import subprocess
 import os
 import numpy as np
@@ -14,9 +14,10 @@ logger = logging.getLogger(__name__)
 
 class StreamReader(threading.Thread):
     """
-    Dedicated thread for reading frames from RTSP stream.
-    This ensures the buffer is constantly drained and we always 
-    have the latest frame, preventing "video lag".
+    Dedicated thread for reading frames from RTSP stream using PyAV.
+    Uses av.open() for native FFmpeg bindings — no subprocess ffprobe,
+    no global env var hacks for RTSP/HW options.
+    cv2 is still used downstream for motion detection, JPEG encoding, overlays.
     """
     def __init__(self, camera_id, url, camera_name="Unknown", event_callback=None, rtsp_transport="tcp"):
         super().__init__(daemon=True)
@@ -30,8 +31,7 @@ class StreamReader(threading.Thread):
         self.lock = threading.Lock()
         self.running = False
         self.connected = False
-        self.health_status = "STARTING" # STARTING, CONNECTED, UNREACHABLE, UNAUTHORIZED
-        # Limit reconnection log spam
+        self.health_status = "STARTING"  # STARTING, CONNECTED, UNREACHABLE, UNAUTHORIZED
         self.last_error_log = 0
         self.last_status_check = 0
         self.consecutive_failures = 0
@@ -40,310 +40,213 @@ class StreamReader(threading.Thread):
     def get_health(self):
         with self.lock:
             return self.health_status
-        
-    def run(self):
-        self.running = True
-        cap = None
-        current_url = self.url
-        
-        # Suppress OpenCV videoio debug
-        os.environ["OPENCV_VIDEOIO_DEBUG"] = "0"
-        
-        # ... HW acceleration setup ...
-        # (keeping existing HW acceleration logic)
+
+    def _maybe_send_health_callback(self, status, title, message):
+        """Send health callback only when status actually changes."""
+        if self.last_health_report_status == status:
+            return
+        self.last_health_report_status = status
+        if self.event_callback:
+            try:
+                self.event_callback(self.camera_id, 'health_status_changed', {
+                    "camera_id": self.camera_id,
+                    "camera_name": self.camera_name,
+                    "status": status,
+                    "timestamp": int(time.time()),
+                    "title": title,
+                    "message": message,
+                })
+            except Exception as cb_e:
+                logger.error(f"StreamReader ({self.camera_name}): Callback error: {cb_e}")
+
+    def _build_av_options(self):
+        """Build PyAV/FFmpeg options for RTSP connection."""
+        opts = {
+            'rtsp_transport': self.rtsp_transport,
+            'stimeout': '5000000',  # 5s connection timeout (microseconds)
+            'fflags': 'nobuffer',
+            'flags': 'low_delay',
+        }
         hw_accel_enabled = os.environ.get('HW_ACCEL', 'false').lower() == 'true'
         hw_accel_type = os.environ.get('HW_ACCEL_TYPE', 'auto').lower()
-        
         if hw_accel_enabled:
-            if hw_accel_type == 'auto':
-                try:
-                    import shutil
-                    if shutil.which('nvidia-smi'):
-                        hw_accel_type = 'nvidia'
-                    elif os.path.exists('/dev/dri'):
-                        hw_accel_type = 'vaapi'
-                except:
-                    pass
-
-            if hw_accel_type == 'nvidia':
-                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = f"rtsp_transport;{self.rtsp_transport}|hwaccel;cuda"
-            elif hw_accel_type == 'intel':
-                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = f"rtsp_transport;{self.rtsp_transport}|hwaccel;qsv"
-            elif hw_accel_type in ['amd', 'vaapi']:
-                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = f"rtsp_transport;{self.rtsp_transport}|hwaccel;vaapi"
-            else:
-                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = f"rtsp_transport;{self.rtsp_transport}|hwaccel;auto"
-            logger.info(f"StreamReader ({self.camera_name}): HW acceleration configured ({hw_accel_type}) using {self.rtsp_transport}")
+            accel_map = {
+                'nvidia': 'cuda', 'intel': 'qsv',
+                'amd': 'vaapi', 'vaapi': 'vaapi', 'auto': 'auto'
+            }
+            accel = accel_map.get(hw_accel_type, 'auto')
+            opts['hwaccel'] = accel
+            logger.info(f"StreamReader ({self.camera_name}): HW acceleration configured ({accel}) via {self.rtsp_transport}")
         else:
-            logger.info(f"StreamReader ({self.camera_name}): HW acceleration DISABLED using {self.rtsp_transport}")
-            os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = f"rtsp_transport;{self.rtsp_transport}"
+            logger.info(f"StreamReader ({self.camera_name}): HW acceleration DISABLED, using {self.rtsp_transport}")
+        return opts
+
+    def run(self):
+        self.running = True
+        container = None
 
         while self.running:
             try:
-                # 1. Connection Phase
+                # 1. URL snapshot
                 with self.lock:
                     target_url = self.url
-                
-                # STOP if Auth Failed — prevents IP ban on Tapo/TP-Link cameras
+
+                # Hold if auth failed — prevents IP ban on Tapo/TP-Link cameras
                 if self.health_status == "UNAUTHORIZED":
-                    # Wait for user to fix credentials in VibeNVR
                     time.sleep(2.0)
                     continue
 
-                if cap is None or not cap.isOpened() or self.health_status == "STARTING":
-                    current_url = target_url
-                    self.connected = False
+                # 2. Open stream with PyAV
+                safe_url = re.sub(r'://[^@]+@', '://***:***@', target_url)
+                logger.info(f"StreamReader ({self.camera_name}): Connecting → {safe_url}")
 
-                    # ── PRE-FLIGHT AUTH CHECK ─────────────────────────────────────────
-                    # IMPORTANT: ffprobe runs BEFORE cv2.VideoCapture() to catch auth
-                    # errors with a single controlled probe. This prevents cv2's internal
-                    # RTSP retry mechanism from firing multiple failed auth attempts before
-                    # we can stop it — which is what triggers Tapo/TP-Link IP bans.
-                    # ─────────────────────────────────────────────────────────────────
-                    try:
-                        safe_url_log = re.sub(r'://[^@]+@', '://***:***@', current_url)
-                        logger.info(f"StreamReader ({self.camera_name}): Pre-flight probe → {safe_url_log}")
+                try:
+                    container = av.open(
+                        target_url,
+                        options=self._build_av_options(),
+                        timeout=8.0
+                    )
+                    # Validate that a video stream exists
+                    if not container.streams.video:
+                        raise Exception("No video stream found in container")
 
-                        cmd_probe = [
-                            "ffprobe", "-v", "error",
-                            "-rtsp_transport", self.rtsp_transport,
-                            "-timeout", "5000000",   # 5s in microseconds
-                            current_url
-                        ]
-                        res_probe = subprocess.run(
-                            cmd_probe, stderr=subprocess.PIPE, text=True, timeout=8
+                except Exception as e:
+                    self.consecutive_failures += 1
+                    err_str = str(e).lower()
+                    if container:
+                        try:
+                            container.close()
+                        except Exception:
+                            pass
+                        container = None
+
+                    auth_keywords = ['401', '403', 'unauthorized', 'forbidden', 'permission denied',
+                                     'authentication', 'wrong username']
+                    refused_keywords = ['connection refused', 'connection reset', 'timed out',
+                                        'no route to host', 'network unreachable']
+
+                    if any(k in err_str for k in auth_keywords):
+                        with self.lock:
+                            self.health_status = "UNAUTHORIZED"
+                            self.latest_frame = None
+                        logger.warning(
+                            f"StreamReader ({self.camera_name}): Authentication failed (401/403). "
+                            f"Stopping retries to prevent IP ban."
                         )
-                        probe_err = res_probe.stderr.lower()
-
-                        auth_failed = (
-                            "401" in probe_err or "unauthorized" in probe_err or
-                            "403" in probe_err or "forbidden" in probe_err or
-                            "authentication" in probe_err or "wrong username" in probe_err
+                        self._maybe_send_health_callback(
+                            "UNAUTHORIZED",
+                            "🚫 Camera Authentication Failed",
+                            "Authentication failed — wrong username or password. "
+                            "Fix credentials in VibeNVR (Settings → Cameras → Edit). "
+                            "If this is a Tapo/TP-Link camera, restart it to clear any IP ban."
                         )
+                        time.sleep(2.0)
+                        continue
 
-                        if auth_failed:
-                            with self.lock:
-                                self.health_status = "UNAUTHORIZED"
-                                self.latest_frame = None
-                            logger.warning(
-                                f"StreamReader ({self.camera_name}): Pre-flight detected auth failure "
-                                f"(401/403). Stopping retries to prevent IP ban."
-                            )
-                            if self.last_health_report_status != "UNAUTHORIZED":
-                                self.last_health_report_status = "UNAUTHORIZED"
-                                if self.event_callback:
-                                    try:
-                                        event_data = {
-                                            "camera_id": self.camera_id,
-                                            "camera_name": self.camera_name,
-                                            "status": "UNAUTHORIZED",
-                                            "timestamp": int(time.time()),
-                                            "message": (
-                                                "Authentication failed — wrong username or password. "
-                                                "Fix credentials in VibeNVR (Settings → Cameras → Edit). "
-                                                "If this is a Tapo/TP-Link camera, restart it to clear any IP ban."
-                                            ),
-                                            "title": "🚫 Camera Authentication Failed"
-                                        }
-                                        self.event_callback(self.camera_id, 'health_status_changed', event_data)
-                                        logger.info(f"StreamReader ({self.camera_name}): UNAUTHORIZED callback sent.")
-                                    except Exception as cb_e:
-                                        logger.error(f"StreamReader ({self.camera_name}): Callback error: {cb_e}")
-                            # Do NOT call cv2.VideoCapture — skip straight back to top of loop
-                            time.sleep(2.0)
-                            continue
-
-                        # Detect Tapo IP ban (RTSP port closed after ban → connection refused/reset)
-                        conn_refused = (
-                            "connection refused" in probe_err or
-                            "connection reset" in probe_err or
-                            ("eof" in probe_err and "error" in probe_err)
-                        )
-                        if conn_refused:
-                            with self.lock:
-                                self.health_status = "UNREACHABLE"
-                                self.latest_frame = None
-                            self.consecutive_failures += 1
-                            logger.warning(
-                                f"StreamReader ({self.camera_name}): RTSP connection was refused/reset. "
-                                f"If this is a Tapo/TP-Link camera, the host IP may be temporarily banned. "
-                                f"Power-cycle the camera and fix credentials in VibeNVR."
-                            )
-                            if self.last_health_report_status != "UNREACHABLE":
-                                self.last_health_report_status = "UNREACHABLE"
-                                if self.event_callback:
-                                    try:
-                                        event_data = {
-                                            "camera_id": self.camera_id,
-                                            "camera_name": self.camera_name,
-                                            "status": "UNREACHABLE",
-                                            "timestamp": int(time.time()),
-                                            "message": (
-                                                "Camera connection refused. "
-                                                "If this is a Tapo/TP-Link camera, the server IP may be temporarily banned. "
-                                                "Power-cycle the camera and correct the credentials."
-                                            ),
-                                            "title": "📡 Camera Offline (Possible IP Ban)"
-                                        }
-                                        self.event_callback(self.camera_id, 'health_status_changed', event_data)
-                                    except Exception as cb_e:
-                                        logger.error(f"StreamReader ({self.camera_name}): Callback error: {cb_e}")
-                            # Long backoff for possible banned cameras (avoid hammering)
-                            retry_delay = min(300, 60 * self.consecutive_failures)
-                            logger.info(f"StreamReader ({self.camera_name}): Backing off {retry_delay}s (possible IP ban)...")
-                            time.sleep(retry_delay)
-                            continue
-
-                        logger.info(f"StreamReader ({self.camera_name}): Pre-flight probe OK — proceeding to connect.")
-
-                    except subprocess.TimeoutExpired:
+                    if any(k in err_str for k in refused_keywords):
                         with self.lock:
                             self.health_status = "UNREACHABLE"
                             self.latest_frame = None
-                        self.consecutive_failures += 1
-                        logger.warning(f"StreamReader ({self.camera_name}): Pre-flight probe timed out — camera unreachable.")
-                        retry_delay = min(120, 10 * (2 ** max(0, self.consecutive_failures - 1)))
+                        logger.warning(
+                            f"StreamReader ({self.camera_name}): Connection refused/reset. "
+                            f"If Tapo/TP-Link, the host IP may be temporarily banned."
+                        )
+                        self._maybe_send_health_callback(
+                            "UNREACHABLE",
+                            "📡 Camera Offline (Possible IP Ban)",
+                            "Camera connection refused. If this is a Tapo/TP-Link camera, "
+                            "the server IP may be temporarily banned. Power-cycle the camera and correct the credentials."
+                        )
+                        retry_delay = min(300, 60 * self.consecutive_failures)
+                        logger.info(f"StreamReader ({self.camera_name}): Backing off {retry_delay}s...")
                         time.sleep(retry_delay)
                         continue
-                    except Exception as probe_exc:
-                        # ffprobe not found or unknown error — proceed anyway (don't block)
-                        logger.warning(f"StreamReader ({self.camera_name}): Pre-flight probe exception: {probe_exc} — proceeding to cv2.")
 
-                    # ── MAIN CONNECTION (only reached if pre-flight passed) ───────────
-                    cap = cv2.VideoCapture(current_url, cv2.CAP_FFMPEG)
-
-                    if not cap.isOpened():
-                        self.consecutive_failures += 1
-
-                        # Secondary diagnosis: cv2 failed despite probe passing (transient/codec error)
-                        try:
-                            cmd = ["ffprobe", "-v", "error", "-rtsp_transport", self.rtsp_transport, current_url]
-                            res = subprocess.run(cmd, stderr=subprocess.PIPE, text=True, timeout=5)
-                            err_out = res.stderr.lower()
-                            logger.info(f"[DEBUG] ffprobe stderr (post-cv2 fail): {repr(err_out)}")
-
-                            auth_failed = (
-                                "401" in err_out or "unauthorized" in err_out or
-                                "403" in err_out or "forbidden" in err_out
-                            )
-
-                            if auth_failed:
-                                with self.lock:
-                                    self.health_status = "UNAUTHORIZED"
-                                    self.latest_frame = None
-                                logger.warning(f"StreamReader ({self.camera_name}): Auth failure confirmed post-cv2.")
-                                if self.last_health_report_status != "UNAUTHORIZED":
-                                    self.last_health_report_status = "UNAUTHORIZED"
-                                    if self.event_callback:
-                                        try:
-                                            event_data = {
-                                                "camera_id": self.camera_id,
-                                                "camera_name": self.camera_name,
-                                                "status": "UNAUTHORIZED",
-                                                "timestamp": int(time.time()),
-                                                "message": "Authentication failed. Please check camera credentials in VibeNVR.",
-                                                "title": "🚫 Camera Authentication Failed"
-                                            }
-                                            self.event_callback(self.camera_id, 'health_status_changed', event_data)
-                                        except Exception as cb_e:
-                                            logger.error(f"StreamReader ({self.camera_name}): Callback error: {cb_e}")
-                                time.sleep(10)
-                                continue
-
-                            # Generic unreachable
-                            with self.lock:
-                                self.health_status = "UNREACHABLE"
-                                self.latest_frame = None
-                            logger.warning(f"StreamReader ({self.camera_name}): Network unreachable. Error: {err_out[:80]}")
-
-                            if self.last_health_report_status != "UNREACHABLE":
-                                self.last_health_report_status = "UNREACHABLE"
-                                if self.event_callback:
-                                    try:
-                                        event_data = {
-                                            "camera_id": self.camera_id,
-                                            "camera_name": self.camera_name,
-                                            "status": "UNREACHABLE",
-                                            "timestamp": int(time.time()),
-                                            "message": "Camera is unreachable. Check network or power.",
-                                            "title": "📡 Camera Offline"
-                                        }
-                                        self.event_callback(self.camera_id, 'health_status_changed', event_data)
-                                    except Exception as cb_e:
-                                        logger.error(f"StreamReader ({self.camera_name}): Callback error: {cb_e}")
-
-                        except Exception as e:
-                            with self.lock:
-                                self.health_status = "UNREACHABLE"
-                                self.latest_frame = None
-
-                        # Exponential backoff: 10s, 20s, 40s, 60s … max 120s
-                        retry_delay = min(120, 10 * (2 ** max(0, self.consecutive_failures - 1)))
-                        logger.info(f"StreamReader ({self.camera_name}): Retrying in {retry_delay}s...")
-                        time.sleep(retry_delay)
-                        continue
-                        
-                    logger.info(f"StreamReader ({self.camera_name}): Connected!")
-                    
-                    # RECOVERY NOTIFICATION
-                    if self.last_health_report_status in ["UNAUTHORIZED", "UNREACHABLE", "OFFLINE"]:
-                         logger.info(f"StreamReader ({self.camera_name}): Converting from {self.last_health_report_status} to CONNECTED")
-                         if self.event_callback:
-                            try:
-                                event_data = {
-                                    "camera_id": self.camera_id,
-                                    "camera_name": self.camera_name,
-                                    "status": "CONNECTED",
-                                    "timestamp": int(time.time()),
-                                    "message": f"Camera is back online. Connection established.",
-                                    "title": "✅ Camera Recovered"
-                                }
-                                self.event_callback(self.camera_id, 'health_status_changed', event_data)
-                            except Exception as e:
-                                logger.error(f"Failed to callback event for RECOVERY: {e}")
-                    
-                    self.last_health_report_status = "CONNECTED"
-                    with self.lock: self.health_status = "CONNECTED"
-                    self.connected = True
-                    self.consecutive_failures = 0
-                
-                # 2. URL Change Check
-                with self.lock:
-                    target_url = self.url
-
-                if target_url != current_url:
-                    cap.release()
-                    cap = None
-                    self.connected = False
+                    # Generic unreachable
+                    with self.lock:
+                        self.health_status = "UNREACHABLE"
+                        self.latest_frame = None
+                    logger.warning(f"StreamReader ({self.camera_name}): Connection failed: {e}")
+                    self._maybe_send_health_callback(
+                        "UNREACHABLE",
+                        "📡 Camera Offline",
+                        "Camera is unreachable. Check network or power."
+                    )
+                    retry_delay = min(120, 10 * (2 ** max(0, self.consecutive_failures - 1)))
+                    logger.info(f"StreamReader ({self.camera_name}): Retrying in {retry_delay}s...")
+                    time.sleep(retry_delay)
                     continue
 
-                # 3. Read Frame
-                ret, frame = cap.read()
-                if not ret:
-                    logger.warning(f"StreamReader ({self.camera_name}): Stream ended. Reconnecting...")
-                    cap.release()
-                    cap = None
-                    continue
-                
-                # 4. Update Latest
+                # 3. Connected!
+                logger.info(f"StreamReader ({self.camera_name}): Connected!")
+                if self.last_health_report_status in ["UNAUTHORIZED", "UNREACHABLE", "OFFLINE"]:
+                    logger.info(f"StreamReader ({self.camera_name}): Converting from {self.last_health_report_status} to CONNECTED")
+                self._maybe_send_health_callback(
+                    "CONNECTED",
+                    "✅ Camera Recovered",
+                    "Camera is back online. Connection established."
+                )
                 with self.lock:
-                    self.latest_frame = frame
-                    self.last_read_time = time.time()
                     self.health_status = "CONNECTED"
-                    
+                    self.connected = True
+                self.consecutive_failures = 0
+
+                # 4. Frame decode loop
+                for frame in container.decode(video=0):
+                    if not self.running:
+                        break
+
+                    # Check for URL change or force_reconnect
+                    with self.lock:
+                        current_url = self.url
+                        current_health = self.health_status
+                        
+                    if current_url != target_url:
+                        logger.info(f"StreamReader ({self.camera_name}): URL changed, reconnecting...")
+                        break
+                        
+                    if current_health == "STARTING":
+                        logger.info(f"StreamReader ({self.camera_name}): Force reconnect requested...")
+                        break
+
+                    # Convert to numpy BGR array (compatible with cv2 motion detection pipeline)
+                    img = frame.to_ndarray(format='bgr24')
+
+                    with self.lock:
+                        self.latest_frame = img
+                        self.last_read_time = time.time()
+                        self.health_status = "CONNECTED"
+
             except Exception as e:
-                logger.error(f"StreamReader ({self.camera_name}): Error: {e}")
-                if cap: cap.release()
-                cap = None
-                time.sleep(2)
-                
-        if cap: cap.release()
+                # Catch av.error.* and general exceptions
+                if isinstance(e, av.error.FFmpegError) or "av.error" in str(type(e)):
+                    logger.warning(f"StreamReader ({self.camera_name}): Stream error: {e}")
+                    self.consecutive_failures += 1
+                    with self.lock:
+                        self.health_status = "UNREACHABLE"
+                        self.latest_frame = None
+                        self.connected = False
+                else:
+                    logger.error(f"StreamReader ({self.camera_name}): Unexpected error: {e}")
+                    with self.lock:
+                        self.latest_frame = None
+                        self.connected = False
+            finally:
+                if container:
+                    try:
+                        container.close()
+                    except Exception:
+                        pass
+                    container = None
+                if self.running:
+                    time.sleep(2)
+
         logger.info(f"StreamReader ({self.camera_name}): Stopped")
 
     def get_latest(self):
         with self.lock:
             return self.latest_frame, self.last_read_time
-            
+
     def stop(self):
         self.running = False
 
@@ -360,20 +263,18 @@ class StreamReader(threading.Thread):
                 logger.info(f"StreamReader ({self.camera_name}): URL changed, resetting health status and forcing reconnect")
                 self.url = new_url
                 self.health_status = "STARTING"  # Force fresh connection attempt
-                self.last_status_check = 0  # Reset ffprobe throttle
-                self.latest_frame = None  # Clear any stale frame
-                self.connected = False # Ensure connected flag is reset
+                self.last_status_check = 0
+                self.latest_frame = None
+                self.connected = False
             else:
-                 # Even if URL is same, if we are in error state, force a retry?
-                 # Useful if user just hits 'Save' to trigger a retry
-                 if self.health_status in ["UNAUTHORIZED", "UNREACHABLE"]:
-                     logger.info(f"StreamReader ({self.camera_name}): URL unchanged but in error state, forcing retry")
-                     self.health_status = "STARTING"
-                     self.last_status_check = 0
+                # Even if URL is same, if we are in error state, force a retry
+                if self.health_status in ["UNAUTHORIZED", "UNREACHABLE"]:
+                    logger.info(f"StreamReader ({self.camera_name}): URL unchanged but in error state, forcing retry")
+                    self.health_status = "STARTING"
+                    self.last_status_check = 0
 
     def force_reconnect(self):
         with self.lock:
-            # Setting health to STARTING forces the loop to re-evaluate connection
             self.connected = False
             self.health_status = "STARTING"
 
@@ -519,32 +420,9 @@ class CameraThread(threading.Thread):
                     if self.pre_buffer_counter % throttle == 0:
                         # Store YUV420 frame (from previous optimization) or copy
                         try:
-                            # Frame is already YUV if we did the optimization earlier?
-                            # Wait, previous task converted to YUV "frame_yuv" but we didn't inject that variable in this scope in this view?
-                            # Ah, I must check if 'frame_yuv' exists or if I need to recreate it.
-                            # The previous tool call MIGHT have failed or I might be editing a file that doesn't have it yet?
-                            # Let's check the context from Step 167... It seems I did edit it.
-                            # But looking at the current view_file output (Step 235), I DON'T SEE frame_yuv!
-                            # It seems my previous edit was on 'migrate_captured_before.py' or failed?
-                            # No, Step 167 viewed 'camera_thread.py'. Step 168 applied changes.
-                            # But Step 235 shows 'engine/camera_thread.py' WITHOUT the YUV changes I thought I made.
-                            # Did I revert them? Or did I fail to apply them?
-                            # Step 168 applied changes to `camera_thread.py`.
-                            # Let's look at lines 235-236 in the current view.
-                            # Line 235: self.handle_recording(frame)
-                            # Line 236: # 6. Pre-capture Buffer
-                            # It seems the YUV optimization was NOT applied or lost?
-                            # Wait, Step 235 shows:
-                            # 235:                 # 5. Handle Recording (Video)
-                            # 236:                 self.handle_recording(frame)
-                            # 237:                 
-                            # 238:                 # 6. Pre-capture Buffer
-                            # The YUV optimization from Step 168 (Task 166) WAS SUPPOSED to be there.
-                            # Use `frame.copy()` as fallback for now to be safe, or implement YUV here too if I want YUV + Throttle.
-                            # I will just stick to Throttling for now as requested by user.
                             self.pre_buffer.append(frame.copy())
                         except Exception:
-                             pass
+                            pass
 
 
                 # 7. Update Live View Buffer (Broadcast)
