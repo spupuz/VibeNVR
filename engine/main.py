@@ -312,11 +312,16 @@ def get_single_frame(camera_id: int):
         # Access the camera thread directly from manager
         if hasattr(manager, 'cameras') and camera_id in manager.cameras:
             cam = manager.cameras[camera_id]
-            # Use get_health() if available, else access attr
-            health = cam.get_health() if hasattr(cam, 'get_health') else "UNKNOWN"
+            # Use get_health() on stream_reader where the actual PyAV health lives
+            if hasattr(cam, 'stream_reader') and hasattr(cam.stream_reader, 'get_health'):
+                health = cam.stream_reader.get_health()
+            elif hasattr(cam, 'get_health'):
+                health = cam.get_health()
+            else:
+                health = "UNKNOWN"
             
             if health == "UNAUTHORIZED":
-                raise HTTPException(status_code=401, detail="Unauthorized")
+                raise HTTPException(status_code=401, detail="Unauthorized camera credentials")
                 
         raise HTTPException(status_code=503, detail="Frame unavailable")
 

@@ -184,7 +184,7 @@ DEFAULT_SETTINGS = {
     "opt_live_view_quality": {"value": "60", "description": "JPEG Quality for live stream (1-100)"},
     "opt_snapshot_quality": {"value": "90", "description": "JPEG Quality for snapshots (1-100)"},
     "opt_ffmpeg_preset": {"value": "ultrafast", "description": "FFmpeg preset for transcoding (ultrafast, superfast, veryfast, faster, fast, medium)"},
-    "opt_verbose_engine_logs": {"value": "false", "description": "Enable verbose logs from OpenCV/FFmpeg in the engine"},
+    "opt_verbose_engine_logs": {"value": "false", "description": "Enable verbose logs from PyAV/FFmpeg in the engine"},
     "telemetry_enabled": {"value": "true", "description": "Enable anonymous telemetry to help improve VibeNVR"},
     "instance_id": {"value": "", "description": "Unique anonymous ID for this VibeNVR instance"},
 }
