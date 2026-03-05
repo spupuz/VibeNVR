@@ -60,10 +60,14 @@ class StreamReader(threading.Thread):
         self.consecutive_failures = 0
         self.last_health_report_status = None
         self.ws_clients = set()
+        self.last_keyframe = None  # Cache for immediate synchronization
 
     def add_ws_client(self, q, loop):
         with self.lock:
             self.ws_clients.add((q, loop))
+            # If we have a cached keyframe, push it immediately to sync the new client
+            if self.last_keyframe:
+                loop.call_soon_threadsafe(q.put_nowait, self.last_keyframe)
 
     def remove_ws_client(self, q):
         with self.lock:
@@ -273,6 +277,11 @@ class StreamReader(threading.Thread):
                             nalu_bytes = bytes(packet)
                             full_payload = header + nalu_bytes
                             
+                            # Cache keyframe for new clients (inside lock)
+                            if is_keyframe:
+                                with self.lock:
+                                    self.last_keyframe = full_payload
+                                
                             for q, loop in clients:
                                 if not q.full():
                                     loop.call_soon_threadsafe(q.put_nowait, full_payload)
