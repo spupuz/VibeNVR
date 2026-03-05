@@ -147,15 +147,8 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
     const isOffline = (currentHealth === 'UNREACHABLE' || currentHealth === 'OFFLINE') || (loadState === 'error' && loadState !== 'loaded');
     const isUnauthorized = (currentHealth === 'UNAUTHORIZED') || (loadState === 'unauthorized' && loadState !== 'loaded');
 
-    // Calculate Dynamic Aspect Ratio
-    const cardAspectRatio = (!camera.resolution_width || !camera.resolution_height)
-        ? 'aspect-video'
-        : (camera.resolution_width / camera.resolution_height < 1.4)
-            ? 'aspect-[4/3]'
-            : 'aspect-video';
-
     return (
-        <div ref={containerRef} className={`video-container relative w-full bg-black rounded-xl overflow-hidden ${isFullscreen ? 'h-full' : cardAspectRatio} group transition-all duration-300 ${isFocused ? 'ring-4 ring-primary z-30' : 'z-10'}`}>
+        <div ref={containerRef} className={`video-container relative w-full bg-black rounded-xl overflow-hidden ${isFullscreen ? 'h-full' : 'aspect-video'} group transition-all duration-300 ${isFocused ? 'ring-4 ring-primary z-30' : 'z-10'}`}>
 
             {/* VIBRANT INTERNAL BORDER */}
             <div className={`absolute inset-0 rounded-xl pointer-events-none z-50 transition-all duration-300 ${(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous')
