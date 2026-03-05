@@ -141,9 +141,17 @@ export const WebCodecsPlayer = ({ camera, onStateChange }) => {
             if (frames.length === 0) return;
 
             const frame = frames.shift();
-            // Drop any backlogged frames to keep latency at zero
-            while (frames.length > 0) {
-                try { frames.shift().close(); } catch (_) { }
+            // DROP LOGIC: If we have a backlog (latency building up), 
+            // drop EVERYTHING except a tiny cushion to stay near the "present"
+            // while allowing for a little network jitter.
+            const jitterBufferTarget = 2;
+            if (frames.length > jitterBufferTarget) {
+                // Keep the most recent frames, close the stale ones
+                const staleCount = frames.length - jitterBufferTarget;
+                const staleFrames = frames.splice(0, staleCount);
+                for (const f of staleFrames) {
+                    try { f.close(); } catch (_) { }
+                }
             }
 
             const rotation = camera.rotation || 0;

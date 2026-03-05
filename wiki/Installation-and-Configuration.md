@@ -227,6 +227,12 @@ If you see an "AUTH ERROR" overlay immediately on page load, it might be due to 
 2. Check that your camera credentials (Username/Password) in **Settings → Cameras** are correct. VibeNVR now includes a pre-flight safety check to prevent your camera from banning your IP if the credentials are wrong.
 3. If you suspect an IP ban (camera pingable but RTSP connection refused), VibeNVR will now **automatically enter a 5-minute backoff period**. You can see the status in the logs; the system will retry once the timer expires.
 
+### ⚡ Troubleshooting WebCodecs
+If you experience "black screens" or delayed startup on the live view:
+1. Ensure your browser supports **WebCodecs API** (Chrome/Edge 94+).
+2. VibeNVR v1.22.0+ includes **Keyframe Caching** to ensure instant synchronization even on high-latency links.
+3. If the stream stalls, the frontend incorporates a **micro-jitter buffer** to smooth out network fluctuations automatically.
+
 ---
 
 ### Live View — WebCodecs H.264 Streaming
