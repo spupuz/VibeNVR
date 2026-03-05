@@ -183,7 +183,7 @@ Before exposing VibeNVR to the internet, verify the following:
 git pull
 docker compose down && docker compose up -d --build
 
-# Pull latest image (prod)
+# Pull latest image (prod releases are built on tag pushes)
 docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d
 ```
@@ -294,8 +294,8 @@ If a specific camera has persistent compatibility issues with WebCodecs (e.g. co
 1. **Global Default**: Go to **Settings → General Preferences** and set the `Default Streaming Mode`. This applies to all new cameras.
 2. **Per-Camera Override**: Go to **Settings → Cameras**, select a camera, and change the `Live View Mode`:
     - **Auto**: Optimal performance with WebCodecs, falling back to MJPEG if necessary.
-    - **Force WebCodecs**: Disables automatic fallback (for troubleshooting).
-    - **Force MJPEG Polling**: Uses the legacy approach for maximum compatibility.
+    - **Force WebCodecs**: Explicitly uses the H.264 decoder (Chrome/Edge only).
+    - **Force JPEG Polling**: Uses the legacy approach for maximum compatibility and minimal client CPU.
 
 ---
 
