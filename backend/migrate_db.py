@@ -33,6 +33,7 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "rotation", "INTEGER", 0)
     add_column_if_not_exists(engine, "cameras", "auto_resolution", "BOOLEAN", True)
     add_column_if_not_exists(engine, "cameras", "rtsp_transport", "VARCHAR", "tcp")
+    add_column_if_not_exists(engine, "cameras", "live_view_mode", "VARCHAR", "auto")
 
     # Text Overlay
     add_column_if_not_exists(engine, "cameras", "text_left", "VARCHAR", "Camera Name")

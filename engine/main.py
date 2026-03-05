@@ -157,8 +157,13 @@ def get_stats():
         "hw_accel_status": _get_hw_accel_status(os.environ.get("HW_ACCEL_TYPE", "unknown"))
     }
 
+_VAAPI_CACHE = None
 def _check_vaapi_capabilities():
-    """Check if VAAPI encoders are available via FFmpeg"""
+    """Check if VAAPI encoders are available via FFmpeg (cached)"""
+    global _VAAPI_CACHE
+    if _VAAPI_CACHE is not None:
+        return _VAAPI_CACHE
+        
     try:
         import subprocess
         result = subprocess.run(
@@ -171,8 +176,8 @@ def _check_vaapi_capabilities():
         has_h264_vaapi = 'h264_vaapi' in output
         has_hevc_vaapi = 'hevc_vaapi' in output
         
-        logger.info(f"VAAPI Encoders available: h264={has_h264_vaapi}, hevc={has_hevc_vaapi}")
-        return has_h264_vaapi or has_hevc_vaapi
+        _VAAPI_CACHE = has_h264_vaapi or has_hevc_vaapi
+        return _VAAPI_CACHE
     except Exception as e:
         logger.error(f"Failed to check VAAPI capabilities: {e}")
         return False

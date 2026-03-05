@@ -45,7 +45,8 @@ export const Settings = () => {
         opt_ffmpeg_preset: 'ultrafast',
         opt_pre_capture_fps_throttle: 1,
         opt_verbose_engine_logs: false,
-        telemetry_enabled: true
+        telemetry_enabled: true,
+        default_live_view_mode: 'auto'
     });
     const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0, percent: 0 });
     const [loading, setLoading] = useState(true);
@@ -295,7 +296,8 @@ export const Settings = () => {
                     opt_ffmpeg_preset: data.opt_ffmpeg_preset?.value || 'ultrafast',
                     opt_pre_capture_fps_throttle: parseInt(data.opt_pre_capture_fps_throttle?.value) || 1,
                     opt_verbose_engine_logs: data.opt_verbose_engine_logs?.value === 'true',
-                    telemetry_enabled: data.telemetry_enabled?.value !== 'false'
+                    telemetry_enabled: data.telemetry_enabled?.value !== 'false',
+                    default_live_view_mode: data.default_live_view_mode?.value || 'auto'
                 });
             }
         } catch (err) {
@@ -349,7 +351,8 @@ export const Settings = () => {
                     opt_ffmpeg_preset: globalSettings.opt_ffmpeg_preset,
                     opt_pre_capture_fps_throttle: globalSettings.opt_pre_capture_fps_throttle.toString(),
                     opt_verbose_engine_logs: globalSettings.opt_verbose_engine_logs.toString(),
-                    telemetry_enabled: globalSettings.telemetry_enabled.toString()
+                    telemetry_enabled: globalSettings.telemetry_enabled.toString(),
+                    default_live_view_mode: globalSettings.default_live_view_mode
                 })
             });
             showToast('Settings saved successfully!', 'success');
@@ -1070,6 +1073,18 @@ export const Settings = () => {
                                 { value: 'dashboard', label: 'Dashboard' },
                                 { value: 'live', label: 'Live View' },
                                 { value: 'timeline', label: 'Timeline' }
+                            ]}
+                        />
+
+                        <SelectField
+                            label="Default Streaming Mode"
+                            value={globalSettings.default_live_view_mode}
+                            onChange={(val) => setGlobalSettings({ ...globalSettings, default_live_view_mode: val })}
+                            help="Default streaming technology for new cameras"
+                            options={[
+                                { value: 'auto', label: 'Auto (WebCodecs with Fallback)' },
+                                { value: 'webcodecs', label: 'Force WebCodecs' },
+                                { value: 'mjpeg', label: 'Force MJPEG Polling' }
                             ]}
                         />
                     </div>

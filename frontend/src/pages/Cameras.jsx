@@ -273,7 +273,8 @@ export const Cameras = () => {
         preserve_pictures: 'Forever',
         max_pictures_storage_gb: 0,
         enable_manual_snapshots: true,
-        rtsp_transport: 'tcp'
+        rtsp_transport: 'tcp',
+        live_view_mode: 'auto'
     });
     const [stats, setStats] = useState(null);
     const [activeTab, setActiveTab] = useState('general');
@@ -589,6 +590,8 @@ export const Cameras = () => {
                         preserve_pictures: 'Forever',
                         max_pictures_storage_gb: 0,
                         enable_manual_snapshots: true,
+                        rtsp_transport: 'tcp',
+                        live_view_mode: 'auto',
                         notify_attach_image_email: true,
                         notify_attach_image_telegram: true
                     });
@@ -1282,6 +1285,18 @@ export const Cameras = () => {
                                                             { value: 'udp', label: 'UDP (Lower Latency)' }
                                                         ]}
                                                         help="TCP is recommended for most cameras. Use UDP only if you experience lag or if your camera prefers it."
+                                                    />
+
+                                                    <SelectField
+                                                        label="Live View Mode"
+                                                        help="Choose the streaming technology for real-time monitoring. Auto uses WebCodecs with MJPEG fallback."
+                                                        options={[
+                                                            { value: 'auto', label: 'Auto (Recommended)' },
+                                                            { value: 'webcodecs', label: 'Force WebCodecs' },
+                                                            { value: 'mjpeg', label: 'Force MJPEG Polling' }
+                                                        ]}
+                                                        value={newCamera.live_view_mode || 'auto'}
+                                                        onChange={(val) => setNewCamera({ ...newCamera, live_view_mode: val })}
                                                     />
                                                 </div>
 

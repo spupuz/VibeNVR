@@ -81,6 +81,13 @@ def create_camera(camera: schemas.CameraCreate, db: Session = Depends(database.g
     if camera.rtsp_url:
         camera.rtsp_url = sanitize_rtsp_url(camera.rtsp_url)
 
+    # Use global default for live_view_mode if not provided
+    if not camera.live_view_mode or camera.live_view_mode == 'auto':
+        from routers.settings import get_setting
+        global_default = get_setting(db, "default_live_view_mode")
+        if global_default:
+            camera.live_view_mode = global_default
+
     # Auto-detect resolution if passthrough is enabled
     # Auto-detect resolution if enabled
     if camera.auto_resolution and camera.rtsp_url:

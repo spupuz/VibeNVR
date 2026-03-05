@@ -20,9 +20,16 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
 
     // 'webcodecs' = primary path (VideoDecoder available)
     // 'fallback'  = JPEG polling (VideoDecoder unavailable or hard fail)
-    const [streamMode, setStreamMode] = useState(() =>
-        'VideoDecoder' in window ? 'webcodecs' : 'fallback'
-    );
+    const [streamMode, setStreamMode] = useState(() => {
+        const preferred = camera.live_view_mode || 'auto';
+        const hasWebCodecs = 'VideoDecoder' in window;
+
+        if (preferred === 'mjpeg') return 'fallback';
+        if (preferred === 'webcodecs') return 'webcodecs';
+
+        // 'auto' logic
+        return hasWebCodecs ? 'webcodecs' : 'fallback';
+    });
     const useWebCodecs = streamMode === 'webcodecs';
 
     // JPEG Polling Fallback Logic

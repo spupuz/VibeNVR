@@ -42,6 +42,7 @@ class CameraBase(BaseModel):
     location: Optional[str] = None
     is_active: bool = True
     rtsp_transport: Optional[str] = "tcp" # tcp | udp
+    live_view_mode: Optional[str] = "auto" # auto | webcodecs | mjpeg
 
     # Video Device
     resolution_width: Optional[int] = 800
@@ -333,6 +334,7 @@ class CameraSummary(BaseModel):
     framerate: int
     recording_mode: str
     rtsp_transport: str
+    live_view_mode: str
     created_at: datetime
     
     class Config:
