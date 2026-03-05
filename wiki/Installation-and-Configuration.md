@@ -225,7 +225,7 @@ If you see an "AUTH ERROR" overlay immediately on page load, it might be due to 
 **Solution:**
 1. Update to **v1.20.4 or later**, which adds a "token guard" in `LiveView.jsx` to prevent polling until the JWT is available.
 2. Check that your camera credentials (Username/Password) in **Settings → Cameras** are correct. VibeNVR now includes a pre-flight safety check to prevent your camera from banning your IP if the credentials are wrong.
-3. If you suspect an IP ban (camera pingable but RTSP connection refused), power-cycle the camera and wait 5 minutes.
+3. If you suspect an IP ban (camera pingable but RTSP connection refused), VibeNVR will now **automatically enter a 5-minute backoff period**. You can see the status in the logs; the system will retry once the timer expires.
 
 ---
 

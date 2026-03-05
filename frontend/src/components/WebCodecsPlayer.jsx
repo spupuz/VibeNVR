@@ -41,8 +41,9 @@ function detectCodecFromSPS(naluBytes) {
     return null; // SPS not found in this packet
 }
 
-export const WebCodecsPlayer = ({ cameraId, onStateChange }) => {
+export const WebCodecsPlayer = ({ camera, onStateChange }) => {
     const { token } = useAuth();
+    const cameraId = camera?.id;
     const canvasRef = useRef(null);
     const wsRef = useRef(null);
     const decoderRef = useRef(null);
@@ -52,6 +53,7 @@ export const WebCodecsPlayer = ({ cameraId, onStateChange }) => {
     const retryCountRef = useRef(0);
     const retryTimerRef = useRef(null);
     const animFrameRef = useRef(null);
+    const watchdogTimerRef = useRef(null);
     const isMountedRef = useRef(true);
 
     const [status, setStatus] = useState('connecting');
@@ -59,6 +61,68 @@ export const WebCodecsPlayer = ({ cameraId, onStateChange }) => {
     useEffect(() => {
         if (onStateChange) onStateChange(status);
     }, [status, onStateChange]);
+
+    const drawOverlay = useCallback((ctx, w, h) => {
+        if (!camera) return;
+
+        const userPreference = camera.text_scale || 1.0;
+        const fontScale = Math.max(0.4, (w / 1200.0) * userPreference);
+        const thickness = Math.max(1, Math.floor(fontScale * 2.0));
+
+        // OpenCV FONT_HERSHEY_SIMPLEX base size at scale 1.0 is visually larger than 24px.
+        // Increasing to 30px base to match the user's reported discrepancy.
+        const fontSize = Math.floor(30 * fontScale);
+
+        // Simplex is a thin stroke font. 500 for thickness 1, 700 for thickness 2+.
+        ctx.font = `${thickness > 1 ? '700' : '500'} ${fontSize}px sans-serif`;
+
+        const processText = (text) => {
+            if (!text) return "";
+            let processed = text.replace(/%\$/g, camera.name || '').replace(/%N/g, camera.name || '');
+            if (processed.includes('%')) {
+                const now = new Date();
+                const pad = (n) => String(n).padStart(2, '0');
+                const replacements = {
+                    '%Y': now.getFullYear(),
+                    '%m': pad(now.getMonth() + 1),
+                    '%d': pad(now.getDate()),
+                    '%H': pad(now.getHours()),
+                    '%M': pad(now.getMinutes()),
+                    '%S': pad(now.getSeconds()),
+                };
+                Object.entries(replacements).forEach(([key, val]) => {
+                    processed = processed.replace(new RegExp(key, 'g'), val);
+                });
+            }
+            return processed;
+        };
+
+        // Text Left (Top Left)
+        const textLeft = processText(camera.text_left || "");
+        if (textLeft) {
+            const metrics = ctx.measureText(textLeft);
+            const textWidth = metrics.width;
+            const textHeight = fontSize;
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, textWidth + 20, textHeight + 20);
+            ctx.fillStyle = 'white';
+            ctx.textBaseline = 'top';
+            ctx.fillText(textLeft, 10, 10);
+        }
+
+        // Text Right (Bottom Right)
+        const textRight = processText(camera.text_right || "");
+        if (textRight) {
+            const metrics = ctx.measureText(textRight);
+            const textWidth = metrics.width;
+            const textHeight = fontSize;
+            ctx.fillStyle = 'black';
+            ctx.fillRect(w - textWidth - 20, h - textHeight - 20, textWidth + 20, textHeight + 20);
+            ctx.fillStyle = 'white';
+            ctx.textBaseline = 'alphabetic';
+            ctx.fillText(textRight, w - textWidth - 10, h - 10);
+        }
+    }, [camera]);
 
     // ── Render loop ───────────────────────────────────────────────────────────
     const scheduleRender = useCallback(() => {
@@ -81,14 +145,46 @@ export const WebCodecsPlayer = ({ cameraId, onStateChange }) => {
             while (frames.length > 0) {
                 try { frames.shift().close(); } catch (_) { }
             }
-            if (canvas.width !== frame.displayWidth || canvas.height !== frame.displayHeight) {
-                canvas.width = frame.displayWidth;
-                canvas.height = frame.displayHeight;
+
+            const rotation = camera.rotation || 0;
+            const drawW = frame.displayWidth;
+            const drawH = frame.displayHeight;
+
+            // Resize canvas to match the expected rotated output
+            if (rotation === 90 || rotation === 270) {
+                if (canvas.width !== drawH || canvas.height !== drawW) {
+                    canvas.width = drawH;
+                    canvas.height = drawW;
+                }
+            } else {
+                if (canvas.width !== drawW || canvas.height !== drawH) {
+                    canvas.width = drawW;
+                    canvas.height = drawH;
+                }
             }
-            ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            // Handle rotation
+            if (rotation === 90) {
+                ctx.translate(canvas.width, 0);
+                ctx.rotate(Math.PI / 2);
+            } else if (rotation === 180) {
+                ctx.translate(canvas.width, canvas.height);
+                ctx.rotate(Math.PI);
+            } else if (rotation === 270) {
+                ctx.translate(0, canvas.height);
+                ctx.rotate(-Math.PI / 2);
+            }
+
+            ctx.drawImage(frame, 0, 0, drawW, drawH);
+            ctx.restore();
+
+            // Draw Client-side Overlay on top of the final rotated canvas
+            drawOverlay(ctx, canvas.width, canvas.height);
+
             try { frame.close(); } catch (_) { }
         });
-    }, []);
+    }, [drawOverlay, camera.rotation]);
 
     // ── Decoder factory ───────────────────────────────────────────────────────
     // Returns a fresh, UNconfigured VideoDecoder. Configuration is deferred
@@ -218,6 +314,15 @@ export const WebCodecsPlayer = ({ cameraId, onStateChange }) => {
         ws.onmessage = (event) => {
             if (!isMountedRef.current) return;
 
+            const watchdogTimeout = 10000;
+            if (watchdogTimerRef.current) clearTimeout(watchdogTimerRef.current);
+            watchdogTimerRef.current = setTimeout(() => {
+                if (isMountedRef.current && status === 'loaded') {
+                    console.warn(`[WebCodecs] No frames received for ${cameraId} in 10s. Resetting status to connecting.`);
+                    setStatus('connecting');
+                }
+            }, watchdogTimeout);
+
             const buffer = event.data;
             if (!(buffer instanceof ArrayBuffer) || buffer.byteLength < 10) return;
 
@@ -301,6 +406,7 @@ export const WebCodecsPlayer = ({ cameraId, onStateChange }) => {
         return () => {
             isMountedRef.current = false;
             if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+            if (watchdogTimerRef.current) clearTimeout(watchdogTimerRef.current);
             if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
             closeWS();
             closeDecoder();

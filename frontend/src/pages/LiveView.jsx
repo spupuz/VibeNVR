@@ -31,6 +31,7 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
 
         mountedRef.current = true;
         let timeoutId = null;
+        let retryCount = 0;
 
         const fetchFrame = async () => {
             if (!mountedRef.current || useWebCodecs) return;
@@ -54,17 +55,26 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                         return url;
                     });
                     setLoadState('loaded');
+                    retryCount = 0; // Reset on success
                 } else if (response.status === 401 || response.status === 403) {
                     setLoadState('unauthorized');
+                    retryCount++;
                 } else {
                     setLoadState('error');
+                    retryCount++;
                 }
             } catch (err) {
                 console.debug(`Frame fetch error for ${camera.id}`, err);
                 setLoadState('error');
+                retryCount++;
             } finally {
                 if (mountedRef.current && !useWebCodecs) {
-                    const delay = isFocused ? 50 : 200;
+                    // Backoff logic: if multiple errors, increase delay to avoid hammering the camera/IP ban
+                    // max 10s delay
+                    const baseDelay = isFocused ? 50 : 200;
+                    const errorDelay = Math.min(retryCount * 2000, 10000);
+                    const delay = baseDelay + errorDelay;
+
                     timeoutId = setTimeout(fetchFrame, delay);
                 }
             }
@@ -125,10 +135,10 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
     // Derived Display State
     const currentHealth = healthStatus || 'CONNECTED';
 
-    // If we successfully loaded a frame/stream, we are definitely NOT offline or unauthorized, 
-    // regardless of what the (possibly stale) backend health check says.
-    const isOffline = loadState === 'loaded' ? false : (loadState === 'error' || currentHealth === 'UNREACHABLE' || currentHealth === 'OFFLINE');
-    const isUnauthorized = loadState === 'loaded' ? false : (loadState === 'unauthorized' || currentHealth === 'UNAUTHORIZED');
+    // Prioritize backend health status. If the engine says it's dead, it's dead,
+    // even if the frontend still thinks it has a 'loaded' state.
+    const isOffline = (currentHealth === 'UNREACHABLE' || currentHealth === 'OFFLINE') || (loadState === 'error' && loadState !== 'loaded');
+    const isUnauthorized = (currentHealth === 'UNAUTHORIZED') || (loadState === 'unauthorized' && loadState !== 'loaded');
 
     return (
         <div ref={containerRef} className={`video-container relative w-full bg-black rounded-xl overflow-hidden ${isFullscreen ? 'h-full' : 'aspect-video'} group transition-all duration-300 ${isFocused ? 'ring-4 ring-primary z-30' : 'z-10'}`}>
@@ -258,7 +268,7 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                 <>
                     {useWebCodecs && (
                         <WebCodecsPlayer
-                            cameraId={camera.id}
+                            camera={camera}
                             onStateChange={handleWebCodecsState}
                         />
                     )}
@@ -515,7 +525,7 @@ export const LiveView = () => {
                                                         onToggleRecording={handleToggleRecording}
                                                         isRecording={activeMotionIds.includes(cam.id)}
                                                         isLiveMotion={liveMotionIds.includes(cam.id)}
-                                                        healthStatus={cameraHealth[cam.id]}
+                                                        healthStatus={cameraHealth[String(cam.id)]}
                                                     />
                                                 ))}
                                             </div>
@@ -549,7 +559,7 @@ export const LiveView = () => {
                                                         onToggleRecording={handleToggleRecording}
                                                         isRecording={activeMotionIds.includes(cam.id)}
                                                         isLiveMotion={liveMotionIds.includes(cam.id)}
-                                                        healthStatus={cameraHealth[cam.id]}
+                                                        healthStatus={cameraHealth[String(cam.id)]}
                                                     />
                                                 ))}
                                             </div>
@@ -583,7 +593,7 @@ export const LiveView = () => {
                                 onToggleRecording={handleToggleRecording}
                                 isRecording={activeMotionIds.includes(cam.id)}
                                 isLiveMotion={liveMotionIds.includes(cam.id)}
-                                healthStatus={cameraHealth[cam.id]}
+                                healthStatus={cameraHealth[String(cam.id)]}
                             />
                         ))}
                     </div>

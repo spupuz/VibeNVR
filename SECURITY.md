@@ -60,8 +60,8 @@ VibeNVR's code includes specific mitigations against common attack vectors:
 1. **Path Traversal & SSRF Prevention**:
    - The Pydantic Schema validators (`schemas.py`) actively scan `rtsp_url` inputs and webhook destinations. Local file access attempts and internal network probes are explicitly blocked.
 2. **IP Ban Protection & DoS Mitigation**:
-   - The VibeEngine (`camera_thread.py`) performs a mandatory **ffprobe pre-flight check** before initiating a full video stream connection. This prevents rapid authentication retries that trigger IP bans on many camera firmwares (e.g., Tapo/TP-Link).
-   - If a 401 Unauthorized or 403 Forbidden is detected with a single probe, the thread is locked to prevent further attempts, mitigating accidental or malicious "denial of service" scenarios through camera lockouts.
+    - The VibeEngine (`camera_thread.py`) performs a mandatory **ffprobe pre-flight check** before initiating a full video stream connection. This prevents rapid authentication retries that trigger IP bans on many camera firmwares (e.g., Tapo/TP-Link).
+    - If a 401 Unauthorized or 403 Forbidden is detected, the thread enters a **5-minute backoff period** before retrying. This mitigates accidental or malicious "denial of service" scenarios through camera lockouts while allowing for eventual recovery if credentials are corrected in the UI.
 3. **Secure Subprocess Execution**:
    - All internal calls to video tools (`ffmpeg`, `ffprobe`) are performed using **list-based arguments** (the secure default in Python's `subprocess.run`), effectively preventing any shell injection vulnerabilities via malicious camera URLs or paths.
 4. **Advanced Log Masking**:

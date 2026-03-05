@@ -144,7 +144,7 @@ class CameraBase(BaseModel):
 
 To prevent cameras from banning the host IP due to rapid authentication retries (common on Tapo/TP-Link), always perform a single `ffprobe` pre-flight check before attempting a full connection with `cv2.VideoCapture()`.
 
-- **Rule**: A 401/403 result from the pre-flight check must immediately stop the thread and set an `UNAUTHORIZED` state.
+- **Rule**: A 401/403 result from the pre-flight check must enter a **5-minute backoff period** to prevent IP bans while allowing for eventual recovery if credentials are corrected.
 - **Rule**: Connection refused/reset errors should trigger a longer backoff (60-300s) instead of the standard 10s retry.
 
 ```python

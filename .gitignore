@@ -37,3 +37,4 @@ frontend/.env
 
 # VibeNVR Specific
 scripts/
+.agents/

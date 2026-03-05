@@ -22,7 +22,30 @@ class StreamReader(threading.Thread):
     def __init__(self, camera_id, url, camera_name="Unknown", event_callback=None, rtsp_transport="tcp"):
         super().__init__(daemon=True)
         self.camera_id = camera_id
-        self.url = url
+        
+        # Sanitize URL: replace // with / in path
+        if url and "://" in url:
+            proto, rest = url.split("://", 1)
+            if '@' in rest:
+                creds, host_path = rest.rsplit('@', 1)
+                if '/' in host_path:
+                    host, path_rest = host_path.split('/', 1)
+                    sanitized_path = re.sub(r'/+', '/', '/' + path_rest)
+                    self.url = f"{proto}://{creds}@{host}{sanitized_path}"
+                else:
+                    self.url = f"{proto}://{rest}"
+            else:
+                if '/' in rest:
+                    host, path_rest = rest.split('/', 1)
+                    sanitized_path = re.sub(r'/+', '/', '/' + path_rest)
+                    self.url = f"{proto}://{host}{sanitized_path}"
+                else:
+                    self.url = f"{proto}://{rest}"
+        elif url:
+            self.url = url.replace("//", "/")
+        else:
+            self.url = url
+
         self.camera_name = camera_name
         self.event_callback = event_callback
         self.rtsp_transport = rtsp_transport
@@ -142,16 +165,20 @@ class StreamReader(threading.Thread):
                             self.latest_frame = None
                         logger.warning(
                             f"StreamReader ({self.camera_name}): Authentication failed (401/403). "
-                            f"Stopping retries to prevent IP ban."
+                            f"Waiting 300s before retry to prevent IP ban."
                         )
                         self._maybe_send_health_callback(
                             "UNAUTHORIZED",
                             "🚫 Camera Authentication Failed",
                             "Authentication failed — wrong username or password. "
                             "Fix credentials in VibeNVR (Settings → Cameras → Edit). "
-                            "If this is a Tapo/TP-Link camera, restart it to clear any IP ban."
+                            "Retrying in 5 minutes..."
                         )
-                        time.sleep(2.0)
+                        # Interruptible sleep: check every second if we should resume (e.g. settings updated)
+                        for _ in range(300):
+                            if not self.running or self.health_status == "STARTING":
+                                break
+                            time.sleep(1)
                         continue
 
                     if any(k in err_str for k in refused_keywords):
@@ -168,9 +195,13 @@ class StreamReader(threading.Thread):
                             "Camera connection refused. If this is a Tapo/TP-Link camera, "
                             "the server IP may be temporarily banned. Power-cycle the camera and correct the credentials."
                         )
-                        retry_delay = min(300, 60 * self.consecutive_failures)
+                        retry_delay = min(60, 10 * self.consecutive_failures)
                         logger.info(f"StreamReader ({self.camera_name}): Backing off {retry_delay}s...")
-                        time.sleep(retry_delay)
+                        # Interruptible sleep
+                        for _ in range(retry_delay):
+                            if not self.running or self.health_status == "STARTING":
+                                break
+                            time.sleep(1)
                         continue
 
                     # Generic unreachable
@@ -183,9 +214,13 @@ class StreamReader(threading.Thread):
                         "📡 Camera Offline",
                         "Camera is unreachable. Check network or power."
                     )
-                    retry_delay = min(120, 10 * (2 ** max(0, self.consecutive_failures - 1)))
+                    retry_delay = min(60, 5 * (2 ** max(0, self.consecutive_failures - 1)))
                     logger.info(f"StreamReader ({self.camera_name}): Retrying in {retry_delay}s...")
-                    time.sleep(retry_delay)
+                    # Interruptible sleep
+                    for _ in range(retry_delay):
+                        if not self.running or self.health_status == "STARTING":
+                            break
+                        time.sleep(1)
                     continue
 
                 # 3. Connected!
@@ -293,7 +328,17 @@ class StreamReader(threading.Thread):
             # Sanitize URL: replace // with / in path
             if "://" in new_url:
                 proto, rest = new_url.split("://", 1)
-                new_url = f"{proto}://{rest.replace('//', '/')}"
+                if '@' in rest:
+                    creds, host_path = rest.rsplit('@', 1)
+                    if '/' in host_path:
+                        host, path_rest = host_path.split('/', 1)
+                        sanitized_path = re.sub(r'/+', '/', '/' + path_rest)
+                        new_url = f"{proto}://{creds}@{host}{sanitized_path}"
+                else:
+                    if '/' in rest:
+                        host, path_rest = rest.split('/', 1)
+                        sanitized_path = re.sub(r'/+', '/', '/' + path_rest)
+                        new_url = f"{proto}://{host}{sanitized_path}"
             else:
                 new_url = new_url.replace("//", "/")
 
@@ -314,6 +359,7 @@ class StreamReader(threading.Thread):
     def force_reconnect(self):
         with self.lock:
             self.connected = False
+            self.consecutive_failures = 0
             self.health_status = "STARTING"
 
 
