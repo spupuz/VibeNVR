@@ -424,8 +424,11 @@ export const WebCodecsPlayer = ({ camera, onStateChange }) => {
     return (
         <canvas
             ref={canvasRef}
-            className="absolute inset-0 w-full h-full object-contain"
-            style={{ display: status === 'loaded' ? 'block' : 'none' }}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-full max-h-full"
+            style={{
+                display: status === 'loaded' ? 'block' : 'none',
+                objectFit: 'contain'
+            }}
         />
     );
 };
