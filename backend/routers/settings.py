@@ -58,6 +58,10 @@ def validate_setting(key: str, value: str):
             v = int(value)
             if v < 1 or v > 100: raise ValueError("Quality must be between 1 and 100")
             
+        elif key == "default_live_view_mode":
+            if value not in ["auto", "webcodecs", "mjpeg"]:
+                raise ValueError("Invalid mode. Must be 'auto', 'webcodecs', or 'mjpeg'")
+        
         elif key in ["opt_verbose_engine_logs", "telemetry_enabled"]:
             if value.lower() not in ["true", "false"]:
                 raise ValueError("Must be 'true' or 'false'")
@@ -187,6 +191,7 @@ DEFAULT_SETTINGS = {
     "opt_verbose_engine_logs": {"value": "false", "description": "Enable verbose logs from PyAV/FFmpeg in the engine"},
     "telemetry_enabled": {"value": "true", "description": "Enable anonymous telemetry to help improve VibeNVR"},
     "instance_id": {"value": "", "description": "Unique anonymous ID for this VibeNVR instance"},
+    "default_live_view_mode": {"value": "auto", "description": "Default streaming mode for new cameras (auto, webcodecs, mjpeg)"},
 }
 
 @router.post("/init-defaults")

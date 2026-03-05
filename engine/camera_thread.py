@@ -9,6 +9,7 @@ import logging
 from datetime import datetime
 from collections import deque
 import re
+import struct
 
 logger = logging.getLogger(__name__)
 
@@ -23,28 +24,8 @@ class StreamReader(threading.Thread):
         super().__init__(daemon=True)
         self.camera_id = camera_id
         
-        # Sanitize URL: replace // with / in path
-        if url and "://" in url:
-            proto, rest = url.split("://", 1)
-            if '@' in rest:
-                creds, host_path = rest.rsplit('@', 1)
-                if '/' in host_path:
-                    host, path_rest = host_path.split('/', 1)
-                    sanitized_path = re.sub(r'/+', '/', '/' + path_rest)
-                    self.url = f"{proto}://{creds}@{host}{sanitized_path}"
-                else:
-                    self.url = f"{proto}://{rest}"
-            else:
-                if '/' in rest:
-                    host, path_rest = rest.split('/', 1)
-                    sanitized_path = re.sub(r'/+', '/', '/' + path_rest)
-                    self.url = f"{proto}://{host}{sanitized_path}"
-                else:
-                    self.url = f"{proto}://{rest}"
-        elif url:
-            self.url = url.replace("//", "/")
-        else:
-            self.url = url
+        # Store URL as-is to support double slashes (e.g. //stream2) required by some cameras
+        self.url = url
 
         self.camera_name = camera_name
         self.event_callback = event_callback
@@ -61,6 +42,7 @@ class StreamReader(threading.Thread):
         self.last_health_report_status = None
         self.ws_clients = set()
         self.last_keyframe = None  # Cache for immediate synchronization
+        self.last_headers = b''    # Accumulated SPS/PPS headers
 
     def add_ws_client(self, q, loop):
         with self.lock:
@@ -242,7 +224,6 @@ class StreamReader(threading.Thread):
                 self.consecutive_failures = 0
 
                 # 4. Frame decode loop (demux to intercept raw packets)
-                import struct
                 for packet in container.demux(video=0):
                     if not self.running:
                         break
@@ -260,6 +241,40 @@ class StreamReader(threading.Thread):
                     if current_health == "STARTING":
                         logger.info(f"StreamReader ({self.camera_name}): Force reconnect requested...")
                         break
+
+                    # --- NAL Unit Parsing for Header Accumulation ---
+                    # H.264 Annex-B start code is 00 00 00 01 (4 bytes) or 00 00 01 (3 bytes)
+                    # We look for SPS (type 7) and PPS (type 8) to accumulate them.
+                    raw_data = bytes(packet)
+                    if packet.size > 4:
+                        # Simple scan for NAL units in the packet. 
+                        # Simple scan for NAL units in the packet. 
+                        # Note: Most camera packets are single NALUs, but some combine them.
+                        # We look for 0x67 (SPS) and 0x68 (PPS) after start codes.
+                        pos = 0
+                        while pos < len(raw_data) - 4:
+                            if raw_data[pos:pos+3] == b'\x00\x00\x01':
+                                # Found bitstream start code
+                                # Extract NAL type (usually the byte after 00 00 01)
+                                nal_header = raw_data[pos + 3]
+                                nal_type = nal_header & 0x1F
+                                
+                                # Find end of this NALU (next start code or end of packet)
+                                next_pos = raw_data.find(b'\x00\x00\x01', pos + 3)
+                                if next_pos == -1:
+                                    next_pos = len(raw_data)
+                                
+                                if nal_type == 7 or nal_type == 8: # SPS (0x67) or PPS (0x68)
+                                    # Include the start code for the decoder
+                                    nalu = raw_data[pos:next_pos]
+                                    with self.lock:
+                                        if nalu not in self.last_headers:
+                                            self.last_headers += nalu
+                                            logger.debug(f"StreamReader ({self.camera_name}): Captured NAL type {nal_type}")
+                                
+                                pos = next_pos
+                            else:
+                                pos += 1
 
                     # --- WebSocket Broadcast of Raw H.264 packets ---
                     # packet.size == 0 means a flush/null packet (end of stream), skip those
@@ -280,11 +295,17 @@ class StreamReader(threading.Thread):
                             # Cache keyframe for new clients (inside lock)
                             if is_keyframe:
                                 with self.lock:
-                                    self.last_keyframe = full_payload
+                                    # Prepend last known headers to the IDR frame to ensure decodability
+                                    self.last_keyframe = header + self.last_headers + nalu_bytes
+                            
+                            # For live broadcast, if it's a keyframe, ensure we send headers too
+                            broadcast_payload = full_payload
+                            if is_keyframe and self.last_headers:
+                                broadcast_payload = header + self.last_headers + nalu_bytes
                                 
                             for q, loop in clients:
                                 if not q.full():
-                                    loop.call_soon_threadsafe(q.put_nowait, full_payload)
+                                    loop.call_soon_threadsafe(q.put_nowait, broadcast_payload)
                         except Exception as e:
                             logger.error(f"StreamReader ({self.camera_name}): WS Broadcast error: {e}")
 
@@ -334,22 +355,7 @@ class StreamReader(threading.Thread):
 
     def update_url(self, new_url):
         with self.lock:
-            # Sanitize URL: replace // with / in path
-            if "://" in new_url:
-                proto, rest = new_url.split("://", 1)
-                if '@' in rest:
-                    creds, host_path = rest.rsplit('@', 1)
-                    if '/' in host_path:
-                        host, path_rest = host_path.split('/', 1)
-                        sanitized_path = re.sub(r'/+', '/', '/' + path_rest)
-                        new_url = f"{proto}://{creds}@{host}{sanitized_path}"
-                else:
-                    if '/' in rest:
-                        host, path_rest = rest.split('/', 1)
-                        sanitized_path = re.sub(r'/+', '/', '/' + path_rest)
-                        new_url = f"{proto}://{host}{sanitized_path}"
-            else:
-                new_url = new_url.replace("//", "/")
+            # support double slashes (e.g. //stream2) required by some cameras
 
             if self.url != new_url:
                 logger.info(f"StreamReader ({self.camera_name}): URL changed, resetting health status and forcing reconnect")

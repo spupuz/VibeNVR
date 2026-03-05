@@ -216,6 +216,8 @@ In non-production environments, it will only print a loud warning but will allow
 
 Verify the RTSP URL is reachable from inside the Docker container (not from your laptop). The `localhost` / `127.0.0.1` addresses are explicitly blocked for security reasons — use the camera's actual LAN IP.
 
+> 💡 **Note on URL format**: From v1.22.0, VibeNVR supports raw RTSP paths including double slashes (e.g., `rtsp://ip:port//stream2`). Aggressive URL sanitization has been removed to ensure compatibility with all camera brands.
+
 ---
 
 ### Live View shows "Authentication Error" / 401 on some cameras
@@ -286,6 +288,14 @@ If WebCodecs initialisation fails (unsupported codec profile, decoder error, or 
 The WebCodecs player dynamically detects the exact H.264 profile of your camera by inspecting the SPS (Sequence Parameter Set) NAL unit from the raw stream. It will automatically build the correct codec string (e.g. `avc1.4d001e` for Main Profile or `avc1.64002a` for High Profile) before configuring the decoder. 
 
 If there is a decoder error or WebCodecs is unsupported, the player **automatically falls back** to the JPEG polling mechanism with no user action required.
+
+#### Streaming Mode Selection
+If a specific camera has persistent compatibility issues with WebCodecs (e.g. constant "No Signal" or artifacting), you can override the streaming technology:
+1. **Global Default**: Go to **Settings → General Preferences** and set the `Default Streaming Mode`. This applies to all new cameras.
+2. **Per-Camera Override**: Go to **Settings → Cameras**, select a camera, and change the `Live View Mode`:
+    - **Auto**: Optimal performance with WebCodecs, falling back to MJPEG if necessary.
+    - **Force WebCodecs**: Disables automatic fallback (for troubleshooting).
+    - **Force MJPEG Polling**: Uses the legacy approach for maximum compatibility.
 
 ---
 
