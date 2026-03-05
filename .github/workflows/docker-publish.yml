@@ -1,12 +1,7 @@
 name: Build and Publish Docker Images
 
 on:
-  release:
-    types: [published]
   push:
-    branches:
-      - main
-      - dev
     tags:
       - 'v*'
   workflow_dispatch:
