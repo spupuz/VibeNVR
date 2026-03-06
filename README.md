@@ -7,7 +7,7 @@
 VibeNVR is a modern, modular, and containerized video surveillance system designed to manage IP cameras, recordings, motion detection, and a unified event timeline. It features a custom high-performance video engine (VibeEngine) built for efficiency and reliability, wrapped in a premium React-based interface.
 
 ### 🎬 Video Demo
-![VibeNVR Demo](docs/screenshots/vibenvr_video.webp)
+![VibeNVR Demo](docs/screenshots/demo.webp)
 
 > **Project Status**: This is a **Vibe Coding Project**. Extensive testing has been performed to ensure stability, but we are always **open to new help** and contributions from the community!
 > 
@@ -319,28 +319,38 @@ docker compose up -d
 
 ## 📸 Screenshots
 
-### Desktop Views
+### 🖥️ Desktop Views
 
-| Login | Dashboard |
-|:-----:|:---------:|
+| Login Screen | Main Dashboard |
+|:---:|:---:|
 | ![Login](docs/screenshots/login.png) | ![Dashboard](docs/screenshots/dashboard.png) |
 
-| Cameras | Camera Settings |
-|:-------:|:---------------:|
-| ![Cameras](docs/screenshots/cameras.png) | ![Camera Settings](docs/screenshots/camera_settings.png) |
+| Live View (Grid) | Video Playback |
+|:---:|:---:|
+| ![Live View](docs/screenshots/liveview.png) | ![Video Playback](docs/screenshots/video_playback.png) |
 
-| Live View | Timeline |
-|:---------:|:--------:|
-| ![Live View](docs/screenshots/liveview.png) | ![Timeline](docs/screenshots/timeline.png) |
+| Event Timeline | Camera Scanner |
+|:---:|:---:|
+| ![Timeline](docs/screenshots/timeline.png) | ![Scanner](docs/screenshots/camera_scanner.png) |
 
-| Settings |
-|:--------:|
-| ![Settings](docs/screenshots/settings.png) |
+| Camera Management | Camera Groups |
+|:---:|:---:|
+| ![Cameras](docs/screenshots/cameras.png) | ![Groups](docs/screenshots/camera_groups.png) |
+
+### ⚙️ Detailed Configuration
+
+| Camera Config (General) | Camera Config (Motion) |
+|:---:|:---:|
+| ![Config General](docs/screenshots/camera_config_general.png) | ![Config Motion](docs/screenshots/camera_config_motion.png) |
+
+| System Settings | Notification Channels |
+|:---:|:---:|
+| ![Settings](docs/screenshots/settings_system.png) | ![Notifications](docs/screenshots/settings_general.png) |
 
 ### 📱 Mobile Views
 
 | Dashboard | Live View | Timeline |
-|:---------:|:---------:|:--------:|
+|:---:|:---:|:---:|
 | ![Mobile Dashboard](docs/screenshots/mobile_dashboard.png) | ![Mobile Live View](docs/screenshots/mobile_liveview.png) | ![Mobile Timeline](docs/screenshots/mobile_timeline.png) |
 
 ## 🧱 Architecture
