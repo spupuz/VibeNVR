@@ -163,11 +163,13 @@ export const WebCodecsPlayer = ({ camera, onStateChange }) => {
                 if (canvas.width !== drawH || canvas.height !== drawW) {
                     canvas.width = drawH;
                     canvas.height = drawW;
+                    canvas.style.aspectRatio = `${drawH} / ${drawW}`;
                 }
             } else {
                 if (canvas.width !== drawW || canvas.height !== drawH) {
                     canvas.width = drawW;
                     canvas.height = drawH;
+                    canvas.style.aspectRatio = `${drawW} / ${drawH}`;
                 }
             }
 
@@ -424,9 +426,10 @@ export const WebCodecsPlayer = ({ camera, onStateChange }) => {
     return (
         <canvas
             ref={canvasRef}
-            className="absolute inset-0 w-full h-full object-contain"
+            className="absolute inset-0 w-full h-full"
             style={{
-                display: status === 'loaded' ? 'block' : 'none'
+                display: status === 'loaded' ? 'block' : 'none',
+                objectFit: 'contain'
             }}
         />
     );
