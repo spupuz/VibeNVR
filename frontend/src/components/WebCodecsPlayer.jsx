@@ -163,13 +163,11 @@ export const WebCodecsPlayer = ({ camera, onStateChange }) => {
                 if (canvas.width !== drawH || canvas.height !== drawW) {
                     canvas.width = drawH;
                     canvas.height = drawW;
-                    canvas.style.aspectRatio = `${drawH} / ${drawW}`;
                 }
             } else {
                 if (canvas.width !== drawW || canvas.height !== drawH) {
                     canvas.width = drawW;
                     canvas.height = drawH;
-                    canvas.style.aspectRatio = `${drawW} / ${drawH}`;
                 }
             }
 
@@ -423,14 +421,22 @@ export const WebCodecsPlayer = ({ camera, onStateChange }) => {
         };
     }, [cameraId, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    const rotation = camera.rotation || 0;
+    const ratio = (rotation % 180 === 90) ? `${camera.resolution_height} / ${camera.resolution_width}` : `${camera.resolution_width} / ${camera.resolution_height}`;
+
     return (
-        <canvas
-            ref={canvasRef}
-            className="absolute inset-0 w-full h-full"
-            style={{
-                display: status === 'loaded' ? 'block' : 'none',
-                objectFit: 'contain'
-            }}
-        />
+        <div className="absolute inset-0 flex items-center justify-center bg-black overflow-hidden pointer-events-none">
+            <canvas
+                ref={canvasRef}
+                className="max-w-full max-h-full"
+                style={{
+                    display: status === 'loaded' ? 'block' : 'none',
+                    width: '100%',
+                    height: 'auto',
+                    aspectRatio: ratio,
+                    objectFit: 'contain'
+                }}
+            />
+        </div>
     );
 };
