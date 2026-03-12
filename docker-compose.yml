@@ -31,6 +31,9 @@ services:
       - ./backend:/app
       - ./frontend/package.json:/app/package.json
       - ${VIBENVR_DATA:-vibenvr_data}:/data
+      # Custom Storage Profiles (uncomment to enable)
+      # - ${VIBENVR_STORAGE_SSD}:/storage/ssd
+      # - ${VIBENVR_STORAGE_NAS}:/storage/nas
 
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-vibenvr}
@@ -89,6 +92,9 @@ services:
     volumes:
       - ./engine:/app
       - ${VIBENVR_DATA:-vibenvr_data}:/var/lib/vibe/recordings
+      # Custom Storage Profiles (uncomment to enable)
+      # - ${VIBENVR_STORAGE_SSD}:/storage/ssd
+      # - ${VIBENVR_STORAGE_NAS}:/storage/nas
       # - /etc/localtime:/etc/localtime:ro # Removed for cross-platform compatibility, use TZ
 
     environment:

@@ -20,15 +20,26 @@ PRESERVE_MAP = {
 }
 
 def translate_path(p):
-    """Translate DB path to local container path"""
+    """Translate DB path (container-internal engine path) to backend container path"""
     if not p:
         return None
-    # Support new Engine path
+    
+    # If the path already exists as-is, return it (e.g. if shared mount exists in both containers)
+    if os.path.exists(p):
+        return p
+
+    # Standard VibeEngine -> Backend translation
     if p.startswith("/var/lib/vibe/recordings"):
-        return p.replace("/var/lib/vibe/recordings", "/data", 1)
-    # Support legacy Motion path
+        mapped = p.replace("/var/lib/vibe/recordings", "/data", 1)
+        if os.path.exists(mapped):
+            return mapped
+
+    # Legacy Motion -> Backend translation
     if p.startswith("/var/lib/motion"):
-        return p.replace("/var/lib/motion", "/data", 1)
+        mapped = p.replace("/var/lib/motion", "/data", 1)
+        if os.path.exists(mapped):
+            return mapped
+            
     return p
 
 def get_dir_size(path):
@@ -91,7 +102,8 @@ def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None):
     Enforce storage limits and retention for a specific camera.
     media_type: 'video' | 'snapshot' | None (both)
     """
-    camera_dir = f"/data/Camera{camera.id}"
+    storage_prefix = camera.storage_profile.path if camera.storage_profile else "/var/lib/vibe/recordings"
+    camera_dir = translate_path(os.path.join(storage_prefix, str(camera.id)))
     
     # 1. Cleanup Movies (max_storage_gb)
     if (not media_type or media_type == 'video') and camera.max_storage_gb and camera.max_storage_gb > 0:
@@ -177,6 +189,39 @@ def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None):
                     delete_event_media(e, db, reason="Retention Time (Snapshot)")
                 db.commit()
 
+def cleanup_profile(db: Session, profile: models.StorageProfile):
+    """
+    Enforce storage limits for a specific storage profile (shared across multiple cameras).
+    """
+    if not profile.max_size_gb or profile.max_size_gb <= 0:
+        return
+
+    from sqlalchemy import func
+    # Calculate total size of all events using this profile
+    # We query events for all cameras that belong to this profile
+    events_query = db.query(models.Event).join(models.Camera).filter(models.Camera.storage_profile_id == profile.id)
+    
+    total_size_bytes = db.query(func.sum(models.Event.file_size)).join(models.Camera).filter(models.Camera.storage_profile_id == profile.id).scalar() or 0
+    
+    current_used_gb = total_size_bytes / (1024**3)
+    
+    if current_used_gb > profile.max_size_gb:
+        logger.info(f"Storage Profile '{profile.name}' limit exceeded: {current_used_gb:.2f}GB > {profile.max_size_gb:.2f}GB")
+        target_gb = profile.max_size_gb * 0.95
+        
+        while current_used_gb > target_gb:
+            # Delete oldest event across all cameras in this profile
+            oldest = events_query.order_by(models.Event.timestamp_start.asc()).first()
+            if not oldest: break
+            
+            size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0
+            if size_gb == 0:
+                 size_gb = 0.05 # Conservative estimate (50MB) for untracked videos
+            
+            delete_event_media(oldest, db, reason=f"Profile Quota ({profile.name})")
+            db.commit()
+            current_used_gb -= size_gb
+
 def cleanup_temp_files():
     """Delete usage-dependent temporary files (e.g. notification snapshots) older than 1 hour"""
     try:
@@ -209,7 +254,12 @@ def run_cleanup():
             for camera in cameras:
                 cleanup_camera(db, camera)
             
-            # Priority 2: Enforce Global Storage Limit
+            # Priority 2: Enforce Profile-level Limits
+            profiles = db.query(models.StorageProfile).all()
+            for profile in profiles:
+                cleanup_profile(db, profile)
+            
+            # Priority 3: Enforce Global Storage Limit
             # Only iterate if we are STILL over limit after per-camera cleanup
             max_global_str = get_setting(db, "max_global_storage_gb")
             max_global_gb = float(max_global_str) if max_global_str else 0
@@ -267,8 +317,17 @@ def storage_monitor_loop():
 def delete_camera_media(camera_id: int):
     """Delete all media files on disk for a specific camera"""
     try:
-        # VibeEngine stores in /data/Camera{id}
-        camera_dir = f"/data/Camera{camera_id}"
+        with database.get_db_ctx() as db:
+            camera = db.query(models.Camera).filter(models.Camera.id == camera_id).first()
+            if not camera:
+                # If camera already deleted from DB, we try the default path as fallback
+                camera_dir = f"/data/Camera{camera_id}"
+                if not os.path.exists(camera_dir):
+                     camera_dir = f"/data/{camera_id}"
+            else:
+                storage_prefix = camera.storage_profile.path if camera.storage_profile else "/var/lib/vibe/recordings"
+                camera_dir = translate_path(os.path.join(storage_prefix, str(camera_id)))
+
         if os.path.exists(camera_dir):
             shutil.rmtree(camera_dir, ignore_errors=True)
             logger.info(f"Deleted media directory for camera {camera_id}: {camera_dir}")

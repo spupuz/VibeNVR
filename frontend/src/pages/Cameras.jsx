@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Camera, Plus, Trash2, MapPin, Activity, Edit, Download, Upload, Film, Image, Copy, X, Search } from 'lucide-react';
+import { Camera, Plus, Trash2, MapPin, Activity, Edit, Download, Upload, Film, Image, Copy, X, Search, HardDrive } from 'lucide-react';
 import { Toggle, Slider, InputField, SelectField, SectionHeader } from '../components/ui/FormControls';
 import { GroupsManager } from '../components/GroupsManager';
 import { CameraScanner } from '../components/CameraScanner';
@@ -65,6 +65,12 @@ const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSe
                         <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
                         <span className="truncate" title={camera.location}>{camera.location || 'Unknown Location'}</span>
                     </div>
+                    {camera.storage_profile && (
+                        <div className="flex items-center text-[10px] text-primary/70 mt-1 font-medium bg-primary/5 w-fit px-1.5 py-0.5 rounded border border-primary/10">
+                            <HardDrive className="w-2.5 h-2.5 mr-1" />
+                            <span>{camera.storage_profile.name}</span>
+                        </div>
+                    )}
                 </div>
 
                 {user?.role === 'admin' && (
@@ -211,6 +217,7 @@ export const Cameras = () => {
         rotation: 0,
         text_left: '%N',
         text_right: '%Y-%m-%d %H:%M:%S',
+        storage_profile_id: null,
         storage_path: '',
         root_directory: '',
         movie_file_name: '%Y-%m-%d/%H-%M-%S',
@@ -277,6 +284,7 @@ export const Cameras = () => {
         live_view_mode: 'auto'
     });
     const [stats, setStats] = useState(null);
+    const [storageProfiles, setStorageProfiles] = useState([]);
     const [activeTab, setActiveTab] = useState('general');
     const [editingId, setEditingId] = useState(null);
     const [view, setView] = useState('cameras');
@@ -301,7 +309,21 @@ export const Cameras = () => {
         if (!token) return;
         fetchCameras();
         fetchStats();
+        fetchStorageProfiles();
     }, [token]);
+
+    const fetchStorageProfiles = async () => {
+        try {
+            const res = await fetch('/api/storage/profiles', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                setStorageProfiles(await res.json());
+            }
+        } catch (err) {
+            console.error("Failed to fetch storage profiles", err);
+        }
+    };
 
     const fetchStats = async () => {
         try {
@@ -551,6 +573,7 @@ export const Cameras = () => {
                         rotation: 0,
                         text_left: 'Camera Name',
                         text_right: '%Y-%m-%d %H:%M:%S',
+                        storage_profile_id: null,
                         storage_path: '',
                         root_directory: '',
                         movie_file_name: '%Y-%m-%d/%H-%M-%S',
@@ -765,6 +788,7 @@ export const Cameras = () => {
                                         rotation: 0,
                                         text_left: '%N',
                                         text_right: '%Y-%m-%d %H:%M:%S',
+                                        storage_profile_id: null,
                                         storage_path: '',
                                         root_directory: '',
                                         movie_file_name: '%Y-%m-%d/%H-%M-%S',
@@ -1285,6 +1309,18 @@ export const Cameras = () => {
                                                             { value: 'udp', label: 'UDP (Lower Latency)' }
                                                         ]}
                                                         help="TCP is recommended for most cameras. Use UDP only if you experience lag or if your camera prefers it."
+                                                    />
+
+                                                    <SectionHeader title="Storage" description="Where to save recordings and snapshots" />
+                                                    <SelectField
+                                                        label="Storage Profile"
+                                                        value={newCamera.storage_profile_id || ''}
+                                                        onChange={(val) => setNewCamera({ ...newCamera, storage_profile_id: val === '' ? null : parseInt(val) })}
+                                                        options={[
+                                                            { value: '', label: 'Default (/var/lib/vibe/recordings)' },
+                                                            ...storageProfiles.map(p => ({ value: p.id.toString(), label: `${p.name} (${p.path})` }))
+                                                        ]}
+                                                        help="Select a custom storage location for this camera's media."
                                                     />
 
                                                     <SelectField

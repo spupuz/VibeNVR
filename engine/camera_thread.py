@@ -427,7 +427,8 @@ class CameraThread(threading.Thread):
         self.live_view_counter = 0  # For live view frame skipping
         self.last_processed_read_time = 0  # To skip duplicate frames
         
-        self.output_dir = f"/var/lib/vibe/recordings/{self.camera_id}"
+        storage_path = self.config.get('storage_path', '/var/lib/vibe/recordings')
+        self.output_dir = os.path.join(storage_path, str(self.camera_id))
         os.makedirs(self.output_dir, exist_ok=True)
         
         # Dimensions

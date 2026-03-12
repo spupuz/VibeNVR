@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Calendar, Filter, Play, Image as ImageIcon, Trash2, Download, Video, Camera, X } from 'lucide-react';
+import { Calendar, Filter, Play, Image as ImageIcon, Trash2, Download, Video, Camera, X, HardDrive } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
@@ -58,7 +58,7 @@ const HourTimeline = ({ events, onHourClick, selectedHour }) => {
     );
 };
 
-const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl, onDelete }) => {
+const EventCard = ({ event, onClick, camera, isSelected, getMediaUrl, onDelete }) => {
     const { token, user } = useAuth();
     const [imgError, setImgError] = useState(false);
     const time = new Date(event.timestamp_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -142,7 +142,13 @@ const EventCard = ({ event, onClick, cameraName, isSelected, getMediaUrl, onDele
                 <div>
                     <div className="flex items-center space-x-1 mb-0.5">
                         <Camera className="w-3 h-3 text-primary" />
-                        <span className="text-xs font-semibold truncate">{cameraName}</span>
+                        <span className="text-xs font-semibold truncate">{camera?.name || `Camera ${event.camera_id}`}</span>
+                        {camera?.storage_profile && (
+                            <div className="flex items-center ml-1 text-[8px] bg-primary/10 text-primary px-1 rounded-sm border border-primary/20" title={`Stored on: ${camera.storage_profile.name}`}>
+                                <HardDrive className="w-2 h-2 mr-0.5" />
+                                <span className="uppercase font-bold">{camera.storage_profile.name}</span>
+                            </div>
+                        )}
                     </div>
                     <p className="text-[10px] text-muted-foreground truncate">
                         {event.file_path?.split('/').pop()}
@@ -252,7 +258,7 @@ export const Timeline = () => {
                 .then(res => res.json())
                 .then(data => {
                     setCameras(data);
-                    const map = data.reduce((acc, cam) => ({ ...acc, [cam.id]: cam.name }), {});
+                    const map = data.reduce((acc, cam) => ({ ...acc, [cam.id]: cam }), {});
                     setCameraMap(map);
                 })
                 .catch(err => console.error(err));
@@ -268,7 +274,8 @@ export const Timeline = () => {
         }
     }, [cameraId, type, selectedDate, token]);
 
-    const getCameraName = (id) => cameraMap[id] || `Camera ${id}`;
+    const getCamera = (id) => cameraMap[id];
+    const getCameraName = (id) => cameraMap[id]?.name || `Camera ${id}`;
 
     const getMediaUrl = (path) => {
         if (!path) return '';
@@ -630,7 +637,7 @@ export const Timeline = () => {
                                                     key={event.id}
                                                     event={event}
                                                     onClick={setSelectedEvent}
-                                                    cameraName={getCameraName(event.camera_id)}
+                                                    camera={getCamera(event.camera_id)}
                                                     isSelected={selectedEvent?.id === event.id}
                                                     getMediaUrl={getMediaUrl}
                                                     onDelete={handleDelete}
@@ -653,6 +660,12 @@ export const Timeline = () => {
                                     <h3 className="text-lg font-bold">Event Details</h3>
                                     <p className="text-xs text-muted-foreground">
                                         {getCameraName(selectedEvent.camera_id)} • {new Date(selectedEvent.timestamp_start).toLocaleString()}
+                                        {getCamera(selectedEvent.camera_id)?.storage_profile && (
+                                            <span className="inline-flex items-center ml-2 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20">
+                                                <HardDrive className="w-2.5 h-2.5 mr-1" />
+                                                {getCamera(selectedEvent.camera_id).storage_profile.name}
+                                            </span>
+                                        )}
                                         {selectedEvent.file_size > 0 && ` • ${selectedEvent.file_size < 1024 * 1024
                                             ? (selectedEvent.file_size / 1024).toFixed(1) + ' KB'
                                             : (selectedEvent.file_size / (1024 * 1024)).toFixed(1) + ' MB'}`}

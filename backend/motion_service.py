@@ -77,6 +77,7 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
         "min_motion_frames": cam.min_motion_frames or 2,
         "despeckle_filter": cam.despeckle_filter if cam.despeckle_filter is not None else False,
         "detect_motion_mode": cam.detect_motion_mode or "Always",
+        "storage_path": cam.storage_profile.path if cam.storage_profile else "/var/lib/vibe/recordings"
     }
     
     # Inject Global Optimizations

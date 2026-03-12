@@ -28,7 +28,11 @@ def update_camera(db: Session, camera_id: int, camera: schemas.CameraCreate):
     return db_camera
 
 def delete_camera(db: Session, camera_id: int):
-    db_camera = db.query(models.Camera).filter(models.Camera.id == camera_id).first()
+    from sqlalchemy.orm import joinedload
+    db_camera = db.query(models.Camera).options(
+        joinedload(models.Camera.storage_profile),
+        joinedload(models.Camera.groups)
+    ).filter(models.Camera.id == camera_id).first()
     if db_camera:
         db.delete(db_camera)
         db.commit()
@@ -206,3 +210,38 @@ def delete_recovery_code(db: Session, code_id: int):
 def delete_all_recovery_codes(db: Session, user_id: int):
     db.query(models.RecoveryCode).filter(models.RecoveryCode.user_id == user_id).delete()
     db.commit()
+
+# Storage Profiles
+def get_storage_profile(db: Session, profile_id: int):
+    return db.query(models.StorageProfile).filter(models.StorageProfile.id == profile_id).first()
+
+def get_storage_profiles(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.StorageProfile).offset(skip).limit(limit).all()
+
+def create_storage_profile(db: Session, profile: schemas.StorageProfileCreate):
+    db_profile = models.StorageProfile(**profile.dict())
+    db.add(db_profile)
+    db.commit()
+    db.refresh(db_profile)
+    return db_profile
+
+def update_storage_profile(db: Session, profile_id: int, profile: schemas.StorageProfileCreate):
+    db_profile = db.query(models.StorageProfile).filter(models.StorageProfile.id == profile_id).first()
+    if db_profile:
+        for key, value in profile.dict().items():
+            setattr(db_profile, key, value)
+        db.commit()
+        db.refresh(db_profile)
+    return db_profile
+
+def delete_storage_profile(db: Session, profile_id: int):
+    db_profile = db.query(models.StorageProfile).filter(models.StorageProfile.id == profile_id).first()
+    if db_profile:
+        # Before deleting, nullify camera references
+        db.query(models.Camera).filter(models.Camera.storage_profile_id == profile_id).update(
+            {models.Camera.storage_profile_id: None},
+            synchronize_session=False
+        )
+        db.delete(db_profile)
+        db.commit()
+    return db_profile

@@ -219,6 +219,15 @@ def export_backup(request: Request, db: Session = Depends(database.get_db), curr
         "settings": jsonable_encoder(db.query(models.SystemSettings).all()),
         "cameras": jsonable_encoder([schemas.Camera.model_validate(c) for c in db.query(models.Camera).all()]),
         "groups": jsonable_encoder([schemas.CameraGroup.model_validate(g) for g in db.query(models.CameraGroup).all()]),
+        "storage_profiles": [
+            {
+                "id": p.id,
+                "name": p.name,
+                "path": p.path,
+                "description": p.description,
+                "max_size_gb": p.max_size_gb
+            } for p in db.query(models.StorageProfile).all()
+        ],
         "associations": [{"camera_id": a.camera_id, "group_id": a.group_id} for a in db.query(models.CameraGroupAssociation).all()],
         "users": [{
             "username": u.username,
@@ -279,7 +288,26 @@ async def import_backup(
                     )
                     db.add(new_setting)
         
-        # 3. Restore Cameras
+        # 3. Restore Storage Profiles
+        profile_id_map = {} # backup_id -> actual_db_id
+        if "storage_profiles" in data:
+            for p in data["storage_profiles"]:
+                backup_p_id = p.get("id")
+                # Match by name
+                existing_p = db.query(models.StorageProfile).filter(models.StorageProfile.name == p.get("name")).first()
+                if not existing_p:
+                    existing_p = models.StorageProfile()
+                    db.add(existing_p)
+                
+                for k, v in p.items():
+                    if k == "id": continue
+                    if hasattr(existing_p, k):
+                        setattr(existing_p, k, v)
+                
+                db.flush()
+                profile_id_map[backup_p_id] = existing_p.id
+
+        # 4. Restore Cameras
         # Strategy: De-duplication by RTSP URL if ID doesn't match
         cam_id_map = {} # backup_id -> actual_db_id
         if "cameras" in data:
@@ -323,7 +351,10 @@ async def import_backup(
                     
                     # Apply validated fields
                     for k, v in clean_cam.model_dump(exclude_unset=True).items():
-                         if hasattr(existing_cam, k):
+                         if k == "storage_profile_id" and v in profile_id_map:
+                             # Map the storage profile ID if it was in the backup
+                             setattr(existing_cam, k, profile_id_map[v])
+                         elif hasattr(existing_cam, k):
                              setattr(existing_cam, k, v)
                     
                     db.flush() # Ensure ID is generated if new

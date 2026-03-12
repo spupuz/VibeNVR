@@ -154,6 +154,34 @@ Get event activity history for the last 24 hours (hourly buckets).
 
 ---
 
+### 💾 Storage Profiles (`/storage/profiles`)
+
+#### **GET** `/storage/profiles`
+List all custom storage profiles.
+- **Auth Required**: Admin privileges.
+
+#### **POST** `/storage/profiles`
+Create a new storage profile.
+- **Payload**:
+  ```json
+  {
+    "name": "SSD Storage",
+    "path": "/storage/ssd",
+    "description": "Optional info",
+    "max_size_gb": 100.0
+  }
+  ```
+- **Auth Required**: Admin privileges.
+
+#### **PUT** `/storage/profiles/{id}`
+Update an existing storage profile.
+
+#### **DELETE** `/storage/profiles/{id}`
+Delete a storage profile.
+- **Note**: Cameras using this profile will automatically revert to the default storage path.
+
+---
+
 ### 🛠 Settings (`/settings`)
 
 #### **GET** `/settings`

@@ -129,6 +129,10 @@ class Camera(Base):
     
     # Groups (Many-to-Many)
     groups = relationship("CameraGroup", secondary="camera_group_association", back_populates="cameras")
+    
+    # Storage Profile
+    storage_profile_id = Column(Integer, ForeignKey("storage_profiles.id", ondelete="SET NULL"), nullable=True)
+    storage_profile = relationship("StorageProfile", back_populates="cameras")
 
 # Association Table
 class CameraGroupAssociation(Base):
@@ -144,6 +148,17 @@ class CameraGroup(Base):
     description = Column(String, nullable=True)
 
     cameras = relationship("Camera", secondary="camera_group_association", back_populates="groups")
+
+class StorageProfile(Base):
+    __tablename__ = "storage_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    path = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    max_size_gb = Column(Float, default=0) # 0 = unlimited
+
+    cameras = relationship("Camera", back_populates="storage_profile")
 
 class Event(Base):
     __tablename__ = "events"
