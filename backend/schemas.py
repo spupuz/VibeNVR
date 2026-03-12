@@ -43,6 +43,7 @@ class CameraBase(BaseModel):
     is_active: bool = True
     rtsp_transport: Optional[str] = "tcp" # tcp | udp
     live_view_mode: Optional[str] = "auto" # auto | webcodecs | mjpeg
+    storage_profile_id: Optional[int] = None
 
     # Video Device
     resolution_width: Optional[int] = 800
@@ -247,6 +248,7 @@ class Camera(CameraBase):
     id: int
     created_at: datetime
     groups: list[CameraGroupBase] = []
+    storage_profile: Optional["StorageProfile"] = None
 
     class Config:
         from_attributes = True
@@ -319,6 +321,34 @@ class Disable2FARequest(BaseModel):
 class CameraGroup(CameraGroupBase):
     id: int
     cameras: list[Camera] = []
+
+    class Config:
+        from_attributes = True
+
+# Storage Profiles
+class StorageProfileBase(BaseModel):
+    name: str
+    path: str
+    description: Optional[str] = None
+    max_size_gb: Optional[float] = 0
+
+    @field_validator('path')
+    @classmethod
+    def prevent_path_traversal(cls, v: str) -> str:
+        if '..' in v:
+            raise ValueError('Path traversal characters (..) are not allowed')
+        if not v.startswith('/'):
+            raise ValueError('Path must be an absolute path starting with /')
+        return v
+
+    class Config:
+        from_attributes = True
+
+class StorageProfileCreate(StorageProfileBase):
+    pass
+
+class StorageProfile(StorageProfileBase):
+    id: int
 
     class Config:
         from_attributes = True

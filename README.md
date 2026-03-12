@@ -42,7 +42,7 @@ This software is currently in active beta development. The database schema is st
 | 🎯 **Smart Motion Detection** | Native motion detection with adjustable sensitivity, gap, and pre/post-capture buffers. |
 | 📅 **Event Timeline** | Unified browser for movie recordings and high-res snapshots with instant filters. |
 | 🔑 **API Access Tokens** | Secure, read-only API tokens with **TTL (Expiration)** and hashed storage for 3rd party integrations. |
-| 💾 **Storage Management** | Automated background cleanup (FIFO) and **Bulk Deletion** tools. |
+| 💾 **Storage Management** | Automated background cleanup (FIFO), **Multiple Storage Profiles**, and **Bulk Deletion** tools. |
 | 📁 **Camera Groups** | Organize cameras into custom groups for logical multi-view management. |
 | 🕙 **Timezone Synchronization** | Full ISO 8601 support ensures perfect timing between engine, backend, and UI. |
 | 📊 **Real-time Monitoring** | Native **WebCodecs H.264** low-latency WebSocket streaming, with selectable modes and adaptive JPEG polling fallback. |

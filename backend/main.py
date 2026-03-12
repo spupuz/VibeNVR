@@ -21,7 +21,7 @@ from slowapi.errors import RateLimitExceeded
 
 import database
 from database import engine, Base
-from routers import cameras, events, stats, settings, auth, users, groups, logs, homepage, api_tokens, onvif_router
+from routers import cameras, events, stats, settings, auth, users, groups, logs, homepage, api_tokens, onvif_router, storage
 import auth_service
 import crud
 import models
@@ -273,6 +273,7 @@ app.include_router(logs.router)
 app.include_router(homepage.router, prefix="/v1")
 app.include_router(api_tokens.router, prefix="/v1")
 app.include_router(onvif_router.router)
+app.include_router(storage.router)
 
 from fastapi.responses import FileResponse
 import os

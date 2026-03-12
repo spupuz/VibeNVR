@@ -108,7 +108,8 @@ def perform_group_action(group_id: int, action: schemas.GroupAction, db: Session
             'id', 'name', 'rtsp_url', 'stream_url', 'location', 
             'is_active', 'created_at', 'groups', 
             '_sa_instance_state',
-            'resolution_width', 'resolution_height', 'auto_resolution'
+            'resolution_width', 'resolution_height', 'auto_resolution',
+            'storage_profile_id'
         ]
         
         source_data = source.__dict__

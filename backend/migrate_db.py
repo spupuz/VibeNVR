@@ -1,5 +1,6 @@
 from database import engine, Base
 from sqlalchemy import text
+import models
 
 def add_column_if_not_exists(engine, table_name, column_name, column_type, default_val=None):
     with engine.connect() as conn:
@@ -168,6 +169,19 @@ def migrate():
             models.RecoveryCode.__table__.create(engine)
             conn.commit()
             print("recovery_codes table created.")
+
+    # Storage Profiles (New Feature)
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("SELECT 1 FROM storage_profiles LIMIT 1"))
+        except:
+            print("Creating storage_profiles table via migration...")
+            models.StorageProfile.__table__.create(engine)
+            conn.commit()
+            print("storage_profiles table created.")
+            
+    # Add storage_profile_id to cameras
+    add_column_if_not_exists(engine, "cameras", "storage_profile_id", "INTEGER")
 
 if __name__ == "__main__":
     print("Starting migration...")

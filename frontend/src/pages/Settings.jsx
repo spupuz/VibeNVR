@@ -9,6 +9,7 @@ import { CollapsibleSection } from '../components/ui/CollapsibleSection';
 
 import { Avatar } from '../components/ui/Avatar';
 import { ApiTokenManager } from '../components/ApiTokenManager';
+import { StorageProfileManager } from '../components/StorageProfileManager';
 import { Toggle, InputField, SelectField } from '../components/ui/FormControls';
 
 export const Settings = () => {
@@ -735,7 +736,7 @@ export const Settings = () => {
                 <CollapsibleSection
                     id="storage"
                     title="Storage Management"
-                    description="Control disk space usage for recordings"
+                    description="Configure global quotas, cleanup policies, and custom storage profiles."
                     icon={<HardDrive className="w-6 h-6" />}
                     isOpen={openSection === 'storage'}
                     onToggle={toggleSection}
@@ -800,6 +801,10 @@ export const Settings = () => {
                             <p className="text-xs text-muted-foreground mt-1">
                                 How often to check and clean up old recordings
                             </p>
+                        </div>
+                        
+                        <div className="pt-4 border-t border-border mt-4">
+                            <StorageProfileManager />
                         </div>
                     </div>
 

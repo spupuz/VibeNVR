@@ -227,20 +227,26 @@ def toggle_camera_recording(camera_id: int, db: Session = Depends(database.get_d
 
 @router.delete("/{camera_id}", response_model=schemas.Camera)
 def delete_camera(camera_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
-    # 1. Stop the camera if running
+    # 1. Get camera first and stop if running
+    db_camera = db.query(models.Camera).filter(models.Camera.id == camera_id).first()
+    if db_camera is None:
+        raise HTTPException(status_code=404, detail="Camera not found")
+        
     motion_service.stop_camera(camera_id)
     
     # 2. Delete media from disk
     storage_service.delete_camera_media(camera_id)
     
-    # 3. Delete from DB (Cascade handles associated events)
-    db_camera = crud.delete_camera(db, camera_id=camera_id)
-    if db_camera is None:
-        raise HTTPException(status_code=404, detail="Camera not found")
+    # 3. Serialize to schema BEFORE deletion to avoid DetachedInstanceError
+    camera_data = schemas.Camera.model_validate(db_camera)
     
-    # 4. Sync engine config
+    # 4. Delete from DB
+    crud.delete_camera(db, camera_id=camera_id)
+    
+    # 5. Sync engine config
     motion_service.generate_motion_config(db)
-    return db_camera
+    
+    return camera_data
 
 @router.post("/bulk-delete")
 def bulk_delete_cameras(camera_ids: List[int], db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
@@ -425,8 +431,10 @@ def export_all_cameras(db: Session = Depends(database.get_db), current_user: mod
     for cam in cameras:
         # Pydantic v2 validation (excludes relationships and system fields like ID automatically)
         cam_data = jsonable_encoder(schemas.CameraCreate.model_validate(cam))
-        # Include group names in export
+        # Include group names and storage profile name in export
         cam_data["groups"] = [g.name for g in cam.groups]
+        if cam.storage_profile:
+            cam_data["storage_profile_name"] = cam.storage_profile.name
         export_data.append(cam_data)
     
     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -447,8 +455,10 @@ def export_single_camera(camera_id: int, db: Session = Depends(database.get_db),
     
     # Use schema to serialize without relationships
     filtered_data = jsonable_encoder(schemas.CameraCreate.model_validate(cam))
-    # Include group names in export
+    # Include group names and storage profile name in export
     filtered_data["groups"] = [g.name for g in cam.groups]
+    if cam.storage_profile:
+        filtered_data["storage_profile_name"] = cam.storage_profile.name
     
     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
     return Response(
@@ -491,13 +501,21 @@ async def import_cameras(file: UploadFile = File(...), db: Session = Depends(dat
                     skipped_count += 1
                     continue
 
-            # Extract and remove groups to avoid schema validation error
+            # Extract and remove groups/profiles to avoid schema validation error
             group_names = cam_data.pop("groups", [])
+            profile_name = cam_data.pop("storage_profile_name", None)
             
             # Create new camera with imported settings
             new_camera = schemas.CameraCreate(**cam_data)
             db_camera = crud.create_camera(db, new_camera)
             
+            # Handle storage profile matching by name
+            if profile_name:
+                db_profile = db.query(models.StorageProfile).filter(models.StorageProfile.name == profile_name).first()
+                if db_profile:
+                    db_camera.storage_profile_id = db_profile.id
+                    db.commit()
+
             # Handle group associations
             for g_name in group_names:
                 db_group = db.query(models.CameraGroup).filter(models.CameraGroup.name == g_name).first()
