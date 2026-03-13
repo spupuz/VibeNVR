@@ -38,3 +38,4 @@ frontend/.env
 # VibeNVR Specific
 scripts/
 .agents/
+!.agents/workflows/
