@@ -213,6 +213,7 @@ curl -X GET "http://localhost:8080/stats" \
 
 ### Using Shared URL (Media)
 Media access is now secured via cookies. Browser-based requests (like `<img>` tags) work automatically after login.
+*(Current Version: v1.23.0)*
 ```html
 <img src="http://localhost:8080/media/Camera1/2026-02-21/snap.jpg" />
 ```

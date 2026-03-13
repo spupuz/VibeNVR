@@ -20,7 +20,7 @@ git clone https://github.com/spupuz/VibeNVR.git
 cd VibeNVR
 
 # 2. Copy the example config and edit it
-cp .env .env.local
+cp .env.example .env
 nano .env   # or your preferred editor
 
 # 3. Start VibeNVR
@@ -234,6 +234,16 @@ If you experience "black screens" or delayed startup on the live view:
 1. Ensure your browser supports **WebCodecs API** (Chrome/Edge 94+).
 2. VibeNVR v1.22.0+ includes **Keyframe Caching** to ensure instant synchronization even on high-latency links.
 3. If the stream stalls, the frontend incorporates a **micro-jitter buffer** to smooth out network fluctuations automatically.
+
+### 🐛 Reporting Bugs
+If you encounter a bug that you cannot solve using the steps above, please open an issue on GitHub.
+To help us debug faster, please attach a **Diagnostic Bundle**:
+1. Log in as an **Admin**.
+2. Go to the **System Logs** page.
+3. Click the **"Download Report"** button in the top right.
+4. Attach the generated `.zip` file to your GitHub issue.
+
+*(Note: Logs and configuration are automatically sanitized to redact passwords, tokens, and IP addresses.)*
 
 ---
 

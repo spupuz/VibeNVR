@@ -51,13 +51,13 @@ When releasing a new version, you **MUST** update the version string in the foll
 > **Note**: These two versions MUST always match.
 
 #### 2. Release Checklist
-To release a version (e.g., `1.15.7`):
+To release a version (e.g., `1.23.0`):
 
 1. **Update Files**: Bump version in both `frontend/package.json` and `backend/package.json`.
-2. **Commit**: `git commit -am "chore: release v1.15.7"`
-3. **Tag**: `git tag v1.15.7`
+2. **Commit**: `git commit -am "chore: release v1.23.0"`
+3. **Tag**: `git tag v1.23.0`
 4. **Push**: `git push origin main --tags`
-5. **Release**: Create a GitHub Release referencing the tag `v1.15.7` with a changelog.
+5. **Release**: Create a GitHub Release referencing the tag `v1.23.0` with a changelog.
 
 ## 📝 Current Focus
 - Enforcing English language policy across all project documentation and interfaces.

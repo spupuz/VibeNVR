@@ -15,6 +15,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 
 - **Language Policy**: English is the official and only supported language for all VibeNVR documentation, interfaces, issues, and code. 
 - **Security First**: VibeNVR is designed to be secure by default. Always ensure your `.env` secrets are strong (especially `SECRET_KEY` and `WEBHOOK_SECRET`) and never expose internal container ports directly to the internet without a properly configured reverse proxy.
+- **Contribute**: Read our [CONTRIBUTING.md](https://github.com/spupuz/VibeNVR/blob/main/CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](https://github.com/spupuz/VibeNVR/blob/main/CODE_OF_CONDUCT.md) guidelines if you want to help improve VibeNVR.
 
 ---
 *Use the sidebar on the right to navigate through the available Wiki pages.*
