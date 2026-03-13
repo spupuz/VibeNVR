@@ -142,21 +142,22 @@ class CameraBase(BaseModel):
 
 ### Camera Connection Pattern (IP Ban Protection)
 
-To prevent cameras from banning the host IP due to rapid authentication retries (common on Tapo/TP-Link), always perform a single `ffprobe` pre-flight check before attempting a full connection with `cv2.VideoCapture()`.
+To prevent cameras from banning the host IP due to rapid authentication retries (common on Tapo/TP-Link), use **PyAV (`av.open`)** for the connection attempt. PyAV provides native FFmpeg bindings that are more resilient than `cv2.VideoCapture` for RTSP streams.
 
-- **Rule**: A 401/403 result from the pre-flight check must enter a **5-minute backoff period** to prevent IP bans while allowing for eventual recovery if credentials are corrected.
-- **Rule**: Connection refused/reset errors should trigger a longer backoff (60-300s) instead of the standard 10s retry.
+- **Rule**: A 401/403 result from `av.open` must enter a **5-minute backoff period**.
+- **Rule**: Connection refused/reset errors should trigger a longer backoff (60-300s).
 
 ```python
 # engine/camera_thread.py (Pattern)
-# 1. Probe first
-probe_res = subprocess.run(["ffprobe", url], capture_output=True)
-if "unauthorized" in probe_res.stderr.decode().lower():
-    self.health_status = "UNAUTHORIZED"
-    return # STOP HERE
+import av
 
-# 2. Only then connect
-self.cap = cv2.VideoCapture(url)
+try:
+    container = av.open(url, options={'rtsp_transport': 'tcp'}, timeout=8.0)
+    # Success
+except Exception as e:
+    if "401" in str(e) or "unauthorized" in str(e).lower():
+        self.health_status = "UNAUTHORIZED"
+        # Enter 5-minute backoff
 ```
 
 ## Anti-Patterns to Avoid

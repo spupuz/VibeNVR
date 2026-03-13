@@ -6,10 +6,15 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 
 ## 📖 Quick Links
 
-- **[Main Repository & Installation](https://github.com/spupuz/VibeNVR)** - Start here if you are new to VibeNVR!
-- **[Installation & Configuration Guide](Installation-and-Configuration)** - Detailed setup guide: Docker installation, complete `.env` reference for all variables, production security checklist, hardware acceleration, and troubleshooting.
-- **[API Documentation](API)** - Detailed reference for integrating with the VibeNVR backend. Learn about the multi-layered authentication (JWT, API Tokens with TTL, and HttpOnly cookies).
-- **[Access Recovery Guide](Access-Recovery)** - Learn how to securely regain access to your admin account directly from the host terminal if you ever lose your password or 2FA device.
+- **[Installation Guide](Installation.md)** - Step-by-step instructions for Docker-based deployment.
+- **[Configuration Reference](Configuration.md)** - Complete `.env` variable reference and production checklist.
+- **[Network & Proxy Setup](Network.md)** - Port forwarding and reverse proxy configurations.
+- **[Troubleshooting Guide](Troubleshooting.md)** - Solutions for common issues and bug reporting.
+- **[WebCodecs Streaming](WebCodecs-Streaming.md)** - Low-latency streaming tech and secure context requirements.
+- **[API Documentation](API.md)** - Detailed reference for integrating with the VibeNVR backend.
+- **[Access Recovery Guide](Access-Recovery.md)** - Securely regaining account access from the host terminal.
+- **[Storage Profiles](Storage-Profiles.md)** - Managing quotas and recording retention.
+- **[System Architecture](Architecture.md)** - Deep dive into VibeEngine, PyAV/OpenCV, and microservices.
 
 ## ⚠️ Important Notes
 
