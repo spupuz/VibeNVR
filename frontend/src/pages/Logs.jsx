@@ -125,7 +125,7 @@ export const Logs = () => {
                 </div>
                 <button
                     onClick={handleDownload}
-                    className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm"
+                    className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-all shadow-sm"
                 >
                     <Download className="w-4 h-4" />
                     <span>Download Report</span>
