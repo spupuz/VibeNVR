@@ -7,8 +7,7 @@ VibeNVR is a lightweight, modern Network Video Recorder (NVR) built with **Pytho
 ## Development Environment
 
 ```bash
-docker compose up -d --build    # Start/Rebuild the dev environment
-docker compose logs -f          # Follow logs
+docker compose down && docker compose up -d --build && docker compose logs -f    # Rebuild/Restart the dev environment
 ```
 
 - Frontend: http://localhost:8080 (Nginx Production Build)
@@ -242,6 +241,16 @@ logger.info(f"Connecting to {safe_url}")
 ### Required Reading
 1. **Must read**: [CONTEXT.md](CONTEXT.md) and [SECURITY.md](SECURITY.md)
 2. **Must follow**: Code conventions (Python PEP8, React Hooks rules).
+
+### Developer Guidelines
+
+- **Testing**: Before any verification (automated or manual), always perform a full rebuild to ensure all changes are active:
+  ```bash
+  docker compose down && docker compose up -d --build && docker compose logs -f
+  ```
+- **Commits**: Always run local tests (`/run-tests.md` or manual pytest) AND perform manual verification (human UX check) after a full rebuild before committing. Never commit failing code or unverified UI changes. **Wait for explicit USER confirmation after manual verification before committing.**
+- **Pushes**: Do NOT push to remote repositories unless explicitly requested by the USER.
+- **Documentation**: Keep documentation synced with code changes.
 
 ### Contribution Template
 
