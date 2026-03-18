@@ -10,6 +10,9 @@ from datetime import datetime
 from collections import deque
 import re
 import struct
+import json
+import typing as t
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -31,18 +34,18 @@ class StreamReader(threading.Thread):
         self.event_callback = event_callback
         self.rtsp_transport = rtsp_transport
         self.latest_frame = None
-        self.last_read_time = 0
+        self.last_read_time = 0.0
         self.lock = threading.Lock()
         self.running = False
         self.connected = False
-        self.health_status = "STARTING"  # STARTING, CONNECTED, UNREACHABLE, UNAUTHORIZED
+        self.health_status: str = "STARTING"  # STARTING, CONNECTED, UNREACHABLE, UNAUTHORIZED
         self.last_error_log = 0
         self.last_status_check = 0
-        self.consecutive_failures = 0
+        self.consecutive_failures: int = 0
         self.last_health_report_status = None
         self.ws_clients = set()
-        self.last_keyframe = None  # Cache for immediate synchronization
-        self.last_headers = b''    # Accumulated SPS/PPS headers
+        self.last_keyframe: t.Optional[bytes] = None  # Cache for immediate synchronization
+        self.last_headers: bytes = b''    # Accumulated SPS/PPS headers
 
     def add_ws_client(self, q, loop):
         with self.lock:
@@ -127,13 +130,13 @@ class StreamReader(threading.Thread):
                         timeout=8.0
                     )
                     # Validate that a video stream exists
-                    if not container.streams.video:
+                    if container.streams.video is None or len(container.streams.video) == 0:
                         raise Exception("No video stream found in container")
 
                 except Exception as e:
                     self.consecutive_failures += 1
                     err_str = str(e).lower()
-                    if container:
+                    if container is not None:
                         try:
                             container.close()
                         except Exception:
@@ -246,14 +249,14 @@ class StreamReader(threading.Thread):
                     # H.264 Annex-B start code is 00 00 00 01 (4 bytes) or 00 00 01 (3 bytes)
                     # We look for SPS (type 7) and PPS (type 8) to accumulate them.
                     raw_data = bytes(packet)
-                    if packet.size > 4:
+                    if len(raw_data) > 4:
                         # Simple scan for NAL units in the packet. 
                         # Simple scan for NAL units in the packet. 
                         # Note: Most camera packets are single NALUs, but some combine them.
                         # We look for 0x67 (SPS) and 0x68 (PPS) after start codes.
                         pos = 0
                         while pos < len(raw_data) - 4:
-                            if raw_data[pos:pos+3] == b'\x00\x00\x01':
+                            if raw_data.startswith(b'\x00\x00\x01', pos):
                                 # Found bitstream start code
                                 # Extract NAL type (usually the byte after 00 00 01)
                                 nal_header = raw_data[pos + 3]
@@ -266,7 +269,7 @@ class StreamReader(threading.Thread):
                                 
                                 if nal_type == 7 or nal_type == 8: # SPS (0x67) or PPS (0x68)
                                     # Include the start code for the decoder
-                                    nalu = raw_data[pos:next_pos]
+                                    nalu: bytes = raw_data[pos:next_pos]
                                     with self.lock:
                                         if nalu not in self.last_headers:
                                             self.last_headers += nalu
@@ -278,25 +281,28 @@ class StreamReader(threading.Thread):
 
                     # --- WebSocket Broadcast of Raw H.264 packets ---
                     # packet.size == 0 means a flush/null packet (end of stream), skip those
-                    if clients and packet.size > 0:
+                    if clients and len(raw_data) > 0:
                         try:
                             # pts in seconds; packet.pts is in stream time units, time_base converts to seconds
-                            pts = packet.pts
-                            if pts is not None and packet.time_base is not None:
-                                time_sec = float(pts * packet.time_base)
+                            pts = getattr(packet, 'pts', None)
+                            time_base = getattr(packet, 'time_base', None)
+                            if pts is not None and time_base is not None:
+                                time_sec = float(pts * time_base)
                             else:
                                 time_sec = 0.0
-                            is_keyframe = 1 if packet.is_keyframe else 0
+                            is_keyframe = 1 if getattr(packet, 'is_keyframe', False) else 0
                             # Header: <Bd = Little Endian, 1 byte uint8, 8 bytes float64
-                            header = struct.pack('<Bd', is_keyframe, time_sec)
-                            nalu_bytes = bytes(packet)
-                            full_payload = header + nalu_bytes
+                            header: bytes = struct.pack('<Bd', is_keyframe, time_sec)
+                            nalu_bytes: bytes = bytes(packet)
+                            full_payload: bytes = header + nalu_bytes
                             
                             # Cache keyframe for new clients (inside lock)
                             if is_keyframe:
                                 with self.lock:
                                     # Prepend last known headers to the IDR frame to ensure decodability
-                                    self.last_keyframe = header + self.last_headers + nalu_bytes
+                                    # Use self.last_headers which is bytes
+                                    lh: bytes = self.last_headers or b''
+                                    self.last_keyframe = header + lh + nalu_bytes
                             
                             # For live broadcast, if it's a keyframe, ensure we send headers too
                             broadcast_payload = full_payload
@@ -335,7 +341,7 @@ class StreamReader(threading.Thread):
                         self.latest_frame = None
                         self.connected = False
             finally:
-                if container:
+                if container is not None:
                     try:
                         container.close()
                     except Exception:
@@ -398,7 +404,8 @@ class CameraThread(threading.Thread):
         
         # Frame Storage
         self.latest_frame_jpeg = None
-        self.last_frame_update_time = 0
+        self.latest_raw_frame_jpeg = None
+        self.last_frame_update_time = 0.0
         self.lock = threading.Lock()
         
         # Throttling counters
@@ -407,18 +414,18 @@ class CameraThread(threading.Thread):
         # Motion Detection (lazy init - only create when needed)
         self.fgbg = None  # Will be created on first use if motion detection enabled
         self.motion_detected = False
-        self.last_motion_time = 0
-        self.recording_start_time = 0
+        self.last_motion_time = 0.0
+        self.recording_start_time = 0.0
         self.consecutive_motion_frames = 0
         self.consecutive_still_frames = 0
         self.motion_frame_counter = 0  # For frame skipping optimization
         
         # Recording
-        self.recording_process = None
-        self.is_recording = False
-        self.recording_filename = None
-        self.passthrough_active = False
-        self.passthrough_error_count = 0 # Track consecutive failures
+        self.recording_process: t.Optional[subprocess.Popen] = None
+        self.is_recording: bool = False
+        self.recording_filename: t.Optional[str] = None
+        self.passthrough_active: bool = False
+        self.passthrough_error_count: int = 0 # Track consecutive failures
         
         # Metrics
         self.fps = 0
@@ -440,7 +447,94 @@ class CameraThread(threading.Thread):
 
         # Health Monitoring (Restored)
         self.last_health_report_status = "STARTING"
-        self.last_health_check_time = 0
+        self.last_health_check_time = 0.0
+        
+        # Event Queue for status updates
+        self.event_queue = deque(maxlen=100)
+        
+        # Privacy & Motion Masks
+        self.privacy_polygons = []
+        self.motion_polygons = []
+        self._update_privacy_polygons()
+
+    def _update_privacy_polygons(self):
+        """Parse privacy_masks and motion_masks JSON into list of points"""
+        self.privacy_polygons = self._parse_polygons(self.config.get('privacy_masks'))
+        self.motion_polygons = self._parse_polygons(self.config.get('motion_masks'))
+        
+        if self.privacy_polygons:
+            logger.info(f"Camera {self.config.get('name')}: Loaded {len(self.privacy_polygons)} privacy masks")
+            # Disable passthrough if PRIVACY masks are active to ensure recordings are masked
+            if self.config.get('movie_passthrough'):
+                logger.warning(f"Camera {self.config.get('name')}: Disabling movie passthrough because privacy masks are active.")
+                self.config['movie_passthrough'] = False
+        
+        if self.motion_polygons:
+            logger.info(f"Camera {self.config.get('name')}: Loaded {len(self.motion_polygons)} motion exclusion zones")
+
+    def _parse_polygons(self, mask_json):
+        """Helper to parse JSON polygons into normalized point lists"""
+        polygons = []
+        if not mask_json or mask_json == '[]':
+            return polygons
+            
+        try:
+            polys = json.loads(mask_json)
+            if isinstance(polys, list):
+                for p in polys:
+                    if isinstance(p, dict) and 'points' in p:
+                        # Extract points from {points: [{x, y}, ...]}
+                        raw_points = p['points']
+                        normalized_points = []
+                        for pt in raw_points:
+                            if isinstance(pt, dict):
+                                normalized_points.append([pt.get('x', 0), pt.get('y', 0)])
+                            elif isinstance(pt, (list, tuple)) and len(pt) >= 2:
+                                normalized_points.append([pt[0], pt[1]])
+                        if normalized_points:
+                            polygons.append(normalized_points)
+                    elif isinstance(p, list):
+                        # Snap points very close to edges to avoid motion leakage at borders
+                        snapped_points = []
+                        for pt in p:
+                            if len(pt) == 2:
+                                x, y = pt
+                                if x < 0.02: x = 0.0
+                                elif x > 0.98: x = 1.0
+                                if y < 0.02: y = 0.0
+                                elif y > 0.98: y = 1.0
+                                snapped_points.append([x, y])
+                        polygons.append(snapped_points)
+        except Exception as e:
+            logger.error(f"Camera {self.config.get('name')}: Error parsing masks JSON: {e}")
+        return polygons
+
+    def apply_masks(self, frame, polygons, alpha=1.0, color=(0, 0, 0)):
+        """Draw polygons on the frame based on normalized coordinates"""
+        if not polygons:
+            return
+            
+        h, w = frame.shape[:2]
+        if alpha >= 1.0:
+            # Solid mask (efficient)
+            for poly in polygons:
+                try:
+                    pts = np.array([[int(p[0] * w), int(p[1] * h)] for p in poly], np.int32)
+                    pts = pts.reshape((-1, 1, 2))
+                    cv2.fillPoly(frame, [pts], color)
+                except Exception as e:
+                    logger.error(f"Camera {self.config.get('name')}: Error applying mask: {e}")
+        else:
+            # Alpha blended mask (transparent)
+            overlay = frame.copy()
+            for poly in polygons:
+                try:
+                    pts = np.array([[int(p[0] * w), int(p[1] * h)] for p in poly], np.int32)
+                    pts = pts.reshape((-1, 1, 2))
+                    cv2.fillPoly(overlay, [pts], color)
+                except Exception as e:
+                    logger.error(f"Camera {self.config.get('name')}: Error applying privacy mask: {e}")
+            cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
     
     def get_health(self):
         return self.stream_reader.get_health()
@@ -473,6 +567,7 @@ class CameraThread(threading.Thread):
                     time.sleep(0.01)  # Brief sleep to avoid busy loop
                     continue
                 self.last_processed_read_time = read_time
+                frame = frame.copy()
                     
                 # 2. Process dimensions & Resize if needed
                 # Note: StreamReader gives raw frames. We might want to resize.
@@ -492,8 +587,36 @@ class CameraThread(threading.Thread):
                     frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
                 self.height, self.width = frame.shape[:2]
+                
+                # Update Live View Counter & Throttle (shared by raw and processed updates)
+                self.live_view_counter += 1
+                lv_throttle = self.config.get('opt_live_view_fps_throttle', 2)
+                if lv_throttle < 1: lv_throttle = 1
+                
+                # Capture RAW frame for Privacy Mask manager preview (before masks/overlays)
+                if self.live_view_counter % lv_throttle == 0:
+                    try:
+                        # Resize to live view height limit
+                        raw_live_frame = frame
+                        lv_max_h = self.config.get('opt_live_view_height_limit', 720)
+                        if frame.shape[0] > lv_max_h:
+                            scale = lv_max_h / frame.shape[0]
+                            new_width = int(frame.shape[1] * scale)
+                            raw_live_frame = cv2.resize(frame, (new_width, lv_max_h), interpolation=cv2.INTER_NEAREST)
+                        
+                        lv_qual = self.config.get('opt_live_view_quality', 60)
+                        ret, jpeg = cv2.imencode('.jpg', raw_live_frame, [int(cv2.IMWRITE_JPEG_QUALITY), lv_qual])
+                        if ret:
+                            self.latest_raw_frame_jpeg = jpeg.tobytes()
+                    except Exception as e:
+                        logger.error(f"Error capturing raw frame: {e}")
 
-                # 3. Motion Detection
+                # 3. Privacy Masking (Apply before motion detection and recording)
+                # Visual mask: Solid black (BGR: 0, 0, 0)
+                # This obscures the area in recordings and live view.
+                self.apply_masks(frame, self.privacy_polygons, alpha=1.0, color=(0, 0, 0))
+
+                # 4. Motion Detection
                 self.detect_motion(frame)
 
                 # 4. Text Overlay
@@ -527,8 +650,6 @@ class CameraThread(threading.Thread):
 
                 # 7. Update Live View Buffer (Broadcast)
                 # OPTIMIZATION: Only update live view every N frames (reduces JPEG encoding CPU)
-                self.live_view_counter += 1
-                lv_throttle = self.config.get('opt_live_view_fps_throttle', 2)
                 if self.live_view_counter % lv_throttle == 0:
                     # Resize to limit height before JPEG encoding (less CPU, less memory)
                     live_frame = frame
@@ -586,13 +707,15 @@ class CameraThread(threading.Thread):
                         if event_title:
                             event_data = {
                                 "camera_id": self.camera_id,
-                                "camera_name": self.camera_name,
+                                "camera_name": self.config.get('name', 'Unknown'),
                                 "status": current_health,
                                 "timestamp": int(time.time()),
                                 "message": event_msg,
                                 "title": event_title
                             }
-                            self.event_queue.put(("health_status_changed", event_data))
+                            # self.event_queue.put is only for multiprocessing.Queue, if it's a deque use append
+                            if hasattr(self, 'event_queue') and hasattr(self.event_queue, 'append'):
+                                self.event_queue.append(("health_status_changed", event_data))
                             
                             if self.event_callback:
                                 self.event_callback(self.camera_id, 'health_status_changed', {
@@ -648,6 +771,12 @@ class CameraThread(threading.Thread):
         scale = motion_h / frame.shape[0]
         motion_w = int(frame.shape[1] * scale)
         small_frame = cv2.resize(frame, (motion_w, motion_h), interpolation=cv2.INTER_NEAREST)
+        
+        # Apply privacy masks to small_frame so motion detection ignores those areas
+        # CRITICAL: Use solid black (alpha=1.0) for motion detection to effectively block changes
+        # Apply BOTH privacy masks and motion exclusion zones to the small frame
+        self.apply_masks(small_frame, self.privacy_polygons, alpha=1.0, color=(0, 0, 0))
+        self.apply_masks(small_frame, self.motion_polygons, alpha=1.0, color=(0, 0, 0))
         
         # Lazy init MOG2 on first use (saves RAM if motion detection disabled)
         if self.fgbg is None:
@@ -811,17 +940,22 @@ class CameraThread(threading.Thread):
                  self.stop_recording()
 
         # Check for Passthrough crash
-        if self.is_recording and self.passthrough_active and self.recording_process:
-             if self.recording_process.poll() is not None:
-                 logger.error(f"Camera {self.config.get('name')}: Passthrough recording process died unexpectedly (code {self.recording_process.poll()}). Aborting motion event.")
+        rp = self.recording_process
+        if self.is_recording and self.passthrough_active and rp is not None:
+             poll_result = rp.poll()
+             if poll_result is not None:
+                 logger.error(f"Camera {self.config.get('name')}: Passthrough recording process died unexpectedly (code {poll_result}). Aborting motion event.")
                  self.stop_recording()
                  self.motion_detected = False # Prevent immediate restart loop
                  self.passthrough_error_count += 1
                  return
 
-        if self.is_recording and self.recording_process and not self.passthrough_active:
+        rp = self.recording_process
+        if self.is_recording and rp is not None and not self.passthrough_active:
             try:
-                self.recording_process.stdin.write(frame.tobytes())
+                rs = rp.stdin
+                if rs is not None:
+                    rs.write(frame.tobytes())
             except Exception as e:
                 logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Error writing to ffmpeg: {e}")
                 self.stop_recording()
@@ -927,8 +1061,11 @@ class CameraThread(threading.Thread):
         codec_specific_args = ['-preset', self.config.get('opt_ffmpeg_preset', 'ultrafast'), '-crf', str(crf)]
         
         # Log level based on global config
-        from main import GLOBAL_CONFIG
-        ffmpeg_loglevel = 'debug' if GLOBAL_CONFIG.get('opt_verbose_engine_logs') else 'error'
+        try:
+            from main import GLOBAL_CONFIG
+            ffmpeg_loglevel = 'debug' if GLOBAL_CONFIG.get('opt_verbose_engine_logs') else 'error'
+        except ImportError:
+            ffmpeg_loglevel = 'error'
         
         if hw_accel_enabled:
             if hw_accel_type in ['vaapi', 'intel', 'amd', 'auto']:
@@ -971,7 +1108,13 @@ class CameraThread(threading.Thread):
         logger.info(f"Camera {self.config.get('name')}: FFmpeg encoding command: {cmd_str}")
         
         try:
-            self.recording_process = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
+            # Capture stderr to monitor for ffmpeg startup errors
+            self.recording_process = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+            
+            # Start a log monitor thread for the encoder as well
+            enc_log_thread = threading.Thread(target=self._monitor_ffmpeg_logs, args=(self.recording_process,), daemon=True)
+            enc_log_thread.start()
+            
             self.is_recording = True
             self.recording_filename = full_path
             self.recording_start_time = time.time()
@@ -985,7 +1128,12 @@ class CameraThread(threading.Thread):
                     for f in self.pre_buffer:
                         # Duplicate frame 'throttle' times to restore FPS
                         for _ in range(throttle):
-                            self.recording_process.stdin.write(f.tobytes())
+                            rp = self.recording_process
+                            if rp is not None:
+                                rs = rp.stdin
+                                if rs is not None:
+                                    f_bytes: bytes = t.cast(np.ndarray, f).tobytes()
+                                    rs.write(f_bytes)
                     self.pre_buffer.clear()
                 except Exception as e:
                     logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Error writing pre-buffer: {e}")
@@ -1013,28 +1161,32 @@ class CameraThread(threading.Thread):
                         self.recording_process.kill()
                 else:
                     # Encoding: Close stdin to finish stream
-                    if self.recording_process.stdin:
-                        self.recording_process.stdin.close()
-                    self.recording_process.wait()
+                    rp = self.recording_process
+                    if rp is not None:
+                        rs = rp.stdin
+                        if rs is not None:
+                            rs.close()
+                        rp.wait()
                 self.recording_process = None
             self.is_recording = False
             
             # Verify file size prevents saving empty/broken files
             valid_recording = False
-            if self.recording_filename and os.path.exists(self.recording_filename):
+            rec_filename = self.recording_filename
+            if rec_filename is not None and os.path.exists(rec_filename):
                 try:
-                    size = os.path.getsize(self.recording_filename)
+                    size = os.path.getsize(rec_filename)
                     if size < 1024:
-                        logger.warning(f"Recording {self.recording_filename} is too small ({size} bytes). Discarding.")
-                        os.remove(self.recording_filename)
+                        logger.warning(f"Recording {rec_filename} is too small ({size} bytes). Discarding.")
+                        os.remove(rec_filename)
                     else:
                         valid_recording = True
                 except Exception as e:
                     logger.error(f"Error checking file size: {e}")
 
-            if valid_recording and self.event_callback:
+            if valid_recording and self.event_callback is not None:
                  self.event_callback(self.camera_id, 'recording_end', {
-                     "file_path": self.recording_filename,
+                     "file_path": self.recording_filename or "unknown",
                      "width": self.width,
                      "height": self.height
                  })
@@ -1044,7 +1196,14 @@ class CameraThread(threading.Thread):
         old_passthrough = self.config.get('movie_passthrough', False)
         new_passthrough = new_config.get('movie_passthrough', old_passthrough)
         
+        old_p_masks = self.config.get('privacy_masks', '[]')
+        old_m_masks = self.config.get('motion_masks', '[]')
         self.config.update(new_config)
+        new_p_masks = self.config.get('privacy_masks', '[]')
+        new_m_masks = self.config.get('motion_masks', '[]')
+        
+        if old_p_masks != new_p_masks or old_m_masks != new_m_masks:
+            self._update_privacy_polygons()
         
         # Handle passthrough mode change
         if 'movie_passthrough' in new_config and old_passthrough != new_passthrough:
@@ -1095,10 +1254,17 @@ class CameraThread(threading.Thread):
 
     def get_frame_bytes(self):
         with self.lock:
+            if self.latest_frame_jpeg is None:
+                return None
             # Prevent serving stale frames (older than 10 seconds)
             if time.time() - self.last_frame_update_time > 10:
                 return None
             return self.latest_frame_jpeg
+
+    def get_raw_frame_bytes(self):
+        """Return a frame without any privacy masks or overlays"""
+        with self.lock:
+            return self.latest_raw_frame_jpeg
 
     def save_snapshot(self, frame=None, is_temp=False):
         """Save a single snapshot. is_temp=True means for notification only (no DB event)"""

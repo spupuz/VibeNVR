@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Float
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.sql import func
 from database import Base
 
@@ -61,6 +61,8 @@ class Camera(Base):
     auto_noise_detection = Column(Boolean, default=True)
     light_switch_detection = Column(Integer, default=0)
     mask = Column(Boolean, default=False)
+    privacy_masks = Column(String, nullable=True) # JSON array of polygons
+    motion_masks = Column(String, nullable=True)  # JSON array of polygons (exclusion zones)
     create_debug_media = Column(Boolean, default=False)
 
     # Notification Destinations
@@ -234,4 +236,4 @@ class RecoveryCode(Base):
     code_hash = Column(String, unique=True, index=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    user = relationship("User", backref=__import__("sqlalchemy.orm").orm.backref("recovery_codes", cascade="all, delete-orphan"))
+    user = relationship("User", backref=backref("recovery_codes", cascade="all, delete-orphan"))

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, field_validator, model_validator, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -93,7 +93,47 @@ class CameraBase(BaseModel):
     auto_noise_detection: Optional[bool] = True
     light_switch_detection: Optional[int] = 0
     mask: Optional[bool] = False
+    privacy_masks: Optional[str] = None # JSON array of polygons
+    motion_masks: Optional[str] = None  # JSON array of polygons (exclusion zones)
     create_debug_media: Optional[bool] = False
+
+    @field_validator('privacy_masks', 'motion_masks')
+    @classmethod
+    def validate_masks_json(cls, v: str) -> str:
+        if not v or v == "[]":
+            return "[]"
+        
+        import json
+        try:
+            data = json.loads(v)
+            if not isinstance(data, list):
+                raise ValueError('Masks must be a JSON array')
+            
+            for item in data:
+                if not isinstance(item, dict) or 'points' not in item:
+                    raise ValueError('Each mask must be an object with a "points" array')
+                
+                points = item['points']
+                if not isinstance(points, list):
+                    raise ValueError('"points" must be an array')
+                
+                for pt in points:
+                    if not isinstance(pt, list) or len(pt) != 2:
+                        raise ValueError('Each point must be an [x, y] array')
+                    if not all(isinstance(coord, (int, float)) for coord in pt):
+                        raise ValueError('Coordinates must be numbers')
+                    # Validate normalized coordinates (0.0 to 1.0)
+                    if not all(0 <= coord <= 1.0 for coord in pt):
+                         # We allow slightly outside (e.g. 1.001) but not crazy values
+                         if not all(-0.1 <= coord <= 1.1 for coord in pt):
+                             raise ValueError('Coordinates must be normalized (0.0 to 1.0)')
+            
+            return v
+        except json.JSONDecodeError:
+            raise ValueError('Invalid JSON format for masks')
+        except Exception as e:
+            if isinstance(e, ValueError): raise e
+            raise ValueError(f'Mask validation error: {str(e)}')
 
     # Notification Destinations
     notify_webhook_url: Optional[str] = None
@@ -227,8 +267,7 @@ class CameraBase(BaseModel):
              pass
         return v
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CameraCreate(CameraBase):
     pass
@@ -238,8 +277,7 @@ class CameraGroupBase(BaseModel):
     name: str
     description: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CameraGroupCreate(CameraGroupBase):
     pass
@@ -249,9 +287,6 @@ class Camera(CameraBase):
     created_at: datetime
     groups: list[CameraGroupBase] = []
     storage_profile: Optional["StorageProfile"] = None
-
-    class Config:
-        from_attributes = True
 
 class EventBase(BaseModel):
     camera_id: int
@@ -272,8 +307,7 @@ class EventCreate(EventBase):
 class Event(EventBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UserBase(BaseModel):
     username: str
@@ -298,8 +332,7 @@ class User(UserBase):
     avatar_path: Optional[str] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):
     access_token: str
@@ -322,9 +355,6 @@ class CameraGroup(CameraGroupBase):
     id: int
     cameras: list[Camera] = []
 
-    class Config:
-        from_attributes = True
-
 # Storage Profiles
 class StorageProfileBase(BaseModel):
     name: str
@@ -341,17 +371,13 @@ class StorageProfileBase(BaseModel):
             raise ValueError('Path must be an absolute path starting with /')
         return v
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class StorageProfileCreate(StorageProfileBase):
     pass
 
 class StorageProfile(StorageProfileBase):
     id: int
-
-    class Config:
-        from_attributes = True
 
 class CameraSummary(BaseModel):
     """Sanitized camera schema for public API access (no sensitive URLs/tokens)"""
@@ -365,18 +391,16 @@ class CameraSummary(BaseModel):
     recording_mode: str
     rtsp_transport: str
     live_view_mode: str
+    privacy_masks: Optional[str] = None
+    motion_masks: Optional[str] = None
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CameraGroupSummary(CameraGroupBase):
     """Sanitized group schema (contains sanitized camera summaries)"""
     id: int
     cameras: list[CameraSummary] = []
-    
-    class Config:
-        from_attributes = True
 
 class GroupAction(BaseModel):
     action: str  # enable_motion, disable_motion, copy_settings
@@ -397,8 +421,7 @@ class ApiTokenResponse(BaseModel):
     last_used_at: Optional[datetime] = None
     is_active: bool
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class HomepageStats(BaseModel):
     """Schema for Homepage integration statistics"""
@@ -421,8 +444,7 @@ class TrustedDevice(BaseModel):
     last_used: datetime
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 

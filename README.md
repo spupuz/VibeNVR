@@ -41,6 +41,7 @@ This software is currently in active beta development. The database schema is st
 | ⚡ **Passthrough Recording** | Direct Stream Copy support for near-zero CPU usage recording (experimental, with auto-fallback). |
 | 🎯 **Smart Motion Detection** | Native motion detection with adjustable sensitivity, gap, and pre/post-capture buffers. |
 | 📅 **Event Timeline** | Unified browser for movie recordings and high-res snapshots with instant filters. |
+| 🛡️ **Privacy Masking** | Permanent black-out zones burned into recordings. **Motion Zones** for exclusion masking. |
 | 🔑 **API Access Tokens** | Secure, read-only API tokens with **TTL (Expiration)** and hashed storage for 3rd party integrations. |
 | 💾 **Storage Management** | Automated background cleanup (FIFO), **Multiple Storage Profiles**, and **Bulk Deletion** tools. |
 | 📁 **Camera Groups** | Organize cameras into custom groups for logical multi-view management. |
@@ -308,6 +309,10 @@ sudo sysctl --system
 # Restart Docker
 sudo systemctl restart docker
 ```
+
+- [x] Check backend logs: `docker compose logs backend`
+- [x] Check engine connectivity: `GET /api/settings/engine/debug-status` (Admin only)
+- [x] Ensure `HW_ACCEL_TYPE` matches your hardware (nvidia/intel/amd).
 
 After making changes, restart the containers:
 ```bash

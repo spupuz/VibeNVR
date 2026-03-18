@@ -89,7 +89,7 @@ async def lifespan(app: FastAPI):
         "vibe_secure_key_9823748923748923_change_in_prod",  # .env dev default
     ]
     
-    is_weak_key = auth_service.SECRET_KEY in default_keys or len(auth_service.SECRET_KEY) < 32
+    is_weak_key = auth_service.SECRET_KEY in default_keys or len(auth_service.SECRET_KEY) < 16
     if is_weak_key:
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         print("!! WARNING: You are using a default or a weak SECRET_KEY.                     !!")

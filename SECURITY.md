@@ -44,6 +44,7 @@ Endpoints that alter system state rely on `Depends(auth_service.get_current_acti
 Actions protected by the Admin RBAC include:
 - Creating, importing, modifying, or deleting Cameras (`routers/cameras.py`)
 - Managing Storage Profiles (`routers/storage.py`)
+- Accessing Engine Debug Status (`routers/settings.py`)
 - Generating API tokens (`routers/api_tokens.py`)
 - Forcing full system cleanups or manual snapshots
 - Modifying general system settings and user accounts
@@ -71,14 +72,18 @@ VibeNVR's code includes specific mitigations against common attack vectors:
      - **Sensitive JSON fields**: `"password": "***"`, `"token": "***"`, etc.
      - **Headers**: `X-API-Key=REDACTED`, `Bearer REDACTED`.
      - **IP Addresses**: External IP addresses are masked to preserve privacy, while `127.0.0.1` is kept for debugging.
-4. **Schema-Aware De-duplication**:
+5. **Privacy Masking & Motion Zones**: 
+    - **Privacy Masks** are applied at the Engine level immediately after frame decoding. They are "burned" into the video frames *before* they reach the recording or motion analysis modules, ensuring that sensitive data is never persisted or processed if masked.
+    - **Motion Zones** (Exclusion Zones) are used for motion detection optimization (e.g., ignoring moving trees). Unlike Privacy Masks, they do NOT obscure the video in recordings or live view.
+    - An unmasked "raw" frame (for the masking editor) is only accessible via a specialized internal bridge reserved for Admin credentials.
+6. **Schema-Aware De-duplication**:
    - The backup import logic (`routers/settings.py`) prevents resource exhaustion and data fragmentation by de-duplicating cameras based on their RTSP Host/IP, ensuring duplicate configurations aren't accidentally or maliciously created.
-5. **Database Cascading**:
+7. **Database Cascading**:
    - SQLAlchemy relationships are strictly configured. Deleting a user or a camera automatically triggers `cascade="all, delete-orphan"`, ensuring no orphaned auth tokens, recovery codes, or media records remain in the system.
-6. **Log Masking & Privacy**:
+8. **Log Masking & Privacy**:
    - The centralized log router (`backend/routers/logs.py`) and the custom `TokenRedactingFilter` in `main.py` automatically mask stdout logs.
    - **Nginx Access Logs**: The frontend Nginx configuration (`nginx.conf`) uses a custom `log_format` and `map` logic to automatically redact `?token=` values from access logs before they are written to disk. This ensures that even if the token fallback is used for media streaming, the JWT is not persisted in the proxy logs.
-7. **SECRET_KEY Security Enforcement**:
+9. **SECRET_KEY Security Enforcement**:
    - In development or non-standard environments, using a weak or default `SECRET_KEY` triggers a **loud warning** in the logs but allows the application to proceed for troubleshooting.
    - If `ENVIRONMENT=production` (default), the application **refuses to start** with a weak key (shorter than 32 chars or a known default) to ensure critical security.
    - **Bypass**: If strictly necessary, set `ALLOW_WEAK_SECRET=true` in your `.env` to override the production exit (NOT RECOMMENDED).

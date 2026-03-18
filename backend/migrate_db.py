@@ -82,6 +82,8 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "mask", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "show_frame_changes", "BOOLEAN", True)
     add_column_if_not_exists(engine, "cameras", "create_debug_media", "BOOLEAN", False)
+    add_column_if_not_exists(engine, "cameras", "privacy_masks", "TEXT")
+    add_column_if_not_exists(engine, "cameras", "motion_masks", "TEXT")
 
     # Notification Destinations
     add_column_if_not_exists(engine, "cameras", "notify_webhook_url", "VARCHAR")

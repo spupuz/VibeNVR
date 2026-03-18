@@ -158,6 +158,23 @@ except Exception as e:
     if "401" in str(e) or "unauthorized" in str(e).lower():
         self.health_status = "UNAUTHORIZED"
         # Enter 5-minute backoff
+
+### Privacy Masking & Motion Zones Pattern
+
+Privacy masks and motion zones are stored as JSON strings in the database and synced to the engine.
+
+- **Rule**: Privacy masks are applied *before* any other processing (recording, motion).
+- **Rule**: Motion zones are used strictly for **motion exclusion** and do not obscure video.
+- **Rule**: `passthrough_recording` must be disabled if privacy masks are active to allow burning masks into the stream.
+- **Rule**: Use the `?raw=true` query parameter with admin credentials to retrieve unmasked frames for the UI editor.
+
+```python
+# backend/routers/cameras.py
+@router.get("/{camera_id}/frame")
+def get_camera_frame(camera_id: int, raw: bool = False, ...):
+    # If raw=true and admin, fetch unmasked frame from engine
+    pass
+```
 ```
 
 ## Anti-Patterns to Avoid
