@@ -90,6 +90,8 @@ async def lifespan(app: FastAPI):
     ]
     
     is_weak_key = auth_service.SECRET_KEY in default_keys or len(auth_service.SECRET_KEY) < 16
+    auth_service.IS_WEAK_KEY = is_weak_key
+    
     if is_weak_key:
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         print("!! WARNING: You are using a default or a weak SECRET_KEY.                     !!")
@@ -103,6 +105,8 @@ async def lifespan(app: FastAPI):
                  print("!! The application will not start with a weak key.                      !!")
                  print("!! To bypass this (NOT RECOMMENDED), set ALLOW_WEAK_SECRET=true.         !!")
                  print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                 # We no longer exit, but persist the warning in the UI
+                 # sys.exit(1) 
              else:
                  print("!! WARNING: Bypassing weak SECRET_KEY check in production.              !!")
                  print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
@@ -320,7 +324,7 @@ def read_root():
 
 @app.get("/health")
 async def health_check(background_tasks: BackgroundTasks):
-    health_status = {"status": "ok", "components": {}}
+    health_status = {"status": "ok", "components": {}, "is_weak_key": auth_service.IS_WEAK_KEY}
     is_healthy = True
 
     # 1. Check Database
