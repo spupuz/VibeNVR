@@ -15,6 +15,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **[Access Recovery Guide](Access-Recovery.md)** - Securely regaining account access from the host terminal.
 - **[Storage Profiles](Storage-Profiles.md)** - Managing quotas and recording retention.
 - **[System Architecture](Architecture.md)** - Deep dive into VibeEngine, PyAV/OpenCV, and microservices.
+- **[Privacy Masking](Privacy-Masking.md)** - Configuring obscured areas and motion exclusion zones.
 
 ## ⚠️ Important Notes
 

@@ -157,6 +157,18 @@ def trigger_cleanup(current_user: models.User = Depends(auth_service.get_current
     run_cleanup()
     return {"message": "Storage cleanup triggered successfully"}
 
+@router.get("/engine/debug-status")
+def get_engine_debug_status(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """Proxy to engine's debug status for diagnostics and testing (Admin only)"""
+    try:
+        resp = requests.get("http://engine:8000/debug/status", timeout=5)
+        if resp.status_code != 200:
+             raise HTTPException(status_code=resp.status_code, detail=f"Engine returned error: {resp.text}")
+        return resp.json()
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Engine Debug Proxy Error: {e}")
+        raise HTTPException(status_code=503, detail=f"Engine unreachable: {str(e)}")
+
 # Default settings with descriptions
 DEFAULT_SETTINGS = {
     "max_global_storage_gb": {"value": "0", "description": "Maximum total storage for all cameras (0 = unlimited)"},

@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Camera, Plus, Trash2, MapPin, Activity, Edit, Download, Upload, Film, Image, Copy, X, Search, HardDrive } from 'lucide-react';
+import { Camera, Plus, Trash2, MapPin, Activity, Edit, Download, Upload, Film, Image, Copy, X, Search, HardDrive, Shield, Info, Settings2, Bell, Type, EyeOff } from 'lucide-react';
 import { Toggle, Slider, InputField, SelectField, SectionHeader } from '../components/ui/FormControls';
 import { GroupsManager } from '../components/GroupsManager';
 import { CameraScanner } from '../components/CameraScanner';
+import { PrivacyMaskManager } from '../components/PrivacyMaskManager';
+
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
@@ -281,8 +283,11 @@ export const Cameras = () => {
         max_pictures_storage_gb: 0,
         enable_manual_snapshots: true,
         rtsp_transport: 'tcp',
-        live_view_mode: 'auto'
+        live_view_mode: 'auto',
+        privacy_masks: null,
+        motion_masks: null
     });
+
     const [stats, setStats] = useState(null);
     const [storageProfiles, setStorageProfiles] = useState([]);
     const [activeTab, setActiveTab] = useState('general');
@@ -616,8 +621,11 @@ export const Cameras = () => {
                         rtsp_transport: 'tcp',
                         live_view_mode: 'auto',
                         notify_attach_image_email: true,
-                        notify_attach_image_telegram: true
+                        notify_attach_image_telegram: true,
+                        privacy_masks: null,
+                        motion_masks: null
                     });
+
                     setEditingId(null);
                 } else {
                     // Update state to reflect that we are now editing an existing camera
@@ -1188,48 +1196,69 @@ export const Cameras = () => {
                                     </div>
                                 )}
 
-                                <div className="flex space-x-4 mb-4 border-b border-border text-xs overflow-x-auto flex-nowrap min-h-[40px] pb-1">
+                                <div className="flex space-x-4 mb-4 border-b border-border text-[11px] overflow-x-auto flex-nowrap min-h-[40px] pb-1 scrollbar-hide scroll-smooth relative">
                                     <button
-                                        className={`pb-2 ${activeTab === 'general' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                        className={`pb-2 flex items-center gap-1.5 flex-shrink-0 transition-all ${activeTab === 'general' ? 'border-b-2 border-primary font-bold text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                                         onClick={() => setActiveTab('general')}
                                     >
+                                        <Info className="w-3.5 h-3.5" />
                                         General
                                     </button>
                                     <button
-                                        className={`pb-2 ${activeTab === 'video' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                        className={`pb-2 flex items-center gap-1.5 flex-shrink-0 transition-all ${activeTab === 'video' ? 'border-b-2 border-primary font-bold text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                                         onClick={() => setActiveTab('video')}
                                     >
-                                        Video Device
+                                        <Settings2 className="w-3.5 h-3.5" />
+                                        Device
                                     </button>
                                     <button
-                                        className={`pb-2 ${activeTab === 'movies' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                        className={`pb-2 flex items-center gap-1.5 flex-shrink-0 transition-all ${activeTab === 'motion' ? 'border-b-2 border-primary font-bold text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                                        onClick={() => setActiveTab('motion')}
+                                    >
+                                        <Activity className="w-3.5 h-3.5" />
+                                        Motion
+                                    </button>
+                                    <button
+                                        className={`pb-2 flex items-center gap-1.5 flex-shrink-0 transition-all ${activeTab === 'privacy' ? 'border-b-2 border-primary font-bold text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                                        onClick={() => setActiveTab('privacy')}
+                                    >
+                                        <EyeOff className="w-3.5 h-3.5" />
+                                        Privacy Mask
+                                    </button>
+                                    <button
+                                        className={`pb-2 flex items-center gap-1.5 flex-shrink-0 transition-all ${activeTab === 'motion_zones' ? 'border-b-2 border-primary font-bold text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                                        onClick={() => setActiveTab('motion_zones')}
+                                    >
+                                        <Shield className="w-3.5 h-3.5" />
+                                        Motion Zones
+                                    </button>
+                                    <button
+                                        className={`pb-2 flex items-center gap-1.5 flex-shrink-0 transition-all ${activeTab === 'movies' ? 'border-b-2 border-primary font-bold text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                                         onClick={() => setActiveTab('movies')}
                                     >
+                                        <Film className="w-3.5 h-3.5" />
                                         Movies
                                     </button>
                                     <button
-                                        className={`pb-2 ${activeTab === 'motion' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
-                                        onClick={() => setActiveTab('motion')}
-                                    >
-                                        Motion Detection
-                                    </button>
-                                    <button
-                                        className={`pb-2 ${activeTab === 'still_images' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                        className={`pb-2 flex items-center gap-1.5 flex-shrink-0 transition-all ${activeTab === 'still_images' ? 'border-b-2 border-primary font-bold text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                                         onClick={() => setActiveTab('still_images')}
                                     >
-                                        Still Images
+                                        <Image className="w-3.5 h-3.5" />
+                                        Snapshots
                                     </button>
                                     <button
-                                        className={`pb-2 ${activeTab === 'notifications' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                        className={`pb-2 flex items-center gap-1.5 flex-shrink-0 transition-all ${activeTab === 'notifications' ? 'border-b-2 border-primary font-bold text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                                         onClick={() => setActiveTab('notifications')}
                                     >
-                                        Notifications
+                                        <Bell className="w-3.5 h-3.5" />
+                                        Alerts
                                     </button>
                                     <button
-                                        className={`pb-2 flex-shrink-0 ${activeTab === 'overlay' ? 'border-b-2 border-primary font-medium' : 'text-muted-foreground'}`}
+                                        className={`pb-2 flex items-center gap-1.5 flex-shrink-0 transition-all ${activeTab === 'overlay' ? 'border-b-2 border-primary font-bold text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                                         onClick={() => setActiveTab('overlay')}
                                     >
-                                        Text Overlay
+                                        <Type className="w-3.5 h-3.5" />
+                                        Overlay
                                     </button>
                                 </div>
 
@@ -1476,6 +1505,44 @@ export const Cameras = () => {
                                                     max={50}
                                                     step={1}
                                                     unit="x"
+                                                />
+                                            </div>
+                                        )}
+
+                                        {activeTab === 'privacy' && (
+                                            <div className="space-y-6">
+                                                <SectionHeader 
+                                                    title="Privacy Masking" 
+                                                    description="Obscure sensitive areas of the camera feed" 
+                                                />
+                                                <PrivacyMaskManager 
+                                                    cameraId={editingId}
+                                                    token={token}
+                                                    masks={newCamera.privacy_masks}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, privacy_masks: val })}
+                                                    label="Privacy Masks"
+                                                    description="Draw areas that should be permanently blacked out in recordings."
+                                                    color="#000000"
+                                                    hint={`Note: Enabling privacy masks will automatically disable Passthrough Recording to ensure the mask is permanently burned into the video.`}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {activeTab === 'motion_zones' && (
+                                            <div className="space-y-6">
+                                                <SectionHeader 
+                                                    title="Motion Zones (Exclusion)" 
+                                                    description="Define areas to ignore for motion detection" 
+                                                />
+                                                <PrivacyMaskManager 
+                                                    cameraId={editingId}
+                                                    token={token}
+                                                    masks={newCamera.motion_masks}
+                                                    onChange={(val) => setNewCamera({ ...newCamera, motion_masks: val })}
+                                                    label="Motion Zones"
+                                                    description="Draw areas that should be IGNORED by the motion detection engine."
+                                                    color="#ef4444"
+                                                    hint={`Exclusion zones are invisible in recordings and live view.\nThey only prevent false motion triggers in the specified areas.`}
                                                 />
                                             </div>
                                         )}

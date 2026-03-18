@@ -2,7 +2,10 @@ import logging
 import requests
 import os
 from datetime import datetime
-from camera_thread import CameraThread
+try:
+    from camera_thread import CameraThread
+except (ImportError, ValueError):
+    from .camera_thread import CameraThread
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +46,7 @@ class CameraManager:
             name = self.cameras[camera_id].config.get('name', 'Unknown')
             logger.info(f"Stopping camera {name} (ID: {camera_id})")
             self.cameras[camera_id].stop()
-            del self.cameras[camera_id]
+            self.cameras.pop(camera_id, None)
 
     def stop_all(self):
         logger.info("Stopping all cameras...")
@@ -59,6 +62,11 @@ class CameraManager:
     def get_frame(self, camera_id: int):
         if camera_id in self.cameras:
             return self.cameras[camera_id].get_frame_bytes()
+        return None
+
+    def get_raw_frame(self, camera_id: int):
+        if camera_id in self.cameras:
+            return self.cameras[camera_id].get_raw_frame_bytes()
         return None
 
     def take_snapshot(self, camera_id: int):

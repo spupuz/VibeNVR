@@ -8,6 +8,8 @@ import logging
 from urllib.parse import urlparse
 from typing import Optional, List, Any
 import datetime
+import datetime
+import typing as t
 
 MAX_IMPORT_SIZE = 10 * 1024 * 1024        # 10 MB  — JSON camera import
 MAX_MOTIONEYE_IMPORT_SIZE = 200 * 1024 * 1024  # 200 MB — MotionEye .tar.gz backup
@@ -110,8 +112,8 @@ def read_cameras(skip: int = 0, limit: int = 100, db: Session = Depends(database
     cameras = crud.get_cameras(db, skip=skip, limit=limit)
     if is_token:
         # Return sanitized summary for 3rd party integrations
-        return [schemas.CameraSummary.from_orm(c) for c in cameras]
-    return [schemas.Camera.from_orm(c) for c in cameras]
+        return [schemas.CameraSummary.model_validate(c) for c in cameras]
+    return [schemas.Camera.model_validate(c) for c in cameras]
 
 @router.get("/{camera_id}", response_model=Any)
 def read_camera(camera_id: int, db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
@@ -122,8 +124,8 @@ def read_camera(camera_id: int, db: Session = Depends(database.get_db), auth_inf
     
     if is_token:
         # Return sanitized summary for 3rd party integrations
-        return schemas.CameraSummary.from_orm(db_camera)
-    return schemas.Camera.from_orm(db_camera)
+        return schemas.CameraSummary.model_validate(db_camera)
+    return schemas.Camera.model_validate(db_camera)
 
 @router.put("/{camera_id}", response_model=schemas.Camera)
 def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks: BackgroundTasks, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
@@ -251,7 +253,7 @@ def delete_camera(camera_id: int, db: Session = Depends(database.get_db), curren
 @router.post("/bulk-delete")
 def bulk_delete_cameras(camera_ids: List[int], db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Delete multiple cameras at once"""
-    deleted_count = 0
+    deleted_count: int = 0
     for camera_id in camera_ids:
         # 1. Stop the camera if running
         motion_service.stop_camera(camera_id)
@@ -259,10 +261,10 @@ def bulk_delete_cameras(camera_ids: List[int], db: Session = Depends(database.ge
         # 2. Delete media from disk
         storage_service.delete_camera_media(camera_id)
         
-        # 3. Delete from DB
         db_camera = crud.delete_camera(db, camera_id=camera_id)
         if db_camera:
-            deleted_count += 1
+            count: int = int(deleted_count)
+            deleted_count = count + 1
     
     # 4. Sync engine config once
     motion_service.generate_motion_config(db)
@@ -313,7 +315,7 @@ async def websocket_camera_stream(websocket: WebSocket, camera_id: int):
             pass
 
 @router.get("/{camera_id}/frame")
-async def get_camera_frame(camera_id: int, request: Request, token: Optional[str] = None):
+async def get_camera_frame(camera_id: int, request: Request, token: Optional[str] = None, raw: bool = False):
     """Proxy a single JPEG frame from the engine (for polling mode)"""
     # Accept token from: Authorization: Bearer header > ?token= query param > media_token cookie
     auth_header = request.headers.get("Authorization", "")
@@ -323,19 +325,25 @@ async def get_camera_frame(camera_id: int, request: Request, token: Optional[str
         logging.warning(f"Frame Auth Fail: No token for camera {camera_id}. Cookies present: {list(request.cookies.keys())}")
         raise HTTPException(status_code=401, detail="Missing media authentication")
 
-    try:
-        with database.get_db_ctx() as db:
-            await auth_service.get_user_from_token(media_token, db)
-            db_camera = crud.get_camera(db, camera_id=camera_id)
-            if db_camera is None:
-                raise HTTPException(status_code=404, detail="Camera not found")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logging.error(f"Frame Auth Fail: Invalid token for camera {camera_id} - {str(e)}")
-        raise HTTPException(status_code=401, detail="Invalid media authentication")
     
-    frame_url = f"http://engine:8000/cameras/{camera_id}/frame"
+    # Verify authentication and camera existence
+    db = database.SessionLocal()
+    try:
+        user = await auth_service.get_user_from_token(media_token, db)
+        db_camera = crud.get_camera(db, camera_id=camera_id)
+        if db_camera is None:
+            raise HTTPException(status_code=404, detail="Camera not found")
+            
+        frame_url = f"http://engine:8000/cameras/{camera_id}/frame"
+        
+        if raw:
+            # Security: Only admins can view unmasked (raw) frames
+            if user.role == "admin":
+                frame_url += "?raw=true"
+            else:
+                logging.warning(f"Security: Non-admin user {user.username} (ID: {user.id}) attempted to access raw frame for camera {camera_id}")
+    finally:
+        db.close()
     
     try:
         async with httpx.AsyncClient(timeout=2.0) as client:
@@ -394,7 +402,7 @@ async def stream_camera(camera_id: int, request: Request, token: Optional[str] =
                             print(f"[STREAM] Motion returned status {response.status_code}, aborting.", flush=True)
                             return
                         
-                        count = 0
+                        count: int = 0
                         async for chunk in response.aiter_bytes():
                             yield chunk
                             count += 1
@@ -480,12 +488,13 @@ async def import_cameras(file: UploadFile = File(...), db: Session = Depends(dat
             print(f"[IMPORT] JSON Decode Error: {e}")
             raise HTTPException(status_code=400, detail="Invalid JSON file format")
 
-        imported_count = 0
-        skipped_count = 0
+        imported_count: int = 0
+        skipped_count: int = 0
         cameras_data = data.get("cameras", [data.get("camera")]) if "cameras" in data else [data.get("camera")]
         
         for cam_data in cameras_data:
             if cam_data is None:
+                skipped_count += 1
                 continue
             
             rtsp_url = cam_data.get("rtsp_url")
@@ -514,7 +523,7 @@ async def import_cameras(file: UploadFile = File(...), db: Session = Depends(dat
                 db_profile = db.query(models.StorageProfile).filter(models.StorageProfile.name == profile_name).first()
                 if db_profile:
                     db_camera.storage_profile_id = db_profile.id
-                    db.commit()
+            db.commit()
 
             # Handle group associations
             for g_name in group_names:
@@ -528,7 +537,8 @@ async def import_cameras(file: UploadFile = File(...), db: Session = Depends(dat
                 if db_camera not in db_group.cameras:
                     db_group.cameras.append(db_camera)
             
-            imported_count += 1
+            count: int = int(imported_count)
+            imported_count = count + 1
         
         motion_service.generate_motion_config(db)
         
@@ -557,8 +567,8 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
         if len(content) > MAX_MOTIONEYE_IMPORT_SIZE:
             raise HTTPException(status_code=400, detail="File too large (max 200 MB)")
         tar_stream = io.BytesIO(content)
-        imported_count = 0
-        skipped_count = 0
+        imported_count: int = 0
+        skipped_count: int = 0
         
         with tarfile.open(fileobj=tar_stream, mode='r:gz') as tar:
             members = tar.getmembers()
@@ -612,7 +622,8 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
                             
                             if existing:
                                 print(f"[IMPORT] Skipping camera {name} - Host/IP already exists: {host}", flush=True)
-                                skipped_count += 1
+                                count: int = int(skipped_count)
+                                skipped_count = count + 1
                                 continue
 
                         # Check for sensitive info in URL and mask it for logs
@@ -642,22 +653,25 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
                         # Validate using Pydantic Schema to enforce security (Path traversal etc)
                         try:
                             # Re-validate created object through schema
-                            # This ensures field validators in schemas.py are triggered (e.g. rtsp_url file:// check)
                             validated_cam = schemas.CameraCreate.model_validate(new_cam)
                             crud.create_camera(db, validated_cam)
-                            imported_count += 1
+                            count: int = int(imported_count)
+                            imported_count = count + 1
                         except Exception as e:
                              print(f"[IMPORT] Security/Validation Error for {filename}: {e}", flush=True)
                              continue
         
-        print(f"[IMPORT] Total imported: {imported_count}", flush=True)
+        final_imported: int = int(imported_count)
+        print(f"[IMPORT] Total imported: {final_imported}", flush=True)
         motion_service.generate_motion_config(db)
         
-        msg = f"Successfully imported {imported_count} camera(s) from MotionEye backup"
-        if skipped_count > 0:
-            msg += f". {skipped_count} camera(s) skipped (already existing)."
+        final_imported: int = int(imported_count)
+        final_skipped: int = int(skipped_count)
+        msg = f"Successfully imported {final_imported} camera(s) from MotionEye backup"
+        if final_skipped > 0:
+            msg += f". {final_skipped} camera(s) skipped (already existing)."
             
-        return {"message": msg, "count": imported_count, "skipped": skipped_count}
+        return {"message": msg, "count": final_imported, "skipped": final_skipped}
 
     except Exception as e:
         print(f"MotionEye Import Error: {e}", flush=True)

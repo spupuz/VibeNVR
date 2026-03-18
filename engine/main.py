@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconn
 from fastapi.responses import StreamingResponse, JSONResponse
 import asyncio
 from pydantic import BaseModel, field_validator
+from typing import Optional, List, Dict
 import logging
 import psutil
 import os
@@ -106,6 +107,8 @@ class CameraConfig(BaseModel):
     light_switch_detection: int = 0
     despeckle_filter: bool = False
     mask: bool = False
+    privacy_masks: Optional[str] = None
+    motion_masks: Optional[str] = None
     create_debug_media: bool = False
 
 @app.get("/")
@@ -342,10 +345,14 @@ async def camera_ws_endpoint(websocket: WebSocket, camera_id: int):
         cam_thread.stream_reader.remove_ws_client(q)
 
 @app.get("/cameras/{camera_id}/frame")
-def get_single_frame(camera_id: int):
+def get_single_frame(camera_id: int, raw: bool = False):
     """Return a single JPEG frame (for polling mode, avoids MJPEG connection issues)"""
     from fastapi.responses import Response
-    frame_bytes = manager.get_frame(camera_id)
+    if raw:
+        frame_bytes = manager.get_raw_frame(camera_id)
+    else:
+        frame_bytes = manager.get_frame(camera_id)
+        
     if frame_bytes:
         return Response(content=frame_bytes, media_type="image/jpeg")
     else:

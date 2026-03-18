@@ -86,13 +86,17 @@ List all configured cameras.
     "is_active": true,
     "resolution_width": 1920,
     "resolution_height": 1080,
-    "recording_mode": "Motion Triggered"
+    "recording_mode": "Motion Triggered",
+    "privacy_masks": "[{\"points\":[...]}]",
+    "motion_masks": "[]"
   }
 ]
 ```
 
 #### **GET** `/cameras/{camera_id}/frame`
 Download a live JPEG frame from the camera.
+- **Query Params**:
+  - `raw`: (Optional, Admin only) Set to `true` to get the unmasked frame for editing.
 - **Auth Required**: Admin privileges or valid `media_token` cookie.
 
 #### **POST** `/cameras/{camera_id}/snapshot`
@@ -190,6 +194,11 @@ Retrieve all global system settings (Admin only).
 #### **PUT** `/settings/{key}`
 Update a specific system setting.
 - **Example Payload**: `"value": "30"`
+
+#### **GET** `/settings/engine/debug-status`
+Retrieve the real-time runtime status of the video engine (Admin only).
+- **Usage**: Diagnostic tool to verify mask synchronization and thread health.
+- **Response**: Map of camera IDs to their engine state.
 
 ---
 
