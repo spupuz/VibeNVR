@@ -26,8 +26,7 @@ backend/
 ├── crud.py           # Database CRUD operations
 ├── database.py       # DB connection & SessionLocal
 ├── routers/          # API Routes (cameras, events, settings, etc.)
-├── *_service.py      # Business logic (motion, storage, auth, etc.)
-└── scripts/          # Migration and utility scripts
+└── *_service.py      # Business logic (motion, storage, auth, etc.)
 ```
 
 **Key patterns:**
@@ -253,6 +252,7 @@ logger.info(f"Connecting to {safe_url}")
 
 - **Sanitize everything**: Every input from the user or the network must be validated using Pydantic schemas.
 - **Mask logs and telemetry**: Ensure that no sensitive information is ever written to logs or telemetry streams.
+- **No Absolute Host Paths**: Never hardcode absolute host paths (e.g., `/absolute/path/to/repo/...`). All paths in documentation must be relative or dynamically resolved.
 - **Role-Based Access Control (RBAC)**: Always check for `current_user` role when implementing new API endpoints.
 
 ## AI-Assisted Contributions
@@ -273,7 +273,7 @@ logger.info(f"Connecting to {safe_url}")
 - **Code Size Policy**: 
   - **New files**: MUST NOT exceed **500 effective lines of code** (excluding comments/blank lines).
   - **Existing files (Legacy)**: MUST NOT exceed **1000 effective lines of code**. If reached, the file must be refactored into smaller modules.
-  - **Enforcement**: This is strictly checked via `scripts/security_tests/check_effective_loc.py` during the commit workflow.
+  - **Enforcement**: This is strictly checked via automated scanners during the commit workflow.
 
 ### Contribution Template
 

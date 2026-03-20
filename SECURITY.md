@@ -100,6 +100,15 @@ These are documented security trade-offs made intentionally for compatibility or
 - **WebSocket live stream uses `?token=` query parameter**: The Browser WebSocket API cannot send custom headers during the HTTP upgrade handshake. The JWT is therefore passed as `?token=` for the `/cameras/{id}/ws` live stream endpoint. This is mitigated by: (1) the Nginx `map` directive which redacts `?token=` from all access logs before they are written to disk, (2) TLS encryption in production which prevents interception in transit, and (3) an HttpOnly `media_token` cookie which serves as an automatic fallback when available. The engine's raw WebSocket endpoint (port 8000) is internal-only and not exposed externally.
 - **WebCodecs Resilience**: To ensure instant startup in high-latency environments, the engine caches the most recent H.264 keyframe (SPS/PPS/IDR) and pushes it immediately to new WebSocket clients. The frontend employs a micro-jitter buffer (2 frames) to absorb network fluctuations. Users can manually override the streaming mode per-camera in **Settings** if specific network or codec incompatibilities arise.
 
+## 📁 Host Privacy & Path Sanitization
+
+To ensure project portability and prevent the leakage of sensitive host-specific information, VibeNVR enforces a strict **Relative Path Policy**:
+
+1. **No Absolute Host Paths**: The codebase, documentation, and metadata MUST NOT contain absolute host paths (e.g., `/absolute/path/to/repo/...`).
+2. **Relative Paths Only**: All internal links in documentation (`.md`) and internal references must use relative paths (e.g., `../data/`).
+3. **Dynamic Path Resolution**: Scripts that require the repository root must resolve it dynamically (e.g., using `pathlib.Path(__file__).resolve()`) rather than hardcoding absolute paths.
+4. **Automated Enforcement**: Automated scans are performed during the security audit workflow to block any commit containing unauthorized absolute path patterns.
+
 
 ## 🛑 Vulnerability Disclosure
 

@@ -9,6 +9,10 @@
 - **Backend**: Python (FastAPI), SQLAlchemy, process management via `multiprocessing`.
 - **Frontend**: React, TailwindCSS, Lucide Icons, Vite.
 - **Database**: PostgreSQL (container `vibenvr-db`).
+- **Sanitize everything**: Every input from the user or the network must be validated using Pydantic schemas.
+- **Mask logs and telemetry**: Ensure that no sensitive information is ever written to logs or telemetry streams.
+- **No Absolute Host Paths**: The codebase and documentation MUST NOT contain absolute host paths (e.g., `/absolute/path/to/repo/...`). Always use relative paths or dynamic resolution.
+- **Role-Based Access Control (RBAC)**: Always check for `current_user` role when implementing new API endpoints.
 - **Styling**: strictly use standard Tailwind utility classes. Avoid custom CSS where possible.
 
 ## 📐 Architecture Overview
