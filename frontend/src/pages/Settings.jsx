@@ -1,20 +1,30 @@
-
-import React, { useState, useEffect } from 'react';
-import { Monitor, Save, HardDrive, Clock, Trash2, Users, Plus, X, Key, Bell, Download, Upload, LayoutDashboard, Settings as SettingsIcon, ChevronDown, ChevronUp, Send } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Save } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
-import { Button } from '../components/ui/Button';
-import { CollapsibleSection } from '../components/ui/CollapsibleSection';
 
-import { Avatar } from '../components/ui/Avatar';
-import { ApiTokenManager } from '../components/ApiTokenManager';
-import { StorageProfileManager } from '../components/StorageProfileManager';
-import { Toggle, InputField, SelectField } from '../components/ui/FormControls';
-import { BackupManager } from './Settings/BackupManager';
+// Modularized Sections
+import { UserManager } from './Settings/sections/UserManager';
+import { StorageManager } from './Settings/sections/StorageManager';
+import { ApiTokenSettings } from './Settings/sections/ApiTokenSettings';
+import { PrivacySettings } from './Settings/sections/PrivacySettings';
+import { LiveViewLayoutSettings } from './Settings/sections/LiveViewLayoutSettings';
+import { GeneralSettings } from './Settings/sections/GeneralSettings';
+import { NotificationSettings } from './Settings/sections/NotificationSettings';
+import { AdvancedSettings } from './Settings/sections/AdvancedSettings';
+import { BackupSettings } from './Settings/sections/BackupSettings';
+
+// Modularized Modals
+import { PasswordChangeModal } from './Settings/PasswordChangeModal';
+import { SyncResultModal } from './Settings/SyncResultModal';
 
 export const Settings = () => {
     const { user, token } = useAuth();
+    const { showToast } = useToast();
+    const [loading, setLoading] = useState(true);
+    const [openSection, setOpenSection] = useState('users');
+
     const [liveViewColumns, setLiveViewColumns] = useState(() => {
         return localStorage.getItem('liveViewColumns') || 'auto';
     });
@@ -36,8 +46,6 @@ export const Settings = () => {
         default_landing_page: 'live',
         global_attach_image_email: true,
         global_attach_image_telegram: true,
-
-        // Advanced
         opt_live_view_fps_throttle: 2,
         opt_motion_fps_throttle: 3,
         opt_live_view_height_limit: 720,
@@ -51,210 +59,41 @@ export const Settings = () => {
         default_live_view_mode: 'auto',
         backup_auto_enabled: false,
         backup_auto_frequency_hours: 24,
-        backup_auto_retention: 7
+        backup_auto_retention: 10
     });
-    const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0, percent: 0 });
-    const [loading, setLoading] = useState(true);
-    const { showToast } = useToast();
-    const [confirmConfig, setConfirmConfig] = useState({ isOpen: false });
 
-    // User Management State
-    const [users, setUsers] = useState([]);
-    const [newUser, setNewUser] = useState({ username: '', password: '', role: 'viewer', email: '' });
-
-    const [isCreatingUser, setIsCreatingUser] = useState(false);
-
-    // Orphan Sync State
+    const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0 });
     const [orphanSyncStatus, setOrphanSyncStatus] = useState({ isSyncing: false, status: 'idle' });
-    const [syncResultModal, setSyncResultModal] = useState({ isOpen: false, data: null });
-
-    // Collapsible Sections State
-    const [openSection, setOpenSection] = useState('account');
-
-    const toggleSection = (sectionId) => {
-        setOpenSection(openSection === sectionId ? '' : sectionId);
-    };
-
-    // Poll for status when syncing
-    useEffect(() => {
-        let interval;
-        if (orphanSyncStatus.isSyncing) {
-            interval = setInterval(async () => {
-                try {
-                    const res = await fetch('/api/settings/sync-orphans/status', {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-
-                        // Handle server restart case (status went back to idle unexpectedly)
-                        if (data.status === 'idle') {
-                            setOrphanSyncStatus({ isSyncing: false, status: 'idle' });
-                            showToast('Sync task interrupted (server restart). Please try again.', 'error');
-                            clearInterval(interval);
-                            return;
-                        }
-
-                        // Only update if status changes or completes
-                        if (data.status === 'completed' || data.status === 'error') {
-                            setOrphanSyncStatus({ isSyncing: false, status: data.status });
-                            setSyncResultModal({ isOpen: true, data: data.result });
-                            clearInterval(interval);
-                        }
-                    }
-                } catch (err) {
-                    console.error("Polling error", err);
-                }
-            }, 2000);
-        }
-        return () => clearInterval(interval);
-    }, [orphanSyncStatus.isSyncing, token]);
-
-    // Password Change State
-    const [pwdModalOpen, setPwdModalOpen] = useState(false);
-    const [pwdTargetUser, setPwdTargetUser] = useState(null); // If null, it's "Self"
-    const [pwdForm, setPwdForm] = useState({ old_password: '', new_password: '', confirm_password: '' });
-
-    const occupationPercent = globalSettings.max_global_storage_gb > 0
-        ? (storageStats.used_gb / globalSettings.max_global_storage_gb) * 100
-        : storageStats.percent;
-
     const [isReportingTelemetry, setIsReportingTelemetry] = useState(false);
 
-    const handleManualTelemetry = async () => {
-        setIsReportingTelemetry(true);
-        try {
-            const res = await fetch('/api/settings/telemetry/report', {
-                method: 'POST',
-                headers: { Authorization: 'Bearer ' + token }
-            });
-            const data = await res.json();
-            if (res.ok) {
-                showToast('Telemetry report sent successfully!', 'success');
-            } else {
-                showToast('Failed to trigger telemetry: ' + data.detail, 'error');
-            }
-        } catch (err) {
-            showToast('Failed to trigger telemetry: ' + err.message, 'error');
-        } finally {
-            setIsReportingTelemetry(false);
-        }
+    // User management state
+    const [users, setUsers] = useState([]);
+    const [newUser, setNewUser] = useState({ username: '', password: '', role: 'viewer', email: '' });
+    const [isCreatingUser, setIsCreatingUser] = useState(false);
+
+    // Modal states
+    const [pwdModalOpen, setPwdModalOpen] = useState(false);
+    const [pwdTargetUser, setPwdTargetUser] = useState(null);
+    const [pwdForm, setPwdForm] = useState({ old_password: '', new_password: '', confirm_password: '' });
+    const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: '', message: '' });
+    const [syncResultModal, setSyncResultModal] = useState({ isOpen: false, data: null });
+
+    const toggleSection = (id) => {
+        setOpenSection(openSection === id ? null : id);
     };
 
-    useEffect(() => {
-        if (!token) return;
-        fetchSettings();
-        fetchStats();
-        if (user?.role === 'admin') {
-            fetchUsers();
-        }
-    }, [user, token]);
-
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         try {
             const res = await fetch('/api/users', {
                 headers: { Authorization: 'Bearer ' + token }
             });
-            if (res.ok) {
-                setUsers(await res.json());
-            }
+            if (res.ok) setUsers(await res.json());
         } catch (err) {
             console.error('Failed to fetch users', err);
         }
-    };
+    }, [token]);
 
-    const handleCreateUser = async (e) => {
-        e.preventDefault();
-        try {
-            const res = await fetch('/api/users', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: 'Bearer ' + token
-                },
-                body: JSON.stringify(newUser)
-            });
-            if (res.ok) {
-                setNewUser({ username: '', password: '', role: 'viewer', email: '' });
-                setIsCreatingUser(false);
-                fetchUsers();
-                showToast('User created successfully', 'success');
-            } else {
-                const err = await res.json();
-                showToast('Failed to create user: ' + err.detail, 'error');
-            }
-        } catch (err) {
-            showToast('Failed to create user: ' + err.message, 'error');
-        }
-    };
-
-    const handleDeleteUser = async (userId) => {
-        setConfirmConfig({
-            isOpen: true,
-            title: 'Delete User',
-            message: 'Are you sure you want to delete this user? This action cannot be undone.',
-            onConfirm: async () => {
-                try {
-                    const res = await fetch('/api/users/' + userId, {
-                        method: 'DELETE',
-                        headers: { Authorization: 'Bearer ' + token }
-                    });
-                    if (res.ok) {
-                        fetchUsers();
-                        showToast('User deleted successfully', 'success');
-                    } else {
-                        const err = await res.json();
-                        showToast('Failed to delete user: ' + err.detail, 'error');
-                    }
-                } catch (err) {
-                    showToast('Failed to delete user: ' + err.message, 'error');
-                }
-                setConfirmConfig({ isOpen: false });
-            },
-            onCancel: () => setConfirmConfig({ isOpen: false })
-        });
-    };
-
-    const openPasswordModal = (targetUser = null) => {
-        setPwdTargetUser(targetUser); // If null, changing own password
-        setPwdForm({ old_password: '', new_password: '', confirm_password: '' });
-        setPwdModalOpen(true);
-    };
-
-    const handlePasswordUpdate = async (e) => {
-        e.preventDefault();
-        if (pwdForm.new_password !== pwdForm.confirm_password) {
-            showToast("New passwords do not match!", "error");
-            return;
-        }
-        const targetId = pwdTargetUser ? pwdTargetUser.id : user.id;
-
-        try {
-            const res = await fetch('/api/users/' + targetId + '/password', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: 'Bearer ' + token
-                },
-                body: JSON.stringify({
-                    old_password: pwdTargetUser ? undefined : pwdForm.old_password, // Admin override doesn't send old_password
-                    new_password: pwdForm.new_password
-                })
-            });
-
-            if (res.ok) {
-                showToast('Password updated successfully', 'success');
-                setPwdModalOpen(false);
-            } else {
-                const err = await res.json();
-                showToast('Failed to update password: ' + err.detail, 'error');
-            }
-        } catch (err) {
-            showToast('Failed to update password: ' + err.message, 'error');
-        }
-    };
-
-    const fetchStats = async () => {
+    const fetchStats = useCallback(async () => {
         try {
             const res = await fetch('/api/stats', {
                 headers: { Authorization: `Bearer ${token}` }
@@ -266,9 +105,9 @@ export const Settings = () => {
         } catch (err) {
             console.error('Failed to fetch stats', err);
         }
-    };
+    }, [token]);
 
-    const fetchSettings = async () => {
+    const fetchSettings = useCallback(async () => {
         try {
             const res = await fetch('/api/settings', {
                 headers: { Authorization: `Bearer ${token}` }
@@ -313,7 +152,14 @@ export const Settings = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [token]);
+
+    useEffect(() => {
+        if (!token) return;
+        fetchSettings();
+        fetchStats();
+        fetchUsers();
+    }, [token, fetchSettings, fetchStats, fetchUsers]);
 
     const handleSave = async () => {
         if (user?.role !== 'admin') {
@@ -321,10 +167,8 @@ export const Settings = () => {
             return;
         }
 
-        // Save localStorage settings
         localStorage.setItem('liveViewColumns', liveViewColumns);
 
-        // Save backend settings
         try {
             await fetch('/api/settings/bulk', {
                 method: 'POST',
@@ -372,6 +216,64 @@ export const Settings = () => {
         }
     };
 
+    const handleCreateUser = async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch('/api/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: 'Bearer ' + token
+                },
+                body: JSON.stringify(newUser)
+            });
+            if (res.ok) {
+                setNewUser({ username: '', password: '', role: 'viewer', email: '' });
+                setIsCreatingUser(false);
+                fetchUsers();
+                showToast('User created successfully', 'success');
+            } else {
+                const err = await res.json();
+                showToast('Failed to create user: ' + err.detail, 'error');
+            }
+        } catch (err) {
+            showToast('Failed to create user: ' + err.message, 'error');
+        }
+    };
+
+    const handlePasswordUpdate = async (e) => {
+        e.preventDefault();
+        if (pwdForm.new_password !== pwdForm.confirm_password) {
+            showToast("New passwords do not match!", "error");
+            return;
+        }
+        const targetId = pwdTargetUser ? pwdTargetUser.id : user.id;
+
+        try {
+            const res = await fetch('/api/users/' + targetId + '/password', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: 'Bearer ' + token
+                },
+                body: JSON.stringify({
+                    old_password: pwdTargetUser ? undefined : pwdForm.old_password,
+                    new_password: pwdForm.new_password
+                })
+            });
+
+            if (res.ok) {
+                showToast('Password updated successfully', 'success');
+                setPwdModalOpen(false);
+            } else {
+                const err = await res.json();
+                showToast('Failed to update password: ' + err.detail, 'error');
+            }
+        } catch (err) {
+            showToast('Failed to update password: ' + err.message, 'error');
+        }
+    };
+
     const handleTestNotify = async (channel) => {
         let payload = { channel, settings: {} };
 
@@ -416,26 +318,42 @@ export const Settings = () => {
         }
     };
 
+    const handleManualTelemetry = async () => {
+        setIsReportingTelemetry(true);
+        try {
+            const res = await fetch('/api/settings/telemetry/report', {
+                method: 'POST',
+                headers: { Authorization: 'Bearer ' + token }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('Telemetry report sent successfully!', 'success');
+            } else {
+                showToast('Failed to trigger telemetry: ' + data.detail, 'error');
+            }
+        } catch (err) {
+            showToast('Failed to trigger telemetry: ' + err.message, 'error');
+        } finally {
+            setIsReportingTelemetry(false);
+        }
+    };
+
     const handleExport = async () => {
         try {
             const res = await fetch('/api/settings/backup/export', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (!res.ok) throw new Error("Export failed");
-
             const blob = await res.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-
-            // Try to get filename from header
             const disposition = res.headers.get('Content-Disposition');
             let filename = `vibenvr_backup_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.json`;
             if (disposition && disposition.includes('filename=')) {
                 filename = disposition.split('filename=')[1].replace(/"/g, '');
             }
             a.download = filename;
-
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -448,18 +366,14 @@ export const Settings = () => {
     const handleImport = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         setConfirmConfig({
             isOpen: true,
             title: 'Import Configuration',
             message: 'Are you sure you want to restore this backup? Current settings and camera configurations will be overwritten or merged. This action cannot be undone.',
-            confirmText: 'Import Now',
-            variant: 'primary',
             onConfirm: async () => {
                 setConfirmConfig({ isOpen: false });
                 const formData = new FormData();
                 formData.append('file', file);
-
                 try {
                     const res = await fetch('/api/settings/backup/import', {
                         method: 'POST',
@@ -484,1340 +398,165 @@ export const Settings = () => {
         });
     };
 
-
-    const initDefaults = async () => {
-        try {
-            await fetch('/api/settings/init-defaults', {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            fetchSettings();
-        } catch (err) {
-            console.error('Failed to init defaults', err);
-        }
+    const openPasswordModal = (targetUser = null) => {
+        setPwdTargetUser(targetUser);
+        setPwdForm({ old_password: '', new_password: '', confirm_password: '' });
+        setPwdModalOpen(true);
     };
 
-    useEffect(() => {
-        if (!token) return;
-        fetchSettings();
-    }, [token]);
+    if (loading) {
+        return <div className="flex items-center justify-center min-h-[400px]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>;
+    }
+
+    const occupationPercent = globalSettings.max_global_storage_gb > 0
+        ? (storageStats.used_gb / globalSettings.max_global_storage_gb) * 100
+        : 0;
 
     return (
         <div className="space-y-12 relative w-full pb-52 min-w-0 max-w-full overflow-hidden">
-
-
             <div>
                 <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
                 <p className="text-muted-foreground mt-2">Configure your VibeNVR preferences.</p>
             </div>
 
+            <div className="space-y-6">
+                {user?.role === 'admin' && (
+                    <UserManager
+                        users={users}
+                        newUser={newUser}
+                        setNewUser={setNewUser}
+                        isCreatingUser={isCreatingUser}
+                        setIsCreatingUser={setIsCreatingUser}
+                        handleCreateUser={handleCreateUser}
+                        openPasswordModal={openPasswordModal}
+                        setConfirmConfig={setConfirmConfig}
+                        showToast={showToast}
+                        fetchUsers={fetchUsers}
+                        currentUser={user}
+                        token={token}
+                        isOpen={openSection === 'users'}
+                        onToggle={toggleSection}
+                    />
+                )}
 
+                {user?.role === 'admin' && (
+                    <StorageManager
+                        globalSettings={globalSettings}
+                        setGlobalSettings={setGlobalSettings}
+                        storageStats={storageStats}
+                        occupationPercent={occupationPercent}
+                        orphanSyncStatus={orphanSyncStatus}
+                        setOrphanSyncStatus={setOrphanSyncStatus}
+                        setConfirmConfig={setConfirmConfig}
+                        showToast={showToast}
+                        fetchStats={fetchStats}
+                        token={token}
+                        currentUser={user}
+                        isOpen={openSection === 'storage'}
+                        onToggle={toggleSection}
+                    />
+                )}
 
-            {/* User Management (Admin Only) */}
+                {user?.role === 'admin' && (
+                    <ApiTokenSettings
+                        isOpen={openSection === 'api-tokens'}
+                        onToggle={toggleSection}
+                    />
+                )}
+
+                {user?.role === 'admin' && (
+                    <PrivacySettings
+                        globalSettings={globalSettings}
+                        setGlobalSettings={setGlobalSettings}
+                        handleManualTelemetry={handleManualTelemetry}
+                        isReportingTelemetry={isReportingTelemetry}
+                        isOpen={openSection === 'privacy'}
+                        onToggle={toggleSection}
+                    />
+                )}
+
+                {user?.role === 'admin' && (
+                    <LiveViewLayoutSettings
+                        liveViewColumns={liveViewColumns}
+                        setLiveViewColumns={setLiveViewColumns}
+                        isOpen={openSection === 'liveview'}
+                        onToggle={toggleSection}
+                    />
+                )}
+
+                {user?.role === 'admin' && (
+                    <GeneralSettings
+                        globalSettings={globalSettings}
+                        setGlobalSettings={setGlobalSettings}
+                        isOpen={openSection === 'general'}
+                        onToggle={toggleSection}
+                    />
+                )}
+
+                {user?.role === 'admin' && (
+                    <NotificationSettings
+                        globalSettings={globalSettings}
+                        setGlobalSettings={setGlobalSettings}
+                        handleTestNotify={handleTestNotify}
+                        isOpen={openSection === 'notifications'}
+                        onToggle={toggleSection}
+                    />
+                )}
+
+                {user?.role === 'admin' && (
+                    <AdvancedSettings
+                        globalSettings={globalSettings}
+                        setGlobalSettings={setGlobalSettings}
+                        isOpen={openSection === 'advanced'}
+                        onToggle={toggleSection}
+                    />
+                )}
+
+                {user?.role === 'admin' && (
+                    <BackupSettings
+                        globalSettings={globalSettings}
+                        setGlobalSettings={setGlobalSettings}
+                        handleExport={handleExport}
+                        handleImport={handleImport}
+                        isOpen={openSection === 'backup'}
+                        onToggle={toggleSection}
+                    />
+                )}
+            </div>
+
             {user?.role === 'admin' && (
-                <CollapsibleSection
-                    id="users"
-                    title="User Management"
-                    description="Manage system access and roles"
-                    icon={<Users className="w-6 h-6" />}
-                    isOpen={openSection === 'users'}
-                    onToggle={toggleSection}
-                >
-                    <div className="flex justify-end mb-4 h-11">
-                        <Button
-                            variant={isCreatingUser ? "ghost" : "default"}
-                            onClick={() => setIsCreatingUser(!isCreatingUser)}
-                            className="w-full sm:w-auto flex items-center justify-center gap-2 h-full px-6 font-bold"
-                        >
-                            {isCreatingUser ? <X className="w-5 h-5 shrink-0" /> : <Plus className="w-5 h-5 shrink-0" />}
-                            {isCreatingUser ? 'Cancel' : 'Add User'}
-                        </Button>
-                    </div>
-
-                    {isCreatingUser && (
-                        <form onSubmit={handleCreateUser} className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <InputField
-                                    label="Username"
-                                    value={newUser.username}
-                                    onChange={(val) => setNewUser({ ...newUser, username: val })}
-                                    placeholder="johndoe"
-                                    required
-                                />
-                                <InputField
-                                    label="Email"
-                                    type="email"
-                                    value={newUser.email}
-                                    onChange={(val) => setNewUser({ ...newUser, email: val })}
-                                    placeholder="john@example.com"
-                                />
-                                <InputField
-                                    label="Password"
-                                    type="password"
-                                    value={newUser.password}
-                                    onChange={(val) => setNewUser({ ...newUser, password: val })}
-                                    placeholder="••••••••"
-                                    required
-                                />
-                                <SelectField
-                                    label="Role"
-                                    value={newUser.role}
-                                    onChange={(val) => setNewUser({ ...newUser, role: val })}
-                                    options={[
-                                        { value: 'viewer', label: 'Viewer (Read Only)' },
-                                        { value: 'admin', label: 'Admin (Full Access)' }
-                                    ]}
-                                />
-                            </div>
-                            <div className="flex justify-end">
-                                <Button type="submit" className="w-full sm:w-auto h-11 px-8 font-bold">Create User</Button>
-                            </div>
-                        </form>
-                    )}
-
-                    {/* Mobile: User Cards (Zero Horizontal Scroll) */}
-                    <div className="grid grid-cols-1 gap-3 sm:hidden mt-4">
-                        {users.map(u => (
-                            <div key={u.id} className="p-4 bg-muted/10 border border-border/50 rounded-xl space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <Avatar user={u} size="xs" />
-                                        <div className="min-w-0">
-                                            <p className="font-bold text-sm truncate">{u.username}</p>
-                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold uppercase tracking-wider ${u.role === 'admin' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-muted text-muted-foreground border border-border/50'}`}>
-                                                {u.role}
-                                            </span>
-                                        </div>
-                                    </div>
-                                     {u.id === user.id && (
-                                        <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-lg font-bold uppercase tracking-tight">You</span>
-                                    )}
-                                </div>
-                                <div className="flex justify-end gap-2 pt-3 border-t border-border/30">
-                                    <button
-                                        onClick={() => {
-                                            setPwdTargetUser(u);
-                                            setPwdModalOpen(true);
-                                        }}
-                                        className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
-                                        title="Change Password"
-                                    >
-                                        <Key className="w-5 h-5" />
-                                    </button>
-                                    {u.id !== user.id && (
-                                        <button
-                                            onClick={() => {
-                                                setConfirmConfig({
-                                                    isOpen: true,
-                                                    title: 'Delete User',
-                                                    message: `Are you sure you want to delete user "${u.username}"? This action cannot be undone.`,
-                                                    onConfirm: async () => {
-                                                        try {
-                                                            const res = await fetch(`/api/users/${u.id}`, {
-                                                                method: 'DELETE',
-                                                                headers: { Authorization: `Bearer ${token}` }
-                                                            });
-                                                            if (res.ok) {
-                                                                showToast('User deleted successfully', 'success');
-                                                                fetchUsers();
-                                                            } else {
-                                                                const data = await res.json();
-                                                                showToast('Failed: ' + data.detail, 'error');
-                                                            }
-                                                        } catch (err) {
-                                                            showToast('Error: ' + err.message, 'error');
-                                                        }
-                                                        setConfirmConfig({ isOpen: false });
-                                                    },
-                                                    onCancel: () => setConfirmConfig({ isOpen: false })
-                                                });
-                                            }}
-                                            className="p-2 hover:bg-red-100 text-red-500 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
-                                            title="Delete User"
-                                        >
-                                            <Trash2 className="w-5 h-5" />
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="hidden sm:block w-full overflow-x-auto mt-4 rounded-lg border border-border">
-                        <div className="min-w-[600px]">
-                            <table className="w-full text-sm">
-                                <thead className="bg-muted/40 text-left">
-                                    <tr>
-                                        <th className="p-3 font-medium text-muted-foreground">Username</th>
-                                        <th className="p-3 font-medium text-muted-foreground">Role</th>
-                                        <th className="p-3 font-medium text-muted-foreground hidden sm:table-cell">Created</th>
-                                        <th className="p-3 font-medium text-muted-foreground text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {users.map(u => (
-                                        <tr key={u.id} className="border-t border-border hover:bg-muted/10">
-                                            <td className="p-3 font-medium flex items-center gap-3 overflow-hidden">
-                                                <Avatar user={u} size="xs" />
-                                                <span className="truncate">{u.username}</span>
-                                                {u.id === user.id && <span className="text-[10px] bg-primary/20 text-primary px-1.5 shrink-0 rounded">You</span>}
-                                            </td>
-                                            <td className="p-3">
-                                                <span className={'inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ' +
-                                                    (u.role === 'admin' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-muted text-muted-foreground border border-border/50')
-                                                }>
-                                                    {u.role}
-                                                </span>
-                                            </td>
-                                            <td className="p-3 text-muted-foreground hidden sm:table-cell">
-                                                {new Date(u.created_at).toLocaleDateString()}
-                                            </td>
-                                            <td className="p-3 text-right">
-                                                <div className="flex justify-end gap-2 pr-1">
-                                                    <button
-                                                        onClick={() => {
-                                                            setPwdTargetUser(u);
-                                                            setPwdModalOpen(true);
-                                                        }}
-                                                        className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
-                                                        title="Change Password"
-                                                    >
-                                                        <Key className="w-5 h-5" />
-                                                    </button>
-                                                    {u.id !== user.id && (
-                                                        <button
-                                                            onClick={() => {
-                                                                setConfirmConfig({
-                                                                    isOpen: true,
-                                                                    title: 'Delete User',
-                                                                    message: `Are you sure you want to delete user "${u.username}"? This action cannot be undone.`,
-                                                                    onConfirm: async () => {
-                                                                        try {
-                                                                            const res = await fetch(`/api/users/${u.id}`, {
-                                                                                method: 'DELETE',
-                                                                                headers: { Authorization: `Bearer ${token}` }
-                                                                            });
-                                                                            if (res.ok) {
-                                                                                showToast('User deleted successfully', 'success');
-                                                                                fetchUsers();
-                                                                            } else {
-                                                                                const data = await res.json();
-                                                                                showToast('Failed: ' + data.detail, 'error');
-                                                                            }
-                                                                        } catch (err) {
-                                                                            showToast('Error: ' + err.message, 'error');
-                                                                        }
-                                                                        setConfirmConfig({ isOpen: false });
-                                                                    },
-                                                                    onCancel: () => setConfirmConfig({ isOpen: false })
-                                                                });
-                                                            }}
-                                                            className="p-2 hover:bg-red-100 text-red-500 rounded-lg transition-colors"
-                                                            title="Delete User"
-                                                        >
-                                                            <Trash2 className="w-5 h-5" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {users.length === 0 && (
-                                        <tr><td colSpan="4" className="p-4 text-center text-muted-foreground">No users found</td></tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-
-                    </div>
-                </CollapsibleSection>
-            )}
-
-
-            {/* API Tokens (Admin Only) */}
-            {user?.role === 'admin' && (
-                <ApiTokenManager
-                    isOpen={openSection === 'api-tokens'}
-                    onToggle={toggleSection}
-                />
-            )}
-
-            {/* Storage Settings */}
-            {user?.role === 'admin' && (
-                <CollapsibleSection
-                    id="storage"
-                    title="Storage Management"
-                    description="Configure global quotas, cleanup policies, and custom storage profiles."
-                    icon={<HardDrive className="w-6 h-6" />}
-                    isOpen={openSection === 'storage'}
-                    onToggle={toggleSection}
-                >
-
-                    <div className="space-y-4">
-                        {/* Storage Occupation Display */}
-                        <div className="bg-muted/30 rounded-lg p-4 mb-4 border border-border/50">
-                            <div className="flex justify-between items-end mb-2">
-                                <span className="text-sm font-medium">Storage Occupation</span>
-                                <span className="text-xs text-muted-foreground">
-                                    {storageStats.used_gb} GB / {globalSettings.max_global_storage_gb > 0 ? globalSettings.max_global_storage_gb : storageStats.total_gb} GB
-                                    ({Math.round(occupationPercent)}%)
-                                </span>
-                            </div>
-                            <div className="w-full h-3 bg-background rounded-full border border-border overflow-hidden">
-                                <div
-                                    className={'h-full transition-all duration-500 rounded-full ' +
-                                        (occupationPercent > 90 ? 'bg-red-500' : occupationPercent > 70 ? 'bg-amber-500' : 'bg-green-500')
-                                    }
-                                    style={{ width: Math.min(occupationPercent, 100) + '%' }}
-                                />
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-2 italic opacity-70">
-                                {globalSettings.max_global_storage_gb > 0
-                                    ? 'Currently using ' + storageStats.used_gb + ' GB of your ' + globalSettings.max_global_storage_gb + ' GB limit.'
-                                    : 'Total disk usage. No global limit set.'}
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                            <InputField
-                                label="Storage Quota (GB)"
-                                type="number"
-                                help="Total space allowed for recordings. The system will start deleting old recordings when this limit is reached."
-                                unit="GB"
-                                value={globalSettings.max_global_storage_gb}
-                                onChange={(val) => setGlobalSettings({ ...globalSettings, max_global_storage_gb: val })}
-                            />
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium">Auto-Cleanup Policy</label>
-                                <div className="p-3 bg-muted/50 rounded-lg border border-border/50 text-xs text-muted-foreground">
-                                    VibeNVR uses a "FIFO" (First In, First Out) cleanup strategy. When quota is exceeded or disk space is low (&lt; 5%), the oldest recordings are automatically removed.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium mb-2">Cleanup Interval (Hours)</label>
-                            <select
-                                value={globalSettings.cleanup_interval_hours}
-                                onChange={(e) => setGlobalSettings({ ...globalSettings, cleanup_interval_hours: parseInt(e.target.value) })}
-                                className="w-full max-w-full sm:max-w-xs bg-background border border-input rounded-lg px-3 py-2"
-                            >
-                                <option value="1">Every Hour</option>
-                                <option value="6">Every 6 Hours</option>
-                                <option value="12">Every 12 Hours</option>
-                                <option value="24">Every 24 Hours</option>
-                                <option value="48">Every 2 Days</option>
-                                <option value="168">Every Week</option>
-                            </select>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                How often to check and clean up old recordings
-                            </p>
-                        </div>
-                        
-                        <div className="pt-4 border-t border-border mt-4">
-                            <StorageProfileManager />
-                        </div>
-
-                        {/* Maintenance Tools */}
-                        <div className="pt-4 border-t border-border mt-4 space-y-6">
-                            <div>
-                                <h4 className="text-sm font-semibold mb-3">Maintenance</h4>
-                                <div className="flex flex-col sm:flex-row flex-wrap gap-3">
-                                    <div className="flex-1 min-w-[280px]">
-                                        <Button
-                                            onClick={async () => {
-                                                setConfirmConfig({
-                                                    isOpen: true,
-                                                    title: 'Manual Cleanup',
-                                                    message: 'Are you sure you want to trigger storage cleanup now? This will scan all camera folders and delete recordings that exceed set limits.',
-                                                    onConfirm: async () => {
-                                                        try {
-                                                            await fetch('/api/settings/cleanup', {
-                                                                method: 'POST',
-                                                                headers: { Authorization: `Bearer ${token}` }
-                                                            });
-                                                            showToast('Cleanup triggered successfully!', 'success');
-                                                            fetchStats();
-                                                        } catch (err) {
-                                                            showToast('Failed to trigger cleanup: ' + err.message, 'error');
-                                                        }
-                                                        setConfirmConfig({ isOpen: false });
-                                                    },
-                                                    onCancel: () => setConfirmConfig({ isOpen: false })
-                                                });
-                                            }}
-                                            variant="destructive"
-                                            className="w-full sm:w-auto px-6 py-3 font-bold shadow-sm"
-                                        >
-                                            <Trash2 className="w-4 h-4 mr-2" />
-                                            <span>Clean Up Storage Now</span>
-                                        </Button>
-                                        <p className="text-xs text-muted-foreground mt-2">
-                                            This will force an immediate check and deletion of recordings that exceed your storage limits or retention periods.
-                                        </p>
-                                    </div>
-
-                                    <div className="flex-1 min-w-[280px]">
-                                        <Button
-                                            onClick={async () => {
-                                                setConfirmConfig({
-                                                    isOpen: true,
-                                                    title: 'Recover Orphaned Recordings',
-                                                    message: 'This will scan all camera folders for recordings that exist on disk but are missing from the database, and import them into the timeline. This is useful after system updates or migration.',
-                                                    onConfirm: async () => {
-                                                        try {
-                                                            const res = await fetch('/api/settings/sync-orphans', {
-                                                                method: 'POST',
-                                                                headers: { Authorization: `Bearer ${token}` }
-                                                            });
-                                                            if (res.status === 429) {
-                                                                const data = await res.json();
-                                                                showToast(data.detail, 'error');
-                                                            } else if (res.ok) {
-                                                                showToast('Recovery started in background. Please wait...', 'success');
-                                                                setOrphanSyncStatus({ isSyncing: true, status: 'running' });
-                                                            } else {
-                                                                const data = await res.json();
-                                                                showToast('Recovery failed: ' + data.detail, 'error');
-                                                            }
-                                                        } catch (err) {
-                                                            showToast('Failed to trigger recovery: ' + err.message, 'error');
-                                                        }
-                                                        setConfirmConfig({ isOpen: false });
-                                                    },
-                                                    onCancel: () => setConfirmConfig({ isOpen: false })
-                                                });
-                                            }}
-                                            disabled={orphanSyncStatus.isSyncing}
-                                            variant="outline"
-                                            className={`w-full sm:w-auto px-6 py-3 font-bold shadow-sm ${orphanSyncStatus.isSyncing ? "opacity-75 cursor-not-allowed" : ""}`}
-                                        >
-                                            <HardDrive className={`w-4 h-4 mr-2 ${orphanSyncStatus.isSyncing ? "animate-pulse" : ""}`} />
-                                            <span>{orphanSyncStatus.isSyncing ? "Scanning..." : "Recover Orphaned Recordings"}</span>
-                                        </Button>
-                                        <p className="text-xs text-muted-foreground mt-2">
-                                            Scans for video files on disk that aren't in the database and imports them into the timeline.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Bulk Delete Section */}
-                        {user?.role === 'admin' && (
-                            <div className="pt-4 border-t border-border mt-4">
-                                <h4 className="text-sm font-semibold mb-3">Bulk Deletion</h4>
-                                <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3">
-                                    <Button
-                                        variant="outline"
-                                        className="w-full sm:w-auto border-red-500/50 text-red-500 hover:bg-red-500/10 py-3 h-auto min-h-[44px]"
-                                        onClick={() => setConfirmConfig({
-                                            isOpen: true,
-                                            title: 'Delete All Videos',
-                                            message: 'Are you sure you want to delete ALL video recordings? This action cannot be undone and will free up disk space.',
-                                            onConfirm: async () => {
-                                                try {
-                                                    const res = await fetch('/api/events/bulk/all?event_type=video', {
-                                                        method: 'DELETE',
-                                                        headers: { Authorization: 'Bearer ' + token }
-                                                    });
-                                                    const data = await res.json();
-                                                    showToast(`Deleted ${data.deleted_count} videos (${data.deleted_size_mb} MB)`, 'success');
-                                                    fetchStats();
-                                                } catch (e) {
-                                                    showToast('Failed to delete videos', 'error');
-                                                }
-                                                setConfirmConfig({ isOpen: false });
-                                            }
-                                        })}
-                                    >
-                                        <Trash2 className="w-4 h-4 mr-2 shrink-0" />
-                                        <span className="truncate sm:whitespace-normal">Delete All Videos</span>
-                                    </Button>
-
-                                    <Button
-                                        variant="outline"
-                                        className="w-full sm:w-auto border-red-500/50 text-red-500 hover:bg-red-500/10 py-3 h-auto min-h-[44px]"
-                                        onClick={() => setConfirmConfig({
-                                            isOpen: true,
-                                            title: 'Delete All Pictures',
-                                            message: 'Are you sure you want to delete ALL picture snapshots? This action cannot be undone.',
-                                            onConfirm: async () => {
-                                                try {
-                                                    const res = await fetch('/api/events/bulk/all?event_type=picture', {
-                                                        method: 'DELETE',
-                                                        headers: { Authorization: 'Bearer ' + token }
-                                                    });
-                                                    const data = await res.json();
-                                                    showToast(`Deleted ${data.deleted_count} pictures (${data.deleted_size_mb} MB)`, 'success');
-                                                    fetchStats();
-                                                } catch (e) {
-                                                    showToast('Failed to delete pictures', 'error');
-                                                }
-                                                setConfirmConfig({ isOpen: false });
-                                            }
-                                        })}
-                                    >
-                                        <Trash2 className="w-4 h-4 mr-2 shrink-0" />
-                                        <span className="truncate sm:whitespace-normal">Delete All Pictures</span>
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </CollapsibleSection>
-            )}
-
-
-            {/* Privacy Settings */}
-            {user?.role === 'admin' && (
-                <CollapsibleSection
-                    id="privacy"
-                    title="Privacy & Analytics"
-                    description="Control anonymous data sharing"
-                    icon={<Monitor className="w-6 h-6" />}
-                    isOpen={openSection === 'privacy'}
-                    onToggle={toggleSection}
-                >
-
-                    <div className="space-y-6 pt-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="md:col-span-1 space-y-4 bg-muted/10 p-4 rounded-xl border border-border/50">
-                                <Toggle
-                                    label="Enable Anonymous Telemetry"
-                                    checked={globalSettings.telemetry_enabled}
-                                    onChange={(val) => setGlobalSettings({ ...globalSettings, telemetry_enabled: val })}
-                                />
-                                <p className="text-[10px] text-muted-foreground leading-relaxed">
-                                    Helping the development team improve VibeNVR by sharing anonymous usage statistics. No sensitive data is ever collected.
-                                </p>
-
-                                {globalSettings.telemetry_enabled && (
-                                    <div className="pt-4 border-t border-border/50 flex flex-col gap-2">
-                                        <Button
-                                            onClick={handleManualTelemetry}
-                                            disabled={isReportingTelemetry}
-                                            variant="outline"
-                                            className="w-full justify-center h-11 font-bold"
-                                        >
-                                            <Send className="w-4 h-4 mr-2" />
-                                            {isReportingTelemetry ? 'Sending...' : 'Send Report Now'}
-                                        </Button>
-                                        <a
-                                            href="https://vibenvr-telemetry.spupuz.workers.dev/"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center justify-center gap-2 p-3.5 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-all duration-200 group no-underline min-h-[44px]"
-                                        >
-                                            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                                <LayoutDashboard className="w-5 h-5" />
-                                            </div>
-                                            <div className="text-left">
-                                                <p className="text-xs font-bold uppercase tracking-wider leading-none mb-1">Public Analytics</p>
-                                                <p className="text-[10px] text-muted-foreground leading-tight font-medium opacity-80">View global usage stats</p>
-                                            </div>
-                                        </a>
-                                        <p className="text-[10px] text-muted-foreground text-center px-2 font-medium">
-                                            Manually trigger a report for testing or view global anonymous statistics.
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="md:col-span-2 space-y-4">
-                                {/* Data Table */}
-                                <div>
-                                    <h4 className="text-sm font-semibold mb-3 mt-4">Data sent (anonymous)</h4>
-
-                                    {/* Mobile: Vertical Stacked Cards (Zero Horizontal Scroll) */}
-                                    <div className="grid grid-cols-1 sm:hidden gap-3 px-1">
-                                        {[
-                                            { field: 'instance_id', example: 'a1b2c3-...', note: 'Random UUID generated at boot' },
-                                            { field: 'version', example: '1.19.1', note: 'Installed VibeNVR version' },
-                                            { field: 'os', example: 'Linux', note: 'Operating system type' },
-                                            { field: 'arch', example: 'x86_64', note: 'CPU architecture' },
-                                            { field: 'cpu', example: '8', note: 'Logical CPU cores' },
-                                            { field: 'cpu_model', example: 'Intel Core...', note: 'Processor commercial name' },
-                                            { field: 'ram', example: '32', note: 'Total system RAM GB' },
-                                            { field: 'gpu', example: 'True/False', note: 'HW acceleration status' },
-                                            { field: 'cameras', example: '4', note: 'Total cameras configured' },
-                                            { field: 'groups', example: '2', note: 'Total camera groups' },
-                                            { field: 'events', example: '1400', note: 'Recorded events in DB' },
-                                            { field: 'notifications', example: 'True/False', note: 'Notification status' },
-                                            { field: 'country', example: 'IT', note: 'Added by Cloudflare' },
-                                        ].map(row => (
-                                            <div key={row.field} className="p-3 bg-muted/20 border border-border/50 rounded-xl flex flex-col gap-2">
-                                                <div className="flex justify-between items-start">
-                                                    <span className="font-mono text-xs text-primary/80 font-bold uppercase tracking-wider">{row.field}</span>
-                                                    <span className="text-sm font-semibold">{row.example}</span>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground leading-relaxed border-t border-border/30 pt-2 opacity-80">
-                                                    {row.note}
-                                                </p>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* Desktop: Standard Table */}
-                                    <div className="hidden sm:block rounded-xl border border-border overflow-hidden text-xs">
-                                        <table className="w-full">
-                                            <thead className="bg-muted/40 text-left">
-                                                <tr>
-                                                    <th className="p-3 font-medium text-muted-foreground w-1/3">Field</th>
-                                                    <th className="p-3 font-medium text-muted-foreground">Example</th>
-                                                    <th className="p-3 font-medium text-muted-foreground">Notes</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-border">
-                                                {[
-                                                    { field: 'instance_id', example: 'a1b2c3-...', note: 'Random UUID generated at boot' },
-                                                    { field: 'version', example: '1.19.1', note: 'Installed VibeNVR version' },
-                                                    { field: 'os', example: 'Linux', note: 'Operating system type' },
-                                                    { field: 'arch', example: 'x86_64', note: 'CPU architecture' },
-                                                    { field: 'cpu', example: '8', note: 'Logical CPU cores' },
-                                                    { field: 'cpu_model', example: 'Intel Core...', note: 'Processor commercial name' },
-                                                    { field: 'ram', example: '32', note: 'Total system RAM GB' },
-                                                    { field: 'gpu', example: 'True/False', note: 'HW acceleration status' },
-                                                    { field: 'cameras', example: '4', note: 'Total cameras configured' },
-                                                    { field: 'groups', example: '2', note: 'Total camera groups' },
-                                                    { field: 'events', example: '1400', note: 'Recorded events in DB' },
-                                                    { field: 'notifications', example: 'True/False', note: 'Notification status' },
-                                                    { field: 'country', example: 'IT', note: 'Added by Cloudflare' },
-                                                ].map(row => (
-                                                    <tr key={row.field} className="hover:bg-muted/10">
-                                                        <td className="p-3 font-mono text-primary/80">{row.field}</td>
-                                                        <td className="p-3 text-muted-foreground">{row.example}</td>
-                                                        <td className="p-3 text-muted-foreground">{row.note}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                        <p className="text-xs text-muted-foreground mt-4 font-medium opacity-80 bg-muted/20 p-3 rounded-xl border border-border/50">
-                                            No IP addresses, camera names, stream URLs, usernames, or passwords are ever collected.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Endpoints */}
-                                <div>
-                                    <h4 className="text-sm font-semibold mb-3">Destinations</h4>
-                                    <div className="space-y-3">
-                                        <div className="flex flex-col sm:flex-row sm:items-start gap-4 p-5 rounded-2xl border border-border/50 bg-muted/20 shadow-sm">
-                                            <div className="flex items-center justify-between sm:block">
-                                                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-green-500/20 text-green-500 dark:text-green-400 shrink-0">PRIMARY</span>
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-sm font-semibold">Cloudflare Analytics Engine</p>
-                                                <p className="text-xs text-muted-foreground mt-0.5 break-all font-mono opacity-80">vibenvr-telemetry.spupuz.workers.dev</p>
-                                                <p className="text-xs text-muted-foreground/90 mt-2 leading-relaxed font-medium">
-                                                    Fully anonymous — IP is processed by Cloudflare edge and discarded, only the country code is stored.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </CollapsibleSection>
-            )}
-
-            {/* Live View Settings */}
-            {user?.role === 'admin' && (
-                <CollapsibleSection
-                    id="liveview"
-                    title="Live View Layout"
-                    description="Customize how cameras are displayed"
-                    icon={<Monitor className="w-6 h-6" />}
-                    isOpen={openSection === 'liveview'}
-                    onToggle={toggleSection}
-                >
-
-                    <div className="space-y-4">
-                        <SelectField
-                            label="Grid Columns"
-                            value={liveViewColumns}
-                            onChange={(val) => setLiveViewColumns(val)}
-                            className="max-w-full sm:max-w-xs"
-                            help="Choose how many columns to display in the Live View grid"
-                            options={[
-                                { value: 'auto', label: 'Auto (Based on camera count)' },
-                                { value: '1', label: '1 Column' },
-                                { value: '2', label: '2 Columns' },
-                                { value: '3', label: '3 Columns' },
-                                { value: '4', label: '4 Columns' }
-                            ]}
-                        />
-                    </div>
-                </CollapsibleSection>
-            )}
-
-            {/* General Preferences */}
-            {user?.role === 'admin' && (
-                <CollapsibleSection
-                    id="general"
-                    title="General Preferences"
-                    description="Configure global application defaults"
-                    icon={<SettingsIcon className="w-6 h-6" />}
-                    isOpen={openSection === 'general'}
-                    onToggle={toggleSection}
-                >
-
-                    <div className="max-w-xs">
-                        <SelectField
-                            label="Default Landing Page"
-                            value={globalSettings.default_landing_page}
-                            onChange={(val) => setGlobalSettings({ ...globalSettings, default_landing_page: val })}
-                            help="Which page to show first when opening the application"
-                            options={[
-                                { value: 'dashboard', label: 'Dashboard' },
-                                { value: 'live', label: 'Live View' },
-                                { value: 'timeline', label: 'Timeline' }
-                            ]}
-                        />
-
-                        <SelectField
-                            label="Default Streaming Mode"
-                            value={globalSettings.default_live_view_mode}
-                            onChange={(val) => setGlobalSettings({ ...globalSettings, default_live_view_mode: val })}
-                            help="Default streaming technology for new cameras"
-                            options={[
-                                { value: 'auto', label: 'Auto (WebCodecs with Fallback)' },
-                                { value: 'webcodecs', label: 'Force WebCodecs' },
-                                { value: 'mjpeg', label: 'Force MJPEG Polling' }
-                            ]}
-                        />
-                    </div>
-                </CollapsibleSection>
-            )}
-
-            {/* Notification Settings */}
-            {user?.role === 'admin' && (
-                <CollapsibleSection
-                    id="notifications"
-                    title="Notification Settings"
-                    description="Configure global Email and Telegram credentials"
-                    icon={<Bell className="w-6 h-6" />}
-                    isOpen={openSection === 'notifications'}
-                    onToggle={toggleSection}
-                >
-
-                    <div className="space-y-6">
-                        {/* SMTP Section */}
-                        <div>
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                                <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground shrink-0">SMTP (Email) Configuration</h4>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => handleTestNotify('email')}
-                                    className="h-11 sm:h-9 w-full sm:w-auto text-xs px-5 shadow-sm active:scale-95"
-                                >
-                                    <Bell className="w-4 h-4 mr-2 opacity-60" />
-                                    Test Email
-                                </Button>
-                            </div>
-                            <p className="text-xs text-muted-foreground mb-4 bg-muted/30 p-3 rounded-xl border border-border/50 leading-relaxed">
-                                <span className="font-semibold text-primary">Note:</span> These global credentials will be used for all cameras unless a camera specifically overrides them in its own settings.
-                            </p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <InputField
-                                    label="SMTP Server"
-                                    placeholder="smtp.gmail.com"
-                                    value={globalSettings.smtp_server}
-                                    onChange={(val) => setGlobalSettings({ ...globalSettings, smtp_server: val })}
-                                />
-                                <InputField
-                                    label="SMTP Port"
-                                    placeholder="587"
-                                    value={globalSettings.smtp_port}
-                                    onChange={(val) => setGlobalSettings({ ...globalSettings, smtp_port: val })}
-                                />
-                                <InputField
-                                    label="Username"
-                                    placeholder="user@example.com"
-                                    value={globalSettings.smtp_username}
-                                    onChange={(val) => setGlobalSettings({ ...globalSettings, smtp_username: val })}
-                                />
-                                <InputField
-                                    label="Password"
-                                    type="password"
-                                    placeholder="App Password"
-                                    value={globalSettings.smtp_password}
-                                    onChange={(val) => setGlobalSettings({ ...globalSettings, smtp_password: val })}
-                                />
-                                <InputField
-                                    label="Sender Email ('From')"
-                                    type="email"
-                                    placeholder="nvr@yourdomain.com"
-                                    value={globalSettings.smtp_from_email}
-                                    onChange={(val) => setGlobalSettings({ ...globalSettings, smtp_from_email: val })}
-                                />
-                                <InputField
-                                    label="Default Email Recipient ('To')"
-                                    type="email"
-                                    placeholder="admin@example.com"
-                                    help="Fallback if camera recipient is not set"
-                                    value={globalSettings.notify_email_recipient}
-                                    onChange={(val) => setGlobalSettings({ ...globalSettings, notify_email_recipient: val })}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Telegram Section */}
-                        <div className="pt-6 border-t border-border/50 mt-2">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                                <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Telegram Configuration</h4>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => handleTestNotify('telegram')}
-                                    className="h-11 sm:h-9 w-full sm:w-auto text-xs px-5 shadow-sm active:scale-95"
-                                >
-                                    <Bell className="w-4 h-4 mr-2 opacity-60" />
-                                    Test Telegram
-                                </Button>
-                            </div>
-                            <div className="space-y-4">
-                                <InputField
-                                    label="Bot Token"
-                                    type="password"
-                                    placeholder="123456:ABC-DEF..."
-                                    value={globalSettings.telegram_bot_token}
-                                    onChange={(val) => setGlobalSettings({ ...globalSettings, telegram_bot_token: val })}
-                                    help="Global Default. Can be overridden per camera."
-                                />
-                                <InputField
-                                    label="Global Chat ID"
-                                    placeholder="-100123456789"
-                                    value={globalSettings.telegram_chat_id}
-                                    onChange={(val) => setGlobalSettings({ ...globalSettings, telegram_chat_id: val })}
-                                    help="Default destination for all cameras. Specific cameras can override this."
-                                />
-                            </div>
-                        </div>
-
-                        {/* Webhook Section */}
-                        <div className="pt-6 border-t border-border/50 mt-2">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                                <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Webhook Configuration</h4>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => handleTestNotify('webhook')}
-                                    className="h-11 sm:h-9 w-full sm:w-auto text-xs px-5 shadow-sm active:scale-95"
-                                >
-                                    <Bell className="w-4 h-4 mr-2 opacity-60" />
-                                    Test Webhook
-                                </Button>
-                            </div>
-                            <InputField
-                                label="Global Webhook URL"
-                                placeholder="https://homeassistant.local/api/webhook/..."
-                                value={globalSettings.notify_webhook_url}
-                                onChange={(val) => setGlobalSettings({ ...globalSettings, notify_webhook_url: val })}
-                                help="Global Default. Used if a camera doesn't specify a webhook."
-                            />
-                        </div>
-
-                        {/* Defaults section inside Notifications */}
-                        <div className="pt-4 border-t border-border/50">
-                            <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Attachment Defaults</h4>
-
-                            <div className="mt-4 space-y-4">
-                                <Toggle
-                                    label="Attach Snapshot to Email (Global)"
-                                    checked={globalSettings.global_attach_image_email}
-                                    onChange={(val) => setGlobalSettings({ ...globalSettings, global_attach_image_email: val })}
-                                />
-                                <Toggle
-                                    label="Attach Snapshot to Telegram (Global)"
-                                    checked={globalSettings.global_attach_image_telegram}
-                                    onChange={(val) => setGlobalSettings({ ...globalSettings, global_attach_image_telegram: val })}
-                                />
-                                <p className="text-[10px] text-muted-foreground">Default behavior for image attachments in notifications</p>
-                            </div>
-                        </div>
-                    </div>
-                </CollapsibleSection>
-            )}
-
-            {/* Advanced Optimization Section */}
-            {user?.role === 'admin' && (
-                <CollapsibleSection
-                    id="advanced"
-                    title="Advanced Optimization"
-                    description="Fine-tune performance parameters for CPU and Bandwidth control."
-                    icon={<SettingsIcon className="w-6 h-6" />}
-                    isOpen={openSection === 'advanced'}
-                    onToggle={toggleSection}
-                >
-
-                    <div className="bg-amber-500/10 border border-amber-500/20 text-amber-700 p-4 rounded-lg text-sm">
-                        <strong className="flex items-center gap-2">WARNING:</strong>
-                        Changing these values can significantly impact system stability and resource usage.
-                        Only modify these if you are experiencing performance issues or running on low-end hardware.
-                        Incorrect settings may cause video lag, broken streams, or high CPU usage.
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-6">
-                        {/* Live View Throttling */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-b border-border/50 pb-6">
-                            <div className="md:col-span-1 space-y-1.5">
-                                <label className="block text-sm font-medium text-foreground">Live View FPS Throttle (Nth Frame)</label>
-                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                    Adds a background-level throttle to the live stream.
-                                    Setting this to <strong>2</strong> means only every 2nd frame is processed (effective 15fps for 30fps source).
-                                    <br /><br />
-                                    <span className="text-primary/80 font-medium">Higher value = Less CPU usage</span>, but choppier video.
-                                </p>
-                            </div>
-                            <div className="md:col-span-2">
-                                <InputField
-                                    type="number"
-                                    className="max-w-full sm:max-w-[150px] h-11"
-                                    value={globalSettings.opt_live_view_fps_throttle}
-                                    onChange={val => setGlobalSettings({ ...globalSettings, opt_live_view_fps_throttle: val })}
-                                />
-                                <p className="text-xs text-muted-foreground mt-2 font-medium opacity-70">Default: 2 (Process 50% of frames)</p>
-                            </div>
-                        </div>
-
-                        {/* Motion Throttling */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-b border-border/50 pb-6">
-                            <div className="md:col-span-1 space-y-1.5">
-                                <label className="block text-sm font-medium text-foreground">Motion Detection FPS Throttle</label>
-                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                    Controls how often the motion detection algorithm runs.
-                                    Setting this to <strong>3</strong> means motion is only checked every 3rd frame.
-                                    <br /><br />
-                                    <span className="text-primary/80 font-medium">Higher value = Much Less CPU usage</span>.
-                                    Values &gt; 5 may miss fast objects.
-                                </p>
-                            </div>
-                            <div className="md:col-span-2">
-                                <InputField
-                                    type="number"
-                                    className="max-w-full sm:max-w-[150px] h-11"
-                                    value={globalSettings.opt_motion_fps_throttle}
-                                    onChange={val => setGlobalSettings({ ...globalSettings, opt_motion_fps_throttle: val })}
-                                />
-                                <p className="text-xs text-muted-foreground mt-2 font-medium opacity-70">Default: 3 (Process 33% of frames)</p>
-                            </div>
-                        </div>
-
-                        {/* Pre-Capture Throttling */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
-                            <div className="md:col-span-1">
-                                <label className="block text-sm font-medium mb-1">Pre-Capture Buffer FPS divisor</label>
-                                <p className="text-xs text-muted-foreground">
-                                    Reduces the RAM usage of the pre-trigger buffer by storing fewer frames.
-                                    Setting this to <strong>2</strong> means only every 2nd frame is buffered (saving 50% RAM), but early seconds of recording will be less fluid.
-                                    <br /><br />
-                                    <strong>Higher value = Less RAM usage</strong>.
-                                </p>
-                            </div>
-                            <div className="md:col-span-2">
-                                <InputField
-                                    type="number"
-                                    className="max-w-[150px]"
-                                    value={globalSettings.opt_pre_capture_fps_throttle}
-                                    onChange={val => setGlobalSettings({ ...globalSettings, opt_pre_capture_fps_throttle: val })}
-                                />
-                                <p className="text-[10px] text-muted-foreground mt-1">Default: 1 (Full FPS)</p>
-                            </div>
-                        </div>
-
-                        {/* Live View Height */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
-                            <div className="md:col-span-1">
-                                <label className="block text-sm font-medium mb-1">Live View Resolution Limit (Height)</label>
-                                <p className="text-xs text-muted-foreground">
-                                    If a camera's resolution is higher than this (e.g. 1080p), it will be downscaled for the Live View stream in the browser.
-                                    Recording quality is NOT affected.
-                                    <br /><br />
-                                    <strong>Lower value (e.g. 480 or 720) = Much Lower Bandwidth & CPU</strong>.
-                                </p>
-                            </div>
-                            <div className="md:col-span-2">
-                                <InputField
-                                    type="number"
-                                    className="max-w-[150px]"
-                                    value={globalSettings.opt_live_view_height_limit}
-                                    onChange={val => setGlobalSettings({ ...globalSettings, opt_live_view_height_limit: val })}
-                                />
-                                <p className="text-[10px] text-muted-foreground mt-1">Default: 720 (720p)</p>
-                            </div>
-                        </div>
-
-                        {/* Motion Analysis Height */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
-                            <div className="md:col-span-1">
-                                <label className="block text-sm font-medium mb-1">Motion Analysis Resolution (Height)</label>
-                                <p className="text-xs text-muted-foreground">
-                                    Internal resolution used <i>strictly</i> for detecting motion. Does not affect recording or live view.
-                                    The engine resizes the frame to this height before comparing pixels.
-                                    <br /><br />
-                                    <strong>Smaller = Faster CPU processing</strong>.
-                                    180px is usually enough for human detection.
-                                </p>
-                            </div>
-                            <div className="md:col-span-2">
-                                <InputField
-                                    type="number"
-                                    className="max-w-[150px]"
-                                    value={globalSettings.opt_motion_analysis_height}
-                                    onChange={val => setGlobalSettings({ ...globalSettings, opt_motion_analysis_height: val })}
-                                />
-                                <p className="text-[10px] text-muted-foreground mt-1">Default: 180 (Very Low Res)</p>
-                            </div>
-                        </div>
-
-                        {/* Live View Quality */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
-                            <div className="md:col-span-1">
-                                <label className="block text-sm font-medium mb-1">Live View JPEG Quality</label>
-                                <p className="text-xs text-muted-foreground">
-                                    Compression level for the specific Live View stream.
-                                    <br /><br />
-                                    <strong>Lower (e.g. 50-60) = Less Bandwidth</strong>, faster loading.
-                                    <strong>Higher (90+) = Better looking live view</strong> but higher bandwidth.
-                                </p>
-                            </div>
-                            <div className="md:col-span-2">
-                                <InputField
-                                    type="number"
-                                    className="max-w-[150px]"
-                                    value={globalSettings.opt_live_view_quality}
-                                    onChange={val => setGlobalSettings({ ...globalSettings, opt_live_view_quality: val })}
-                                />
-                                <p className="text-[10px] text-muted-foreground mt-1">Default: 60 (Balanced)</p>
-                            </div>
-                        </div>
-
-                        {/* Snapshot Quality */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
-                            <div className="col-span-1">
-                                <label className="block text-sm font-medium mb-1">Events Snapshot Quality</label>
-                                <p className="text-xs text-muted-foreground">
-                                    Quality of the static JPEG images saved during motion events.
-                                    <br /><br />
-                                    <strong>Higher = Clearer images</strong> for identification.
-                                </p>
-                            </div>
-                            <div className="col-span-2">
-                                <InputField
-                                    type="number"
-                                    className="max-w-[150px]"
-                                    value={globalSettings.opt_snapshot_quality}
-                                    onChange={val => setGlobalSettings({ ...globalSettings, opt_snapshot_quality: val })}
-                                />
-                                <p className="text-[10px] text-muted-foreground mt-1">Default: 90 (High Quality)</p>
-                            </div>
-                        </div>
-
-                        {/* FFMPEG Preset */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="col-span-1">
-                                <label className="block text-sm font-medium mb-1">FFMPEG Transcoding Preset</label>
-                                <p className="text-xs text-muted-foreground">
-                                    Determines how much CPU FFMPEG uses to compress video when transcoding is required (not using Passthrough).
-                                    <br /><br />
-                                    <strong>Ultrafast = Lowest CPU usage</strong>, but larger file sizes or lower quality.
-                                    <strong>Medium = High CPU usage</strong>, smaller file sizes.
-                                </p>
-                            </div>
-                            <div className="col-span-2">
-                                <SelectField
-                                    className="max-w-[200px]"
-                                    value={globalSettings.opt_ffmpeg_preset}
-                                    onChange={val => setGlobalSettings({ ...globalSettings, opt_ffmpeg_preset: val })}
-                                    options={[
-                                        { value: 'ultrafast', label: 'Ultrafast (Best for CPU)' },
-                                        { value: 'superfast', label: 'Superfast' },
-                                        { value: 'veryfast', label: 'Veryfast' },
-                                        { value: 'faster', label: 'Faster' },
-                                        { value: 'fast', label: 'Fast' },
-                                        { value: 'medium', label: 'Medium (Standard)' },
-                                        { value: 'slow', label: 'Slow (High CPU)' }
-                                    ]}
-                                />
-                                <p className="text-[10px] text-muted-foreground mt-1">Default: Ultrafast</p>
-                            </div>
-                        </div>
-
-                        {/* Verbose Logs */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-border/50">
-                            <div className="col-span-1">
-                                <label className="block text-sm font-medium mb-1">Verbose Engine Logs</label>
-                                <p className="text-xs text-muted-foreground">
-                                    Enables detailed logs from OpenCV and FFmpeg.
-                                    <br /><br />
-                                    <strong>Useful for debugging connection issues</strong>, but will clutter the engine logs during normal operation.
-                                </p>
-                            </div>
-                            <div className="col-span-2">
-                                <Toggle
-                                    checked={globalSettings.opt_verbose_engine_logs}
-                                    onChange={val => setGlobalSettings({ ...globalSettings, opt_verbose_engine_logs: val })}
-                                />
-                                <p className="text-xs text-muted-foreground mt-1 opacity-70 font-medium tracking-tight">Default: Off</p>
-                            </div>
-                        </div>
-                    </div>
-                </CollapsibleSection>
-            )}
-
-            {/* Backup & Restore */}
-            {user?.role === 'admin' && (
-                <CollapsibleSection
-                    id="backup"
-                    title="Backup & Restore"
-                    description="Export or Import system configuration (Settings, Cameras, Groups)"
-                    icon={<HardDrive className="w-6 h-6" />}
-                    isOpen={openSection === 'backup'}
-                    onToggle={toggleSection}
-                >
-                    <div className="space-y-6 pt-2">
-                        {/* Automatic Backup Configuration */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="bg-muted/20 p-4 rounded-xl border border-border/50 space-y-4">
-                                <Toggle
-                                    label="Enable Automatic Backup"
-                                    checked={globalSettings.backup_auto_enabled}
-                                    onChange={(val) => setGlobalSettings({ ...globalSettings, backup_auto_enabled: val })}
-                                />
-                                <div className="space-y-2">
-                                    <p className="text-xs text-muted-foreground leading-relaxed">
-                                        Automatically save a full system configuration backup to <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-[10px]">/data/backups/</code>.
-                                    </p>
-                                    <p className="text-xs text-muted-foreground leading-relaxed opacity-70">
-                                        Includes: Cameras, Groups, Users, 2FA secrets, and System Settings.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className={`space-y-4 transition-all duration-300 ${!globalSettings.backup_auto_enabled ? 'opacity-30 pointer-events-none grayscale' : ''}`}>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <InputField
-                                        label="Interval (Hours)"
-                                        type="number"
-                                        help="How often to run the backup."
-                                        unit="Hrs"
-                                        value={globalSettings.backup_auto_frequency_hours}
-                                        onChange={(val) => setGlobalSettings({ ...globalSettings, backup_auto_frequency_hours: val })}
-                                    />
-                                    <InputField
-                                        label="Backups to Keep"
-                                        type="number"
-                                        help="Number of automatic backup files to retain. Manual backups are never deleted automatically."
-                                        unit="Files"
-                                        value={globalSettings.backup_auto_retention}
-                                        onChange={(val) => setGlobalSettings({ ...globalSettings, backup_auto_retention: val })}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Export/Import Buttons (Legacy/Local) */}
-                        <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-2 border-t border-border/50 mt-4">
-                            <Button
-                                onClick={handleExport}
-                                variant="outline"
-                                className="w-full sm:w-auto px-6 py-3 font-bold shadow-sm active:scale-95 text-xs"
-                            >
-                                <Download className="w-4 h-4 shrink-0 mr-2" />
-                                <span>Export (Local Save)</span>
-                            </Button>
-
-                            <div className="relative w-full sm:w-auto">
-                                <input
-                                    type="file"
-                                    accept=".json"
-                                    onChange={handleImport}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                />
-                                <Button
-                                    className="w-full sm:w-auto px-6 py-3 font-bold shadow-sm text-xs"
-                                    variant="outline"
-                                >
-                                    <Upload className="w-4 h-4 shrink-0 mr-2" />
-                                    <span>Import (Local File)</span>
-                                </Button>
-                            </div>
-                        </div>
-
-                        {/* Server-side Backup Manager */}
-                        <div className="pt-6 border-t border-border mt-6">
-                            <BackupManager />
-                        </div>
-                    </div>
-                </CollapsibleSection>
-            )
-            }
-
-            {/* Floating Save Button - Design System compliant rounded-xl style */}
-            {
-                 user?.role === 'admin' && (
-                     <div className="fixed bottom-6 inset-x-5 sm:inset-x-auto sm:right-8 z-50 flex justify-center sm:justify-end pointer-events-none">
-                        <button
-                            onClick={handleSave}
-                            className="pointer-events-auto h-12 flex items-center justify-center space-x-3 bg-primary text-primary-foreground px-10 rounded-xl hover:bg-primary/90 transition-all active:scale-95 font-bold text-base shadow-2xl shadow-primary/30 border border-primary/20 ring-4 ring-background/50 backdrop-blur-sm"
-                        >
-                            <Save className="w-5 h-5" />
-                            <span>Save Settings</span>
-                        </button>
-                     </div>
-                 )
-             }
-            {/* Password Change Modal */}
-            {pwdModalOpen && (
-                <div className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="relative bg-card border border-border rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
-                        <div className="flex justify-between items-center mb-4 border-b border-border pb-4">
-                            <h3 className="text-xl font-bold flex items-center gap-2">
-                                <Key className="w-5 h-5 text-primary" />
-                                {pwdTargetUser ? `Change Password: ${pwdTargetUser.username}` : 'Change Password'}
-                            </h3>
-                            <button
-                                onClick={() => setPwdModalOpen(false)}
-                                className="text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handlePasswordUpdate} className="space-y-4">
-                            {/* Only show Old Password if changing own password */}
-                            {!pwdTargetUser && (
-                                <InputField
-                                    label="Current Password"
-                                    type="password"
-                                    value={pwdForm.old_password}
-                                    onChange={(val) => setPwdForm({ ...pwdForm, old_password: val })}
-                                    required
-                                />
-                            )}
-
-                            <InputField
-                                label="New Password"
-                                type="password"
-                                value={pwdForm.new_password}
-                                onChange={(val) => setPwdForm({ ...pwdForm, new_password: val })}
-                                required
-                            />
-
-                            <InputField
-                                label="Confirm New Password"
-                                type="password"
-                                value={pwdForm.confirm_password}
-                                onChange={(val) => setPwdForm({ ...pwdForm, confirm_password: val })}
-                                required
-                            />
-
-                            <div className="flex justify-end gap-3 pt-4 border-t border-border mt-6">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setPwdModalOpen(false)}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button type="submit">
-                                    Update Password
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
+                <div className="fixed bottom-6 inset-x-5 sm:inset-x-auto sm:right-8 z-50 flex justify-center sm:justify-end pointer-events-none">
+                    <button
+                        onClick={handleSave}
+                        className="pointer-events-auto h-12 flex items-center justify-center space-x-3 bg-primary text-primary-foreground px-10 rounded-xl hover:bg-primary/90 transition-all active:scale-95 font-bold text-base shadow-2xl shadow-primary/30 border border-primary/20 ring-4 ring-background/50 backdrop-blur-sm"
+                    >
+                        <Save className="w-5 h-5" />
+                        <span>Save Settings</span>
+                    </button>
                 </div>
             )}
+
+            <PasswordChangeModal
+                isOpen={pwdModalOpen}
+                onClose={() => setPwdModalOpen(false)}
+                pwdTargetUser={pwdTargetUser}
+                pwdForm={pwdForm}
+                setPwdForm={setPwdForm}
+                handlePasswordUpdate={handlePasswordUpdate}
+            />
+
+            <SyncResultModal
+                isOpen={syncResultModal.isOpen}
+                data={syncResultModal.data}
+                onClose={() => setSyncResultModal({ isOpen: false, data: null })}
+            />
 
             <ConfirmModal
                 {...confirmConfig}
                 onCancel={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
             />
-
-            {/* Sync Result Modal */}
-            {syncResultModal.isOpen && syncResultModal.data && (
-                <div className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-                    <div className="relative bg-background border rounded-lg shadow-lg max-w-lg w-full p-6 animate-in fade-in zoom-in duration-200">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold flex items-center gap-2">
-                                <HardDrive className="w-5 h-5 text-blue-500" />
-                                Recovery Complete
-                            </h3>
-                            <button
-                                onClick={() => setSyncResultModal({ isOpen: false, data: null })}
-                                className="text-muted-foreground hover:text-foreground"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <div className="space-y-4">
-                            {syncResultModal.data.error ? (
-                                <div className="p-4 bg-red-500/10 text-red-500 rounded-lg">
-                                    <p className="font-semibold">Error Occurred</p>
-                                    <p className="text-sm">{syncResultModal.data.error}</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-3 text-sm">
-                                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                                        <span className="font-medium">Recovered Recordings</span>
-                                        <span className="font-bold text-green-600 bg-green-100 px-2 py-1 rounded">{syncResultModal.data.imported}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center p-2 border-b">
-                                        <span className="text-muted-foreground">Skipped (Already in DB)</span>
-                                        <span className="font-medium">{syncResultModal.data.skipped}</span>
-                                    </div>
-
-                                    {(syncResultModal.data.thumbnails_generated > 0) && (
-                                        <div className="flex justify-between items-center p-2 border-b">
-                                            <span>Thumbnails Generated</span>
-                                            <span className="font-medium text-blue-500">{syncResultModal.data.thumbnails_generated}</span>
-                                        </div>
-                                    )}
-
-                                    {(syncResultModal.data.corrupted_deleted > 0) && (
-                                        <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20 mt-2">
-                                            <div className="flex items-center gap-2 mb-1 text-amber-700 font-medium">
-                                                <Trash2 className="w-3 h-3" />
-                                                <span>Corrupted Files Removed</span>
-                                            </div>
-                                            <div className="flex justify-between text-xs text-amber-600/80 pl-5">
-                                                <span>Count: {syncResultModal.data.corrupted_deleted}</span>
-                                                <span> Freed: {syncResultModal.data.corrupted_size_mb} MB</span>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {(syncResultModal.data.orphaned_deleted > 0) && (
-                                        <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20 mt-2">
-                                            <div className="flex items-center gap-2 mb-1 text-red-700 font-medium">
-                                                <Trash2 className="w-3 h-3" />
-                                                <span>Deleted Camera Files Cleaned</span>
-                                            </div>
-                                            <div className="flex justify-between text-xs text-red-600/80 pl-5">
-                                                <span>Count: {syncResultModal.data.orphaned_deleted}</span>
-                                                <span> Freed: {syncResultModal.data.orphaned_size_mb} MB</span>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="mt-6 flex justify-end">
-                            <Button
-                                onClick={() => setSyncResultModal({ isOpen: false, data: null })}
-                                className="bg-primary text-primary-foreground hover:bg-primary/90"
-                            >
-                                Close
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div >
+        </div>
     );
 };
