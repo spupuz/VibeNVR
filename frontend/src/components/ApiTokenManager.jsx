@@ -133,10 +133,9 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                 </div>
                 {!createdToken && (
                     <Button
-                        size="sm"
-                        className="w-full sm:w-auto"
                         onClick={() => setIsCreating(!isCreating)}
                         variant={isCreating ? "ghost" : "default"}
+                        className="w-full sm:w-auto h-11 sm:h-9 font-bold px-6"
                     >
                         {isCreating ? "Cancel" : "Generate New Token"}
                     </Button>
@@ -197,9 +196,9 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                                 onChange={e => setNewTokenExpiresIn(e.target.value)}
                             />
                         </div>
-                        <Button type="submit" size="sm" className="w-full sm:w-auto">Generate</Button>
+                        <Button type="submit" className="w-full sm:w-auto h-11 font-bold px-8">Generate</Button>
                     </div>
-                    <p className="text-[10px] text-muted-foreground mt-2">Leave blank for a permanent token. Recommended for automated services.</p>
+                    <p className="text-xs text-muted-foreground mt-3 font-medium opacity-70">Leave blank for a permanent token. Recommended for automated services.</p>
                 </form>
             )}
 
@@ -225,7 +224,7 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                                             <Key className="w-3 h-3 text-muted-foreground shrink-0" />
                                             <span className="truncate max-w-[200px]" title={t.name}>{t.name}</span>
                                             {isExpired && (
-                                                <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-destructive/10 text-destructive border border-destructive/20 rounded-lg shrink-0">
+                                                <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-primary/10 text-primary border border-primary/20 rounded-lg shrink-0">
                                                     Expired
                                                 </span>
                                             )}
@@ -271,8 +270,8 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                                         <Key className="w-4 h-4 text-primary shrink-0" />
                                         <span className="font-bold text-base break-all">{t.name}</span>
                                     </div>
-                                    {isExpired && (
-                                        <span className="w-fit px-2 py-0.5 text-[10px] font-bold uppercase bg-destructive/10 text-destructive border border-destructive/20 rounded-lg">
+                                     {isExpired && (
+                                        <span className="w-fit px-2 py-0.5 text-xs font-bold uppercase bg-primary/10 text-primary border border-primary/20 rounded-lg">
                                             Expired
                                         </span>
                                     )}
@@ -286,20 +285,20 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border/50">
+                             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border/40 mt-1">
                                 <div>
-                                    <span className="block text-[10px] uppercase font-mono text-muted-foreground mb-1">Created</span>
-                                    <span className="text-sm font-medium">{new Date(t.created_at).toLocaleDateString()}</span>
+                                    <span className="block text-xs uppercase font-bold text-muted-foreground mb-1.5 opacity-70">Created</span>
+                                    <span className="text-sm font-semibold">{new Date(t.created_at).toLocaleDateString()}</span>
                                 </div>
                                 <div>
-                                    <span className="block text-[10px] uppercase font-mono text-muted-foreground mb-1">Expires</span>
-                                    <span className={`text-sm font-bold ${isExpired ? 'text-destructive' : 'text-foreground'}`}>
+                                    <span className="block text-xs uppercase font-bold text-muted-foreground mb-1.5 opacity-70">Expires</span>
+                                    <span className={`text-sm font-bold ${isExpired ? 'text-primary' : 'text-foreground'}`}>
                                         {t.expires_at ? new Date(t.expires_at).toLocaleDateString() : 'Never'}
                                     </span>
                                 </div>
                                 <div className="col-span-2">
-                                    <span className="block text-[10px] uppercase font-mono text-muted-foreground mb-1">Last Used</span>
-                                    <span className="text-sm font-medium">
+                                    <span className="block text-xs uppercase font-bold text-muted-foreground mb-1.5 opacity-70">Last Used</span>
+                                    <span className="text-sm font-semibold">
                                         {t.last_used_at ? new Date(t.last_used_at).toLocaleDateString() : 'Never'}
                                     </span>
                                 </div>

@@ -39,3 +39,9 @@ frontend/.env
 scripts/
 .agents/
 .agents/workflows/
+# Sanity Test Artifacts & Snapshots
+sanity_snapshot.json
+latest_system_auto.json
+sanity_backup.json
+tmp/sanity_snapshot.json
+tmp/latest_system_auto.json

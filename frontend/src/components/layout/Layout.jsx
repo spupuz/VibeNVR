@@ -13,7 +13,7 @@ export const Layout = ({ children, activeTab, onTabChange, theme, toggleTheme })
     const isWeakKey = healthDetails?.is_weak_key && user?.role === 'admin';
 
     return (
-        <div className="min-h-screen bg-background text-foreground flex overflow-x-hidden relative">
+        <div className="min-h-screen bg-background text-foreground flex overflow-x-hidden relative w-full max-w-full">
             {/* Global Security Warning (High Visibility) */}
             {isWeakKey && (
                 <div className="fixed inset-x-0 top-0 z-[100] p-4 flex justify-center pointer-events-none">
@@ -81,23 +81,23 @@ export const Layout = ({ children, activeTab, onTabChange, theme, toggleTheme })
             />
 
             {/* Main content */}
-            <div className="flex-1 lg:ml-64 flex flex-col h-screen">
+            <div className="flex-1 lg:ml-64 flex flex-col h-screen min-w-0 max-w-full overflow-hidden">
                 {/* Mobile header - fixed at top */}
-                <div className="lg:hidden sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border p-3 flex items-center justify-between">
+                <div className="lg:hidden sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border p-3 flex items-center justify-between w-full max-w-full overflow-hidden">
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="p-2 rounded-lg hover:bg-accent"
+                        className="p-2 rounded-lg hover:bg-accent shrink-0"
                     >
                         <Menu className="w-6 h-6" />
                     </button>
-                    <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+                    <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent truncate px-2 flex-1 text-center">
                         VibeNVR
                     </h1>
-                    <div className="w-10" /> {/* Spacer for centering */}
+                    <div className="w-10 shrink-0" /> {/* Spacer for centering */}
                 </div>
 
-                <main className={`flex-1 overflow-y-auto overflow-x-hidden ${isLivePage ? 'p-0 w-full' : 'px-5 py-4 lg:p-8'}`}>
-                    <div className={isLivePage ? "w-full min-h-full flex flex-col" : "w-full max-w-7xl mx-auto"}>
+                <main className={`flex-1 overflow-y-auto overflow-x-hidden relative ${isLivePage ? 'p-0 w-full' : 'px-4 sm:px-5 py-4 lg:p-8'}`}>
+                    <div className={isLivePage ? "w-full min-h-full flex flex-col" : "w-full max-w-7xl mx-auto min-w-0 overflow-hidden"}>
                         {children}
                     </div>
                 </main>

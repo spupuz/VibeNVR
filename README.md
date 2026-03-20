@@ -45,6 +45,7 @@ This software is currently in active beta development. The database schema is st
 | 🔑 **API Access Tokens** | Secure, read-only API tokens with **TTL (Expiration)** and hashed storage for 3rd party integrations. |
 | 💾 **Storage Management** | Automated background cleanup (FIFO), **Multiple Storage Profiles**, and **Bulk Deletion** tools. |
 | 📁 **Camera Groups** | Organize cameras into custom groups for logical multi-view management. |
+| 💾 **System Backups** | Automated & Manual configuration snapshots with server-side management and restoration. |
 | 🕙 **Timezone Synchronization** | Full ISO 8601 support ensures perfect timing between engine, backend, and UI. |
 | 📊 **Real-time Monitoring** | Native **WebCodecs H.264** low-latency WebSocket streaming, with selectable modes and adaptive JPEG polling fallback. |
 | 🛡️ **IP Ban Protection** | Automated `ffprobe` pre-flight checks and per-camera **RTSP Transport** selection (TCP/UDP) to ensure maximum compatibility. |

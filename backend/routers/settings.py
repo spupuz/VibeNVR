@@ -10,9 +10,10 @@ import models
 import schemas
 import auth_service
 import json, time, logging
-import datetime, motion_service
-import requests
+import datetime, motion_service, backup_service
+import requests, os
 import telemetry_service
+import settings_service
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 limiter = Limiter(key_func=get_remote_address)
@@ -24,9 +25,7 @@ def manual_telemetry_report(db: Session = Depends(database.get_db), current_user
     return {"status": "ok" if status_code == 200 else "error"}
 
 def get_setting(db: Session, key: str) -> Optional[str]:
-    """Get a setting value by key"""
-    setting = db.query(models.SystemSettings).filter(models.SystemSettings.key == key).first()
-    return setting.value if setting else None
+    return settings_service.get_setting(db, key)
 
 
 # Validation Constants
@@ -36,77 +35,10 @@ VALID_FFMPEG_PRESETS = {
 }
 
 def validate_setting(key: str, value: str):
-    """Validate setting values to prevent invalid configuration"""
-    try:
-        if key == "opt_ffmpeg_preset":
-            if value not in VALID_FFMPEG_PRESETS:
-                raise ValueError(f"Invalid preset. Must be one of: {', '.join(VALID_FFMPEG_PRESETS)}")
-        
-        elif key in ["opt_live_view_fps_throttle", "opt_motion_fps_throttle"]:
-            v = int(value)
-            if v < 1: raise ValueError("Throttle must be >= 1")
-            
-        elif key == "opt_live_view_height_limit":
-            v = int(value)
-            if v < 144: raise ValueError("Height limit must be >= 144")
-            
-        elif key == "opt_motion_analysis_height":
-            v = int(value)
-            if v < 64: raise ValueError("Motion analysis height must be >= 64")
-            
-        elif key in ["opt_live_view_quality", "opt_snapshot_quality"]:
-            v = int(value)
-            if v < 1 or v > 100: raise ValueError("Quality must be between 1 and 100")
-            
-        elif key == "default_live_view_mode":
-            if value not in ["auto", "webcodecs", "mjpeg"]:
-                raise ValueError("Invalid mode. Must be 'auto', 'webcodecs', or 'mjpeg'")
-        
-        elif key in ["opt_verbose_engine_logs", "telemetry_enabled"]:
-            if value.lower() not in ["true", "false"]:
-                raise ValueError("Must be 'true' or 'false'")
-        
-        elif key == "notify_webhook_url" and value:
-            import socket
-            from urllib.parse import urlparse
-            import ipaddress
-            try:
-                parsed = urlparse(value)
-                if not parsed.scheme or not parsed.netloc:
-                    raise ValueError('Invalid URL format')
-                host = parsed.hostname
-                try:
-                    ip_addr = ipaddress.ip_address(host)
-                except ValueError:
-                    try:
-                        ip_addr = ipaddress.ip_address(socket.gethostbyname(host))
-                    except Exception:
-                        return
-                if ip_addr.is_loopback or ip_addr.is_private or ip_addr.is_reserved or ip_addr.is_link_local:
-                    # Allow local/private IPs for webhooks in local lab/dev environments
-                    pass
-            except Exception as e:
-                if isinstance(e, ValueError): raise e
-                raise ValueError(f'Invalid or unreachable URL: {str(e)}')
-            
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid value for {key}: {str(e)}")
+    settings_service.validate_setting(key, value)
 
 def set_setting(db: Session, key: str, value: str, description: str = None):
-    """Set a setting value, create if doesn't exist"""
-    validate_setting(key, value)
-    
-    setting = db.query(models.SystemSettings).filter(models.SystemSettings.key == key).first()
-    if setting:
-        setting.value = value
-        if description:
-            setting.description = description
-    else:
-        setting = models.SystemSettings(key=key, value=value, description=description)
-        db.add(setting)
-    db.commit()
-    db.refresh(setting)
-    return setting
+    return settings_service.set_setting(db, key, value, description)
 
 @router.get("")
 def get_all_settings(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
@@ -142,6 +74,23 @@ def update_setting(key: str, value: str, description: str = None, db: Session = 
 def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Update multiple settings at once"""
     for key, value in settings.items():
+        # Validation for known numeric keys
+        numeric_keys = [
+            "max_global_storage_gb", "cleanup_interval_hours", 
+            "backup_auto_frequency_hours", "backup_auto_retention",
+            "opt_live_view_fps_throttle", "opt_motion_fps_throttle",
+            "opt_live_view_height_limit", "opt_motion_analysis_height",
+            "opt_live_view_quality", "opt_snapshot_quality"
+        ]
+        if key in numeric_keys:
+            try:
+                # Value might be string, int, or float from JSON
+                val_num = float(value)
+                if val_num < 0:
+                     raise HTTPException(status_code=400, detail=f"Value for {key} must be non-negative")
+            except (ValueError, TypeError):
+                raise HTTPException(status_code=400, detail=f"Value for {key} must be a number")
+
         set_setting(db, key, str(value))
     
     # Sync global config if any opt_ setting was updated
@@ -204,6 +153,11 @@ DEFAULT_SETTINGS = {
     "telemetry_enabled": {"value": "true", "description": "Enable anonymous telemetry to help improve VibeNVR"},
     "instance_id": {"value": "", "description": "Unique anonymous ID for this VibeNVR instance"},
     "default_live_view_mode": {"value": "auto", "description": "Default streaming mode for new cameras (auto, webcodecs, mjpeg)"},
+    
+    # Automatic Backup Settings
+    "backup_auto_enabled": {"value": "false", "description": "Enable automatic configuration backups to /data/backups/"},
+    "backup_auto_frequency_hours": {"value": "24", "description": "Frequency in hours for automatic backups"},
+    "backup_auto_retention": {"value": "7", "description": "Number of backup files to retain in the folder"},
 }
 
 @router.post("/init-defaults")
@@ -245,7 +199,10 @@ def export_backup(request: Request, db: Session = Depends(database.get_db), curr
             "username": u.username,
             "email": u.email,
             "hashed_password": u.hashed_password,
-            "role": u.role
+            "role": u.role,
+            "is_2fa_enabled": u.is_2fa_enabled,
+            "totp_secret": u.totp_secret,
+            "avatar_path": u.avatar_path
         } for u in db.query(models.User).all()]
     }
     
@@ -254,6 +211,144 @@ def export_backup(request: Request, db: Session = Depends(database.get_db), curr
         content=data,
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+async def perform_restore(data: dict, db: Session):
+    """Core logic to restore system state from a JSON dictionary"""
+    if not isinstance(data, dict) or "cameras" not in data:
+        raise HTTPException(status_code=400, detail="Invalid backup file format")
+
+    # 1. Restore Settings
+    if "settings" in data:
+        for s in data["settings"]:
+            existing = db.query(models.SystemSettings).filter(models.SystemSettings.key == s["key"]).first()
+            
+            if s["key"].startswith("opt_"):
+                try:
+                    validate_setting(s["key"], str(s["value"]))
+                except HTTPException as e:
+                    logging.warning(f"[BACKUP] Skipping invalid optimization setting {s['key']}: {e.detail}")
+                    continue
+            
+            if existing:
+                existing.value = s["value"]
+                existing.description = s.get("description")
+            else:
+                new_setting = models.SystemSettings(
+                    key=s["key"], value=s["value"], description=s.get("description")
+                )
+                db.add(new_setting)
+    
+    # 2. Restore Storage Profiles
+    profile_id_map = {} 
+    if "storage_profiles" in data:
+        for p in data["storage_profiles"]:
+            backup_p_id = p.get("id")
+            existing_p = db.query(models.StorageProfile).filter(models.StorageProfile.name == p.get("name")).first()
+            if not existing_p:
+                existing_p = models.StorageProfile()
+                db.add(existing_p)
+            
+            for k, v in p.items():
+                if k == "id": continue
+                if hasattr(existing_p, k):
+                    setattr(existing_p, k, v)
+            
+            db.flush()
+            profile_id_map[backup_p_id] = existing_p.id
+
+    # 3. Restore Cameras
+    cam_id_map = {} 
+    from urllib.parse import urlparse
+    def get_host(url):
+        try:
+            if not url: return None
+            if "://" not in url: url = "rtsp://" + url
+            return urlparse(url).hostname
+        except: return None
+
+    if "cameras" in data:
+        for c in data["cameras"]:
+            backup_id = c.get("id")
+            rtsp_url = c.get("rtsp_url")
+            cam_host = get_host(rtsp_url)
+            
+            existing_cam = db.query(models.Camera).filter(models.Camera.id == backup_id).first()
+            if not existing_cam and cam_host:
+                all_cams = db.query(models.Camera).all()
+                existing_cam = next((cam for cam in all_cams if get_host(cam.rtsp_url) == cam_host), None)
+            
+            if not existing_cam:
+                id_conflict = db.query(models.Camera).filter(models.Camera.id == backup_id).first()
+                existing_cam = models.Camera() if id_conflict else models.Camera(id=backup_id)
+                db.add(existing_cam)
+            
+            try:
+                cam_data = {k: v for k, v in c.items() if k not in ['id', 'events', 'groups', 'last_frame_path', 'last_thumbnail_path']}
+                clean_cam = schemas.CameraCreate(**cam_data)
+                
+                for k, v in clean_cam.model_dump(exclude_unset=True).items():
+                     if k == "storage_profile_id" and v in profile_id_map:
+                         setattr(existing_cam, k, profile_id_map[v])
+                     elif hasattr(existing_cam, k):
+                         setattr(existing_cam, k, v)
+                
+                db.flush() 
+                cam_id_map[backup_id] = existing_cam.id
+            except Exception as e:
+                 logging.warning(f"[BACKUP] Security Warning: Skipping invalid camera config for ID {backup_id}: {e}")
+                 continue
+
+    # 4. Restore Groups
+    grp_id_map = {} 
+    if "groups" in data:
+        for g in data["groups"]:
+            backup_grp_id = g.get("id")
+            existing_grp = db.query(models.CameraGroup).filter(models.CameraGroup.name == g.get("name")).first()
+            if not existing_grp:
+                existing_grp = models.CameraGroup()
+                db.add(existing_grp)
+            
+            for k, v in g.items():
+                if k in ["cameras", "id"]: continue
+                if hasattr(existing_grp, k):
+                    setattr(existing_grp, k, v)
+            
+            db.flush()
+            grp_id_map[backup_grp_id] = existing_grp.id
+    
+    # 5. Restore Associations
+    if "associations" in data:
+        for a in data["associations"]:
+             new_cam_id = cam_id_map.get(a.get("camera_id"))
+             new_grp_id = grp_id_map.get(a.get("group_id"))
+             if new_cam_id and new_grp_id:
+                 exists = db.query(models.CameraGroupAssociation).filter_by(
+                     camera_id=new_cam_id, group_id=new_grp_id
+                 ).first()
+                 if not exists:
+                     db.add(models.CameraGroupAssociation(camera_id=new_cam_id, group_id=new_grp_id))
+
+    # 6. Restore Users
+    if "users" in data:
+        for u in data["users"]:
+            existing_user = db.query(models.User).filter(models.User.username == u["username"]).first()
+            if not existing_user:
+                new_user = models.User(
+                    username=u["username"],
+                    email=u.get("email"),
+                    hashed_password=u["hashed_password"],
+                    role=u.get("role", "viewer"),
+                    is_2fa_enabled=u.get("is_2fa_enabled", False),
+                    totp_secret=u.get("totp_secret"),
+                    avatar_path=u.get("avatar_path")
+                )
+                db.add(new_user)
+            else:
+                existing_user.role = u.get("role", existing_user.role)
+                existing_user.email = u.get("email", existing_user.email)
+    
+    db.commit()
+    return {"message": "Configuration restored successfully"}
 
 @router.post("/backup/import")
 @limiter.limit("5/minute")
@@ -270,188 +365,72 @@ async def import_backup(
         if len(content) > MAX_BACKUP_SIZE:
             raise HTTPException(status_code=400, detail="File too large (max 10 MB)")
         data = json.loads(content)
-        
-        # 1. Restore Check
-        if not isinstance(data, dict) or "cameras" not in data:
-            raise HTTPException(status_code=400, detail="Invalid backup file format")
-
-        # 2. Restore Settings
-        if "settings" in data:
-            for s in data["settings"]:
-                # Merge: Update if exists, insert if not
-                # DB merge requires an object
-                # Filter out nulls if needed, or just overwrite
-                existing = db.query(models.SystemSettings).filter(models.SystemSettings.key == s["key"]).first()
-                
-                # OPTIMIZATION: Validate optimization settings during import
-                if s["key"].startswith("opt_"):
-                    try:
-                        validate_setting(s["key"], str(s["value"]))
-                    except HTTPException as e:
-                        logging.warning(f"[BACKUP] Skipping invalid optimization setting {s['key']}: {e.detail}")
-                        continue
-                
-                if existing:
-                    existing.value = s["value"]
-                    existing.description = s.get("description")
-                else:
-                    new_setting = models.SystemSettings(
-                        key=s["key"], value=s["value"], description=s.get("description")
-                    )
-                    db.add(new_setting)
-        
-        # 3. Restore Storage Profiles
-        profile_id_map = {} # backup_id -> actual_db_id
-        if "storage_profiles" in data:
-            for p in data["storage_profiles"]:
-                backup_p_id = p.get("id")
-                # Match by name
-                existing_p = db.query(models.StorageProfile).filter(models.StorageProfile.name == p.get("name")).first()
-                if not existing_p:
-                    existing_p = models.StorageProfile()
-                    db.add(existing_p)
-                
-                for k, v in p.items():
-                    if k == "id": continue
-                    if hasattr(existing_p, k):
-                        setattr(existing_p, k, v)
-                
-                db.flush()
-                profile_id_map[backup_p_id] = existing_p.id
-
-        # 4. Restore Cameras
-        # Strategy: De-duplication by RTSP URL if ID doesn't match
-        cam_id_map = {} # backup_id -> actual_db_id
-        if "cameras" in data:
-            # We need extract_host logic here to match by Host/IP if URL changes slightly (e.g. credentials)
-            from urllib.parse import urlparse
-            def get_host(url):
-                try:
-                    if not url: return None
-                    if "://" not in url: url = "rtsp://" + url
-                    return urlparse(url).hostname
-                except: return None
-
-            for c in data["cameras"]:
-                backup_id = c.get("id")
-                rtsp_url = c.get("rtsp_url")
-                cam_host = get_host(rtsp_url)
-                
-                # 1. Try match by ID
-                existing_cam = db.query(models.Camera).filter(models.Camera.id == backup_id).first()
-                
-                # 2. If not found by ID, try match by Host/IP (like in single import)
-                if not existing_cam and cam_host:
-                    # Get all cameras to check host (could be optimized with a specialized query if needed)
-                    all_cams = db.query(models.Camera).all()
-                    existing_cam = next((cam for cam in all_cams if get_host(cam.rtsp_url) == cam_host), None)
-                
-                if not existing_cam:
-                    # Create new but DON'T force the backup ID if it might conflict
-                    # Let auto-increment handle it if the backup ID is already taken by a DIFFERENT camera
-                    id_conflict = db.query(models.Camera).filter(models.Camera.id == backup_id).first()
-                    if id_conflict:
-                        existing_cam = models.Camera() # New ID
-                    else:
-                        existing_cam = models.Camera(id=backup_id)
-                    db.add(existing_cam)
-                
-                # Validate data using schema
-                try:
-                    cam_data = {k: v for k, v in c.items() if k not in ['id', 'events', 'groups', 'last_frame_path', 'last_thumbnail_path']}
-                    clean_cam = schemas.CameraCreate(**cam_data)
-                    
-                    # Apply validated fields
-                    for k, v in clean_cam.model_dump(exclude_unset=True).items():
-                         if k == "storage_profile_id" and v in profile_id_map:
-                             # Map the storage profile ID if it was in the backup
-                             setattr(existing_cam, k, profile_id_map[v])
-                         elif hasattr(existing_cam, k):
-                             setattr(existing_cam, k, v)
-                    
-                    db.flush() # Ensure ID is generated if new
-                    cam_id_map[backup_id] = existing_cam.id
-                except Exception as e:
-                     logging.warning(f"[BACKUP] Security Warning: Skipping invalid camera config for ID {backup_id}: {e}")
-                     continue
-
-        # 4. Restore Groups
-        grp_id_map = {} # backup_id -> actual_db_id
-        if "groups" in data:
-            for g in data["groups"]:
-                backup_grp_id = g.get("id")
-                # Try match by name if ID differs? Usually Groups are few, match by name is safer.
-                existing_grp = db.query(models.CameraGroup).filter(models.CameraGroup.name == g.get("name")).first()
-                if not existing_grp:
-                    existing_grp = models.CameraGroup()
-                    db.add(existing_grp)
-                
-                for k, v in g.items():
-                    if k in ["cameras", "id"]: continue
-                    if hasattr(existing_grp, k):
-                        setattr(existing_grp, k, v)
-                
-                db.flush()
-                grp_id_map[backup_grp_id] = existing_grp.id
-        
-        # 5. Restore Associations
-        if "associations" in data:
-            logging.info(f"[BACKUP] Restoring {len(data['associations'])} camera-group associations")
-            for a in data["associations"]:
-                 old_cam_id = a.get("camera_id")
-                 old_grp_id = a.get("group_id")
-                 
-                 # Map to new IDs
-                 new_cam_id = cam_id_map.get(old_cam_id)
-                 new_grp_id = grp_id_map.get(old_grp_id)
-                 
-                 if new_cam_id and new_grp_id:
-                     exists = db.query(models.CameraGroupAssociation).filter_by(
-                         camera_id=new_cam_id, group_id=new_grp_id
-                     ).first()
-                     if not exists:
-                         assoc = models.CameraGroupAssociation(camera_id=new_cam_id, group_id=new_grp_id)
-                         db.add(assoc)
-
-        # 6. Restore Users
-        if "users" in data:
-            logging.info(f"[BACKUP] Restoring {len(data['users'])} users")
-            for u in data["users"]:
-                existing_user = db.query(models.User).filter(models.User.username == u["username"]).first()
-                if not existing_user:
-                    new_user = models.User(
-                        username=u["username"],
-                        email=u.get("email"),
-                        hashed_password=u["hashed_password"],
-                        role=u.get("role", "viewer")
-                    )
-                    db.add(new_user)
-                else:
-                    # Update existing user role/email? 
-                    # Generally safer to just restore missing ones to avoid locking out the person doing the restore if they changed their pwd.
-                    existing_user.role = u.get("role", existing_user.role)
-                    existing_user.email = u.get("email", existing_user.email)
-
-        db.commit()
-        
-        # 6. Apply settings to engine (Force clean restart)
-        try:
-             # Stop everyone first to avoid conflicts and stale threads
-             motion_service.stop_all_engines()
-             # Wait a small moment for OS cleanup
-             time.sleep(1)
-             motion_service.generate_motion_config(db)
-        except Exception as e:
-             print(f"[BACKUP] Warning: Failed to sync engine after import: {e}", flush=True)
-
-        return {"message": "Backup imported successfully. All cameras synced."}
-
+        return await perform_restore(data, db)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON format")
     except Exception as e:
         db.rollback()
-        print(f"Import Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to import backup: {str(e)}")
+        logging.error(f"Import failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/backup/list")
+def list_backups(current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """List available backup files on the server"""
+    if not os.path.exists(backup_service.BACKUP_DIR):
+        return []
+    
+    files = []
+    for f in os.listdir(backup_service.BACKUP_DIR):
+        if f.endswith(".json"):
+            path = os.path.join(backup_service.BACKUP_DIR, f)
+            stats = os.stat(path)
+            files.append({
+                "filename": f,
+                "size": stats.st_size,
+                "created_at": datetime.datetime.fromtimestamp(stats.st_ctime).isoformat()
+            })
+    
+    # Sort descending
+    files.sort(key=lambda x: x["created_at"], reverse=True)
+    return files
 
+@router.post("/backup/run")
+def manual_backup(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """Manually trigger a system backup"""
+    backup_service.run_backup(is_manual=True)
+    return {"message": "Manual backup completed successfully"}
+
+@router.delete("/backup/{filename}")
+def delete_backup(filename: str, current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """Delete a specific backup file"""
+    if "/" in filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
+    path = os.path.join(backup_service.BACKUP_DIR, filename)
+    if os.path.exists(path):
+        os.remove(path)
+        return {"message": f"Backup {filename} deleted"}
+    else:
+        raise HTTPException(status_code=404, detail="Backup not found")
+
+@router.post("/backup/restore-file/{filename}")
+async def restore_backup_from_file(filename: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """Restore system configuration from a file on the server"""
+    if "/" in filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
+    path = os.path.join(backup_service.BACKUP_DIR, filename)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Backup file not found")
+    
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+        return await perform_restore(data, db)
+    except Exception as e:
+        db.rollback()
+        logging.error(f"Restore from file failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 # Rate limiting for orphan sync (prevent abuse)
 _last_orphan_sync_time = None
 

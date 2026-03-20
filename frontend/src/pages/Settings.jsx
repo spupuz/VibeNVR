@@ -11,6 +11,7 @@ import { Avatar } from '../components/ui/Avatar';
 import { ApiTokenManager } from '../components/ApiTokenManager';
 import { StorageProfileManager } from '../components/StorageProfileManager';
 import { Toggle, InputField, SelectField } from '../components/ui/FormControls';
+import { BackupManager } from './Settings/BackupManager';
 
 export const Settings = () => {
     const { user, token } = useAuth();
@@ -47,7 +48,10 @@ export const Settings = () => {
         opt_pre_capture_fps_throttle: 1,
         opt_verbose_engine_logs: false,
         telemetry_enabled: true,
-        default_live_view_mode: 'auto'
+        default_live_view_mode: 'auto',
+        backup_auto_enabled: false,
+        backup_auto_frequency_hours: 24,
+        backup_auto_retention: 7
     });
     const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0, percent: 0 });
     const [loading, setLoading] = useState(true);
@@ -298,7 +302,10 @@ export const Settings = () => {
                     opt_pre_capture_fps_throttle: parseInt(data.opt_pre_capture_fps_throttle?.value) || 1,
                     opt_verbose_engine_logs: data.opt_verbose_engine_logs?.value === 'true',
                     telemetry_enabled: data.telemetry_enabled?.value !== 'false',
-                    default_live_view_mode: data.default_live_view_mode?.value || 'auto'
+                    default_live_view_mode: data.default_live_view_mode?.value || 'auto',
+                    backup_auto_enabled: data.backup_auto_enabled?.value === 'true',
+                    backup_auto_frequency_hours: parseInt(data.backup_auto_frequency_hours?.value) || 24,
+                    backup_auto_retention: parseInt(data.backup_auto_retention?.value) || 7
                 });
             }
         } catch (err) {
@@ -353,7 +360,10 @@ export const Settings = () => {
                     opt_pre_capture_fps_throttle: globalSettings.opt_pre_capture_fps_throttle.toString(),
                     opt_verbose_engine_logs: globalSettings.opt_verbose_engine_logs.toString(),
                     telemetry_enabled: globalSettings.telemetry_enabled.toString(),
-                    default_live_view_mode: globalSettings.default_live_view_mode
+                    default_live_view_mode: globalSettings.default_live_view_mode,
+                    backup_auto_enabled: globalSettings.backup_auto_enabled.toString(),
+                    backup_auto_frequency_hours: globalSettings.backup_auto_frequency_hours.toString(),
+                    backup_auto_retention: globalSettings.backup_auto_retention.toString()
                 })
             });
             showToast('Settings saved successfully!', 'success');
@@ -493,7 +503,7 @@ export const Settings = () => {
     }, [token]);
 
     return (
-        <div className="space-y-8 relative w-full pb-24">
+        <div className="space-y-12 relative w-full pb-52 min-w-0 max-w-full overflow-hidden">
 
 
             <div>
@@ -513,14 +523,13 @@ export const Settings = () => {
                     isOpen={openSection === 'users'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex justify-end mb-4">
+                    <div className="flex justify-end mb-4 h-11">
                         <Button
                             variant={isCreatingUser ? "ghost" : "default"}
-                            size="sm"
                             onClick={() => setIsCreatingUser(!isCreatingUser)}
-                            className="flex items-center gap-2"
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 h-full px-6 font-bold"
                         >
-                            {isCreatingUser ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                            {isCreatingUser ? <X className="w-5 h-5 shrink-0" /> : <Plus className="w-5 h-5 shrink-0" />}
                             {isCreatingUser ? 'Cancel' : 'Add User'}
                         </Button>
                     </div>
@@ -561,7 +570,7 @@ export const Settings = () => {
                                 />
                             </div>
                             <div className="flex justify-end">
-                                <Button type="submit" size="sm">Create User</Button>
+                                <Button type="submit" className="w-full sm:w-auto h-11 px-8 font-bold">Create User</Button>
                             </div>
                         </form>
                     )}
@@ -574,13 +583,15 @@ export const Settings = () => {
                                     <div className="flex items-center gap-3">
                                         <Avatar user={u} size="xs" />
                                         <div className="min-w-0">
-                                            <p className="font-semibold text-sm truncate">{u.username}</p>
-                                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wider ${u.role === 'admin' ? 'bg-purple-100/10 text-purple-500 border border-purple-500/20' : 'bg-gray-100/10 text-gray-500 border border-gray-500/20'}`}>
+                                            <p className="font-bold text-sm truncate">{u.username}</p>
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold uppercase tracking-wider ${u.role === 'admin' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-muted text-muted-foreground border border-border/50'}`}>
                                                 {u.role}
                                             </span>
                                         </div>
                                     </div>
-                                    {u.id === user.id && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold uppercase">You</span>}
+                                     {u.id === user.id && (
+                                        <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-lg font-bold uppercase tracking-tight">You</span>
+                                    )}
                                 </div>
                                 <div className="flex justify-end gap-2 pt-3 border-t border-border/30">
                                     <button
@@ -652,8 +663,8 @@ export const Settings = () => {
                                                 {u.id === user.id && <span className="text-[10px] bg-primary/20 text-primary px-1.5 shrink-0 rounded">You</span>}
                                             </td>
                                             <td className="p-3">
-                                                <span className={'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ' +
-                                                    (u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800')
+                                                <span className={'inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ' +
+                                                    (u.role === 'admin' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-muted text-muted-foreground border border-border/50')
                                                 }>
                                                     {u.role}
                                                 </span>
@@ -760,7 +771,7 @@ export const Settings = () => {
                                     style={{ width: Math.min(occupationPercent, 100) + '%' }}
                                 />
                             </div>
-                            <p className="text-[10px] text-muted-foreground mt-2 italic">
+                            <p className="text-xs text-muted-foreground mt-2 italic opacity-70">
                                 {globalSettings.max_global_storage_gb > 0
                                     ? 'Currently using ' + storageStats.used_gb + ' GB of your ' + globalSettings.max_global_storage_gb + ' GB limit.'
                                     : 'Total disk usage. No global limit set.'}
@@ -984,11 +995,10 @@ export const Settings = () => {
                                 {globalSettings.telemetry_enabled && (
                                     <div className="pt-4 border-t border-border/50 flex flex-col gap-2">
                                         <Button
-                                            size="sm"
-                                            variant="outline"
                                             onClick={handleManualTelemetry}
                                             disabled={isReportingTelemetry}
-                                            className="w-full justify-center"
+                                            variant="outline"
+                                            className="w-full justify-center h-11 font-bold"
                                         >
                                             <Send className="w-4 h-4 mr-2" />
                                             {isReportingTelemetry ? 'Sending...' : 'Send Report Now'}
@@ -997,17 +1007,17 @@ export const Settings = () => {
                                             href="https://vibenvr-telemetry.spupuz.workers.dev/"
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="inline-flex items-center justify-center gap-2 p-3 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-all duration-200 group no-underline"
+                                            className="inline-flex items-center justify-center gap-2 p-3.5 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-all duration-200 group no-underline min-h-[44px]"
                                         >
-                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                                <LayoutDashboard className="w-4 h-4" />
+                                            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                <LayoutDashboard className="w-5 h-5" />
                                             </div>
                                             <div className="text-left">
-                                                <p className="text-[10px] font-bold uppercase tracking-wider leading-none mb-1">Public Analytics</p>
-                                                <p className="text-[9px] text-muted-foreground leading-tight">View global usage stats</p>
+                                                <p className="text-xs font-bold uppercase tracking-wider leading-none mb-1">Public Analytics</p>
+                                                <p className="text-[10px] text-muted-foreground leading-tight font-medium opacity-80">View global usage stats</p>
                                             </div>
                                         </a>
-                                        <p className="text-[9px] text-muted-foreground text-center px-2">
+                                        <p className="text-[10px] text-muted-foreground text-center px-2 font-medium">
                                             Manually trigger a report for testing or view global anonymous statistics.
                                         </p>
                                     </div>
@@ -1038,10 +1048,10 @@ export const Settings = () => {
                                         ].map(row => (
                                             <div key={row.field} className="p-3 bg-muted/20 border border-border/50 rounded-xl flex flex-col gap-2">
                                                 <div className="flex justify-between items-start">
-                                                    <span className="font-mono text-[10px] text-primary/80 font-bold uppercase tracking-wider">{row.field}</span>
-                                                    <span className="text-xs font-medium">{row.example}</span>
+                                                    <span className="font-mono text-xs text-primary/80 font-bold uppercase tracking-wider">{row.field}</span>
+                                                    <span className="text-sm font-semibold">{row.example}</span>
                                                 </div>
-                                                <p className="text-[10px] text-muted-foreground leading-relaxed border-t border-border/30 pt-2 opacity-80">
+                                                <p className="text-xs text-muted-foreground leading-relaxed border-t border-border/30 pt-2 opacity-80">
                                                     {row.note}
                                                 </p>
                                             </div>
@@ -1082,24 +1092,24 @@ export const Settings = () => {
                                                 ))}
                                             </tbody>
                                         </table>
+                                        <p className="text-xs text-muted-foreground mt-4 font-medium opacity-80 bg-muted/20 p-3 rounded-xl border border-border/50">
+                                            No IP addresses, camera names, stream URLs, usernames, or passwords are ever collected.
+                                        </p>
                                     </div>
-                                    <p className="text-[10px] text-muted-foreground mt-3 font-medium">
-                                        No IP addresses, camera names, stream URLs, usernames, or passwords are ever collected.
-                                    </p>
                                 </div>
 
                                 {/* Endpoints */}
                                 <div>
                                     <h4 className="text-sm font-semibold mb-3">Destinations</h4>
                                     <div className="space-y-3">
-                                        <div className="flex flex-col sm:flex-row sm:items-start gap-3 p-4 rounded-xl border border-border bg-muted/20 shadow-sm">
+                                        <div className="flex flex-col sm:flex-row sm:items-start gap-4 p-5 rounded-2xl border border-border/50 bg-muted/20 shadow-sm">
                                             <div className="flex items-center justify-between sm:block">
-                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-500/20 text-green-500 dark:text-green-400 shrink-0">PRIMARY</span>
+                                                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-green-500/20 text-green-500 dark:text-green-400 shrink-0">PRIMARY</span>
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="text-sm font-semibold">Cloudflare Analytics Engine</p>
                                                 <p className="text-xs text-muted-foreground mt-0.5 break-all font-mono opacity-80">vibenvr-telemetry.spupuz.workers.dev</p>
-                                                <p className="text-[11px] text-muted-foreground/90 mt-2 leading-relaxed">
+                                                <p className="text-xs text-muted-foreground/90 mt-2 leading-relaxed font-medium">
                                                     Fully anonymous — IP is processed by Cloudflare edge and discarded, only the country code is stored.
                                                 </p>
                                             </div>
@@ -1195,19 +1205,19 @@ export const Settings = () => {
                     <div className="space-y-6">
                         {/* SMTP Section */}
                         <div>
-                            <div className="flex justify-between items-center mb-3">
-                                <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">SMTP (Email) Configuration</h4>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                                <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground shrink-0">SMTP (Email) Configuration</h4>
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="sm"
                                     onClick={() => handleTestNotify('email')}
-                                    className="h-8 text-xs"
+                                    className="h-11 sm:h-9 w-full sm:w-auto text-xs px-5 shadow-sm active:scale-95"
                                 >
+                                    <Bell className="w-4 h-4 mr-2 opacity-60" />
                                     Test Email
                                 </Button>
                             </div>
-                            <p className="text-xs text-muted-foreground mb-4 bg-muted/30 p-2 rounded-lg border border-border/50">
+                            <p className="text-xs text-muted-foreground mb-4 bg-muted/30 p-3 rounded-xl border border-border/50 leading-relaxed">
                                 <span className="font-semibold text-primary">Note:</span> These global credentials will be used for all cameras unless a camera specifically overrides them in its own settings.
                             </p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1255,16 +1265,16 @@ export const Settings = () => {
                         </div>
 
                         {/* Telegram Section */}
-                        <div className="pt-4 border-t border-border/50">
-                            <div className="flex justify-between items-center mb-3">
-                                <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Telegram Configuration</h4>
+                        <div className="pt-6 border-t border-border/50 mt-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                                <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Telegram Configuration</h4>
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="sm"
                                     onClick={() => handleTestNotify('telegram')}
-                                    className="h-8 text-xs"
+                                    className="h-11 sm:h-9 w-full sm:w-auto text-xs px-5 shadow-sm active:scale-95"
                                 >
+                                    <Bell className="w-4 h-4 mr-2 opacity-60" />
                                     Test Telegram
                                 </Button>
                             </div>
@@ -1288,16 +1298,16 @@ export const Settings = () => {
                         </div>
 
                         {/* Webhook Section */}
-                        <div className="pt-4 border-t border-border/50">
-                            <div className="flex justify-between items-center mb-3">
-                                <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Webhook Configuration</h4>
+                        <div className="pt-6 border-t border-border/50 mt-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                                <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Webhook Configuration</h4>
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    size="sm"
                                     onClick={() => handleTestNotify('webhook')}
-                                    className="h-8 text-xs"
+                                    className="h-11 sm:h-9 w-full sm:w-auto text-xs px-5 shadow-sm active:scale-95"
                                 >
+                                    <Bell className="w-4 h-4 mr-2 opacity-60" />
                                     Test Webhook
                                 </Button>
                             </div>
@@ -1352,47 +1362,47 @@ export const Settings = () => {
 
                     <div className="grid grid-cols-1 gap-6">
                         {/* Live View Throttling */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
-                            <div className="md:col-span-1">
-                                <label className="block text-sm font-medium mb-1">Live View FPS Throttle (Nth Frame)</label>
-                                <p className="text-xs text-muted-foreground">
-                                    Controls how often the Live View stream is updated.
-                                    Setting this to <strong>2</strong> means only every 2nd frame is processed for the browser (effective 15fps if camera is 30fps).
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-b border-border/50 pb-6">
+                            <div className="md:col-span-1 space-y-1.5">
+                                <label className="block text-sm font-medium text-foreground">Live View FPS Throttle (Nth Frame)</label>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    Adds a background-level throttle to the live stream.
+                                    Setting this to <strong>2</strong> means only every 2nd frame is processed (effective 15fps for 30fps source).
                                     <br /><br />
-                                    <strong>Higher value = Less CPU usage</strong>, but choppier live video.
+                                    <span className="text-primary/80 font-medium">Higher value = Less CPU usage</span>, but choppier video.
                                 </p>
                             </div>
                             <div className="md:col-span-2">
                                 <InputField
                                     type="number"
-                                    className="max-w-[150px]"
+                                    className="max-w-full sm:max-w-[150px] h-11"
                                     value={globalSettings.opt_live_view_fps_throttle}
                                     onChange={val => setGlobalSettings({ ...globalSettings, opt_live_view_fps_throttle: val })}
                                 />
-                                <p className="text-[10px] text-muted-foreground mt-1">Default: 2 (Process 50% of frames)</p>
+                                <p className="text-xs text-muted-foreground mt-2 font-medium opacity-70">Default: 2 (Process 50% of frames)</p>
                             </div>
                         </div>
 
                         {/* Motion Throttling */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/50 pb-4">
-                            <div className="md:col-span-1">
-                                <label className="block text-sm font-medium mb-1">Motion Detection FPS Throttle</label>
-                                <p className="text-xs text-muted-foreground">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-b border-border/50 pb-6">
+                            <div className="md:col-span-1 space-y-1.5">
+                                <label className="block text-sm font-medium text-foreground">Motion Detection FPS Throttle</label>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
                                     Controls how often the motion detection algorithm runs.
                                     Setting this to <strong>3</strong> means motion is only checked every 3rd frame.
                                     <br /><br />
-                                    <strong>Higher value = Much Less CPU usage</strong>.
-                                    Too high (e.g. &gt; 5) might miss very fast moving objects.
+                                    <span className="text-primary/80 font-medium">Higher value = Much Less CPU usage</span>.
+                                    Values &gt; 5 may miss fast objects.
                                 </p>
                             </div>
                             <div className="md:col-span-2">
                                 <InputField
                                     type="number"
-                                    className="max-w-[150px]"
+                                    className="max-w-full sm:max-w-[150px] h-11"
                                     value={globalSettings.opt_motion_fps_throttle}
                                     onChange={val => setGlobalSettings({ ...globalSettings, opt_motion_fps_throttle: val })}
                                 />
-                                <p className="text-[10px] text-muted-foreground mt-1">Default: 3 (Process 33% of frames)</p>
+                                <p className="text-xs text-muted-foreground mt-2 font-medium opacity-70">Default: 3 (Process 33% of frames)</p>
                             </div>
                         </div>
 
@@ -1551,7 +1561,7 @@ export const Settings = () => {
                                     checked={globalSettings.opt_verbose_engine_logs}
                                     onChange={val => setGlobalSettings({ ...globalSettings, opt_verbose_engine_logs: val })}
                                 />
-                                <p className="text-[10px] text-muted-foreground mt-1">Default: Off</p>
+                                <p className="text-xs text-muted-foreground mt-1 opacity-70 font-medium tracking-tight">Default: Off</p>
                             </div>
                         </div>
                     </div>
@@ -1568,54 +1578,98 @@ export const Settings = () => {
                     isOpen={openSection === 'backup'}
                     onToggle={toggleSection}
                 >
-                    <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-2">
-                        <Button
-                            onClick={handleExport}
-                            variant="outline"
-                            className="w-full sm:w-auto px-6 py-3 font-bold shadow-sm active:scale-95"
-                        >
-                            <Download className="w-4 h-4 shrink-0 mr-2" />
-                            <span>Export Config</span>
-                        </Button>
+                    <div className="space-y-6 pt-2">
+                        {/* Automatic Backup Configuration */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-muted/20 p-4 rounded-xl border border-border/50 space-y-4">
+                                <Toggle
+                                    label="Enable Automatic Backup"
+                                    checked={globalSettings.backup_auto_enabled}
+                                    onChange={(val) => setGlobalSettings({ ...globalSettings, backup_auto_enabled: val })}
+                                />
+                                <div className="space-y-2">
+                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                        Automatically save a full system configuration backup to <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-[10px]">/data/backups/</code>.
+                                    </p>
+                                    <p className="text-xs text-muted-foreground leading-relaxed opacity-70">
+                                        Includes: Cameras, Groups, Users, 2FA secrets, and System Settings.
+                                    </p>
+                                </div>
+                            </div>
 
-                        <div className="relative w-full sm:w-auto">
-                            <input
-                                type="file"
-                                accept=".json"
-                                onChange={handleImport}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                            />
-                            <Button
-                                className="w-full sm:w-auto px-6 py-3 font-bold shadow-sm"
-                                variant="outline"
-                            >
-                                <Upload className="w-4 h-4 shrink-0 mr-2" />
-                                <span>Import Config</span>
-                            </Button>
+                            <div className={`space-y-4 transition-all duration-300 ${!globalSettings.backup_auto_enabled ? 'opacity-30 pointer-events-none grayscale' : ''}`}>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <InputField
+                                        label="Interval (Hours)"
+                                        type="number"
+                                        help="How often to run the backup."
+                                        unit="Hrs"
+                                        value={globalSettings.backup_auto_frequency_hours}
+                                        onChange={(val) => setGlobalSettings({ ...globalSettings, backup_auto_frequency_hours: val })}
+                                    />
+                                    <InputField
+                                        label="Backups to Keep"
+                                        type="number"
+                                        help="Number of automatic backup files to retain. Manual backups are never deleted automatically."
+                                        unit="Files"
+                                        value={globalSettings.backup_auto_retention}
+                                        onChange={(val) => setGlobalSettings({ ...globalSettings, backup_auto_retention: val })}
+                                    />
+                                </div>
+                            </div>
                         </div>
 
-                        <p className="text-[10px] text-muted-foreground w-full mt-1 bg-muted/30 p-2 rounded-lg border border-border/50">
-                            * Export includes all cameras, groups, and system settings. Import will merge or overwrite existing configurations.
-                        </p>
+                        {/* Export/Import Buttons (Legacy/Local) */}
+                        <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-2 border-t border-border/50 mt-4">
+                            <Button
+                                onClick={handleExport}
+                                variant="outline"
+                                className="w-full sm:w-auto px-6 py-3 font-bold shadow-sm active:scale-95 text-xs"
+                            >
+                                <Download className="w-4 h-4 shrink-0 mr-2" />
+                                <span>Export (Local Save)</span>
+                            </Button>
+
+                            <div className="relative w-full sm:w-auto">
+                                <input
+                                    type="file"
+                                    accept=".json"
+                                    onChange={handleImport}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                />
+                                <Button
+                                    className="w-full sm:w-auto px-6 py-3 font-bold shadow-sm text-xs"
+                                    variant="outline"
+                                >
+                                    <Upload className="w-4 h-4 shrink-0 mr-2" />
+                                    <span>Import (Local File)</span>
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Server-side Backup Manager */}
+                        <div className="pt-6 border-t border-border mt-6">
+                            <BackupManager />
+                        </div>
                     </div>
                 </CollapsibleSection>
             )
             }
 
-            {/* Save Button */}
+            {/* Floating Save Button - Design System compliant rounded-xl style */}
             {
-                user?.role === 'admin' && (
-                    <div className="sticky bottom-0 z-30 bg-background/95 backdrop-blur py-4 border-t border-border mt-8 flex justify-center sm:justify-end">
+                 user?.role === 'admin' && (
+                     <div className="fixed bottom-6 inset-x-5 sm:inset-x-auto sm:right-8 z-50 flex justify-center sm:justify-end pointer-events-none">
                         <button
                             onClick={handleSave}
-                            className="w-full sm:w-auto h-auto min-h-[44px] whitespace-normal justify-center flex items-center space-x-2 bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors shadow-lg"
+                            className="pointer-events-auto h-12 flex items-center justify-center space-x-3 bg-primary text-primary-foreground px-10 rounded-xl hover:bg-primary/90 transition-all active:scale-95 font-bold text-base shadow-2xl shadow-primary/30 border border-primary/20 ring-4 ring-background/50 backdrop-blur-sm"
                         >
-                            <Save className="w-4 h-4" />
+                            <Save className="w-5 h-5" />
                             <span>Save Settings</span>
                         </button>
-                    </div>
-                )
-            }
+                     </div>
+                 )
+             }
             {/* Password Change Modal */}
             {pwdModalOpen && (
                 <div className="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4 backdrop-blur-sm">

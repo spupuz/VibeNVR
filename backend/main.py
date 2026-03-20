@@ -172,7 +172,8 @@ async def lifespan(app: FastAPI):
     health_service.start_health_service()
     import telemetry_service
     telemetry_service.start_telemetry()
-    
+    import backup_service
+    backup_service.start_scheduler()
     # Regenerate motion config
     with database.get_db_ctx() as db:
         try:
@@ -310,6 +311,20 @@ async def get_secure_media(file_path: str, request: Request, token: Optional[str
     if not full_path.startswith("/data/"):
          print(f"Security Alert (Media): Attempted access to {full_path}")
          raise HTTPException(status_code=403, detail="Access denied")
+
+    # RBAC for backups folder: Only allow admins to access anything in /data/backups/
+    if full_path.startswith("/data/backups/"):
+         # We already validated the token above, now check the user role
+         with database.get_db_ctx() as db:
+              try:
+                  target_user = await auth_service.get_user_from_token(media_token, db)
+                  if target_user.role != 'admin':
+                      logging.warning(f"Security Alert (Backups): Unauthorized access attempt to {full_path} by user {target_user.username}")
+                      raise HTTPException(status_code=403, detail="Access denied to system backups")
+              except HTTPException as e:
+                  raise e
+              except Exception:
+                  raise HTTPException(status_code=403, detail="Access denied")
 
     if not os.path.exists(full_path):
         raise HTTPException(status_code=404, detail="File not found")
