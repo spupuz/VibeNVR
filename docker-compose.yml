@@ -127,9 +127,9 @@ services:
         max-size: "10m"
         max-file: "3"
     # Fix for Proxmox/pve kernel: socket.socketpair() Permission denied
-    security_opt:
-      - seccomp:unconfined
-      - apparmor:unconfined
+    #security_opt:
+    #  - seccomp:unconfined
+    #  - apparmor:unconfined
     privileged: false # Set to true for Proxmox/OMV/LXC if you see permission errors
     networks:
       - vibe-network
@@ -154,9 +154,9 @@ services:
     restart: always
     init: true
     # Fix for Proxmox/pve kernel: Unix socket Permission denied
-    security_opt:
-      - seccomp:unconfined
-      - apparmor:unconfined
+    #security_opt:
+    #  - seccomp:unconfined
+    #  - apparmor:unconfined
     privileged: false # Set to true for Proxmox/OMV/LXC if you see permission errors
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-vibenvr}
