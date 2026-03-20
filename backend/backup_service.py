@@ -70,6 +70,25 @@ def run_backup(is_manual: bool = False):
     except Exception as e:
         logger.error(f"Error during automatic backup: {e}")
 
+def get_last_auto_backup_timestamp():
+    """Get the timestamp of the most recent automatic backup file"""
+    try:
+        if not os.path.exists(BACKUP_DIR):
+            return 0
+        
+        backups = [f for f in os.listdir(BACKUP_DIR) if (f.startswith("vibe_backup_auto_") or f.startswith("vibenvr_auto_backup_")) and f.endswith(".json")]
+        if not backups:
+            return 0
+            
+        backups.sort()
+        latest_file = backups[-1]
+        
+        # Files are named vibe_backup_auto_YYYYMMDD_HHMMSS.json
+        return os.path.getmtime(os.path.join(BACKUP_DIR, latest_file))
+    except Exception as e:
+        logger.error(f"Error getting last backup timestamp: {e}")
+        return 0
+
 def cleanup_old_backups(retention: int):
     """Keep only the latest N backups in the backup directory"""
     try:
@@ -90,6 +109,7 @@ def cleanup_old_backups(retention: int):
 
 def backup_monitor_loop():
     """Background loop to run backups periodically"""
+    is_first_check = True
     while True:
         try:
             # We check settings every iteration
@@ -98,8 +118,21 @@ def backup_monitor_loop():
                 frequency_hours_str = settings_service.get_setting(db, "backup_auto_frequency_hours")
                 frequency_hours = int(frequency_hours_str) if frequency_hours_str else 24
 
-            if enabled:
-                run_backup()
+            if not enabled:
+                time.sleep(3600) # Check again in 1 hour if disabled
+                continue
+
+            if is_first_check:
+                is_first_check = False
+                last_ts = get_last_auto_backup_timestamp()
+                if last_ts > 0:
+                    elapsed_seconds = time.time() - last_ts
+                    wait_needed = (frequency_hours * 3600) - elapsed_seconds
+                    if wait_needed > 0:
+                        logger.info(f"Startup: last auto backup was {elapsed_seconds/3600:.1f}h ago. Waiting {wait_needed/3600:.1f}h before next.")
+                        time.sleep(wait_needed)
+            
+            run_backup()
             
             # Use a wait for the configured interval (converted to seconds)
             # We use at least 1 hour to prevent accidental high-frequency disk thrashing
