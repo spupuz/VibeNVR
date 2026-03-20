@@ -49,7 +49,8 @@ src/
 ```
 
 **Key patterns:**
-- **Components**: Functional React components with Hooks.
+- **Components**: Functional React components with Hooks. Keep them small (<300 LOC preferred).
+- **Modular Pages**: Large pages (e.g., `Cameras.jsx`) must be decomposed into a directory (e.g., `src/components/Cameras/`) with sub-components for modals and complex UI sections.
 - **Styling**: TailwindCSS utility classes.
 - **State Management**: React `useState` and `Context` for global state (Auth).
 - **Icons**: `lucide-react` for all icons.
@@ -157,6 +158,24 @@ except Exception as e:
     if "401" in str(e) or "unauthorized" in str(e).lower():
         self.health_status = "UNAUTHORIZED"
         # Enter 5-minute backoff
+```
+
+### Configuration Backup & Restore Pattern
+
+The system supports full configuration backups (Cameras, Settings, Groups, Users, Storage Profiles) stored in JSON format within `/data/backups/`.
+
+- **Rule**: Standard retention policy (default 10 files) applies ONLY to automatic backups (`AUTO`).
+- **Rule**: Manual backups (`MANUAL`) are preserved indefinitely until user deletion.
+- **Rule**: On startup, the `BackupSchedulerThread` checks for existing recent backups and skips the immediate run if the interval has not passed (to avoid spamming during restarts).
+- **Rule**: All backup/restore endpoints must be Admin-only.
+
+```python
+# backend/routers/settings.py (Pattern)
+@router.post("/backup/run")
+def manual_backup(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    backup_service.run_backup(is_manual=True)
+    return {"message": "Manual backup completed successfully"}
+```
 
 ### Privacy Masking & Motion Zones Pattern
 
@@ -251,6 +270,10 @@ logger.info(f"Connecting to {safe_url}")
 - **Commits**: Always run local tests (`/run-tests.md` or manual pytest) AND perform manual verification (human UX check) after a full rebuild before committing. Never commit failing code or unverified UI changes. **Wait for explicit USER confirmation after manual verification before committing.**
 - **Pushes**: Do NOT push to remote repositories unless explicitly requested by the USER.
 - **Documentation**: Keep documentation synced with code changes.
+- **Code Size Policy**: 
+  - **New files**: MUST NOT exceed **500 effective lines of code** (excluding comments/blank lines).
+  - **Existing files (Legacy)**: MUST NOT exceed **1000 effective lines of code**. If reached, the file must be refactored into smaller modules.
+  - **Enforcement**: This is strictly checked via `scripts/security_tests/check_effective_loc.py` during the commit workflow.
 
 ### Contribution Template
 

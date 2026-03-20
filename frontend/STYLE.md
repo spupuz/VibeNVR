@@ -4,7 +4,7 @@ This document outlines the design principles and technical standards for the Vib
 
 ## 🎨 Color Palette
 
-We use HSL-based CSS variables defined in [index.css](./frontend/src/index.css) to support both Light and Dark modes.
+We use HSL-based CSS variables defined in `frontend/src/index.css` to support both Light and Dark modes.
 
 - **Background**: `--background` / `--card`
 - **Primary**: `--primary` (Main brand color)

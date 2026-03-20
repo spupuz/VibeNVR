@@ -16,6 +16,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **[Storage Profiles](Storage-Profiles.md)** - Managing quotas and recording retention.
 - **[System Architecture](Architecture.md)** - Deep dive into VibeEngine, PyAV/OpenCV, and microservices.
 - **[Privacy Masking](Privacy-Masking.md)** - Configuring obscured areas and motion exclusion zones.
+- **[Backup & Restore](Backups.md)** - System snapshots and configuration management.
 
 ## ⚠️ Important Notes
 

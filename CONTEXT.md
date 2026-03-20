@@ -17,6 +17,8 @@
 - **Live View**: Uses the browser's native **WebCodecs API** (H.264 via WebSockets) for low-latency streaming in supported browsers (Chrome 94+, Edge 94+). Falls back automatically to MJPEG/JPEG polling for unsupported browsers.
 - Video files are stored in `/media/recordings` mapped in docker-compose.
 - **Privacy Masking & Motion Zones**: Privacy masks are burned into the video stream at the engine level before recording/motion analysis. Motion Zones are used to exclude areas from motion triggers. Unmasked frames for the editor are Admin-only.
+- **Configuration Backup & Restore**: Full system configuration (cameras, settings, users) can be exported, imported, and restored from automated/manual snapshots stored in `/data/backups/`.
+- **Frontend Modularity**: Large page views (e.g., `Cameras.jsx`) are decomposed into component directories to maintain code size limits and improve reusability.
 
 
 ## ⚠️ Important Rules for AI

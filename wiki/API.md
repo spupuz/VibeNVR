@@ -186,6 +186,49 @@ Delete a storage profile.
 
 ---
 
+---
+ 
+### 💾 Backup & Restore (`/settings/backup`)
+ 
+#### **GET** `/settings/backup/export`
+Export the entire system configuration (cameras, settings, users, etc.) as a JSON file.
+- **Auth Required**: Admin privileges.
+- **Rate Limit**: 5/minute.
+ 
+#### **POST** `/settings/backup/import`
+Import a configuration from a JSON file. Overwrites existing matching settings.
+- **Payload**: `multipart/form-data` with a `file` field.
+- **Auth Required**: Admin privileges.
+- **Rate Limit**: 5/minute.
+ 
+#### **GET** `/settings/backup/list`
+List all backup files available on the server in `/data/backups/`.
+- **Auth Required**: Admin privileges.
+- **Response Example**:
+```json
+[
+  {
+    "filename": "vibenvr_backup_AUTO_20260221_120000.json",
+    "size": 15420,
+    "created_at": "2026-02-21T12:00:00"
+  }
+]
+```
+ 
+#### **POST** `/settings/backup/run`
+Manually trigger a system backup. The file will be saved on the server with a `MANUAL` prefix.
+- **Auth Required**: Admin privileges.
+ 
+#### **POST** `/settings/backup/restore-file/{filename}`
+Restore the system configuration from a file already stored on the server.
+- **Auth Required**: Admin privileges.
+ 
+#### **DELETE** `/settings/backup/{filename}`
+Permanently delete a backup file from the server.
+- **Auth Required**: Admin privileges.
+ 
+---
+ 
 ### 🛠 Settings (`/settings`)
 
 #### **GET** `/settings`
