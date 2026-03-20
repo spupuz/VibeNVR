@@ -806,69 +806,154 @@ export const Settings = () => {
                         <div className="pt-4 border-t border-border mt-4">
                             <StorageProfileManager />
                         </div>
-                    </div>
 
-                    {/* Bulk Delete Section */}
-                    {user?.role === 'admin' && (
-                        <div className="pt-4 border-t border-border mt-4">
-                            <h4 className="text-sm font-semibold mb-3">Bulk Deletion</h4>
-                            <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3">
-                                <Button
-                                    variant="outline"
-                                    className="w-full sm:w-auto border-red-500/50 text-red-500 hover:bg-red-500/10 py-3 h-auto min-h-[44px]"
-                                    onClick={() => setConfirmConfig({
-                                        isOpen: true,
-                                        title: 'Delete All Videos',
-                                        message: 'Are you sure you want to delete ALL video recordings? This action cannot be undone and will free up disk space.',
-                                        onConfirm: async () => {
-                                            try {
-                                                const res = await fetch('/api/events/bulk/all?event_type=video', {
-                                                    method: 'DELETE',
-                                                    headers: { Authorization: 'Bearer ' + token }
+                        {/* Maintenance Tools */}
+                        <div className="pt-4 border-t border-border mt-4 space-y-6">
+                            <div>
+                                <h4 className="text-sm font-semibold mb-3">Maintenance</h4>
+                                <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+                                    <div className="flex-1 min-w-[280px]">
+                                        <Button
+                                            onClick={async () => {
+                                                setConfirmConfig({
+                                                    isOpen: true,
+                                                    title: 'Manual Cleanup',
+                                                    message: 'Are you sure you want to trigger storage cleanup now? This will scan all camera folders and delete recordings that exceed set limits.',
+                                                    onConfirm: async () => {
+                                                        try {
+                                                            await fetch('/api/settings/cleanup', {
+                                                                method: 'POST',
+                                                                headers: { Authorization: `Bearer ${token}` }
+                                                            });
+                                                            showToast('Cleanup triggered successfully!', 'success');
+                                                            fetchStats();
+                                                        } catch (err) {
+                                                            showToast('Failed to trigger cleanup: ' + err.message, 'error');
+                                                        }
+                                                        setConfirmConfig({ isOpen: false });
+                                                    },
+                                                    onCancel: () => setConfirmConfig({ isOpen: false })
                                                 });
-                                                const data = await res.json();
-                                                showToast(`Deleted ${data.deleted_count} videos (${data.deleted_size_mb} MB)`, 'success');
-                                                fetchStats();
-                                            } catch (e) {
-                                                showToast('Failed to delete videos', 'error');
-                                            }
-                                            setConfirmConfig({ isOpen: false });
-                                        }
-                                    })}
-                                >
-                                    <Trash2 className="w-4 h-4 mr-2 shrink-0" />
-                                    <span className="truncate sm:whitespace-normal">Delete All Videos</span>
-                                </Button>
+                                            }}
+                                            variant="destructive"
+                                            className="w-full sm:w-auto px-6 py-3 font-bold shadow-sm"
+                                        >
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            <span>Clean Up Storage Now</span>
+                                        </Button>
+                                        <p className="text-xs text-muted-foreground mt-2">
+                                            This will force an immediate check and deletion of recordings that exceed your storage limits or retention periods.
+                                        </p>
+                                    </div>
 
-                                <Button
-                                    variant="outline"
-                                    className="w-full sm:w-auto border-red-500/50 text-red-500 hover:bg-red-500/10 py-3 h-auto min-h-[44px]"
-                                    onClick={() => setConfirmConfig({
-                                        isOpen: true,
-                                        title: 'Delete All Pictures',
-                                        message: 'Are you sure you want to delete ALL picture snapshots? This action cannot be undone.',
-                                        onConfirm: async () => {
-                                            try {
-                                                const res = await fetch('/api/events/bulk/all?event_type=picture', {
-                                                    method: 'DELETE',
-                                                    headers: { Authorization: 'Bearer ' + token }
+                                    <div className="flex-1 min-w-[280px]">
+                                        <Button
+                                            onClick={async () => {
+                                                setConfirmConfig({
+                                                    isOpen: true,
+                                                    title: 'Recover Orphaned Recordings',
+                                                    message: 'This will scan all camera folders for recordings that exist on disk but are missing from the database, and import them into the timeline. This is useful after system updates or migration.',
+                                                    onConfirm: async () => {
+                                                        try {
+                                                            const res = await fetch('/api/settings/sync-orphans', {
+                                                                method: 'POST',
+                                                                headers: { Authorization: `Bearer ${token}` }
+                                                            });
+                                                            if (res.status === 429) {
+                                                                const data = await res.json();
+                                                                showToast(data.detail, 'error');
+                                                            } else if (res.ok) {
+                                                                showToast('Recovery started in background. Please wait...', 'success');
+                                                                setOrphanSyncStatus({ isSyncing: true, status: 'running' });
+                                                            } else {
+                                                                const data = await res.json();
+                                                                showToast('Recovery failed: ' + data.detail, 'error');
+                                                            }
+                                                        } catch (err) {
+                                                            showToast('Failed to trigger recovery: ' + err.message, 'error');
+                                                        }
+                                                        setConfirmConfig({ isOpen: false });
+                                                    },
+                                                    onCancel: () => setConfirmConfig({ isOpen: false })
                                                 });
-                                                const data = await res.json();
-                                                showToast(`Deleted ${data.deleted_count} pictures (${data.deleted_size_mb} MB)`, 'success');
-                                                fetchStats();
-                                            } catch (e) {
-                                                showToast('Failed to delete pictures', 'error');
-                                            }
-                                            setConfirmConfig({ isOpen: false });
-                                        }
-                                    })}
-                                >
-                                    <Trash2 className="w-4 h-4 mr-2 shrink-0" />
-                                    <span className="truncate sm:whitespace-normal">Delete All Pictures</span>
-                                </Button>
+                                            }}
+                                            disabled={orphanSyncStatus.isSyncing}
+                                            variant="outline"
+                                            className={`w-full sm:w-auto px-6 py-3 font-bold shadow-sm ${orphanSyncStatus.isSyncing ? "opacity-75 cursor-not-allowed" : ""}`}
+                                        >
+                                            <HardDrive className={`w-4 h-4 mr-2 ${orphanSyncStatus.isSyncing ? "animate-pulse" : ""}`} />
+                                            <span>{orphanSyncStatus.isSyncing ? "Scanning..." : "Recover Orphaned Recordings"}</span>
+                                        </Button>
+                                        <p className="text-xs text-muted-foreground mt-2">
+                                            Scans for video files on disk that aren't in the database and imports them into the timeline.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    )}
+
+                        {/* Bulk Delete Section */}
+                        {user?.role === 'admin' && (
+                            <div className="pt-4 border-t border-border mt-4">
+                                <h4 className="text-sm font-semibold mb-3">Bulk Deletion</h4>
+                                <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3">
+                                    <Button
+                                        variant="outline"
+                                        className="w-full sm:w-auto border-red-500/50 text-red-500 hover:bg-red-500/10 py-3 h-auto min-h-[44px]"
+                                        onClick={() => setConfirmConfig({
+                                            isOpen: true,
+                                            title: 'Delete All Videos',
+                                            message: 'Are you sure you want to delete ALL video recordings? This action cannot be undone and will free up disk space.',
+                                            onConfirm: async () => {
+                                                try {
+                                                    const res = await fetch('/api/events/bulk/all?event_type=video', {
+                                                        method: 'DELETE',
+                                                        headers: { Authorization: 'Bearer ' + token }
+                                                    });
+                                                    const data = await res.json();
+                                                    showToast(`Deleted ${data.deleted_count} videos (${data.deleted_size_mb} MB)`, 'success');
+                                                    fetchStats();
+                                                } catch (e) {
+                                                    showToast('Failed to delete videos', 'error');
+                                                }
+                                                setConfirmConfig({ isOpen: false });
+                                            }
+                                        })}
+                                    >
+                                        <Trash2 className="w-4 h-4 mr-2 shrink-0" />
+                                        <span className="truncate sm:whitespace-normal">Delete All Videos</span>
+                                    </Button>
+
+                                    <Button
+                                        variant="outline"
+                                        className="w-full sm:w-auto border-red-500/50 text-red-500 hover:bg-red-500/10 py-3 h-auto min-h-[44px]"
+                                        onClick={() => setConfirmConfig({
+                                            isOpen: true,
+                                            title: 'Delete All Pictures',
+                                            message: 'Are you sure you want to delete ALL picture snapshots? This action cannot be undone.',
+                                            onConfirm: async () => {
+                                                try {
+                                                    const res = await fetch('/api/events/bulk/all?event_type=picture', {
+                                                        method: 'DELETE',
+                                                        headers: { Authorization: 'Bearer ' + token }
+                                                    });
+                                                    const data = await res.json();
+                                                    showToast(`Deleted ${data.deleted_count} pictures (${data.deleted_size_mb} MB)`, 'success');
+                                                    fetchStats();
+                                                } catch (e) {
+                                                    showToast('Failed to delete pictures', 'error');
+                                                }
+                                                setConfirmConfig({ isOpen: false });
+                                            }
+                                        })}
+                                    >
+                                        <Trash2 className="w-4 h-4 mr-2 shrink-0" />
+                                        <span className="truncate sm:whitespace-normal">Delete All Pictures</span>
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </CollapsibleSection>
             )}
 
@@ -1242,95 +1327,6 @@ export const Settings = () => {
                                 />
                                 <p className="text-[10px] text-muted-foreground">Default behavior for image attachments in notifications</p>
                             </div>
-                        </div>
-                    </div>
-                </CollapsibleSection>
-            )}
-            {/* Maintenance Settings */}
-            {user?.role === 'admin' && (
-                <CollapsibleSection
-                    id="maintenance"
-                    title="Maintenance"
-                    description="Manual system maintenance tasks"
-                    icon={<Trash2 className="w-6 h-6" />}
-                    isOpen={openSection === 'maintenance'}
-                    onToggle={toggleSection}
-                >
-                    <div className="space-y-4">
-                        <div>
-                            <Button
-                                onClick={async () => {
-                                    setConfirmConfig({
-                                        isOpen: true,
-                                        title: 'Manual Cleanup',
-                                        message: 'Are you sure you want to trigger storage cleanup now? This will scan all camera folders and delete recordings that exceed set limits.',
-                                        onConfirm: async () => {
-                                            try {
-                                                await fetch('/api/settings/cleanup', {
-                                                    method: 'POST',
-                                                    headers: { Authorization: `Bearer ${token}` }
-                                                });
-                                                showToast('Cleanup triggered successfully!', 'success');
-                                                fetchStats();
-                                            } catch (err) {
-                                                showToast('Failed to trigger cleanup: ' + err.message, 'error');
-                                            }
-                                            setConfirmConfig({ isOpen: false });
-                                        },
-                                        onCancel: () => setConfirmConfig({ isOpen: false })
-                                    });
-                                }}
-                                variant="destructive"
-                                className="w-full sm:w-auto px-6 py-3 font-bold shadow-sm"
-                            >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                <span>Clean Up Storage Now</span>
-                            </Button>
-                            <p className="text-xs text-muted-foreground mt-2">
-                                This will force an immediate check and deletion of recordings that exceed your storage limits or retention periods.
-                            </p>
-                        </div>
-                        <div>
-                            <Button
-                                onClick={async () => {
-                                    setConfirmConfig({
-                                        isOpen: true,
-                                        title: 'Recover Orphaned Recordings',
-                                        message: 'This will scan all camera folders for recordings that exist on disk but are missing from the database, and import them into the timeline. This is useful after system updates or migration.',
-                                        onConfirm: async () => {
-                                            try {
-                                                const res = await fetch('/api/settings/sync-orphans', {
-                                                    method: 'POST',
-                                                    headers: { Authorization: `Bearer ${token}` }
-                                                });
-                                                if (res.status === 429) {
-                                                    const data = await res.json();
-                                                    showToast(data.detail, 'error');
-                                                } else if (res.ok) {
-                                                    showToast('Recovery started in background. Please wait...', 'success');
-                                                    setOrphanSyncStatus({ isSyncing: true, status: 'running' });
-                                                } else {
-                                                    const data = await res.json();
-                                                    showToast('Recovery failed: ' + data.detail, 'error');
-                                                }
-                                            } catch (err) {
-                                                showToast('Failed to trigger recovery: ' + err.message, 'error');
-                                            }
-                                            setConfirmConfig({ isOpen: false });
-                                        },
-                                        onCancel: () => setConfirmConfig({ isOpen: false })
-                                    });
-                                }}
-                                disabled={orphanSyncStatus.isSyncing}
-                                variant="outline"
-                                className={`w-full sm:w-auto px-6 py-3 font-bold shadow-sm ${orphanSyncStatus.isSyncing ? "opacity-75 cursor-not-allowed" : ""}`}
-                            >
-                                <HardDrive className={`w-4 h-4 mr-2 ${orphanSyncStatus.isSyncing ? "animate-pulse" : ""}`} />
-                                <span>{orphanSyncStatus.isSyncing ? "Scanning..." : "Recover Orphaned Recordings"}</span>
-                            </Button>
-                            <p className="text-xs text-muted-foreground mt-2">
-                                Scans for video files on disk that aren't in the database and imports them into the timeline.
-                            </p>
                         </div>
                     </div>
                 </CollapsibleSection>
