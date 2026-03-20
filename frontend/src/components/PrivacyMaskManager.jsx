@@ -47,12 +47,41 @@ export const PrivacyMaskManager = ({
         }
     }, [masks]);
 
-    // Fetch snapshot
+    // Fetch snapshot via authenticated fetch (blob)
     useEffect(() => {
-        if (cameraId) {
-            setSnapshotUrl(`/api/cameras/${cameraId}/frame?raw=true&t=${Date.now()}`);
-        }
-    }, [cameraId]);
+        let isMounted = true;
+        let objectUrl = null;
+
+        const fetchSnapshot = async () => {
+            if (!cameraId || !token) return;
+
+            try {
+                const res = await fetch(`/api/cameras/${cameraId}/frame?raw=true&t=${Date.now()}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok && isMounted) {
+                    const blob = await res.blob();
+                    objectUrl = URL.createObjectURL(blob);
+                    setSnapshotUrl(objectUrl);
+                } else {
+                    if (isMounted) setSnapshotUrl('');
+                }
+            } catch (err) {
+                console.error("Failed to fetch snapshot", err);
+                if (isMounted) setSnapshotUrl('');
+            }
+        };
+
+        fetchSnapshot();
+
+        return () => {
+            isMounted = false;
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+            }
+        };
+    }, [cameraId, token]);
 
     const draw = useCallback(() => {
         const canvas = canvasRef.current;
