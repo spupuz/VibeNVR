@@ -4,6 +4,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 import crud, schemas, database, motion_service, storage_service, probe_service, auth_service, models, health_service
 import json, asyncio, tarfile, io, re, os, websockets
+from utils import mask_url
 import logging
 from urllib.parse import urlparse
 from typing import Optional, List, Any
@@ -133,7 +134,7 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks
     if camera.rtsp_url:
         camera.rtsp_url = sanitize_rtsp_url(camera.rtsp_url)
         # Log the sanitized URL (masked for safety)
-        masked_url = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', camera.rtsp_url)
+        masked_url = mask_url(camera.rtsp_url)
         print(f"[UPDATE] Camera {camera_id} sanitized URL: {masked_url}", flush=True)
 
     # Get existing camera to check if RTSP URL changed
@@ -627,7 +628,7 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
                                 continue
 
                         # Check for sensitive info in URL and mask it for logs
-                        safe_url_log = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', rtsp_url)
+                        safe_url_log = mask_url(rtsp_url)
                         print(f"[IMPORT] Found camera: {name} with URL: {safe_url_log}", flush=True)
 
                         # Create Camera

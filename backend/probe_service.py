@@ -1,6 +1,7 @@
 import subprocess
 import json
 import logging
+from utils import mask_url
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,8 @@ def probe_stream(rtsp_url: str, rtsp_transport: str = "tcp"):
         # Run ffprobe with a timeout to prevent hanging
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
         if result.returncode != 0:
-            logger.error(f"ffprobe failed: {result.stderr}")
+            masked_stderr = mask_url(result.stderr or "")
+            logger.error(f"ffprobe failed: {masked_stderr}")
             return None
 
         data = json.loads(result.stdout)
@@ -51,5 +53,5 @@ def probe_stream(rtsp_url: str, rtsp_transport: str = "tcp"):
         logger.error("ffprobe timed out")
         return None
     except Exception as e:
-        logger.error(f"Error proving stream: {e}")
+        logger.error(f"Error proving stream: {mask_url(str(e))}")
         return None

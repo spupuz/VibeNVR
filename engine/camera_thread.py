@@ -16,6 +16,13 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+def mask_url(text: str) -> str:
+    """Mask credentials in RTSP/HTTP URLs for safe logging."""
+    if not text: return ""
+    # 1. Redact credentials in URLs (rtsp://user:pass@host)
+    # This version is more robust: handles standard URLs and those with special chars in the pass
+    return re.sub(r'([a-z0-9]+://[^:]+:)([^@]+)(@)', r'\1*****\3', text, flags=re.IGNORECASE)
+
 class StreamReader(threading.Thread):
     """
     Dedicated thread for reading frames from RTSP stream using PyAV.
@@ -120,7 +127,7 @@ class StreamReader(threading.Thread):
                     continue
 
                 # 2. Open stream with PyAV
-                safe_url = re.sub(r'://[^@]+@', '://***:***@', target_url)
+                safe_url = mask_url(target_url)
                 logger.info(f"StreamReader ({self.camera_name}): Connecting → {safe_url}")
 
                 try:
@@ -329,7 +336,8 @@ class StreamReader(threading.Thread):
             except Exception as e:
                 # Catch av.error.* and general exceptions
                 if isinstance(e, av.error.FFmpegError) or "av.error" in str(type(e)):
-                    logger.warning(f"StreamReader ({self.camera_name}): Stream error: {e}")
+                    masked_err = mask_url(str(e))
+                    logger.warning(f"StreamReader ({self.camera_name}): Stream error: {masked_err}")
                     self.consecutive_failures += 1
                     with self.lock:
                         self.health_status = "UNREACHABLE"
@@ -540,9 +548,7 @@ class CameraThread(threading.Thread):
         return self.stream_reader.get_health()
 
     def _mask_url(self, url):
-        import re
-        if not url: return ""
-        return re.sub(r'://([^:]+):([^@]+)@', r'://\1:*****@', url)
+        return mask_url(url)
 
     def run(self):
         self.running = True
