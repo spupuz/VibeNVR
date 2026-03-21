@@ -16,7 +16,7 @@
 - **Styling**: strictly use standard Tailwind utility classes. Avoid custom CSS where possible.
 
 ## 📐 Architecture Overview
-- The Backend manages FFmpeg processes for each camera (via the Engine module).
+- The Backend manages the Engine module, which handles cameras via a modular architecture (`stream_reader`, `recording_manager`, `motion_detector`).
 - The Frontend communicates via REST API and **WebSockets** for live streaming.
 - **Live View**: Uses the browser's native **WebCodecs API** (H.264 via WebSockets) for low-latency streaming in supported browsers (Chrome 94+, Edge 94+). Falls back automatically to MJPEG/JPEG polling for unsupported browsers.
 - Video files are stored in `/media/recordings` mapped in docker-compose.

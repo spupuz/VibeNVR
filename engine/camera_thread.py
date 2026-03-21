@@ -1,407 +1,29 @@
-import cv2
-import av
 import time
 import threading
-import subprocess
 import os
-import numpy as np
 import logging
 from datetime import datetime
 from collections import deque
-import re
-import struct
-import json
-import typing as t
-import numpy as np
+import cv2
+
+from utils import mask_url
+from stream_reader import StreamReader
+from motion_detector import MotionDetector
+from recording_manager import RecordingManager
+from mask_handler import parse_polygons, apply_masks
+from overlay_handler import draw_overlay
 
 logger = logging.getLogger(__name__)
-
-def mask_url(text: str) -> str:
-    """Mask credentials in RTSP/HTTP URLs for safe logging."""
-    if not text: return ""
-    # 1. Redact credentials in URLs (rtsp://user:pass@host)
-    # This version is more robust: handles standard URLs and those with special chars in the pass
-    return re.sub(r'([a-z0-9]+://[^:]+:)([^@]+)(@)', r'\1*****\3', text, flags=re.IGNORECASE)
-
-class StreamReader(threading.Thread):
-    """
-    Dedicated thread for reading frames from RTSP stream using PyAV.
-    Uses av.open() for native FFmpeg bindings — no subprocess ffprobe,
-    no global env var hacks for RTSP/HW options.
-    cv2 is still used downstream for motion detection, JPEG encoding, overlays.
-    """
-    def __init__(self, camera_id, url, camera_name="Unknown", event_callback=None, rtsp_transport="tcp"):
-        super().__init__(daemon=True)
-        self.camera_id = camera_id
-        
-        # Store URL as-is to support double slashes (e.g. //stream2) required by some cameras
-        self.url = url
-
-        self.camera_name = camera_name
-        self.event_callback = event_callback
-        self.rtsp_transport = rtsp_transport
-        self.latest_frame = None
-        self.last_read_time = 0.0
-        self.lock = threading.Lock()
-        self.running = False
-        self.connected = False
-        self.health_status: str = "STARTING"  # STARTING, CONNECTED, UNREACHABLE, UNAUTHORIZED
-        self.last_error_log = 0
-        self.last_status_check = 0
-        self.consecutive_failures: int = 0
-        self.last_health_report_status = None
-        self.ws_clients = set()
-        self.last_keyframe: t.Optional[bytes] = None  # Cache for immediate synchronization
-        self.last_headers: bytes = b''    # Accumulated SPS/PPS headers
-
-    def add_ws_client(self, q, loop):
-        with self.lock:
-            self.ws_clients.add((q, loop))
-            # If we have a cached keyframe, push it immediately to sync the new client
-            if self.last_keyframe:
-                loop.call_soon_threadsafe(q.put_nowait, self.last_keyframe)
-
-    def remove_ws_client(self, q):
-        with self.lock:
-            to_remove = [c for c in self.ws_clients if c[0] == q]
-            for c in to_remove:
-                self.ws_clients.remove(c)
-
-    def get_health(self):
-        with self.lock:
-            return self.health_status
-
-    def _maybe_send_health_callback(self, status, title, message):
-        """Send health callback only when status actually changes."""
-        if self.last_health_report_status == status:
-            return
-        self.last_health_report_status = status
-        if self.event_callback:
-            try:
-                self.event_callback(self.camera_id, 'health_status_changed', {
-                    "camera_id": self.camera_id,
-                    "camera_name": self.camera_name,
-                    "status": status,
-                    "timestamp": int(time.time()),
-                    "title": title,
-                    "message": message,
-                })
-            except Exception as cb_e:
-                logger.error(f"StreamReader ({self.camera_name}): Callback error: {cb_e}")
-
-    def _build_av_options(self):
-        """Build PyAV/FFmpeg options for RTSP connection."""
-        opts = {
-            'rtsp_transport': self.rtsp_transport,
-            'stimeout': '5000000',  # 5s connection timeout (microseconds)
-            'fflags': 'nobuffer',
-            'flags': 'low_delay',
-        }
-        hw_accel_enabled = os.environ.get('HW_ACCEL', 'false').lower() == 'true'
-        hw_accel_type = os.environ.get('HW_ACCEL_TYPE', 'auto').lower()
-        if hw_accel_enabled:
-            accel_map = {
-                'nvidia': 'cuda', 'intel': 'qsv',
-                'amd': 'vaapi', 'vaapi': 'vaapi', 'auto': 'auto'
-            }
-            accel = accel_map.get(hw_accel_type, 'auto')
-            opts['hwaccel'] = accel
-            logger.info(f"StreamReader ({self.camera_name}): HW acceleration configured ({accel}) via {self.rtsp_transport}")
-        else:
-            logger.info(f"StreamReader ({self.camera_name}): HW acceleration DISABLED, using {self.rtsp_transport}")
-        return opts
-
-    def run(self):
-        self.running = True
-        container = None
-
-        while self.running:
-            try:
-                # 1. URL snapshot
-                with self.lock:
-                    target_url = self.url
-
-                # Hold if auth failed — prevents IP ban on Tapo/TP-Link cameras
-                if self.health_status == "UNAUTHORIZED":
-                    time.sleep(2.0)
-                    continue
-
-                # 2. Open stream with PyAV
-                safe_url = mask_url(target_url)
-                logger.info(f"StreamReader ({self.camera_name}): Connecting → {safe_url}")
-
-                try:
-                    container = av.open(
-                        target_url,
-                        options=self._build_av_options(),
-                        timeout=8.0
-                    )
-                    # Validate that a video stream exists
-                    if container.streams.video is None or len(container.streams.video) == 0:
-                        raise Exception("No video stream found in container")
-
-                except Exception as e:
-                    self.consecutive_failures += 1
-                    err_str = str(e).lower()
-                    if container is not None:
-                        try:
-                            container.close()
-                        except Exception:
-                            pass
-                        container = None
-
-                    auth_keywords = ['401', '403', 'unauthorized', 'forbidden', 'permission denied',
-                                     'authentication', 'wrong username']
-                    refused_keywords = ['connection refused', 'connection reset', 'timed out',
-                                        'no route to host', 'network unreachable']
-
-                    if any(k in err_str for k in auth_keywords):
-                        with self.lock:
-                            self.health_status = "UNAUTHORIZED"
-                            self.latest_frame = None
-                        logger.warning(
-                            f"StreamReader ({self.camera_name}): Authentication failed (401/403). "
-                            f"Waiting 300s before retry to prevent IP ban."
-                        )
-                        self._maybe_send_health_callback(
-                            "UNAUTHORIZED",
-                            "🚫 Camera Authentication Failed",
-                            "Authentication failed — wrong username or password. "
-                            "Fix credentials in VibeNVR (Settings → Cameras → Edit). "
-                            "Retrying in 5 minutes..."
-                        )
-                        # Interruptible sleep: check every second if we should resume (e.g. settings updated)
-                        for _ in range(300):
-                            if not self.running or self.health_status == "STARTING":
-                                break
-                            time.sleep(1)
-                        continue
-
-                    if any(k in err_str for k in refused_keywords):
-                        with self.lock:
-                            self.health_status = "UNREACHABLE"
-                            self.latest_frame = None
-                        logger.warning(
-                            f"StreamReader ({self.camera_name}): Connection refused/reset. "
-                            f"If Tapo/TP-Link, the host IP may be temporarily banned."
-                        )
-                        self._maybe_send_health_callback(
-                            "UNREACHABLE",
-                            "📡 Camera Offline (Possible IP Ban)",
-                            "Camera connection refused. If this is a Tapo/TP-Link camera, "
-                            "the server IP may be temporarily banned. Power-cycle the camera and correct the credentials."
-                        )
-                        retry_delay = min(60, 10 * self.consecutive_failures)
-                        logger.info(f"StreamReader ({self.camera_name}): Backing off {retry_delay}s...")
-                        # Interruptible sleep
-                        for _ in range(retry_delay):
-                            if not self.running or self.health_status == "STARTING":
-                                break
-                            time.sleep(1)
-                        continue
-
-                    # Generic unreachable
-                    with self.lock:
-                        self.health_status = "UNREACHABLE"
-                        self.latest_frame = None
-                    logger.warning(f"StreamReader ({self.camera_name}): Connection failed: {e}")
-                    self._maybe_send_health_callback(
-                        "UNREACHABLE",
-                        "📡 Camera Offline",
-                        "Camera is unreachable. Check network or power."
-                    )
-                    retry_delay = min(60, 5 * (2 ** max(0, self.consecutive_failures - 1)))
-                    logger.info(f"StreamReader ({self.camera_name}): Retrying in {retry_delay}s...")
-                    # Interruptible sleep
-                    for _ in range(retry_delay):
-                        if not self.running or self.health_status == "STARTING":
-                            break
-                        time.sleep(1)
-                    continue
-
-                # 3. Connected!
-                logger.info(f"StreamReader ({self.camera_name}): Connected!")
-                if self.last_health_report_status in ["UNAUTHORIZED", "UNREACHABLE", "OFFLINE"]:
-                    logger.info(f"StreamReader ({self.camera_name}): Converting from {self.last_health_report_status} to CONNECTED")
-                self._maybe_send_health_callback(
-                    "CONNECTED",
-                    "✅ Camera Recovered",
-                    "Camera is back online. Connection established."
-                )
-                with self.lock:
-                    self.health_status = "CONNECTED"
-                    self.connected = True
-                self.consecutive_failures = 0
-
-                # 4. Frame decode loop (demux to intercept raw packets)
-                for packet in container.demux(video=0):
-                    if not self.running:
-                        break
-
-                    # Check for URL change or force_reconnect
-                    with self.lock:
-                        current_url = self.url
-                        current_health = self.health_status
-                        clients = list(self.ws_clients)
-                        
-                    if current_url != target_url:
-                        logger.info(f"StreamReader ({self.camera_name}): URL changed, reconnecting...")
-                        break
-                        
-                    if current_health == "STARTING":
-                        logger.info(f"StreamReader ({self.camera_name}): Force reconnect requested...")
-                        break
-
-                    # --- NAL Unit Parsing for Header Accumulation ---
-                    # H.264 Annex-B start code is 00 00 00 01 (4 bytes) or 00 00 01 (3 bytes)
-                    # We look for SPS (type 7) and PPS (type 8) to accumulate them.
-                    raw_data = bytes(packet)
-                    if len(raw_data) > 4:
-                        # Simple scan for NAL units in the packet. 
-                        # Simple scan for NAL units in the packet. 
-                        # Note: Most camera packets are single NALUs, but some combine them.
-                        # We look for 0x67 (SPS) and 0x68 (PPS) after start codes.
-                        pos = 0
-                        while pos < len(raw_data) - 4:
-                            if raw_data.startswith(b'\x00\x00\x01', pos):
-                                # Found bitstream start code
-                                # Extract NAL type (usually the byte after 00 00 01)
-                                nal_header = raw_data[pos + 3]
-                                nal_type = nal_header & 0x1F
-                                
-                                # Find end of this NALU (next start code or end of packet)
-                                next_pos = raw_data.find(b'\x00\x00\x01', pos + 3)
-                                if next_pos == -1:
-                                    next_pos = len(raw_data)
-                                
-                                if nal_type == 7 or nal_type == 8: # SPS (0x67) or PPS (0x68)
-                                    # Include the start code for the decoder
-                                    nalu: bytes = raw_data[pos:next_pos]
-                                    with self.lock:
-                                        if nalu not in self.last_headers:
-                                            self.last_headers += nalu
-                                            logger.debug(f"StreamReader ({self.camera_name}): Captured NAL type {nal_type}")
-                                
-                                pos = next_pos
-                            else:
-                                pos += 1
-
-                    # --- WebSocket Broadcast of Raw H.264 packets ---
-                    # packet.size == 0 means a flush/null packet (end of stream), skip those
-                    if clients and len(raw_data) > 0:
-                        try:
-                            # pts in seconds; packet.pts is in stream time units, time_base converts to seconds
-                            pts = getattr(packet, 'pts', None)
-                            time_base = getattr(packet, 'time_base', None)
-                            if pts is not None and time_base is not None:
-                                time_sec = float(pts * time_base)
-                            else:
-                                time_sec = 0.0
-                            is_keyframe = 1 if getattr(packet, 'is_keyframe', False) else 0
-                            # Header: <Bd = Little Endian, 1 byte uint8, 8 bytes float64
-                            header: bytes = struct.pack('<Bd', is_keyframe, time_sec)
-                            nalu_bytes: bytes = bytes(packet)
-                            full_payload: bytes = header + nalu_bytes
-                            
-                            # Cache keyframe for new clients (inside lock)
-                            if is_keyframe:
-                                with self.lock:
-                                    # Prepend last known headers to the IDR frame to ensure decodability
-                                    # Use self.last_headers which is bytes
-                                    lh: bytes = self.last_headers or b''
-                                    self.last_keyframe = header + lh + nalu_bytes
-                            
-                            # For live broadcast, if it's a keyframe, ensure we send headers too
-                            broadcast_payload = full_payload
-                            if is_keyframe and self.last_headers:
-                                broadcast_payload = header + self.last_headers + nalu_bytes
-                                
-                            for q, loop in clients:
-                                if not q.full():
-                                    loop.call_soon_threadsafe(q.put_nowait, broadcast_payload)
-                        except Exception as e:
-                            logger.error(f"StreamReader ({self.camera_name}): WS Broadcast error: {e}")
-
-                    # --- Decode to Numpy Array for Motion/Snapshot ---
-                    # packet.decode() returns a list of frames (usually 1 for video)
-                    for frame in packet.decode():
-                        # Convert to numpy BGR array (compatible with cv2 motion detection pipeline)
-                        img = frame.to_ndarray(format='bgr24')
-
-                        with self.lock:
-                            self.latest_frame = img
-                            self.last_read_time = time.time()
-                            self.health_status = "CONNECTED"
-
-            except Exception as e:
-                # Catch av.error.* and general exceptions
-                if isinstance(e, av.error.FFmpegError) or "av.error" in str(type(e)):
-                    masked_err = mask_url(str(e))
-                    logger.warning(f"StreamReader ({self.camera_name}): Stream error: {masked_err}")
-                    self.consecutive_failures += 1
-                    with self.lock:
-                        self.health_status = "UNREACHABLE"
-                        self.latest_frame = None
-                        self.connected = False
-                else:
-                    logger.error(f"StreamReader ({self.camera_name}): Unexpected error: {e}")
-                    with self.lock:
-                        self.latest_frame = None
-                        self.connected = False
-            finally:
-                if container is not None:
-                    try:
-                        container.close()
-                    except Exception:
-                        pass
-                    container = None
-                if self.running:
-                    time.sleep(2)
-
-        logger.info(f"StreamReader ({self.camera_name}): Stopped")
-
-    def get_latest(self):
-        with self.lock:
-            return self.latest_frame, self.last_read_time
-
-    def stop(self):
-        self.running = False
-
-    def update_url(self, new_url):
-        with self.lock:
-            # support double slashes (e.g. //stream2) required by some cameras
-
-            if self.url != new_url:
-                logger.info(f"StreamReader ({self.camera_name}): URL changed, resetting health status and forcing reconnect")
-                self.url = new_url
-                self.health_status = "STARTING"  # Force fresh connection attempt
-                self.last_status_check = 0
-                self.latest_frame = None
-                self.connected = False
-            else:
-                # Even if URL is same, if we are in error state, force a retry
-                if self.health_status in ["UNAUTHORIZED", "UNREACHABLE"]:
-                    logger.info(f"StreamReader ({self.camera_name}): URL unchanged but in error state, forcing retry")
-                    self.health_status = "STARTING"
-                    self.last_status_check = 0
-
-    def force_reconnect(self):
-        with self.lock:
-            self.connected = False
-            self.consecutive_failures = 0
-            self.health_status = "STARTING"
-
 
 class CameraThread(threading.Thread):
     def __init__(self, camera_id, config, event_callback=None):
         super().__init__()
         self.camera_id = camera_id
-        self.config = config # Dict containing rtsp_url, name, text settings, etc.
-        self.event_callback = event_callback # Function to call on events
-        
+        self.config = config
+        self.event_callback = event_callback
         self.running = False
         
-        # Reader Thread
+        # Modular Components
         self.stream_reader = StreamReader(
             self.camera_id, 
             self.config['rtsp_url'], 
@@ -409,912 +31,268 @@ class CameraThread(threading.Thread):
             event_callback=self.event_callback,
             rtsp_transport=self.config.get('rtsp_transport', 'tcp')
         )
+        self.motion_detector = MotionDetector(self.camera_id, self.config.get('name', str(camera_id)), self.config)
+        self.recording_manager = RecordingManager(self.camera_id, self.config.get('name', str(camera_id)), self.config)
         
-        # Frame Storage
+        # Buffered results for UI
         self.latest_frame_jpeg = None
         self.latest_raw_frame_jpeg = None
         self.last_frame_update_time = 0.0
         self.lock = threading.Lock()
         
-        # Throttling counters
+        # Shared processing state
         self.pre_buffer_counter = 0
-        
-        # Motion Detection (lazy init - only create when needed)
-        self.fgbg = None  # Will be created on first use if motion detection enabled
-        self.motion_detected = False
-        self.last_motion_time = 0.0
         self.recording_start_time = 0.0
-        self.consecutive_motion_frames = 0
-        self.consecutive_still_frames = 0
-        self.motion_frame_counter = 0  # For frame skipping optimization
-        
-        # Recording
-        self.recording_process: t.Optional[subprocess.Popen] = None
-        self.is_recording: bool = False
-        self.recording_filename: t.Optional[str] = None
-        self.passthrough_active: bool = False
-        self.passthrough_error_count: int = 0 # Track consecutive failures
-        
-        # Metrics
         self.fps = 0
         self.frame_count = 0
         self.last_fps_time = time.time()
-        self.live_view_counter = 0  # For live view frame skipping
-        self.last_processed_read_time = 0  # To skip duplicate frames
+        self.live_view_counter = 0
+        self.last_processed_read_time = 0
         
-        storage_path = self.config.get('storage_path', '/var/lib/vibe/recordings')
-        self.output_dir = os.path.join(storage_path, str(self.camera_id))
-        os.makedirs(self.output_dir, exist_ok=True)
-        
-        # Dimensions
-        self.width = 0
         self.height = 0
-
-        # Pre-capture buffer
+        self.width = 0
         self.pre_buffer = deque(maxlen=self.config.get('pre_capture', 0) or 1)
-
-        # Health Monitoring (Restored)
         self.last_health_report_status = "STARTING"
         self.last_health_check_time = 0.0
-        
-        # Event Queue for status updates
-        self.event_queue = deque(maxlen=100)
         
         # Privacy & Motion Masks
         self.privacy_polygons = []
         self.motion_polygons = []
-        self._update_privacy_polygons()
+        self._update_masks()
 
-    def _update_privacy_polygons(self):
-        """Parse privacy_masks and motion_masks JSON into list of points"""
-        self.privacy_polygons = self._parse_polygons(self.config.get('privacy_masks'))
-        self.motion_polygons = self._parse_polygons(self.config.get('motion_masks'))
-        
-        if self.privacy_polygons:
-            logger.info(f"Camera {self.config.get('name')}: Loaded {len(self.privacy_polygons)} privacy masks")
-            # Disable passthrough if PRIVACY masks are active to ensure recordings are masked
-            if self.config.get('movie_passthrough'):
-                logger.warning(f"Camera {self.config.get('name')}: Disabling movie passthrough because privacy masks are active.")
-                self.config['movie_passthrough'] = False
-        
-        if self.motion_polygons:
-            logger.info(f"Camera {self.config.get('name')}: Loaded {len(self.motion_polygons)} motion exclusion zones")
+    def _update_masks(self):
+        self.privacy_polygons = parse_polygons(self.config.get('privacy_masks'), self.config.get('name'))
+        self.motion_polygons = parse_polygons(self.config.get('motion_masks'), self.config.get('name'))
+        if self.privacy_polygons and self.config.get('movie_passthrough'):
+            logger.warning(f"Camera {self.config.get('name')}: Disabling passthrough (Privacy Masks Active)")
+            self.config['movie_passthrough'] = False
 
-    def _parse_polygons(self, mask_json):
-        """Helper to parse JSON polygons into normalized point lists"""
-        polygons = []
-        if not mask_json or mask_json == '[]':
-            return polygons
-            
-        try:
-            polys = json.loads(mask_json)
-            if isinstance(polys, list):
-                for p in polys:
-                    if isinstance(p, dict) and 'points' in p:
-                        # Extract points from {points: [{x, y}, ...]}
-                        raw_points = p['points']
-                        normalized_points = []
-                        for pt in raw_points:
-                            if isinstance(pt, dict):
-                                normalized_points.append([pt.get('x', 0), pt.get('y', 0)])
-                            elif isinstance(pt, (list, tuple)) and len(pt) >= 2:
-                                normalized_points.append([pt[0], pt[1]])
-                        if normalized_points:
-                            polygons.append(normalized_points)
-                    elif isinstance(p, list):
-                        # Snap points very close to edges to avoid motion leakage at borders
-                        snapped_points = []
-                        for pt in p:
-                            if len(pt) == 2:
-                                x, y = pt
-                                if x < 0.02: x = 0.0
-                                elif x > 0.98: x = 1.0
-                                if y < 0.02: y = 0.0
-                                elif y > 0.98: y = 1.0
-                                snapped_points.append([x, y])
-                        polygons.append(snapped_points)
-        except Exception as e:
-            logger.error(f"Camera {self.config.get('name')}: Error parsing masks JSON: {e}")
-        return polygons
+    def _mask_url(self, text):
+        """Compatibility wrapper for mask_url utility"""
+        return mask_url(text)
 
-    def apply_masks(self, frame, polygons, alpha=1.0, color=(0, 0, 0)):
-        """Draw polygons on the frame based on normalized coordinates"""
-        if not polygons:
-            return
-            
-        h, w = frame.shape[:2]
-        if alpha >= 1.0:
-            # Solid mask (efficient)
-            for poly in polygons:
-                try:
-                    pts = np.array([[int(p[0] * w), int(p[1] * h)] for p in poly], np.int32)
-                    pts = pts.reshape((-1, 1, 2))
-                    cv2.fillPoly(frame, [pts], color)
-                except Exception as e:
-                    logger.error(f"Camera {self.config.get('name')}: Error applying mask: {e}")
-        else:
-            # Alpha blended mask (transparent)
-            overlay = frame.copy()
-            for poly in polygons:
-                try:
-                    pts = np.array([[int(p[0] * w), int(p[1] * h)] for p in poly], np.int32)
-                    pts = pts.reshape((-1, 1, 2))
-                    cv2.fillPoly(overlay, [pts], color)
-                except Exception as e:
-                    logger.error(f"Camera {self.config.get('name')}: Error applying privacy mask: {e}")
-            cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
-    
+    @property
+    def motion_detected(self):
+        return self.motion_detector.motion_detected
+
+    @property
+    def is_recording(self):
+        return self.recording_manager.is_recording
+
+    @property
+    def passthrough_active(self):
+        return self.recording_manager.passthrough_active
+
     def get_health(self):
         return self.stream_reader.get_health()
 
-    def _mask_url(self, url):
-        return mask_url(url)
-
     def run(self):
         self.running = True
-        logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Starting processing thread")
-        
-        # Start the reader (producer)
+        logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Starting loop")
         self.stream_reader.start()
         
         while self.running:
             loop_start_time = time.time()
             try:
-                # 1. Get Frame from Reader
                 frame, read_time = self.stream_reader.get_latest()
-                
-                if frame is None:
-                    # No frame yet, wait a bit
-                    time.sleep(0.1)
+                if frame is None or read_time == self.last_processed_read_time:
+                    time.sleep(0.01)
                     continue
                 
-                # Skip if this is the same frame we already processed
-                if read_time == self.last_processed_read_time:
-                    time.sleep(0.01)  # Brief sleep to avoid busy loop
-                    continue
                 self.last_processed_read_time = read_time
                 frame = frame.copy()
-                    
-                # 2. Process dimensions & Resize if needed
-                # Note: StreamReader gives raw frames. We might want to resize.
-                target_w = self.config.get('width')
-                target_h = self.config.get('height')
-                if target_w and target_h:
-                    if frame.shape[1] != target_w or frame.shape[0] != target_h:
-                        frame = cv2.resize(frame, (target_w, target_h))
+                
+                # Pre-processing (Resize/Rotate)
+                target_w, target_h = self.config.get('width'), self.config.get('height')
+                if target_w and target_h and (frame.shape[1] != target_w or frame.shape[0] != target_h):
+                    frame = cv2.resize(frame, (target_w, target_h))
 
-                # Rotation
                 rotation = self.config.get('rotation', 0)
-                if rotation == 90:
-                    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-                elif rotation == 180:
-                    frame = cv2.rotate(frame, cv2.ROTATE_180)
-                elif rotation == 270:
-                    frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                if rotation == 90: frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+                elif rotation == 180: frame = cv2.rotate(frame, cv2.ROTATE_180)
+                elif rotation == 270: frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
                 self.height, self.width = frame.shape[:2]
-                
-                # Update Live View Counter & Throttle (shared by raw and processed updates)
                 self.live_view_counter += 1
-                lv_throttle = self.config.get('opt_live_view_fps_throttle', 2)
-                if lv_throttle < 1: lv_throttle = 1
+                lv_throttle = max(1, self.config.get('opt_live_view_fps_throttle', 2))
                 
-                # Capture RAW frame for Privacy Mask manager preview (before masks/overlays)
+                # Update Raw frames for UI Mask Editor
                 if self.live_view_counter % lv_throttle == 0:
-                    try:
-                        # Resize to live view height limit
-                        raw_live_frame = frame
-                        lv_max_h = self.config.get('opt_live_view_height_limit', 720)
-                        if frame.shape[0] > lv_max_h:
-                            scale = lv_max_h / frame.shape[0]
-                            new_width = int(frame.shape[1] * scale)
-                            raw_live_frame = cv2.resize(frame, (new_width, lv_max_h), interpolation=cv2.INTER_NEAREST)
-                        
-                        lv_qual = self.config.get('opt_live_view_quality', 60)
-                        ret, jpeg = cv2.imencode('.jpg', raw_live_frame, [int(cv2.IMWRITE_JPEG_QUALITY), lv_qual])
-                        if ret:
-                            self.latest_raw_frame_jpeg = jpeg.tobytes()
-                    except Exception as e:
-                        logger.error(f"Error capturing raw frame: {e}")
+                    self._update_ui_frame(frame, is_raw=True)
 
-                # 3. Privacy Masking (Apply before motion detection and recording)
-                # Visual mask: Solid black (BGR: 0, 0, 0)
-                # This obscures the area in recordings and live view.
-                self.apply_masks(frame, self.privacy_polygons, alpha=1.0, color=(0, 0, 0))
-
-                # 4. Motion Detection
-                self.detect_motion(frame)
-
-                # 4. Text Overlay
-                self.draw_overlay(frame)
+                # Masking -> Motion -> Overlay
+                apply_masks(frame, self.privacy_polygons, alpha=1.0, color=(0, 0, 0), camera_name=self.config.get('name'))
+                motion_active = self.motion_detector.detect(
+                    frame, self.event_callback, self.save_snapshot, 
+                    self.privacy_polygons, self.motion_polygons, apply_masks
+                )
                 
-                # 5. Handle Recording (Video)
-                self.handle_recording(frame)
+                draw_overlay(frame, self.config)
                 
-                # 6. Pre-capture Buffer
-                # OPTIMIZATION: Throttle pre-capture buffer to save RAM
-                pre_cap_count = self.config.get('pre_capture', 0)
-                throttle = int(self.config.get('opt_pre_capture_fps_throttle', 1))
-                if throttle < 1: throttle = 1
+                # Recording Management
+                self.recording_manager.handle_recording(
+                    frame, motion_active, self.motion_detector.last_motion_time, self.stop_recording
+                )
                 
-                # Calculate effective buffer size
-                effective_maxlen = pre_cap_count // throttle if pre_cap_count > 0 else 0
-                
-                if effective_maxlen > 0:
-                    if self.pre_buffer.maxlen != effective_maxlen:
-                        # Resize if needed (e.g. settings changed)
-                        self.pre_buffer = deque(self.pre_buffer, maxlen=effective_maxlen)
-                    
-                    self.pre_buffer_counter += 1
-                    if self.pre_buffer_counter % throttle == 0:
-                        # Store YUV420 frame (from previous optimization) or copy
-                        try:
-                            self.pre_buffer.append(frame.copy())
-                        except Exception:
-                            pass
+                # Pre-capture buffer
+                self._update_pre_buffer(frame)
 
-
-                # 7. Update Live View Buffer (Broadcast)
-                # OPTIMIZATION: Only update live view every N frames (reduces JPEG encoding CPU)
+                # Update Processed frames for UI Live View
                 if self.live_view_counter % lv_throttle == 0:
-                    # Resize to limit height before JPEG encoding (less CPU, less memory)
-                    live_frame = frame
-                    lv_max_h = self.config.get('opt_live_view_height_limit', 720)
-                    
-                    if frame.shape[0] > lv_max_h:
-                        scale = lv_max_h / frame.shape[0]
-                        new_width = int(frame.shape[1] * scale)
-                        live_frame = cv2.resize(frame, (new_width, lv_max_h), interpolation=cv2.INTER_NEAREST)
-                    
-                    lv_qual = self.config.get('opt_live_view_quality', 60)
-                    ret, jpeg = cv2.imencode('.jpg', live_frame, [int(cv2.IMWRITE_JPEG_QUALITY), lv_qual])
-                    if ret:
-                        with self.lock:
-                            self.latest_frame_jpeg = jpeg.tobytes()
-                            self.last_frame_update_time = time.time()
-                        # Sync health_status when frames are successfully generated
-                        # This overrides any stale UNAUTHORIZED from ffprobe checks
-                        with self.stream_reader.lock:
-                            if self.stream_reader.health_status != "CONNECTED":
-                                self.stream_reader.health_status = "CONNECTED"
+                    self._update_ui_frame(frame)
+                    # Sync health
+                    if self.stream_reader.health_status != "CONNECTED":
+                        with self.stream_reader.lock: self.stream_reader.health_status = "CONNECTED"
                 
-                # FPS Calculation
-                self.frame_count += 1
-                if time.time() - self.last_fps_time >= 1.0:
-                    self.fps = self.frame_count
-                    self.frame_count = 0
-                    self.last_fps_time = time.time()
-                
-                # Health Monitoring & Notification (Check every 60s)
-                if time.time() - self.last_health_check_time > 60.0:
-                    self.last_health_check_time = time.time()
-                    current_health = self.stream_reader.get_health()
-                    
-                    if current_health != self.last_health_report_status:
-                        prev_health = self.last_health_report_status
-                        self.last_health_report_status = current_health
-                        
-                        logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Health changed {prev_health} -> {current_health}")
-                        
-                        event_title = None
-                        event_msg = None
-                        
-                        if current_health == "UNAUTHORIZED":
-                            event_title = f"Camera Auth Failure: {self.config.get('name')}"
-                            event_msg = "Camera reported 401 Unauthorized (Wrong Password). Please check credentials."
-                        elif current_health == "UNREACHABLE":
-                            event_title = f"Camera Offline: {self.config.get('name')}"
-                            event_msg = "Camera is unreachable. Check network or power."
-                        elif current_health == "CONNECTED" and prev_health in ["UNAUTHORIZED", "UNREACHABLE"]:
-                            event_title = f"Camera Online: {self.config.get('name')}"
-                            event_msg = "Camera connection restored."
-                            
-                        # Trigger Event
-                        if event_title:
-                            event_data = {
-                                "camera_id": self.camera_id,
-                                "camera_name": self.config.get('name', 'Unknown'),
-                                "status": current_health,
-                                "timestamp": int(time.time()),
-                                "message": event_msg,
-                                "title": event_title
-                            }
-                            # self.event_queue.put is only for multiprocessing.Queue, if it's a deque use append
-                            if hasattr(self, 'event_queue') and hasattr(self.event_queue, 'append'):
-                                self.event_queue.append(("health_status_changed", event_data))
-                            
-                            if self.event_callback:
-                                self.event_callback(self.camera_id, 'health_status_changed', {
-                                    "title": event_title,
-                                    "message": event_msg,
-                                    "new_status": current_health
-                                })
-                
-
-                    
-
-
-                # Framerate throttle (Processing FPS)
-                target_fps = self.config.get('framerate', 30)
-                if target_fps > 0:
-                     elapsed = time.time() - loop_start_time
-                     target_time = 1.0 / target_fps
-                     if elapsed < target_time:
-                         time.sleep(target_time - elapsed)
+                # Metrics & Health
+                self._update_metrics(loop_start_time)
+                self._check_health()
 
             except Exception as e:
-                logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Error in processing loop: {e}")
+                logger.error(f"Loop error for {self.camera_id}: {e}")
                 time.sleep(1)
                 
-        # Cleanup
         self.stream_reader.stop()
         self.stream_reader.join(timeout=1.0)
         self.stop_recording()
-        logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Thread stopped")
+        logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Stopped")
 
-    def detect_motion(self, frame):
-        # Skip motion detection if disabled
-        detect_mode = self.config.get('detect_motion_mode', 'Always')
-        recording_mode = self.config.get('recording_mode', 'Motion Triggered')
-        if detect_mode == 'Off' or recording_mode == 'Off':
-            # If motion was active, end it
-            if self.motion_detected:
-                self.motion_detected = False
-                logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Motion END (detection disabled)")
-                if self.event_callback:
-                    self.event_callback(self.camera_id, 'motion_end')
-            return
-        
-        # OPTIMIZATION: Skip frames for motion detection
-        motion_throttle = self.config.get('opt_motion_fps_throttle', 3)
-        self.motion_frame_counter += 1
-        if self.motion_frame_counter % motion_throttle != 0:
-            return  # Skip frames
-        
-        # Resize for faster processing (optimized: smaller resolution + fastest interpolation)
-        # Calculate width based on target height to maintain aspect ratio
-        motion_h = self.config.get('opt_motion_analysis_height', 180)
-        scale = motion_h / frame.shape[0]
-        motion_w = int(frame.shape[1] * scale)
-        small_frame = cv2.resize(frame, (motion_w, motion_h), interpolation=cv2.INTER_NEAREST)
-        
-        # Apply privacy masks to small_frame so motion detection ignores those areas
-        # CRITICAL: Use solid black (alpha=1.0) for motion detection to effectively block changes
-        # Apply BOTH privacy masks and motion exclusion zones to the small frame
-        self.apply_masks(small_frame, self.privacy_polygons, alpha=1.0, color=(0, 0, 0))
-        self.apply_masks(small_frame, self.motion_polygons, alpha=1.0, color=(0, 0, 0))
-        
-        # Lazy init MOG2 on first use (saves RAM if motion detection disabled)
-        if self.fgbg is None:
-            self.fgbg = cv2.createBackgroundSubtractorMOG2(history=200, varThreshold=25, detectShadows=False)
-            logger.info(f"Camera {self.config.get('name')}: MOG2 background subtractor initialized")
-        
-        fgmask = self.fgbg.apply(small_frame)
-        
-        # Threshold to remove shadows
-        _, fgmask = cv2.threshold(fgmask, 200, 255, cv2.THRESH_BINARY)
-
-        # Despeckle (if enabled) - simple erosion/dilation
-        if self.config.get('despeckle_filter', False):
-            kernel = np.ones((3,3), np.uint8)
-            fgmask = cv2.erode(fgmask, kernel, iterations=1)
-            fgmask = cv2.dilate(fgmask, kernel, iterations=1)
-        
-        # Calculate motion ratio
-        motion_ratio = (np.count_nonzero(fgmask) / fgmask.size) * 100
-        
-        threshold_percent = self.config.get('threshold_percent', 1.0)
-        # Compatibility with 'Motion' project 'threshold' (pixels)
-        if 'threshold' in self.config:
-            # threshold is pixels, e.g. 1500
-            # small_frame is 320x180 = 57600 pixels (optimized)
-            thresh_pixels = int(self.config['threshold'])
-            threshold_percent = (thresh_pixels / (320 * 180)) * 100
-        
-        if motion_ratio > threshold_percent:
-            self.consecutive_motion_frames += 1
-            self.consecutive_still_frames = 0
+    def _update_ui_frame(self, frame, is_raw=False):
+        try:
+            lv_max_h = self.config.get('opt_live_view_height_limit', 720)
+            target_frame = frame
+            if frame.shape[0] > lv_max_h:
+                scale = lv_max_h / frame.shape[0]
+                target_frame = cv2.resize(frame, (int(frame.shape[1] * scale), lv_max_h), interpolation=cv2.INTER_NEAREST)
             
-            min_frames = self.config.get('min_motion_frames', 2)
-            
-            if self.consecutive_motion_frames >= min_frames:
-                self.last_motion_time = time.time()
-                if not self.motion_detected:
-                    self.motion_detected = True
-                    logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Motion START")
-                    snap_path = None
-                    
-                    snap_path = None
-                    
-                    # Take snapshot logic
-                    pic_mode = self.config.get('picture_recording_mode', 'Manual')
-                    vid_mode = self.config.get('recording_mode', 'Off')
-                    
-                    if pic_mode == 'Motion Triggered':
-                        # Permanent save (DB event)
-                        snap_path = self.save_snapshot(frame, is_temp=False)
-                    elif vid_mode != 'Off':
-                        # Temporary save for notification only (No DB event)
-                        snap_path = self.save_snapshot(frame, is_temp=True)
+            lv_qual = self.config.get('opt_live_view_quality', 60)
+            ret, jpeg = cv2.imencode('.jpg', target_frame, [int(cv2.IMWRITE_JPEG_QUALITY), lv_qual])
+            if ret:
+                with self.lock:
+                    if is_raw: self.latest_raw_frame_jpeg = jpeg.tobytes()
+                    else:
+                        self.latest_frame_jpeg = jpeg.tobytes()
+                        self.last_frame_update_time = time.time()
+        except Exception as e:
+            logger.error(f"UI Frame error: {e}")
 
+    def _update_pre_buffer(self, frame):
+        pre_cap_count = self.config.get('pre_capture', 0)
+        throttle = max(1, int(self.config.get('opt_pre_capture_fps_throttle', 1)))
+        
+        effective_maxlen = pre_cap_count // throttle if pre_cap_count > 0 else 0
+        if effective_maxlen > 0:
+            if self.pre_buffer.maxlen != effective_maxlen:
+                self.pre_buffer = deque(self.pre_buffer, maxlen=effective_maxlen)
+            
+            self.pre_buffer_counter += 1
+            if self.pre_buffer_counter % throttle == 0:
+                self.pre_buffer.append(frame.copy())
+
+    def _update_metrics(self, loop_start_time):
+        self.frame_count += 1
+        if time.time() - self.last_fps_time >= 1.0:
+            self.fps = self.frame_count
+            self.frame_count = 0
+            self.last_fps_time = time.time()
+        
+        target_fps = self.config.get('framerate', 30)
+        if target_fps > 0:
+            elapsed = time.time() - loop_start_time
+            target_time = 1.0 / target_fps
+            if elapsed < target_time: time.sleep(target_time - elapsed)
+
+    def _check_health(self):
+        if time.time() - self.last_health_check_time > 60.0:
+            self.last_health_check_time = time.time()
+            current_health = self.stream_reader.get_health()
+            if current_health != self.last_health_report_status:
+                self.last_health_report_status = current_health
+                logger.info(f"Camera {self.config.get('name')}: Health -> {current_health}")
+                # Health event logic could be moved to its own service, but keeping here for now as it's thin
+                event_map = {
+                    "UNAUTHORIZED": ("🚫 Camera Auth Failure", "Wrong Password"),
+                    "UNREACHABLE": ("📡 Camera Offline", "Unreachable"),
+                    "CONNECTED": ("✅ Camera Online", "Connection restored")
+                }
+                if current_health in event_map:
+                    title, msg = event_map[current_health]
                     if self.event_callback:
-                        payload = {}
-                        if snap_path:
-                            payload['file_path'] = snap_path
-                        self.event_callback(self.camera_id, 'motion_start', payload)
-        else:
-            self.consecutive_still_frames += 1
-            self.consecutive_motion_frames = 0
-            
-            motion_gap = self.config.get('motion_gap', 10)
-            if self.motion_detected and (time.time() - self.last_motion_time > motion_gap):
-                self.motion_detected = False
-                self.consecutive_motion_frames = 0
-                logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Motion END")
-                if self.event_callback:
-                    self.event_callback(self.camera_id, 'motion_end')
-
-    def draw_overlay(self, frame):
-        try:
-            h, w = frame.shape[:2]
-            
-            # Resilient Scaling Logic
-            # user_scale_param is typically 1.0 (default) to 10.0 from UI slider? 
-            # Actually frontend slider might save raw 1.0. Let's assume standard is around 1.0
-            user_preference = self.config.get('text_scale', 1.0)
-            
-            # Base logic: Scale strictly by width. 
-            # 1920px -> scale 1.0 * user_pref
-            # 640px  -> scale 0.33 * user_pref
-            # This keeps text relative size constant across resolutions
-            
-            # Use 1200 as base width reference (middle ground)
-            base_font_scale = 1.0
-            
-            # Calculate dynamic scale based on WIDTH ratio
-            font_scale = (w / 1200.0) * user_preference * base_font_scale
-            
-            # Safety floor: never go below 0.4 or it becomes unreadable artifacts
-            font_scale = max(0.4, font_scale)
-            
-            # Thickness scales with font size for visibility
-            thickness = max(1, int(font_scale * 2.0))
-            
-            cam_name = self.config.get('name', 'Camera')
-
-            def process_text(text):
-                if not text: return ""
-                # Handle Motion-style camera name token (%$) and custom %N
-                text = text.replace('%$', cam_name).replace('%N', cam_name)
-                
-                # DateTime formatting (only if % is present to avoid overhead)
-                if '%' in text: 
-                    try:
-                        text = datetime.now().strftime(text)
-                    except:
-                        pass # Ignore formatting errors
-                return text
-
-            # Text Right (Bottom Right)
-            text_right = self.config.get('text_right', '')
-            text_right = process_text(text_right)
-                
-            if text_right:
-                (ts_w, ts_h), _ = cv2.getTextSize(text_right, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
-                cv2.rectangle(frame, (w - ts_w - 20, h - ts_h - 20), (w, h), (0, 0, 0), -1)
-                cv2.putText(frame, text_right, (w - ts_w - 10, h - 10), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (255, 255, 255), thickness)
-
-            # Text Left (Top Left)
-            text_left = self.config.get('text_left', '')
-            text_left = process_text(text_left)
-            
-            if text_left:
-                (nm_w, nm_h), _ = cv2.getTextSize(text_left, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
-                cv2.rectangle(frame, (0, 0), (nm_w + 20, nm_h + 20), (0, 0, 0), -1)
-                cv2.putText(frame, text_left, (10, nm_h + 10), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (255, 255, 255), thickness)
-        except Exception as e:
-            logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Overlay error: {e}")
-            
-        # Motion Debug Box - Forcefully disabled to prioritize UI reactive borders 
-        # and keep the recorded video stream clean for storage.
-        # if self.motion_detected and self.config.get('show_motion_box', False):
-        #    cv2.rectangle(frame, (10, 10), (w-10, h-10), (0, 0, 255), 4)
-
-    def handle_recording(self, frame):
-        mode = self.config.get('recording_mode', 'Off')
-        should_record = False
-        
-        if mode == 'Always' or mode == 'Continuous':
-            should_record = True
-        elif mode == 'Motion Triggered' and self.motion_detected:
-            should_record = True
-            
-        # Check max movie length for splitting
-        max_len = self.config.get('max_movie_length', 0)
-        if self.is_recording and max_len > 0:
-            if time.time() - self.recording_start_time > max_len:
-                logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Max movie length reached, splitting file")
-                self.stop_recording()
-                # next loop will restart it if should_record is still True
-
-        if should_record and not self.is_recording:
-            self.start_recording(frame.shape[1], frame.shape[0])
-        elif not should_record and self.is_recording:
-            # Post-capture buffer
-            post_cap = self.config.get('post_capture', 5)
-            if not self.motion_detected and (time.time() - self.last_motion_time > post_cap):
-                 self.stop_recording()
-
-        # Check for Passthrough crash
-        rp = self.recording_process
-        if self.is_recording and self.passthrough_active and rp is not None:
-             poll_result = rp.poll()
-             if poll_result is not None:
-                 logger.error(f"Camera {self.config.get('name')}: Passthrough recording process died unexpectedly (code {poll_result}). Aborting motion event.")
-                 self.stop_recording()
-                 self.motion_detected = False # Prevent immediate restart loop
-                 self.passthrough_error_count += 1
-                 return
-
-        rp = self.recording_process
-        if self.is_recording and rp is not None and not self.passthrough_active:
-            try:
-                rs = rp.stdin
-                if rs is not None:
-                    rs.write(frame.tobytes())
-            except Exception as e:
-                logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Error writing to ffmpeg: {e}")
-                self.stop_recording()
-
-    def _monitor_ffmpeg_logs(self, process):
-        """Read stderr from ffmpeg, mask credentials, and log"""
-        try:
-            # Iterate lines until stderr is closed
-            for line in iter(process.stderr.readline, b''):
-                if not line: break
-                
-                msg = line.decode('utf-8', errors='replace').strip()
-                if not msg: continue
-                
-                masked_msg = self._mask_url(msg)
-                
-                # If using -loglevel error, practically everything here is important
-                logger.error(f"FFmpeg [{self.config.get('name')}]: {masked_msg}")
-        except Exception as e:
-            # Process probably died
-            pass
+                        self.event_callback(self.camera_id, 'health_status_changed', {"title": title, "message": msg, "new_status": current_health})
 
     def start_recording(self, width, height):
-        format_str = self.config.get('movie_file_name', '%Y-%m-%d/%H-%M-%S')
-        format_str = format_str.replace('%q', '00') 
-        
-        timestamp_path = datetime.now().strftime(format_str)
-        output_dir = f"/var/lib/vibe/recordings/{self.camera_id}"
-        
-        full_path = os.path.join(output_dir, f"{timestamp_path}.mp4")
-        os.makedirs(os.path.dirname(full_path), exist_ok=True)
-        
-        logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Start Recording to {full_path}")
-        
-        # Passthrough Logic with Fallback
-        if self.passthrough_error_count > 1:
-             if self.passthrough_error_count == 2:
-                 logger.warning(f"Camera {self.config.get('name')}: Passthrough failed too many times ({self.passthrough_error_count}). Falling back to Encoding.")
-             self.passthrough_active = False
-        else:
-             self.passthrough_active = self.config.get('movie_passthrough', False)
-        
-        if self.passthrough_active:
-             # PASSTHROUGH MODE: Direct Stream Copy
-            # Note: No overlays, no resize, no pre-capture buffer
-            command = [
-                'ffmpeg',
-                '-y',
-                '-rtsp_transport', 'tcp',
-                '-hide_banner',      # Hide build/version info
-                '-loglevel', 'error', # Suppress info logs that show input URL (credentials)
-                '-i', self.config['rtsp_url'],
-                '-c:v', 'copy',
-                '-an',  # Disable audio to prevent MP4 container errors with PCM codecs
-                '-f', 'mp4',
-                '-movflags', '+faststart', # Enable fast start for web playback
-                full_path
-            ]
-            
-            try:
-                # Use PIPE for stderr to trap and mask logs
-                self.recording_process = subprocess.Popen(command, stdin=None, stderr=subprocess.PIPE)
-                
-                # Start background thread to monitor logs and mask credentials
-                log_thread = threading.Thread(target=self._monitor_ffmpeg_logs, args=(self.recording_process,), daemon=True)
-                log_thread.start()
-                
-                self.is_recording = True
-                self.recording_filename = full_path
-                self.recording_start_time = time.time()
-                
-                if self.event_callback:
-                     self.event_callback(self.camera_id, 'recording_start', {
-                         "file_path": full_path,
-                         "width": width, # Note: Actual width might differ if stream changes
-                         "height": height
-                     })
-                logger.info(f"Camera {self.config.get('name')}: Started Passthrough Recording")
-                return 
-                
-            except Exception as e:
-                logger.error(f"Camera {self.config.get('name')}: Failed to start Passthrough ffmpeg: {e}")
-                self.passthrough_active = False # Fallback? No, just fail
-                self.is_recording = False
-                self.passthrough_error_count += 1
-                return
-
-        # ENCODING MODE with Hardware Acceleration Support
-        # Map quality (0-100) to CRF (51-18)
-        # 100 = CRF 18 (Visually Lossless)
-        # 75  = CRF 26 (Good Compromise)
-        # 50  = CRF 34 (Low Quality)
-        quality = self.config.get('movie_quality', 75)
-        crf = int(51 - (quality * 0.33))
-        crf = max(18, min(51, crf))
-        
-        # Check if HW encoding is available
-        hw_accel_enabled = os.environ.get('HW_ACCEL', 'false').lower() == 'true'
-        hw_accel_type = os.environ.get('HW_ACCEL_TYPE', 'auto').lower()
-        
-        # Select encoder based on HW accel settings
-        video_codec = 'libx264'  # Software fallback
-        codec_specific_args = ['-preset', self.config.get('opt_ffmpeg_preset', 'ultrafast'), '-crf', str(crf)]
-        
-        # Log level based on global config
-        try:
-            from main import GLOBAL_CONFIG
-            ffmpeg_loglevel = 'debug' if GLOBAL_CONFIG.get('opt_verbose_engine_logs') else 'error'
-        except ImportError:
-            ffmpeg_loglevel = 'error'
-        
-        if hw_accel_enabled:
-            if hw_accel_type in ['vaapi', 'intel', 'amd', 'auto']:
-                # Try VAAPI encoding
-                if os.path.exists('/dev/dri'):
-                    video_codec = 'h264_vaapi'
-                    # VAAPI uses different quality control (qp instead of crf)  
-                    qp = int(crf * 0.7)  # Approximate CRF to QP mapping
-                    codec_specific_args = [
-                        '-vaapi_device', '/dev/dri/renderD128',
-                        '-vf', 'format=nv12,hwupload',
-                        '-qp', str(qp)
-                    ]
-                    logger.info(f"Camera {self.config.get('name')}: Using VAAPI hardware encoding")
-            
-            elif hw_accel_type == 'nvidia':
-                # NVIDIA NVENC
-                video_codec = 'h264_nvenc'
-                codec_specific_args = ['-preset', 'fast', '-cq', str(crf)]
-                logger.info(f"Camera {self.config.get('name')}: Using NVENC hardware encoding")
-        
-        command = [
-            'ffmpeg',
-            '-y',
-            '-loglevel', ffmpeg_loglevel,
-            '-f', 'rawvideo',
-            '-vcodec', 'rawvideo',
-            '-s', f'{width}x{height}',
-            '-pix_fmt', 'bgr24',
-            '-r', str(self.config.get('framerate', 15)),
-            '-i', '-',
-            '-c:v', video_codec,
-            *codec_specific_args,
-            '-pix_fmt', 'yuv420p',
-            full_path
-        ]
-        
-        # Log encoder being used
-        cmd_str = ' '.join([c for c in command if 'rtsp' not in c.lower()])
-        logger.info(f"Camera {self.config.get('name')}: FFmpeg encoding command: {cmd_str}")
-        
-        try:
-            # Capture stderr to monitor for ffmpeg startup errors
-            self.recording_process = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-            
-            # Start a log monitor thread for the encoder as well
-            enc_log_thread = threading.Thread(target=self._monitor_ffmpeg_logs, args=(self.recording_process,), daemon=True)
-            enc_log_thread.start()
-            
-            self.is_recording = True
-            self.recording_filename = full_path
-            self.recording_start_time = time.time()
-            
-            # Write pre-capture buffer
-            if len(self.pre_buffer) > 0:
-                try:
-                    throttle = int(self.config.get('opt_pre_capture_fps_throttle', 1))
-                    if throttle < 1: throttle = 1
-                    
-                    for f in self.pre_buffer:
-                        # Duplicate frame 'throttle' times to restore FPS
-                        for _ in range(throttle):
-                            rp = self.recording_process
-                            if rp is not None:
-                                rs = rp.stdin
-                                if rs is not None:
-                                    f_bytes: bytes = t.cast(np.ndarray, f).tobytes()
-                                    rs.write(f_bytes)
-                    self.pre_buffer.clear()
-                except Exception as e:
-                    logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Error writing pre-buffer: {e}")
-            
-            if self.event_callback:
-                 self.event_callback(self.camera_id, 'recording_start', {
-                     "file_path": full_path,
-                     "width": width,
-                     "height": height
-                 })
-                 
-        except Exception as e:
-            logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Failed to start ffmpeg: {e}")
+        # Delegate to manager, providing pre-buffer
+        self.recording_manager.start_recording(width, height, list(self.pre_buffer), self.event_callback)
+        self.pre_buffer.clear()
 
     def stop_recording(self):
-        if self.is_recording:
-            logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Stop Recording")
-            if self.recording_process:
-                if self.passthrough_active:
-                    # Passthrough: Terminate safely
-                    self.recording_process.terminate()
-                    try:
-                        self.recording_process.wait(timeout=5)
-                    except subprocess.TimeoutExpired:
-                        self.recording_process.kill()
-                else:
-                    # Encoding: Close stdin to finish stream
-                    rp = self.recording_process
-                    if rp is not None:
-                        rs = rp.stdin
-                        if rs is not None:
-                            rs.close()
-                        rp.wait()
-                self.recording_process = None
-            self.is_recording = False
-            
-            # Verify file size prevents saving empty/broken files
-            valid_recording = False
-            rec_filename = self.recording_filename
-            if rec_filename is not None and os.path.exists(rec_filename):
-                try:
-                    size = os.path.getsize(rec_filename)
-                    if size < 1024:
-                        logger.warning(f"Recording {rec_filename} is too small ({size} bytes). Discarding.")
-                        os.remove(rec_filename)
-                    else:
-                        valid_recording = True
-                except Exception as e:
-                    logger.error(f"Error checking file size: {e}")
-
-            if valid_recording and self.event_callback is not None:
-                 self.event_callback(self.camera_id, 'recording_end', {
-                     "file_path": self.recording_filename or "unknown",
-                     "width": self.width,
-                     "height": self.height
-                 })
+        self.recording_manager.stop_recording(self.event_callback, self.width, self.height)
 
     def update_config(self, new_config):
-        """ Update config dynamically without stopping thread """
         old_passthrough = self.config.get('movie_passthrough', False)
-        new_passthrough = new_config.get('movie_passthrough', old_passthrough)
+        old_masks = (self.config.get('privacy_masks', '[]'), self.config.get('motion_masks', '[]'))
         
-        old_p_masks = self.config.get('privacy_masks', '[]')
-        old_m_masks = self.config.get('motion_masks', '[]')
         self.config.update(new_config)
-        new_p_masks = self.config.get('privacy_masks', '[]')
-        new_m_masks = self.config.get('motion_masks', '[]')
+        self.motion_detector.config = self.config
+        self.recording_manager.config = self.config
         
-        if old_p_masks != new_p_masks or old_m_masks != new_m_masks:
-            self._update_privacy_polygons()
+        if old_masks != (self.config.get('privacy_masks', '[]'), self.config.get('motion_masks', '[]')):
+            self._update_masks()
         
-        # Handle passthrough mode change
-        if 'movie_passthrough' in new_config and old_passthrough != new_passthrough:
-            logger.info(f"Camera {self.config.get('name')}: Passthrough mode changed from {old_passthrough} to {new_passthrough}")
-            
-            # Reset error count to give passthrough a fresh start
-            self.passthrough_error_count = 0
-            
-            # If we have an active passthrough recording, stop it so it can restart with new settings
-            # This also releases the RTSP connection that might block the liveview StreamReader
-            if self.is_recording and self.passthrough_active:
-                logger.info(f"Camera {self.config.get('name')}: Stopping active passthrough recording due to config change")
+        if 'movie_passthrough' in new_config and old_passthrough != new_config['movie_passthrough']:
+            self.recording_manager.passthrough_error_count = 0
+            if self.recording_manager.is_recording and self.recording_manager.passthrough_active:
                 self.stop_recording()
-                # (moved after if block)
-            
-            # Update passthrough_active regardless of recording state
-            self.passthrough_active = new_passthrough
-            
-            # Force StreamReader to reconnect after passthrough change
-            # This fixes the black screen issue when toggling passthrough
+            self.recording_manager.passthrough_active = new_config['movie_passthrough']
             self.stream_reader.force_reconnect()
         
-        # Update StreamReader URL if changed
         if 'rtsp_url' in new_config:
-            new_url = new_config['rtsp_url']
-            # Mask for logging
-            masked_new = self._mask_url(new_url)
-            masked_old = self._mask_url(self.config.get('rtsp_url'))
-            
-            if new_url != self.config.get('rtsp_url'):
-                logger.info(f"Camera {self.config.get('name')}: RTSP URL update: {masked_old} -> {masked_new}")
-                
-            self.stream_reader.update_url(new_url)
+            self.stream_reader.update_url(new_config['rtsp_url'])
 
-        # Update pre-buffer length
         pre_cap = self.config.get('pre_capture', 0)
         if pre_cap > 0 and self.pre_buffer.maxlen != pre_cap:
             self.pre_buffer = deque(self.pre_buffer, maxlen=pre_cap)
-            
         logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Config updated")
-        
+
     def stop(self):
         self.running = False
-        # Don't join with timeout here, let the manager handle it if needed
-        # or just set running to false and let the loop finish.
-        # But we want to be able to wait a bit.
         self.join(timeout=2.0)
 
     def get_frame_bytes(self):
         with self.lock:
-            if self.latest_frame_jpeg is None:
-                return None
-            # Prevent serving stale frames (older than 10 seconds)
-            if time.time() - self.last_frame_update_time > 10:
+            if self.latest_frame_jpeg is None or time.time() - self.last_frame_update_time > 10:
                 return None
             return self.latest_frame_jpeg
 
     def get_raw_frame_bytes(self):
-        """Return a frame without any privacy masks or overlays"""
-        with self.lock:
-            return self.latest_raw_frame_jpeg
+        with self.lock: return self.latest_raw_frame_jpeg
 
     def save_snapshot(self, frame=None, is_temp=False):
-        """Save a single snapshot. is_temp=True means for notification only (no DB event)"""
         try:
             if frame is not None:
                 snap_qual = self.config.get('opt_snapshot_quality', 90)
                 ret, jpeg = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), snap_qual])
-                if not ret:
-                    return False
+                if not ret: return False
                 jpeg_bytes = jpeg.tobytes()
             else:
                 with self.lock:
-                    if self.latest_frame_jpeg is None:
-                        return False
+                    if self.latest_frame_jpeg is None: return False
                     jpeg_bytes = self.latest_frame_jpeg
 
-            format_str = self.config.get('picture_file_name', '%Y-%m-%d/%H-%M-%S-%q')
-            format_str = format_str.replace('%q', '00') 
-            
+            format_str = self.config.get('picture_file_name', '%Y-%m-%d/%H-%M-%S-%q').replace('%q', '00')
             timestamp_path = datetime.now().strftime(format_str)
             
-            if is_temp:
-                # Save to shared volume temp directory so backend can access it
-                output_dir = f"/var/lib/vibe/recordings/temp_snaps/{self.camera_id}"
-                filepath = os.path.join(output_dir, f"{timestamp_path}.jpg")
-            else:
-                # Save to persistent storage
-                output_dir = f"/var/lib/vibe/recordings/{self.camera_id}"
-                filepath = os.path.join(output_dir, f"{timestamp_path}.jpg")
-            
+            output_dir = f"/var/lib/vibe/recordings/{'temp_snaps/' if is_temp else ''}{self.camera_id}"
+            filepath = os.path.join(output_dir, f"{timestamp_path}.jpg")
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             
-            with open(filepath, "wb") as f:
-                f.write(jpeg_bytes)
+            with open(filepath, "wb") as f: f.write(jpeg_bytes)
             
             if not is_temp:
-                logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Snapshot saved to {filepath}")
+                logger.info(f"Camera {self.config.get('name')}: Snapshot saved to {filepath}")
                 if self.event_callback:
-                    self.event_callback(self.camera_id, "snapshot_save", {
-                        "file_path": filepath,
-                        "width": self.width,
-                        "height": self.height
-                    })
+                    self.event_callback(self.camera_id, "snapshot_save", {"file_path": filepath, "width": self.width, "height": self.height})
             return filepath
         except Exception as e:
-            logger.error(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Failed to save snapshot: {e}")
+            logger.error(f"Snapshot error for {self.camera_id}: {e}")
             return False

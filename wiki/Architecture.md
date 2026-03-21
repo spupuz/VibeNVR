@@ -21,6 +21,7 @@ The central logic hub powered by **FastAPI (Python)**.
 The dedicated video processing service. This is the "heavy lifter" of the system:
 - **Stream Ingestion**: Uses **PyAV** (native FFmpeg bindings) for robust RTSP connection management and packet demuxing.
 - **Image Processing**: Leverages **OpenCV (cv2)** for motion detection analysis, text overlays, and dynamic JPEG encoding for legacy previews.
+- **Modular Design**: The engine core is highly modularized (`stream_reader`, `motion_detector`, `recording_manager`, `mask_handler`, `overlay_handler`) for maximum stability.
 - **Security**: Communicates via internal Docker networks and requires a shared `WEBHOOK_SECRET` for backend interaction.
 
 ### 4. Database (PostgreSQL)

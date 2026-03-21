@@ -365,7 +365,7 @@ VibeNVR is split into four main microservices:
 
 *   **Frontend**: React-based SPA providing a sleek, responsive dashboard.
 *   **Backend**: FastAPI server handling logic, secure database access, and **secure HttpOnly cookie-based media relay**.
-*   **VibeEngine**: Custom processing engine for motion detection, recording, and overlays. Uses PyAV for RTSP stream ingestion and OpenCV (cv2) for frame processing.
+*   **VibeEngine**: Custom decoupled modular processing engine (`stream_reader`, `motion_detector`, `recording_manager`) for motion detection, recording, and overlays. Uses PyAV for RTSP stream ingestion and OpenCV (cv2) for frame processing.
 *   **Database**: PostgreSQL for persistent storage of camera configs and events.
 
 ---

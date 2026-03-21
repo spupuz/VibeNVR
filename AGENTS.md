@@ -35,6 +35,24 @@ backend/
 - **CRUD**: Strictly database operations.
 - **Dependency Injection**: Use `Depends(database.get_db)` and `Depends(auth_service.get_current_active_admin)`.
 
+### Engine (`engine/`)
+
+```
+engine/
+├── core.py               # CameraManager & Webhook Event Dispatcher
+├── camera_thread.py      # Main loop, coordinates components & frame processing
+├── stream_reader.py      # PyAV RTSP connection, IP ban protection, WS broadcast
+├── recording_manager.py  # FFmpeg subprocess management (Passthrough, Transcoding, HW accel)
+├── motion_detector.py    # MOG2 background subtraction and motion analysis
+├── mask_handler.py       # JSON polygon parsing and frame masking
+└── overlay_handler.py    # OSD text overlays on frames
+```
+
+**Key patterns:**
+- **Modular Components**: `camera_thread.py` delegates IO and heavy processing to dedicated modules.
+- **Resilience**: `stream_reader.py` implements smart backoff (401/403 -> 5m, Refused -> 1m) to avoid IP bans on standard consumer cameras (e.g. Tapo/TP-Link).
+- **Graceful Degradation**: `recording_manager.py` falls back from Passthrough to software/HW encoding on failures.
+
 ### Frontend (`frontend/src/`)
 
 ```
