@@ -75,7 +75,7 @@ def sanitize_rtsp_url(url: str) -> str:
             
         return url
     except Exception as e:
-        print(f"Error sanitizing URL: {e}")
+        print(f"Error sanitizing URL: {mask_url(str(e))}")
         return url
 
 @router.post("", response_model=schemas.Camera)
