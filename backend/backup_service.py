@@ -49,7 +49,29 @@ def run_backup(is_manual: bool = False):
                     "is_2fa_enabled": u.is_2fa_enabled,
                     "totp_secret": u.totp_secret,
                     "avatar_path": u.avatar_path
-                } for u in db.query(models.User).all()]
+                } for u in db.query(models.User).all()],
+                "api_tokens": [{
+                    "name": t.name,
+                    "token_hash": t.token_hash,
+                    "created_at": t.created_at.isoformat() if t.created_at else None,
+                    "last_used_at": t.last_used_at.isoformat() if t.last_used_at else None,
+                    "expires_at": t.expires_at.isoformat() if t.expires_at else None,
+                    "is_active": t.is_active,
+                    "username": t.created_by.username if t.created_by else None
+                } for t in db.query(models.ApiToken).all()],
+                "recovery_codes": [{
+                    "username": r.user.username,
+                    "code_hash": r.code_hash,
+                    "created_at": r.created_at.isoformat() if r.created_at else None
+                } for r in db.query(models.RecoveryCode).all()],
+                "trusted_devices": [{
+                    "username": d.user.username,
+                    "token": d.token,
+                    "name": d.name,
+                    "last_used": d.last_used.isoformat() if d.last_used else None,
+                    "expires_at": d.expires_at.isoformat() if d.expires_at else None,
+                    "created_at": d.created_at.isoformat() if d.created_at else None
+                } for d in db.query(models.TrustedDevice).all()]
             }
 
             prefix = "manual" if is_manual else "auto"

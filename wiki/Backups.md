@@ -1,6 +1,14 @@
 # 💾 Configuration Backup & Restore
  
-VibeNVR includes a robust backup and restore system to protect your configuration (cameras, settings, users, and groups). Backups are stored as JSON files in the `/data/backups/` directory.
+VibeNVR includes a robust backup and restore system to protect your configuration. **Every setting** configurable via the UI or API is saved in the global backup, including:
+- **Cameras**: Full configuration, RTSP URLs, Schedules, Privacy Masks, and Motion Zones.
+- **System Settings**: Global options, notifications, storage limits, and optimization presets.
+- **Users**: User profiles, hashed passwords, roles, and 2FA secrets.
+- **Groups**: Camera groups and their associations.
+- **Storage Profiles**: All custom storage paths and size limits.
+- **Security**: API Tokens, 2FA Recovery Codes, and Trusted Device tokens.
+
+Backups are stored as JSON files in the `/data/backups/` directory.
  
 ## ⚙️ How it Works
  

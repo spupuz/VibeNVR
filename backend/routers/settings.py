@@ -203,7 +203,29 @@ def export_backup(request: Request, db: Session = Depends(database.get_db), curr
             "is_2fa_enabled": u.is_2fa_enabled,
             "totp_secret": u.totp_secret,
             "avatar_path": u.avatar_path
-        } for u in db.query(models.User).all()]
+        } for u in db.query(models.User).all()],
+        "api_tokens": [{
+            "name": t.name,
+            "token_hash": t.token_hash,
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+            "last_used_at": t.last_used_at.isoformat() if t.last_used_at else None,
+            "expires_at": t.expires_at.isoformat() if t.expires_at else None,
+            "is_active": t.is_active,
+            "username": t.created_by.username if t.created_by else None
+        } for t in db.query(models.ApiToken).all()],
+        "recovery_codes": [{
+            "username": r.user.username,
+            "code_hash": r.code_hash,
+            "created_at": r.created_at.isoformat() if r.created_at else None
+        } for r in db.query(models.RecoveryCode).all()],
+        "trusted_devices": [{
+            "username": d.user.username,
+            "token": d.token,
+            "name": d.name,
+            "last_used": d.last_used.isoformat() if d.last_used else None,
+            "expires_at": d.expires_at.isoformat() if d.expires_at else None,
+            "created_at": d.created_at.isoformat() if d.created_at else None
+        } for d in db.query(models.TrustedDevice).all()]
     }
     
     filename = f"vibenvr_backup_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
@@ -346,6 +368,82 @@ async def perform_restore(data: dict, db: Session):
             else:
                 existing_user.role = u.get("role", existing_user.role)
                 existing_user.email = u.get("email", existing_user.email)
+    
+    # 7. Restore API Tokens
+    if "api_tokens" in data:
+        for t in data["api_tokens"]:
+            username = t.get("username")
+            if not username: continue
+            
+            user = db.query(models.User).filter(models.User.username == username).first()
+            if user:
+                # Check if token hash already exists
+                existing_token = db.query(models.ApiToken).filter(models.ApiToken.token_hash == t["token_hash"]).first()
+                if not existing_token:
+                    from datetime import datetime
+                    def parse_dt(dt_str):
+                        return datetime.fromisoformat(dt_str) if dt_str else None
+                    
+                    new_token = models.ApiToken(
+                        name=t["name"],
+                        token_hash=t["token_hash"],
+                        created_at=parse_dt(t.get("created_at")),
+                        last_used_at=parse_dt(t.get("last_used_at")),
+                        expires_at=parse_dt(t.get("expires_at")),
+                        is_active=t.get("is_active", True),
+                        created_by_user_id=user.id
+                    )
+                    db.add(new_token)
+
+    # 8. Restore Recovery Codes
+    if "recovery_codes" in data:
+        for r in data["recovery_codes"]:
+            username = r.get("username")
+            if not username: continue
+            
+            user = db.query(models.User).filter(models.User.username == username).first()
+            if user:
+                # Check if code hash already exists for this user
+                existing_code = db.query(models.RecoveryCode).filter(
+                    models.RecoveryCode.user_id == user.id,
+                    models.RecoveryCode.code_hash == r["code_hash"]
+                ).first()
+                if not existing_code:
+                    from datetime import datetime
+                    new_code = models.RecoveryCode(
+                        user_id=user.id,
+                        code_hash=r["code_hash"],
+                        created_at=datetime.fromisoformat(r["created_at"]) if r.get("created_at") else None
+                    )
+                    db.add(new_code)
+    
+    # 9. Restore Trusted Devices
+    if "trusted_devices" in data:
+        for d in data["trusted_devices"]:
+            username = d.get("username")
+            if not username: continue
+            
+            user = db.query(models.User).filter(models.User.username == username).first()
+            if user:
+                # Check if device token hash already exists for this user
+                existing_device = db.query(models.TrustedDevice).filter(
+                    models.TrustedDevice.user_id == user.id,
+                    models.TrustedDevice.token == d["token"]
+                ).first()
+                if not existing_device:
+                    from datetime import datetime
+                    def parse_dt(dt_str):
+                        return datetime.fromisoformat(dt_str) if dt_str else None
+                    
+                    new_device = models.TrustedDevice(
+                        user_id=user.id,
+                        token=d["token"],
+                        name=d.get("name"),
+                        last_used=parse_dt(d.get("last_used")),
+                        expires_at=parse_dt(d.get("expires_at")),
+                        created_at=parse_dt(d.get("created_at"))
+                    )
+                    db.add(new_device)
     
     db.commit()
     return {"message": "Configuration restored successfully"}
