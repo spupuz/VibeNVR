@@ -23,6 +23,7 @@
 - **Privacy Masking & Motion Zones**: Privacy masks are burned into the video stream at the engine level before recording/motion analysis. Motion Zones are used to exclude areas from motion triggers. Unmasked frames for the editor are Admin-only.
 - **Configuration Backup & Restore**: Full system configuration (cameras, settings, users) can be exported, imported, and restored from automated/manual snapshots stored in `/data/backups/`.
 - **Frontend Modularity**: Large page views (e.g., `Cameras.jsx`) are decomposed into component directories to maintain code size limits and improve reusability.
+- **Telemetry Worker**: A Cloudflare edge service (`vibenvr-telemetry-worker`) handles telemetry, static assets, and proxying. It is cleanly modularized (`api.js`, `dashboard.js`, `ingest.js`, `security.js`, `assets.js`) to enforce strict security at the edge level and maintain short file lengths.
 
 
 ## ⚠️ Important Rules for AI

@@ -13,6 +13,9 @@ import { CameraCard } from '../components/Cameras/CameraCard';
 import { CameraAddEditModal } from '../components/Cameras/AddEditModal/CameraAddEditModal';
 import { CopySettingsModal } from '../components/Cameras/CopySettingsModal';
 import { parseRtspUrl } from '../utils/cameraUtils';
+import { DEFAULT_CAMERA_STATE } from '../constants/cameraDefaults';
+import { BulkActionsBar } from '../components/Cameras/BulkActionsBar';
+import { ProcessingOverlay } from '../components/Cameras/ProcessingOverlay';
 
 
 export const Cameras = () => {
@@ -23,85 +26,7 @@ export const Cameras = () => {
     const [showScanner, setShowScanner] = useState(false);
     const fileInputRef = useRef(null);
     const motionEyeInputRef = useRef(null);
-    const [newCamera, setNewCamera] = useState({
-        name: '',
-        rtsp_url: '',
-        stream_url: '',
-        location: '',
-        resolution_width: 800,
-        resolution_height: 600,
-        framerate: 15,
-        rotation: 0,
-        text_left: '%N',
-        text_right: '%Y-%m-%d %H:%M:%S',
-        storage_profile_id: null,
-        storage_path: '',
-        root_directory: '',
-        movie_file_name: '%Y-%m-%d/%H-%M-%S',
-        movie_passthrough: true,
-        movie_quality: 75,
-        recording_mode: 'Motion Triggered',
-        max_movie_length: 120,
-        preserve_movies: 'For One Week',
-        auto_threshold_tuning: true,
-        auto_noise_detection: true,
-        light_switch_detection: 0,
-        despeckle_filter: false,
-        motion_gap: 10,
-        threshold: 1500,
-        captured_before: 30,
-        captured_after: 30,
-        min_motion_frames: 2,
-        mask: false,
-        show_frame_changes: true,
-        create_debug_media: false,
-
-        // Scheduling
-        schedule_monday: true,
-        schedule_monday_start: '00:00',
-        schedule_monday_end: '23:59',
-        schedule_tuesday: true,
-        schedule_tuesday_start: '00:00',
-        schedule_tuesday_end: '23:59',
-        schedule_wednesday: true,
-        schedule_wednesday_start: '00:00',
-        schedule_wednesday_end: '23:59',
-        schedule_thursday: true,
-        schedule_thursday_start: '00:00',
-        schedule_thursday_end: '23:59',
-        schedule_friday: true,
-        schedule_friday_start: '00:00',
-        schedule_friday_end: '23:59',
-        schedule_saturday: true,
-        schedule_saturday_start: '00:00',
-        schedule_saturday_end: '23:59',
-        schedule_sunday: true,
-        schedule_sunday_start: '00:00',
-        schedule_sunday_end: '23:59',
-
-        notify_start_email: false,
-        notify_start_telegram: false,
-        notify_start_webhook: false,
-        notify_end_webhook: false,
-        notify_webhook_url: '',
-        notify_telegram_token: '',
-        notify_telegram_chat_id: '',
-        notify_email_address: '',
-        notify_health_email: false,
-        notify_health_telegram: false,
-        notify_health_webhook: false,
-        detect_motion_mode: 'Always',
-        picture_file_name: '%Y-%m-%d/%H-%M-%S-%q',
-        picture_quality: 75,
-        picture_recording_mode: 'Manual',
-        preserve_pictures: 'Forever',
-        max_pictures_storage_gb: 0,
-        enable_manual_snapshots: true,
-        rtsp_transport: 'tcp',
-        live_view_mode: 'auto',
-        privacy_masks: null,
-        motion_masks: null
-    });
+    const [newCamera, setNewCamera] = useState({...DEFAULT_CAMERA_STATE});
 
     const [stats, setStats] = useState(null);
     const [storageProfiles, setStorageProfiles] = useState([]);
@@ -382,64 +307,7 @@ export const Cameras = () => {
 
                 if (shouldClose) {
                     setShowAddModal(false);
-                    setNewCamera({
-                        name: '',
-                        rtsp_url: '',
-                        stream_url: '',
-                        location: '',
-                        resolution_width: 800,
-                        resolution_height: 600,
-                        framerate: 15,
-                        rotation: 0,
-                        text_left: 'Camera Name',
-                        text_right: '%Y-%m-%d %H:%M:%S',
-                        storage_profile_id: null,
-                        storage_path: '',
-                        root_directory: '',
-                        movie_file_name: '%Y-%m-%d/%H-%M-%S',
-                        movie_passthrough: true,
-                        movie_quality: 75,
-                        recording_mode: 'Motion Triggered',
-                        max_movie_length: 120,
-                        preserve_movies: 'For One Week',
-                        max_storage_gb: 0,
-                        auto_threshold_tuning: true,
-                        auto_noise_detection: true,
-                        light_switch_detection: 0,
-                        despeckle_filter: false,
-                        motion_gap: 10,
-                        threshold: 1500,
-                        captured_before: 30,
-                        captured_after: 30,
-                        min_motion_frames: 2,
-                        mask: false,
-                        show_frame_changes: true,
-                        create_debug_media: false,
-                        notify_start_email: false,
-                        notify_start_telegram: false,
-                        notify_start_webhook: false,
-                        notify_end_webhook: false,
-                        notify_webhook_url: '',
-                        notify_telegram_token: '',
-                        notify_telegram_chat_id: '',
-                        notify_email_address: '',
-                        notify_health_email: false,
-                        notify_health_telegram: false,
-                        notify_health_webhook: false,
-                        detect_motion_mode: 'Always',
-                        picture_file_name: '%Y-%m-%d/%H-%M-%S-%q',
-                        picture_quality: 75,
-                        picture_recording_mode: 'Manual',
-                        preserve_pictures: 'Forever',
-                        max_pictures_storage_gb: 0,
-                        enable_manual_snapshots: true,
-                        rtsp_transport: 'tcp',
-                        live_view_mode: 'auto',
-                        notify_attach_image_email: true,
-                        notify_attach_image_telegram: true,
-                        privacy_masks: null,
-                        motion_masks: null
-                    });
+                    setNewCamera({...DEFAULT_CAMERA_STATE, text_left: 'Camera Name', max_storage_gb: 0, notify_attach_image_email: true, notify_attach_image_telegram: true});
 
                     setEditingId(null);
                 } else {
@@ -597,60 +465,7 @@ export const Cameras = () => {
                             <Button
                                 onClick={() => {
                                     setEditingId(null);
-                                    setNewCamera({
-                                        name: '',
-                                        rtsp_url: '',
-                                        rtsp_username: '',
-                                        rtsp_password: '',
-                                        rtsp_host: '',
-                                        stream_url: '',
-                                        location: '',
-                                        resolution_width: 800,
-                                        resolution_height: 600,
-                                        framerate: 15,
-                                        rotation: 0,
-                                        text_left: '%N',
-                                        text_right: '%Y-%m-%d %H:%M:%S',
-                                        storage_profile_id: null,
-                                        storage_path: '',
-                                        root_directory: '',
-                                        movie_file_name: '%Y-%m-%d/%H-%M-%S',
-                                        movie_passthrough: true,
-                                        movie_quality: 75,
-                                        recording_mode: 'Motion Triggered',
-                                        max_movie_length: 120,
-                                        preserve_movies: 'For One Week',
-                                        max_storage_gb: 0,
-                                        auto_threshold_tuning: true,
-                                        auto_noise_detection: true,
-                                        light_switch_detection: 0,
-                                        despeckle_filter: false,
-                                        motion_gap: 10,
-                                        threshold: 1500,
-                                        captured_before: 30,
-                                        captured_after: 30,
-                                        min_motion_frames: 2,
-                                        mask: false,
-                                        show_frame_changes: true,
-                                        create_debug_media: false,
-                                        notify_start_email: false,
-                                        notify_start_telegram: false,
-                                        notify_start_webhook: false,
-                                        notify_end_webhook: false,
-                                        notify_webhook_url: '',
-                                        notify_telegram_token: '',
-                                        notify_telegram_chat_id: '',
-                                        notify_email_address: '',
-                                        detect_motion_mode: 'Always',
-                                        picture_file_name: '%Y-%m-%d/%H-%M-%S-%q',
-                                        picture_quality: 75,
-                                        picture_recording_mode: 'Manual',
-                                        preserve_pictures: 'Forever',
-                                        max_pictures_storage_gb: 0,
-                                        enable_manual_snapshots: true,
-                                        notify_attach_image_email: true,
-                                        notify_attach_image_telegram: true
-                                    });
+                                    setNewCamera({...DEFAULT_CAMERA_STATE, rtsp_username: '', rtsp_password: '', rtsp_host: '', max_storage_gb: 0, notify_attach_image_email: true, notify_attach_image_telegram: true});
                                     setShowAddModal(true);
                                 }}
                             >
@@ -990,57 +805,16 @@ export const Cameras = () => {
                 handleCopySettings={handleCopySettings}
             />
             {/* Bulk Actions Floating Bar */}
-            {
-                selectedCameraIds.length > 0 && !showAddModal && (
-                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <div className="bg-card/95 backdrop-blur-md border border-primary/20 shadow-2xl rounded-2xl px-6 py-4 flex items-center space-x-6 text-foreground min-w-[320px]">
-                            <div className="flex-1">
-                                <p className="font-bold text-sm">{selectedCameraIds.length} Camera(s) selected</p>
-                                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Bulk Actions</p>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <button
-                                    onClick={() => setSelectedCameraIds([])}
-                                    className="px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 rounded-lg transition-colors"
-                                >
-                                    Clear
-                                </button>
-                                <button
-                                    onClick={handleBulkDelete}
-                                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-all flex items-center shadow-lg shadow-red-500/20 active:scale-95"
-                                >
-                                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                                    Delete Selected
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
+            {selectedCameraIds.length > 0 && !showAddModal && (
+                <BulkActionsBar 
+                    selectedCameraIds={selectedCameraIds} 
+                    setSelectedCameraIds={setSelectedCameraIds} 
+                    handleBulkDelete={handleBulkDelete} 
+                />
+            )}
 
             {/* Global Processing Overlay */}
-            {
-                isProcessing && (
-                    <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[140] flex flex-col items-center justify-center animate-in fade-in duration-300">
-                        <div className="bg-card border border-border p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm text-center">
-                            <div className="flex items-center justify-center space-x-6 mb-6">
-                                <div className="p-3 bg-primary/10 rounded-2xl">
-                                    {processingMessage.title.includes('Delete') ? (
-                                        <Trash2 className="w-10 h-10 text-red-500" />
-                                    ) : (
-                                        <Upload className="w-10 h-10 text-primary" />
-                                    )}
-                                </div>
-                                <Activity className="w-12 h-12 text-primary animate-spin opacity-50" />
-                            </div>
-                            <h3 className="text-xl font-bold mb-2">{processingMessage.title}</h3>
-                            <p className="text-muted-foreground text-sm">
-                                {processingMessage.text}
-                            </p>
-                        </div>
-                    </div>
-                )
-            }
+            {isProcessing && <ProcessingOverlay isProcessing={isProcessing} processingMessage={processingMessage} />}
 
             <ConfirmModal {...confirmConfig} />
         </div >

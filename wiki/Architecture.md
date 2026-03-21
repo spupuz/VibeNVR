@@ -27,6 +27,11 @@ The dedicated video processing service. This is the "heavy lifter" of the system
 ### 4. Database (PostgreSQL)
 Uses **PostgreSQL 15** for reliable storage of all persistent data, including camera configurations, user settings, and the event timeline.
 
+### 5. Telemetry Worker (Cloudflare Edge)
+A highly modularized Cloudflare Worker repository (`vibenvr-telemetry-worker`) that handles global telemetry, metadata ingestion, and secure dashboarding.
+- **Modularity**: Split securely into dedicated ES modules (`security.js`, `api.js`, `assets.js`, etc.) to stay well below the 1000 LOC limits.
+- **Edge Security**: Provides native strict Content-Security-Policy (CSP) headers and input sanitization at the CDN edge before requests reach the VibeNVR origin.
+
 ---
 
 ## 🔒 Security Model

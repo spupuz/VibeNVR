@@ -72,6 +72,23 @@ src/
 - **State Management**: React `useState` and `Context` for global state (Auth).
 - **Icons**: `lucide-react` for all icons.
 
+### Telemetry Worker (`vibenvr-telemetry-worker/`)
+
+```
+vibenvr-telemetry-worker/src/
+├── index.js          # Main Cloudflare Worker entry point
+├── api.js            # External API interactions
+├── dashboard.js      # Status dashboard HTML rendering
+├── ingest.js         # Telemetry data ingestion
+├── security.js       # Security headers and CSP
+└── assets.js         # Static asset delivery
+```
+
+**Key patterns:**
+- **Cloudflare Worker**: Runs at the edge, requiring lightweight ES modules.
+- **Strict Modularity**: Each file handles a single domain to respect the strict 1000 LOC policy.
+- **Security Check**: Enforces CSP and API token requirements natively on the edge before requests hit the origin.
+
 ## Critical Patterns
 
 ### FastAPI Route Pattern
