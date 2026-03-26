@@ -23,12 +23,6 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 > Please **[Open an Issue](https://github.com/spupuz/VibeNVR/issues)**! We are extremely proactive, always available to fix problems, and love adding new capabilities requested by the community. Your feedback is what drives this project forward.
 
 
----
-## ⚠️ Beta Disclaimer
-
-This software is currently in active beta development. The database schema is still evolving and may undergo changes. While we strive for backward compatibility, manual database cleanup or migration steps might be required when updating to newer versions.
-
----
 
 ## ✨ Key Features
 
