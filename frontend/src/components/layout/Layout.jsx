@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 export const Layout = ({ children, activeTab, onTabChange, theme, toggleTheme }) => {
     const location = useLocation();
     const { healthDetails, user } = useAuth();
-    const isLivePage = activeTab === 'live' || location.pathname.startsWith('/live');
+    const isLivePage = activeTab === 'live' || location.pathname.startsWith('/live') || activeTab === 'timeline';
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const isWeakKey = healthDetails?.is_weak_key && user?.role === 'admin';

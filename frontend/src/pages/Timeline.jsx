@@ -428,7 +428,7 @@ export const Timeline = () => {
     return (
         <div className="min-h-[calc(100vh-8rem)] lg:h-[calc(100vh-8rem)] flex flex-col">
             {/* Page Header */}
-            <div className="mb-4">
+            <div className="mb-4 px-4">
                 <h2 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-baseline gap-2">
                     Timeline
                     <span className="text-lg font-normal text-muted-foreground">({filteredEvents.length} events)</span>
@@ -436,10 +436,10 @@ export const Timeline = () => {
                 <p className="text-muted-foreground text-sm mt-1">Browse recorded events and media.</p>
             </div>
 
-            <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
+            <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 px-4 lg:px-0">
                 {/* Mobile: Sticky Video Player at Top */}
                 {selectedEvent && (
-                    <div className="lg:hidden sticky top-0 z-20 bg-card border border-border rounded-xl p-3 flex flex-col">
+                    <div className="lg:hidden sticky top-0 z-30 bg-card border border-border rounded-xl p-3 flex flex-col shadow-lg">
                         <div className="flex justify-between items-center mb-2">
                             <div className="flex-1 min-w-0">
                                 <h3 className="text-sm font-bold truncate">{getCameraName(selectedEvent.camera_id)}</h3>
