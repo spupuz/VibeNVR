@@ -426,17 +426,17 @@ export const Timeline = () => {
     }, [autoplayNext, selectedEvent, goToNextEvent]);
 
     return (
-        <div className="min-h-[calc(100vh-8rem)] lg:h-[calc(100vh-8rem)] flex flex-col">
+        <div className="h-full flex flex-col px-5 py-4 lg:p-8">
             {/* Page Header */}
-            <div className="mb-4 px-4">
-                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-baseline gap-2">
+            <div className="mb-4">
+                <h2 className="text-3xl font-bold tracking-tight flex items-baseline gap-2">
                     Timeline
                     <span className="text-lg font-normal text-muted-foreground">({filteredEvents.length} events)</span>
                 </h2>
-                <p className="text-muted-foreground text-sm mt-1">Browse recorded events and media.</p>
+                <p className="text-muted-foreground mt-2">Browse recorded events and media.</p>
             </div>
 
-            <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 px-4 lg:px-0">
+            <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
                 {/* Mobile: Sticky Video Player at Top */}
                 {selectedEvent && (
                     <div className="lg:hidden sticky top-0 z-30 bg-card border border-border rounded-xl p-3 flex flex-col shadow-lg">
@@ -612,41 +612,43 @@ export const Timeline = () => {
                     </div>
 
                     {/* Events area with vertical timeline */}
-                    <div className="flex-1 flex gap-2 min-h-0">
-                        <HourTimeline
-                            events={events}
-                            onHourClick={(h) => setSelectedHour(selectedHour === h ? null : h)}
-                            selectedHour={selectedHour}
-                        />
+                    <div className="flex-1 flex flex-col min-h-0 bg-card border border-border shadow-sm rounded-xl overflow-hidden">
+                        <div className="flex-1 flex gap-2 min-h-0 p-3">
+                            <HourTimeline
+                                events={events}
+                                onHourClick={(h) => setSelectedHour(selectedHour === h ? null : h)}
+                                selectedHour={selectedHour}
+                            />
 
-                        <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-                            {filteredEvents.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                                    <Calendar className="w-10 h-10 mb-3 opacity-30" />
-                                    <p className="text-sm">No events found</p>
-                                </div>
-                            ) : (
-                                Object.entries(groupedEvents).map(([date, dateEvents]) => (
-                                    <div key={date}>
-                                        <div className="sticky top-0 bg-background/90 backdrop-blur-sm py-1.5 mb-1 z-10">
-                                            <span className="text-[10px] font-semibold text-muted-foreground uppercase">{date}</span>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            {dateEvents.map(event => (
-                                                <EventCard
-                                                    key={event.id}
-                                                    event={event}
-                                                    onClick={setSelectedEvent}
-                                                    camera={getCamera(event.camera_id)}
-                                                    isSelected={selectedEvent?.id === event.id}
-                                                    getMediaUrl={getMediaUrl}
-                                                    onDelete={handleDelete}
-                                                />
-                                            ))}
-                                        </div>
+                            <div className="flex-1 overflow-y-auto space-y-2 pr-1 text-[13px]">
+                                {filteredEvents.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                                        <Calendar className="w-10 h-10 mb-3 opacity-30" />
+                                        <p className="text-sm">No events found</p>
                                     </div>
-                                ))
-                            )}
+                                ) : (
+                                    Object.entries(groupedEvents).map(([date, dateEvents]) => (
+                                        <div key={date}>
+                                            <div className="sticky top-0 bg-background/90 backdrop-blur-sm py-1.5 mb-1 z-10">
+                                                <span className="text-[10px] font-semibold text-muted-foreground uppercase">{date}</span>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                {dateEvents.map(event => (
+                                                    <EventCard
+                                                        key={event.id}
+                                                        event={event}
+                                                        onClick={setSelectedEvent}
+                                                        camera={getCamera(event.camera_id)}
+                                                        isSelected={selectedEvent?.id === event.id}
+                                                        getMediaUrl={getMediaUrl}
+                                                        onDelete={handleDelete}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
