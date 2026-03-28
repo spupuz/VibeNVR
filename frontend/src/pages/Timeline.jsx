@@ -23,9 +23,9 @@ const HourTimeline = ({ events, onHourClick, selectedHour }) => {
     const currentHour = new Date().getHours();
 
     return (
-        <div className="w-16 flex-shrink-0 flex flex-col h-full">
+        <div className="w-16 flex-shrink-0 flex flex-col sticky top-0 z-20 h-[calc(100dvh-53px)] lg:h-dvh">
             <div className="text-[9px] text-muted-foreground mb-1 font-medium text-center">24h</div>
-            <div className="flex-1 flex flex-col space-y-0.5 overflow-hidden">
+            <div className="flex-1 flex flex-col gap-px">
                 {hours.map(hour => {
                     const count = eventsByHour[hour] || 0;
                     const width = count > 0 ? Math.max((count / maxEvents) * 100, 20) : 0;
@@ -35,7 +35,7 @@ const HourTimeline = ({ events, onHourClick, selectedHour }) => {
                     return (
                         <div
                             key={hour}
-                            className={`flex items-center cursor-pointer group h-full min-h-[12px] ${isCurrent ? 'bg-primary/5' : ''}`}
+                            className={`flex items-center cursor-pointer group flex-1 min-h-0 ${isCurrent ? 'bg-primary/5' : ''}`}
                             onClick={() => onHourClick(hour)}
                         >
                             <span className={`text-[8px] w-5 text-right mr-1 ${isCurrent ? 'text-primary font-bold' : 'text-muted-foreground'}`}>
@@ -73,7 +73,7 @@ const EventCard = ({ event, onClick, camera, isSelected, getMediaUrl, onDelete }
             onClick={() => onClick(event)}
         >
             {/* Thumbnail */}
-            <div className="w-32 h-20 bg-black/10 flex-shrink-0 relative overflow-hidden">
+            <div className="w-24 sm:w-32 h-20 bg-black/10 flex-shrink-0 relative overflow-hidden">
                 {event.thumbnail_path && !imgError ? (
                     <img
                         src={getMediaUrl(event.thumbnail_path)}
@@ -159,10 +159,10 @@ const EventCard = ({ event, onClick, camera, isSelected, getMediaUrl, onDelete }
                         <span className="text-[10px] text-muted-foreground">{time}</span>
                         <span className="text-[8px] text-muted-foreground/50">{date}</span>
                     </div>
-                    <div className="flex space-x-1">
+                    <div className="flex flex-wrap justify-end gap-1 pl-1">
                         {/* Duration Badge */}
                         {event.timestamp_end && (
-                            <div className="text-[10px] font-mono text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded flex items-center">
+                            <div className="text-[9px] sm:text-[10px] font-mono text-amber-600 bg-amber-500/10 px-1 py-0.5 rounded flex items-center">
                                 {(() => {
                                     const start = new Date(event.timestamp_start);
                                     const end = new Date(event.timestamp_end);
@@ -175,7 +175,7 @@ const EventCard = ({ event, onClick, camera, isSelected, getMediaUrl, onDelete }
                             </div>
                         )}
                         {event.file_size > 0 && (
-                            <div className="text-[10px] font-mono text-primary/80 bg-primary/5 px-1.5 py-0.5 rounded">
+                            <div className="text-[9px] sm:text-[10px] font-mono text-primary/80 bg-primary/5 px-1 py-0.5 rounded">
                                 {event.file_size < 1024 * 1024
                                     ? `${(event.file_size / 1024).toFixed(1)} KB`
                                     : `${(event.file_size / (1024 * 1024)).toFixed(1)} MB`
@@ -612,7 +612,7 @@ export const Timeline = () => {
                     </div>
 
                     {/* Events area with vertical timeline */}
-                    <div className="flex-1 flex flex-col min-h-0 bg-card border border-border shadow-sm rounded-xl overflow-hidden">
+                    <div className="flex-1 flex flex-col min-h-0">
                         <div className="flex-1 flex gap-2 min-h-0 p-3">
                             <HourTimeline
                                 events={events}
@@ -654,7 +654,7 @@ export const Timeline = () => {
                 </div>
 
                 {/* Right: Preview Panel - Hidden on mobile, shown on desktop */}
-                <div className="hidden lg:flex flex-1 bg-card border border-border rounded-xl p-4 flex-col min-h-0">
+                <div className="hidden lg:flex flex-1 bg-card border border-border rounded-xl p-4 flex-col min-h-0 sticky top-8 h-[calc(100dvh-4rem)] self-start">
                     {selectedEvent ? (
                         <>
                             <div className="flex justify-between items-start mb-3">
