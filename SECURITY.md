@@ -44,6 +44,7 @@ Endpoints that alter system state rely on `Depends(auth_service.get_current_acti
 
 Actions protected by the Admin RBAC include:
 - Creating, importing, modifying, or deleting Cameras (`routers/cameras.py`)
+- Bulk deleting events (`routers/events.py`)
 - Managing Storage Profiles (`routers/storage.py`)
 - Accessing Engine Debug Status (`routers/settings.py`)
 - Generating API tokens (`routers/api_tokens.py`)

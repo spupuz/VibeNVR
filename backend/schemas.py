@@ -309,6 +309,9 @@ class Event(EventBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+class BulkDeleteRequest(BaseModel):
+    event_ids: List[int]
+
 class UserBase(BaseModel):
     username: str
     email: Optional[str] = None

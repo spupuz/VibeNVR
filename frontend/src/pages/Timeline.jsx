@@ -58,7 +58,7 @@ const HourTimeline = ({ events, onHourClick, selectedHour }) => {
     );
 };
 
-const EventCard = ({ event, onClick, camera, isSelected, getMediaUrl, onDelete }) => {
+const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected, onToggleSelect, getMediaUrl, onDelete }) => {
     const { token, user } = useAuth();
     const [imgError, setImgError] = useState(false);
     const time = new Date(event.timestamp_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -95,6 +95,23 @@ const EventCard = ({ event, onClick, camera, isSelected, getMediaUrl, onDelete }
                         {event.type === 'video' ? <Video className="w-8 h-8 opacity-50" /> : <ImageIcon className="w-8 h-8 opacity-50" />}
                     </div>
                 )}
+
+                {/* Selection Checkbox (Visible on hover or if multi-selected) */}
+                <div 
+                    className={`absolute top-2 left-2 z-20 transition-all cursor-pointer ${isMultiSelected ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-100'}`}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleSelect(event.id, e.shiftKey);
+                    }}
+                >
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                        isMultiSelected 
+                        ? 'bg-primary border-primary text-primary-foreground shadow-sm' 
+                        : 'bg-black/20 border-white/50 hover:border-white'
+                    }`}>
+                        {isMultiSelected && <div className="w-2.5 h-2.5 bg-current rounded-sm" />}
+                    </div>
+                </div>
 
                 {/* Overlaid Actions (Visible on Hover) */}
                 <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-90 transition-opacity z-10">
@@ -204,11 +221,33 @@ export const Timeline = () => {
     const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA'));
     const { showToast } = useToast();
     const [confirmConfig, setConfirmConfig] = useState({ isOpen: false });
+    const [selectedIds, setSelectedIds] = useState(new Set());
+    const [lastSelectedId, setLastSelectedId] = useState(null);
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
     const cameraId = searchParams.get('camera');
     const type = searchParams.get('type');
     const urlDate = searchParams.get('date');
     const eventId = searchParams.get('event_id');
+
+    // Filter events by selected hour AND camera
+    const filteredEvents = useMemo(() => {
+        let results = events;
+
+        if (selectedCameraFilter !== 'all') {
+            results = results.filter(e => e.camera_id === parseInt(selectedCameraFilter));
+        }
+
+        if (selectedHour !== null) {
+            results = results.filter(e => new Date(e.timestamp_start).getHours() === selectedHour);
+        }
+
+        if (selectedTypeFilter !== 'all') {
+            results = results.filter(e => e.type === selectedTypeFilter);
+        }
+
+        return results;
+    }, [events, selectedHour, selectedCameraFilter, selectedTypeFilter]);
 
     useEffect(() => {
         if (urlDate) setSelectedDate(urlDate);
@@ -302,6 +341,11 @@ export const Timeline = () => {
                     });
                     if (res.ok) {
                         setEvents(prev => prev.filter(e => e.id !== id));
+                        setSelectedIds(prev => {
+                            const next = new Set(prev);
+                            next.delete(id);
+                            return next;
+                        });
                         if (selectedEvent?.id === id) setSelectedEvent(null);
                         showToast('Event deleted successfully', 'success');
                     } else {
@@ -316,24 +360,85 @@ export const Timeline = () => {
         });
     };
 
-    // Filter events by selected hour AND camera
-    const filteredEvents = useMemo(() => {
-        let results = events;
+    const handleToggleSelect = useCallback((id, isShift) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            
+            if (isShift && lastSelectedId !== null) {
+                // Range selection logic
+                const allIds = filteredEvents.map(e => e.id);
+                const start = allIds.indexOf(lastSelectedId);
+                const end = allIds.indexOf(id);
+                
+                if (start !== -1 && end !== -1) {
+                    const [rangeStart, rangeEnd] = start < end ? [start, end] : [end, start];
+                    const rangeIds = allIds.slice(rangeStart, rangeEnd + 1);
+                    
+                    // If the target is already selected, we might want to deselect range,
+                    // but usually Shift+Click in managers means "Select this range"
+                    rangeIds.forEach(rid => next.add(rid));
+                }
+            } else {
+                if (next.has(id)) {
+                    next.delete(id);
+                } else {
+                    next.add(id);
+                }
+            }
+            return next;
+        });
+        setLastSelectedId(id);
+    }, [filteredEvents, lastSelectedId]);
 
-        if (selectedCameraFilter !== 'all') {
-            results = results.filter(e => e.camera_id === parseInt(selectedCameraFilter));
+    const handleBulkDelete = async () => {
+        const count = selectedIds.size;
+        if (count === 0) return;
+
+        setConfirmConfig({
+            isOpen: true,
+            title: `Delete ${count} Events`,
+            message: `Are you sure you want to delete ${count} selected events? This will permanently remove the associated video files.`,
+            onConfirm: async () => {
+                setIsBulkDeleting(true);
+                try {
+                    const res = await fetch(`${API_BASE}/events/bulk-delete`, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}` 
+                        },
+                        body: JSON.stringify({ event_ids: Array.from(selectedIds) })
+                    });
+                    
+                    if (res.ok) {
+                        const data = await res.json();
+                        setEvents(prev => prev.filter(e => !selectedIds.has(e.id)));
+                        if (selectedEvent && selectedIds.has(selectedEvent.id)) {
+                            setSelectedEvent(null);
+                        }
+                        setSelectedIds(new Set());
+                        showToast(`Successfully deleted ${data.deleted_count} events`, 'success');
+                    } else {
+                        showToast('Failed to perform bulk delete', 'error');
+                    }
+                } catch (err) {
+                    showToast('Error during bulk delete: ' + err.message, 'error');
+                } finally {
+                    setIsBulkDeleting(false);
+                    setConfirmConfig({ isOpen: false });
+                }
+            },
+            onCancel: () => setConfirmConfig({ isOpen: false })
+        });
+    };
+
+    const handleSelectAll = () => {
+        if (selectedIds.size === filteredEvents.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(filteredEvents.map(e => e.id)));
         }
-
-        if (selectedHour !== null) {
-            results = results.filter(e => new Date(e.timestamp_start).getHours() === selectedHour);
-        }
-
-        if (selectedTypeFilter !== 'all') {
-            results = results.filter(e => e.type === selectedTypeFilter);
-        }
-
-        return results;
-    }, [events, selectedHour, selectedCameraFilter, selectedTypeFilter]);
+    };
 
     // Group events by date
     const groupedEvents = useMemo(() => {
@@ -637,9 +742,17 @@ export const Timeline = () => {
                                                     <EventCard
                                                         key={event.id}
                                                         event={event}
-                                                        onClick={setSelectedEvent}
+                                                        onClick={(e) => {
+                                                            if (selectedIds.size > 0 && !e.shiftKey) {
+                                                                handleToggleSelect(event.id, false);
+                                                            } else {
+                                                                setSelectedEvent(event);
+                                                            }
+                                                        }}
                                                         camera={getCamera(event.camera_id)}
                                                         isSelected={selectedEvent?.id === event.id}
+                                                        isMultiSelected={selectedIds.has(event.id)}
+                                                        onToggleSelect={handleToggleSelect}
                                                         getMediaUrl={getMediaUrl}
                                                         onDelete={handleDelete}
                                                     />
@@ -768,6 +881,61 @@ export const Timeline = () => {
                     )}
                 </div>
                 <ConfirmModal {...confirmConfig} />
+                
+                {/* Bulk Action Bar */}
+                {selectedIds.size > 0 && (
+                    <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 w-[95%] max-w-2xl px-2">
+                        <div className="bg-primary shadow-2xl shadow-primary/20 text-primary-foreground rounded-2xl px-2 py-1.5 sm:px-6 sm:py-3 flex items-center justify-between gap-1 sm:gap-6 border border-white/10 backdrop-blur-md">
+                            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+                                <div className="flex bg-white/20 rounded-lg px-2 py-1 items-center justify-center min-w-[28px]">
+                                    <span className="text-xs sm:text-xl font-black leading-none">{selectedIds.size}</span>
+                                </div>
+                                <div className="h-5 sm:h-8 w-px bg-white/20 hidden sm:block" />
+                            </div>
+                            
+                            <div className="flex-1 flex items-center justify-end gap-1 sm:gap-4">
+                                <button
+                                    onClick={handleSelectAll}
+                                    className="px-1.5 py-1.5 hover:bg-white/10 rounded-xl transition-colors flex items-center gap-1 sm:gap-1.5"
+                                >
+                                    {selectedIds.size === filteredEvents.length ? (
+                                        <>
+                                            <X className="w-3.5 h-3.5" />
+                                            <span className="text-[10px] sm:text-sm font-semibold whitespace-nowrap">Deselect All</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <HardDrive className="w-3.5 h-3.5 opacity-70" />
+                                            <span className="text-[10px] sm:text-sm font-semibold whitespace-nowrap">Select All</span>
+                                        </>
+                                    )}
+                                </button>
+                                
+                                <button
+                                    onClick={() => setSelectedIds(new Set())}
+                                    title="Cancel"
+                                    className="p-2 sm:px-3 sm:py-1.5 hover:bg-white/10 rounded-xl transition-colors"
+                                >
+                                    <X className="w-4 h-4 sm:hidden" />
+                                    <span className="hidden sm:inline text-sm font-semibold">Cancel</span>
+                                </button>
+                                
+                                <button
+                                    onClick={handleBulkDelete}
+                                    disabled={isBulkDeleting}
+                                    className={`flex-shrink-0 px-3 py-2 sm:px-4 sm:py-2 bg-white text-primary hover:bg-white/90 rounded-xl text-xs sm:text-sm font-bold shadow-lg transition-all flex items-center gap-1.5 sm:gap-2 ${isBulkDeleting ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}`}
+                                >
+                                    {isBulkDeleting ? (
+                                        <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                                    ) : (
+                                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                    )}
+                                    <span className="whitespace-nowrap">Delete {selectedIds.size}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -1,6 +1,6 @@
 import React from 'react';
 import { InputField, SelectField, SectionHeader } from '../../../ui/FormControls';
-import { parseRtspUrl } from '../../../utils/cameraUtils';
+import { parseRtspUrl } from '../../../../utils/cameraUtils';
 import { Shield, ShieldAlert } from 'lucide-react';
 
 export const GeneralTab = ({ newCamera, setNewCamera, storageProfiles }) => {

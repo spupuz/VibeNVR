@@ -600,6 +600,50 @@ async def download_event(event_id: int, request: Request, token: Optional[str] =
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
+@router.post("/bulk-delete")
+def bulk_delete_events(request: schemas.BulkDeleteRequest, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """Delete multiple individual events by ID"""
+    deleted_count = 0
+    errors = []
+    
+    for event_id in request.event_ids:
+        # Reuse logic from single delete for safety
+        event = db.query(models.Event).filter(models.Event.id == event_id).first()
+        if not event:
+            errors.append(f"Event {event_id} not found")
+            continue
+            
+        # Delete files from disk
+        if event.file_path:
+            file_path = event.file_path
+            if file_path.startswith("/var/lib/motion"):
+                file_path = file_path.replace("/var/lib/motion", "/data", 1)
+            elif file_path.startswith("/var/lib/vibe/recordings"):
+                file_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
+            
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                
+                # Thumbnail
+                if event.thumbnail_path:
+                    thumb_path = event.thumbnail_path
+                    if thumb_path.startswith("/var/lib/motion"):
+                        thumb_path = thumb_path.replace("/var/lib/motion", "/data", 1)
+                    elif thumb_path.startswith("/var/lib/vibe/recordings"):
+                        thumb_path = thumb_path.replace("/var/lib/vibe/recordings", "/data", 1)
+                    if os.path.exists(thumb_path):
+                        os.remove(thumb_path)
+            except Exception as e:
+                logger.error(f"Bulk Delete I/O error for event {event_id}: {e}")
+
+        # Delete from DB
+        db.delete(event)
+        deleted_count += 1
+        
+    db.commit()
+    return {"deleted_count": deleted_count, "errors": errors}
+
 @router.delete("/bulk/all")
 def delete_all_events(event_type: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """

@@ -129,6 +129,23 @@ List motion events and recordings.
 Download the media file associated with an event.
 - **Auth Required**: Valid `media_token` cookie or JWT.
 
+#### **POST** `/events/bulk-delete`
+Delete multiple individual events and their associated media files in a single request.
+- **Auth Required**: Admin privileges.
+- **Payload Example**:
+  ```json
+  {
+    "event_ids": [42, 43, 44]
+  }
+  ```
+- **Response Example**:
+  ```json
+  {
+    "deleted_count": 3,
+    "errors": []
+  }
+  ```
+
 ---
 
 ### 📊 System & Stats (`/stats`)

@@ -19,6 +19,12 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **[Backup & Restore](Backups.md)** - System snapshots and configuration management.
 - **[UniFi Protect Integration](UniFi-Protect.md)** - Native support for RSTSPS and UniFi ports.
 
+## 🚀 Featured Capabilities
+
+- **Bulk Timeline Operations**: Multi-select events (with Shift+Click support) for rapid deletion and storage cleanup.
+- **UniFi First-Class Support**: Native RSTSPS streaming with automatic TLS verification bypass for UniFi controllers.
+- **WebCodecs Performance**: Ultra low-latency streaming with hardware acceleration and intelligent keyframe caching.
+
 ## ⚠️ Important Notes
 
 - **Language Policy**: English is the official and only supported language for all VibeNVR documentation, interfaces, issues, and code. 
