@@ -19,7 +19,8 @@ EXTENDED_ONVIF_PORTS = sorted(list(set(COMMON_ONVIF_PORTS + [
     11000, 12000, 13000, 14000, 15000, 16000, 17000, 18000, 19000, 20000,
     34567, 37777, 37778, 554, 80, 443, 8080, 8000, 8899, 8008, 8009, 8010
 ])))
-RTSP_PORT = 554
+# Common RTSP ports. 554 is standard, 7447 is UniFi standard, 7441 is UniFi secure.
+COMMON_RTSP_PORTS = [554, 7447, 7441]
 
 async def check_port(ip: str, port: int, timeout: float = 1.2, retries: int = 0) -> bool:
     """Check if a port is open on a given IP with optional retries."""
@@ -94,17 +95,17 @@ async def get_onvif_details(ip: str, port: int, user: str = "", password: str = 
         return None
 
 async def scan_host(ip: str, timeout: float = 2.0, retries: int = 2) -> Dict[str, List[int]]:
-    """Scan common ONVIF ports and RTSP port on a specific host."""
-    all_ports = COMMON_ONVIF_PORTS + [RTSP_PORT]
+    """Scan common ONVIF ports and RTSP ports on a specific host."""
+    all_ports = COMMON_ONVIF_PORTS + COMMON_RTSP_PORTS
     # Use retries for RTSP/ONVIF check on potentially lossy WiFi
     tasks = [check_port(ip, port, timeout=timeout, retries=retries) for port in all_ports]
     results = await asyncio.gather(*tasks)
     
-    found = {"onvif": [], "rtsp": False}
+    found = {"onvif": [], "rtsp": []}
     for port, is_open in zip(all_ports, results):
         if is_open:
-            if port == RTSP_PORT:
-                found["rtsp"] = True
+            if port in COMMON_RTSP_PORTS:
+                found["rtsp"].append(port)
             else:
                 found["onvif"].append(port)
     return found
@@ -157,15 +158,16 @@ async def scan_range(ip_range: str, max_concurrency: int = 10) -> List[Dict]:
                         "ip": ip,
                         "port": port,
                         "status": "potential_onvif",
-                        "rtsp_open": scan_res["rtsp"]
+                        "rtsp_open": len(scan_res["rtsp"]) > 0
                     })
             elif scan_res["rtsp"]:
-                found_devices.append({
-                    "ip": ip,
-                    "port": 0,
-                    "status": "potential_camera",
-                    "rtsp_open": True
-                })
+                for port in scan_res["rtsp"]:
+                    found_devices.append({
+                        "ip": ip,
+                        "port": port,
+                        "status": "potential_camera",
+                        "rtsp_open": True
+                    })
 
     tasks = [worker(ip) for ip in ips]
     await asyncio.gather(*tasks)

@@ -222,19 +222,31 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
     };
 
     const selectProfile = (profile) => {
+        const isSecure = probingDevice.port === 7441 || (probingDevice.rtsp_url && probingDevice.rtsp_url.startsWith('rstsps'));
+        const proto = isSecure ? 'rstsps' : 'rtsp';
+        
         onAddCamera({
-            name: `${probingDevice.manufacturer} ${probingDevice.model || 'Camera'}`,
-            rtsp_url: profile.url.replace('rtsp://', `rtsp://${credentials.user}:${credentials.password}@`),
+            name: `${probingDevice.manufacturer || 'Camera'} ${probingDevice.model || ''}`.trim(),
+            rtsp_url: profile.url.replace(/^[a-z0-9]+:\/\//, `${proto}://${credentials.user}:${credentials.password}@`),
             rtsp_username: credentials.user,
             rtsp_password: credentials.password,
-            rtsp_host: probingDevice.ip + (probingDevice.port && probingDevice.port !== 80 ? `:${probingDevice.port}` : '') + profile.url.split(':').pop().split('/').slice(1).join('/'), // This is complex, but we basically want the path
-            // Simpler approach: just pass the components and let the parent handle it
-            ip: probingDevice.ip,
-            port: probingDevice.port,
-            path: profile.url.split(probingDevice.ip).pop().split(':').pop().replace(/^\d+/, ''), // Extract path after port
-            location: '' // Per user request: location is not the IP
+            rtsp_host: probingDevice.ip + (probingDevice.port && ![554, 80].includes(probingDevice.port) ? `:${probingDevice.port}` : ''),
+            location: ''
         });
         setProbingDevice(null);
+    };
+
+    const handleQuickAdd = (device) => {
+        const isSecure = device.port === 7441;
+        const proto = isSecure ? 'rstsps' : 'rtsp';
+        onAddCamera({
+            name: `Camera ${device.ip}`,
+            rtsp_url: `${proto}://${device.ip}${device.port && ![554, 80].includes(device.port) ? `:${device.port}` : ''}/`,
+            rtsp_username: '',
+            rtsp_password: '',
+            rtsp_host: `${device.ip}${device.port && ![554, 80].includes(device.port) ? `:${device.port}` : ''}/`,
+            location: ''
+        });
     };
 
     return (
@@ -387,7 +399,12 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                                     <div className="flex flex-wrap items-center gap-2">
                                         <p className="font-medium truncate">{dev.ip}:{dev.port || '???'}</p>
                                         <div className="flex gap-1">
-                                            {dev.rtsp_open && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-600 font-bold">RTSP</span>}
+                                            {dev.rtsp_open && (
+                                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${dev.port === 7441 ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-600'}`}>
+                                                    {dev.port === 7441 ? 'RTSPS' : 'RTSP'}
+                                                    {dev.port !== 554 && dev.port !== 0 && ` (${dev.port})`}
+                                                </span>
+                                            )}
                                             {dev.manufacturer && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-600 font-bold">ONVIF</span>}
                                             {isAlreadyAdded(dev.ip) && (
                                                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold flex items-center gap-1 shadow-sm">
@@ -411,9 +428,22 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                                         <span>Searching ports...</span>
                                     </div>
                                 )}
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleProbe(dev)}>
-                                    <ChevronRight className="w-5 h-5" />
-                                </Button>
+                                <div className="flex gap-1">
+                                    {dev.status === 'potential_camera' && (
+                                        <Button 
+                                            variant="secondary" 
+                                            size="sm" 
+                                            className="h-8 text-xs px-3"
+                                            onClick={() => handleQuickAdd(dev)}
+                                        >
+                                            <Plus className="w-3.5 h-3.5 mr-1" />
+                                            Add
+                                        </Button>
+                                    )}
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleProbe(dev)}>
+                                        <ChevronRight className="w-5 h-5" />
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     ))}

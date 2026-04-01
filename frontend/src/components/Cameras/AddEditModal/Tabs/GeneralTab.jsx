@@ -1,5 +1,7 @@
 import React from 'react';
 import { InputField, SelectField, SectionHeader } from '../../../ui/FormControls';
+import { parseRtspUrl } from '../../../utils/cameraUtils';
+import { Shield, ShieldAlert } from 'lucide-react';
 
 export const GeneralTab = ({ newCamera, setNewCamera, storageProfiles }) => {
     return (
@@ -24,9 +26,10 @@ export const GeneralTab = ({ newCamera, setNewCamera, storageProfiles }) => {
                         label="Username (Optional)"
                         value={newCamera.rtsp_username || ''}
                         onChange={(val) => {
+                            const { protocol } = parseRtspUrl(newCamera.rtsp_url);
                             const pass = newCamera.rtsp_password || '';
                             const host = newCamera.rtsp_host || '';
-                            const url = `rtsp://${val}${pass ? ':' + pass : ''}${val || pass ? '@' : ''}${host}`;
+                            const url = `${protocol}://${val}${pass ? ':' + pass : ''}${val || pass ? '@' : ''}${host}`;
                             setNewCamera({ ...newCamera, rtsp_username: val, rtsp_url: url });
                         }}
                         placeholder="admin"
@@ -36,9 +39,10 @@ export const GeneralTab = ({ newCamera, setNewCamera, storageProfiles }) => {
                         type={newCamera.show_password ? "text" : "password"}
                         value={newCamera.rtsp_password || ''}
                         onChange={(val) => {
+                            const { protocol } = parseRtspUrl(newCamera.rtsp_url);
                             const user = newCamera.rtsp_username || '';
                             const host = newCamera.rtsp_host || '';
-                            const url = `rtsp://${user}${val ? ':' + val : ''}${user || val ? '@' : ''}${host}`;
+                            const url = `${protocol}://${user}${val ? ':' + val : ''}${user || val ? '@' : ''}${host}`;
                             setNewCamera({ ...newCamera, rtsp_password: val, rtsp_url: url });
                         }}
                         placeholder="••••••"
@@ -52,13 +56,33 @@ export const GeneralTab = ({ newCamera, setNewCamera, storageProfiles }) => {
                     label="RTSP Host & Path"
                     value={newCamera.rtsp_host || ''}
                     onChange={(val) => {
-                        const user = newCamera.rtsp_username || '';
-                        const pass = newCamera.rtsp_password || '';
-                        const url = `rtsp://${user}${pass ? ':' + pass : ''}${user || pass ? '@' : ''}${val}`;
-                        setNewCamera({ ...newCamera, rtsp_host: val, rtsp_url: url });
+                        if (val.includes('://')) {
+                            const { user, pass, host, protocol } = parseRtspUrl(val);
+                            const url = `${protocol}://${user}${pass ? ':' + pass : ''}${user || pass ? '@' : ''}${host}`;
+                            setNewCamera({ 
+                                ...newCamera, 
+                                rtsp_username: user, 
+                                rtsp_password: pass, 
+                                rtsp_host: host, 
+                                rtsp_url: url 
+                            });
+                        } else {
+                            const { protocol } = parseRtspUrl(newCamera.rtsp_url);
+                            const user = newCamera.rtsp_username || '';
+                            const pass = newCamera.rtsp_password || '';
+                            const url = `${protocol}://${user}${pass ? ':' + pass : ''}${user || pass ? '@' : ''}${val}`;
+                            setNewCamera({ ...newCamera, rtsp_host: val, rtsp_url: url });
+                        }
                     }}
                     placeholder="192.168.1.100:554/stream1"
                 />
+
+                {newCamera.rtsp_url?.startsWith('rstsps') || newCamera.rtsp_url?.startsWith('rtsps') ? (
+                    <div className="flex items-center gap-2 text-[10px] bg-blue-500/10 text-blue-500 p-2 rounded border border-blue-500/20">
+                        <Shield className="w-3 h-3" />
+                        <span>Secure Connection (RSTSPS/RTSPS) detected. Hardware acceleration and certificate skip are enabled automatically.</span>
+                    </div>
+                ) : null}
 
                 <div className="text-[10px] text-muted-foreground break-all p-2 bg-background/50 rounded border border-border/50">
                     <span className="font-semibold">Full URL:</span> {

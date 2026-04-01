@@ -22,8 +22,6 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 > **Found a bug? Have a great idea for a feature? Want to share your setup?**
 > Please **[Open an Issue](https://github.com/spupuz/VibeNVR/issues)**! We are extremely proactive, always available to fix problems, and love adding new capabilities requested by the community. Your feedback is what drives this project forward.
 
-
-
 ## ✨ Key Features
 
 | Feature | Description |
@@ -42,7 +40,7 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | 💾 **System Backups** | Automated & Manual configuration snapshots with server-side management and restoration. |
 | 🕙 **Timezone Synchronization** | Full ISO 8601 support ensures perfect timing between engine, backend, and UI. |
 | 📊 **Real-time Monitoring** | Native **WebCodecs H.264** low-latency WebSocket streaming, with selectable modes and adaptive JPEG polling fallback. |
-| 🛡️ **IP Ban Protection** | Automated `ffprobe` pre-flight checks and per-camera **RTSP Transport** selection (TCP/UDP) to ensure maximum compatibility. |
+| 🛡️ **IP Ban Protection** | Automated `ffprobe` pre-flight checks and per-camera **RTSP Transport** selection (TCP/UDP). Support for **Secure RTSP (RSTSPS/RTSPS)** with automated certificate handling. |
 | 🐳 **Docker-Native** | Zero-dependency deployment with **Tag-Driven CI/CD** for stable, predictable releases. |
 
 ---

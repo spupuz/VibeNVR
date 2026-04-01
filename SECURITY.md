@@ -65,7 +65,11 @@ VibeNVR's code includes specific mitigations against common attack vectors:
 2. **IP Ban Protection & DoS Mitigation**:
     - The VibeEngine (`camera_thread.py`) performs a mandatory **ffprobe pre-flight check** before initiating a full video stream connection. This prevents rapid authentication retries that trigger IP bans on many camera firmwares (e.g., Tapo/TP-Link).
     - If a 401 Unauthorized or 403 Forbidden is detected, the thread enters a **5-minute backoff period** before retrying. This mitigates accidental or malicious "denial of service" scenarios through camera lockouts while allowing for eventual recovery if credentials are corrected in the UI.
-3. **Secure Subprocess Execution**:
+3. **Secure RTSP (RSTSPS) & TLS Verification**:
+    - To ensure seamless compatibility with modern NVR systems like **UniFi Protect**, VibeNVR supports the `rstsps://` and `rtsps://` protocols.
+    - For these specific protocols, VibeNVR intentionally disables TLS certificate verification (`tls_verify=0`) to handle self-signed certificates common in camera hardware.
+    - This bypass is **strictly limited** to the secure RTSP schemes. Standard webhooks and API calls always enforce full certificate verification.
+4. **Secure Subprocess Execution**:
    - All internal calls to video tools (`ffmpeg`, `ffprobe`) are performed using **list-based arguments** (the secure default in Python's `subprocess.run`), effectively preventing any shell injection vulnerabilities via malicious camera URLs or paths.
 4. **Advanced Log Masking**:
    - The logging infrastructure (`backend/routers/logs.py`) uses a robust regex-based redaction system. It automatically masks:

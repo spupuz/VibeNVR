@@ -69,9 +69,14 @@ class StreamReader(threading.Thread):
         opts = {
             'rtsp_transport': self.rtsp_transport,
             'stimeout': '5000000',
-            'fflags': 'nobuffer',
             'flags': 'low_delay',
         }
+        
+        # Secure RTSP (RSTSPS/RTSPS) - Skip TLS certificate verification (common for self-signed NVRs)
+        if self.url.lower().startswith(('rstsps://', 'rtsps://')):
+            opts['tls_verify'] = '0'
+            opts['allowed_media_types'] = 'video'
+            logger.info(f"StreamReader ({self.camera_name}): Secure RTSP detected, skipping TLS verification")
         hw_accel_enabled = os.environ.get('HW_ACCEL', 'false').lower() == 'true'
         hw_accel_type = os.environ.get('HW_ACCEL_TYPE', 'auto').lower()
         if hw_accel_enabled:

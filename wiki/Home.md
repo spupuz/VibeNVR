@@ -17,6 +17,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **[System Architecture](Architecture.md)** - Deep dive into VibeEngine, PyAV/OpenCV, and microservices.
 - **[Privacy Masking](Privacy-Masking.md)** - Configuring obscured areas and motion exclusion zones.
 - **[Backup & Restore](Backups.md)** - System snapshots and configuration management.
+- **[UniFi Protect Integration](UniFi-Protect.md)** - Native support for RSTSPS and UniFi ports.
 
 ## ⚠️ Important Notes
 

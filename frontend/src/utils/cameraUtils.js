@@ -4,15 +4,16 @@
  * @returns {object} - An object containing user, pass, and host.
  */
 export const parseRtspUrl = (url) => {
-    let user = '', pass = '', host = url || '';
-    if (!url) return { user, pass, host };
+    let user = '', pass = '', host = url || '', protocol = 'rtsp';
+    if (!url) return { user, pass, host, protocol };
 
     try {
+        const protoMatch = url.match(/^([a-z0-9]+):\/\//);
+        if (protoMatch) protocol = protoMatch[1];
+
         // Handle various formats: 
-        // 1. rtsp://user:pass@host:port/path
-        // 2. rtsp://user@host:port/path
-        // 3. rtsp://host:port/path
-        const withoutProto = url.replace(/^(rtsp|http|https|rtmp):\/\//, '');
+        // 4. rstsps (UniFi) / rtsps (Secure RTSP)
+        const withoutProto = url.replace(/^[a-z0-9]+:\/\//, '');
 
         if (withoutProto.includes('@')) {
             const atIndex = withoutProto.lastIndexOf('@');
@@ -39,5 +40,5 @@ export const parseRtspUrl = (url) => {
     } catch (e) {
         // Keep as-is if decoding fails
     }
-    return { user, pass, host };
+    return { user, pass, host, protocol };
 };
