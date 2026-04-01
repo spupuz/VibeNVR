@@ -1,210 +1,16 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Calendar, Filter, Play, Image as ImageIcon, Trash2, Download, Video, Camera, X, HardDrive } from 'lucide-react';
+import { Calendar, Play } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 
-// Vertical Hour Timeline Component with motion indicators
-const HourTimeline = ({ events, onHourClick, selectedHour }) => {
-    const hours = Array.from({ length: 24 }, (_, i) => 23 - i); // Newest at top
-
-    // Count events per hour
-    const eventsByHour = useMemo(() => {
-        const counts = {};
-        events.forEach(event => {
-            const hour = new Date(event.timestamp_start).getHours();
-            counts[hour] = (counts[hour] || 0) + 1;
-        });
-        return counts;
-    }, [events]);
-
-    const maxEvents = Math.max(...Object.values(eventsByHour), 1);
-    const currentHour = new Date().getHours();
-
-    return (
-        <div className="w-16 flex-shrink-0 flex flex-col sticky top-0 z-20 h-[calc(100dvh-53px)] lg:h-dvh">
-            <div className="text-[9px] text-muted-foreground mb-1 font-medium text-center">24h</div>
-            <div className="flex-1 flex flex-col gap-px">
-                {hours.map(hour => {
-                    const count = eventsByHour[hour] || 0;
-                    const width = count > 0 ? Math.max((count / maxEvents) * 100, 20) : 0;
-                    const isSelected = selectedHour === hour;
-                    const isCurrent = hour === currentHour;
-
-                    return (
-                        <div
-                            key={hour}
-                            className={`flex items-center cursor-pointer group flex-1 min-h-0 ${isCurrent ? 'bg-primary/5' : ''}`}
-                            onClick={() => onHourClick(hour)}
-                        >
-                            <span className={`text-[8px] w-5 text-right mr-1 ${isCurrent ? 'text-primary font-bold' : 'text-muted-foreground'}`}>
-                                {hour.toString().padStart(2, '0')}
-                            </span>
-                            <div className="flex-1 h-2 bg-muted/20 rounded-r relative">
-                                {count > 0 && (
-                                    <div
-                                        className={`absolute left-0 top-0 h-full rounded-r transition-all ${isSelected ? 'bg-red-500' : 'bg-red-400/70 group-hover:bg-red-500'
-                                            }`}
-                                        style={{ width: `${width}%` }}
-                                    />
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-};
-
-const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected, onToggleSelect, getMediaUrl, onDelete }) => {
-    const { token, user } = useAuth();
-    const [imgError, setImgError] = useState(false);
-    const time = new Date(event.timestamp_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const date = new Date(event.timestamp_start).toLocaleDateString([], { month: 'short', day: 'numeric' });
-
-    return (
-        <div
-            id={`event-${event.id}`}
-            className={`flex items-stretch bg-card border rounded-xl overflow-hidden cursor-pointer transition-all hover:shadow-lg group
-                ${isSelected ? 'ring-2 ring-primary border-primary' : 'border-border hover:border-primary/50'}
-            `}
-            onClick={() => onClick(event)}
-        >
-            {/* Thumbnail */}
-            <div className="w-24 sm:w-32 h-20 bg-black/10 flex-shrink-0 relative overflow-hidden">
-                {event.thumbnail_path && !imgError ? (
-                    <img
-                        src={getMediaUrl(event.thumbnail_path)}
-                        loading="lazy"
-                        alt="Thumbnail"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        onError={() => setImgError(true)}
-                    />
-                ) : event.type === 'snapshot' && !imgError ? (
-                    <img
-                        src={getMediaUrl(event.file_path)}
-                        loading="lazy"
-                        alt="Event"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        onError={() => setImgError(true)}
-                    />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted">
-                        {event.type === 'video' ? <Video className="w-8 h-8 opacity-50" /> : <ImageIcon className="w-8 h-8 opacity-50" />}
-                    </div>
-                )}
-
-                {/* Selection Checkbox (Visible on hover or if multi-selected) */}
-                <div 
-                    className={`absolute top-2 left-2 z-20 transition-all cursor-pointer ${isMultiSelected ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-100'}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleSelect(event.id, e.shiftKey);
-                    }}
-                >
-                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
-                        isMultiSelected 
-                        ? 'bg-primary border-primary text-primary-foreground shadow-sm' 
-                        : 'bg-black/20 border-white/50 hover:border-white'
-                    }`}>
-                        {isMultiSelected && <div className="w-2.5 h-2.5 bg-current rounded-sm" />}
-                    </div>
-                </div>
-
-                {/* Overlaid Actions (Visible on Hover) */}
-                <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-90 transition-opacity z-10">
-                    {/* Download */}
-                    <a
-                        href={`/api/events/${event.id}/download`}
-                        download
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-1 bg-black/50 hover:bg-black/70 text-white rounded backdrop-blur-sm transition-colors"
-                        title="Download"
-                    >
-                        <Download className="w-3 h-3" />
-                    </a>
-
-                    {/* Delete */}
-                    {user?.role === 'admin' && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete(event.id);
-                            }}
-                            className="p-1 bg-black/50 hover:bg-red-500/80 text-white rounded backdrop-blur-sm transition-colors"
-                            title="Delete"
-                        >
-                            <Trash2 className="w-3 h-3" />
-                        </button>
-                    )}
-                </div>
-
-                {/* Type badge */}
-                <div className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase
-                ${event.type === 'video' ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white'}
-            `}>
-                    {event.type === 'video' ? 'Vid' : 'Img'}
-                </div>
-
-                {/* Motion indicator */}
-                {event.event_type === 'motion' && (
-                    <div className="absolute bottom-1 left-1 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                )}
-            </div>
-
-            {/* Info */}
-            <div className="flex-1 p-2 flex flex-col justify-between min-w-0">
-                <div>
-                    <div className="flex items-center space-x-1 mb-0.5">
-                        <Camera className="w-3 h-3 text-primary" />
-                        <span className="text-xs font-semibold truncate">{camera?.name || `Camera ${event.camera_id}`}</span>
-                        {camera?.storage_profile && (
-                            <div className="flex items-center ml-1 text-[8px] bg-primary/10 text-primary px-1 rounded-sm border border-primary/20" title={`Stored on: ${camera.storage_profile.name}`}>
-                                <HardDrive className="w-2 h-2 mr-0.5" />
-                                <span className="uppercase font-bold">{camera.storage_profile.name}</span>
-                            </div>
-                        )}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground truncate">
-                        {event.file_path?.split('/').pop()}
-                    </p>
-                </div>
-                <div className="flex justify-between items-center">
-                    <div className="flex flex-col">
-                        <span className="text-[10px] text-muted-foreground">{time}</span>
-                        <span className="text-[8px] text-muted-foreground/50">{date}</span>
-                    </div>
-                    <div className="flex flex-wrap justify-end gap-1 pl-1">
-                        {/* Duration Badge */}
-                        {event.timestamp_end && (
-                            <div className="text-[9px] sm:text-[10px] font-mono text-amber-600 bg-amber-500/10 px-1 py-0.5 rounded flex items-center">
-                                {(() => {
-                                    const start = new Date(event.timestamp_start);
-                                    const end = new Date(event.timestamp_end);
-                                    const diff = Math.floor((end - start) / 1000);
-                                    if (diff < 0) return '';
-                                    const m = Math.floor(diff / 60);
-                                    const s = diff % 60;
-                                    return `${m}:${s.toString().padStart(2, '0')}`;
-                                })()}
-                            </div>
-                        )}
-                        {event.file_size > 0 && (
-                            <div className="text-[9px] sm:text-[10px] font-mono text-primary/80 bg-primary/5 px-1 py-0.5 rounded">
-                                {event.file_size < 1024 * 1024
-                                    ? `${(event.file_size / 1024).toFixed(1)} KB`
-                                    : `${(event.file_size / (1024 * 1024)).toFixed(1)} MB`
-                                }
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
+// Modular Components
+import { HourTimeline } from '../components/Timeline/HourTimeline';
+import { EventCard } from '../components/Timeline/EventCard';
+import { EventFilters } from '../components/Timeline/EventFilters';
+import { BulkActionBar } from '../components/Timeline/BulkActionBar';
+import { EventPreview } from '../components/Timeline/EventPreview';
 
 const API_BASE = `/api`;
 
@@ -217,7 +23,7 @@ export const Timeline = () => {
     const [cameras, setCameras] = useState([]);
     const [selectedCameraFilter, setSelectedCameraFilter] = useState('all');
     const [selectedHour, setSelectedHour] = useState(null);
-    const [selectedTypeFilter, setSelectedTypeFilter] = useState('all'); // all, video, snapshot
+    const [selectedTypeFilter, setSelectedTypeFilter] = useState('all');
     const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA'));
     const { showToast } = useToast();
     const [confirmConfig, setConfirmConfig] = useState({ isOpen: false });
@@ -230,22 +36,11 @@ export const Timeline = () => {
     const urlDate = searchParams.get('date');
     const eventId = searchParams.get('event_id');
 
-    // Filter events by selected hour AND camera
     const filteredEvents = useMemo(() => {
         let results = events;
-
-        if (selectedCameraFilter !== 'all') {
-            results = results.filter(e => e.camera_id === parseInt(selectedCameraFilter));
-        }
-
-        if (selectedHour !== null) {
-            results = results.filter(e => new Date(e.timestamp_start).getHours() === selectedHour);
-        }
-
-        if (selectedTypeFilter !== 'all') {
-            results = results.filter(e => e.type === selectedTypeFilter);
-        }
-
+        if (selectedCameraFilter !== 'all') results = results.filter(e => e.camera_id === parseInt(selectedCameraFilter));
+        if (selectedHour !== null) results = results.filter(e => new Date(e.timestamp_start).getHours() === selectedHour);
+        if (selectedTypeFilter !== 'all') results = results.filter(e => e.type === selectedTypeFilter);
         return results;
     }, [events, selectedHour, selectedCameraFilter, selectedTypeFilter]);
 
@@ -253,65 +48,52 @@ export const Timeline = () => {
         if (urlDate) setSelectedDate(urlDate);
     }, [urlDate]);
 
-    useEffect(() => {
-        const fetchEvents = () => {
-            let url = `${API_BASE}/events`;
-            const params = new URLSearchParams();
-            params.append('limit', '1000'); // Increased limit to see more history
-            if (cameraId) params.append('camera_id', cameraId);
-            if (type) params.append('type', type);
-            if (selectedDate) params.append('date', selectedDate);
+    const fetchEvents = useCallback(() => {
+        let url = `${API_BASE}/events`;
+        const params = new URLSearchParams();
+        params.append('limit', '1000');
+        if (cameraId) params.append('camera_id', cameraId);
+        if (type) params.append('type', type);
+        if (selectedDate) params.append('date', selectedDate);
 
-            if (Array.from(params).length > 0) {
-                url += `?${params.toString()}`;
-            }
+        if (Array.from(params).length > 0) url += `?${params.toString()}`;
 
-            fetch(url, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-                .then(res => res.json())
-                .then(data => {
-                    console.log(`Fetched ${data.length} events`);
-                    setEvents(data);
-
-                    // Auto-select event if ID is in URL
-                    if (eventId) {
-                        const targetEvent = data.find(e => e.id === parseInt(eventId));
-                        if (targetEvent) {
-                            setSelectedEvent(targetEvent);
-                            // Scroll to event list entry if possible
-                            setTimeout(() => {
-                                const element = document.getElementById(`event-${targetEvent.id}`);
-                                if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            }, 500);
-                        }
+        fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => res.json())
+            .then(data => {
+                setEvents(data);
+                if (eventId) {
+                    const targetEvent = data.find(e => e.id === parseInt(eventId));
+                    if (targetEvent) {
+                        setSelectedEvent(targetEvent);
+                        setTimeout(() => {
+                            const element = document.getElementById(`event-${targetEvent.id}`);
+                            if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }, 500);
                     }
-                })
-                .catch(err => console.error(err));
-        };
-
-        const fetchCameras = () => {
-            fetch(`${API_BASE}/cameras`, {
-                headers: { Authorization: `Bearer ${token}` }
+                }
             })
-                .then(res => res.json())
-                .then(data => {
-                    setCameras(data);
-                    const map = data.reduce((acc, cam) => ({ ...acc, [cam.id]: cam }), {});
-                    setCameraMap(map);
-                })
-                .catch(err => console.error(err));
-        };
+            .catch(err => console.error(err));
+    }, [cameraId, type, selectedDate, token, eventId]);
 
+    const fetchCameras = useCallback(() => {
+        fetch(`${API_BASE}/cameras`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => res.json())
+            .then(data => {
+                setCameras(data);
+                setCameraMap(data.reduce((acc, cam) => ({ ...acc, [cam.id]: cam }), {}));
+            })
+            .catch(err => console.error(err));
+    }, [token]);
+
+    useEffect(() => {
         if (token) {
             fetchEvents();
             fetchCameras();
-
-            // Auto-refresh every 30 seconds
             const timer = setInterval(fetchEvents, 30000);
             return () => clearInterval(timer);
         }
-    }, [cameraId, type, selectedDate, token]);
+    }, [fetchEvents, fetchCameras, token]);
 
     const getCamera = (id) => cameraMap[id];
     const getCameraName = (id) => cameraMap[id]?.name || `Camera ${id}`;
@@ -319,12 +101,8 @@ export const Timeline = () => {
     const getMediaUrl = (path) => {
         if (!path) return '';
         let relative = path;
-        if (relative.startsWith('/var/lib/motion/')) {
-            relative = relative.replace('/var/lib/motion/', '');
-        } else if (relative.startsWith('/var/lib/vibe/recordings/')) {
-            relative = relative.replace('/var/lib/vibe/recordings/', '');
-        }
-        // Cookie handles authentication
+        const prefixes = ['/var/lib/motion/', '/var/lib/vibe/recordings/'];
+        prefixes.forEach(p => { if (relative.startsWith(p)) relative = relative.replace(p, ''); });
         return `${API_BASE}/media/${relative}`;
     };
 
@@ -361,29 +139,20 @@ export const Timeline = () => {
     };
 
     const handleToggleSelect = useCallback((id, isShift) => {
+        if (user?.role !== 'admin') return;
         setSelectedIds(prev => {
             const next = new Set(prev);
-            
             if (isShift && lastSelectedId !== null) {
-                // Range selection logic
                 const allIds = filteredEvents.map(e => e.id);
                 const start = allIds.indexOf(lastSelectedId);
                 const end = allIds.indexOf(id);
-                
                 if (start !== -1 && end !== -1) {
                     const [rangeStart, rangeEnd] = start < end ? [start, end] : [end, start];
-                    const rangeIds = allIds.slice(rangeStart, rangeEnd + 1);
-                    
-                    // If the target is already selected, we might want to deselect range,
-                    // but usually Shift+Click in managers means "Select this range"
-                    rangeIds.forEach(rid => next.add(rid));
+                    allIds.slice(rangeStart, rangeEnd + 1).forEach(rid => next.add(rid));
                 }
             } else {
-                if (next.has(id)) {
-                    next.delete(id);
-                } else {
-                    next.add(id);
-                }
+                if (next.has(id)) next.delete(id);
+                else next.add(id);
             }
             return next;
         });
@@ -393,29 +162,22 @@ export const Timeline = () => {
     const handleBulkDelete = async () => {
         const count = selectedIds.size;
         if (count === 0) return;
-
         setConfirmConfig({
             isOpen: true,
             title: `Delete ${count} Events`,
-            message: `Are you sure you want to delete ${count} selected events? This will permanently remove the associated video files.`,
+            message: `Are you sure you want to delete ${count} selected events?`,
             onConfirm: async () => {
                 setIsBulkDeleting(true);
                 try {
                     const res = await fetch(`${API_BASE}/events/bulk-delete`, {
                         method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            Authorization: `Bearer ${token}` 
-                        },
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                         body: JSON.stringify({ event_ids: Array.from(selectedIds) })
                     });
-                    
                     if (res.ok) {
                         const data = await res.json();
                         setEvents(prev => prev.filter(e => !selectedIds.has(e.id)));
-                        if (selectedEvent && selectedIds.has(selectedEvent.id)) {
-                            setSelectedEvent(null);
-                        }
+                        if (selectedEvent && selectedIds.has(selectedEvent.id)) setSelectedEvent(null);
                         setSelectedIds(new Set());
                         showToast(`Successfully deleted ${data.deleted_count} events`, 'success');
                     } else {
@@ -433,14 +195,11 @@ export const Timeline = () => {
     };
 
     const handleSelectAll = () => {
-        if (selectedIds.size === filteredEvents.length) {
-            setSelectedIds(new Set());
-        } else {
-            setSelectedIds(new Set(filteredEvents.map(e => e.id)));
-        }
+        if (user?.role !== 'admin') return;
+        if (selectedIds.size === filteredEvents.length) setSelectedIds(new Set());
+        else setSelectedIds(new Set(filteredEvents.map(e => e.id)));
     };
 
-    // Group events by date
     const groupedEvents = useMemo(() => {
         return filteredEvents.reduce((acc, event) => {
             const dateKey = new Date(event.timestamp_start).toLocaleDateString();
@@ -450,281 +209,71 @@ export const Timeline = () => {
         }, {});
     }, [filteredEvents]);
 
-    const videoRef = React.useRef(null);
-    const [autoplayNext, setAutoplayNext] = useState(() => {
-        const saved = localStorage.getItem('vibe_autoplay_next');
-        return saved !== null ? JSON.parse(saved) : true;
-    });
-    const [playbackSpeed, setPlaybackSpeed] = useState(() => {
-        const saved = localStorage.getItem('vibe_playback_speed');
-        return saved !== null ? Number(saved) : 1.0;
-    });
+    const videoRef = useRef(null);
+    const [autoplayNext, setAutoplayNext] = useState(() => JSON.parse(localStorage.getItem('vibe_autoplay_next') || 'true'));
+    const [playbackSpeed, setPlaybackSpeed] = useState(() => Number(localStorage.getItem('vibe_playback_speed') || '1.0'));
+    const [autoplayDirection, setAutoplayDirection] = useState(() => localStorage.getItem('vibe_autoplay_direction') || 'desc');
 
-    useEffect(() => {
-        localStorage.setItem('vibe_autoplay_next', JSON.stringify(autoplayNext));
-    }, [autoplayNext]);
-
-    const [autoplayDirection, setAutoplayDirection] = useState(() => {
-        const saved = localStorage.getItem('vibe_autoplay_direction');
-        return saved !== null ? saved : 'desc'; // 'desc' = Newest -> Oldest (default)
-    });
-
-    useEffect(() => {
-        localStorage.setItem('vibe_autoplay_direction', autoplayDirection);
-    }, [autoplayDirection]);
-
-    useEffect(() => {
-        localStorage.setItem('vibe_playback_speed', playbackSpeed);
-    }, [playbackSpeed]);
-
-    useEffect(() => {
-        if (videoRef.current) {
-            videoRef.current.playbackRate = playbackSpeed;
-        }
-    }, [playbackSpeed, selectedEvent]);
+    useEffect(() => { localStorage.setItem('vibe_autoplay_next', JSON.stringify(autoplayNext)); }, [autoplayNext]);
+    useEffect(() => { localStorage.setItem('vibe_autoplay_direction', autoplayDirection); }, [autoplayDirection]);
+    useEffect(() => { localStorage.setItem('vibe_playback_speed', playbackSpeed); }, [playbackSpeed]);
+    useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = playbackSpeed; }, [playbackSpeed, selectedEvent]);
 
     const goToNextEvent = useCallback(() => {
         if (!selectedEvent) return;
-
-        // Flatten grouped events to get a linear list
         const allEvents = filteredEvents;
         const currentIndex = allEvents.findIndex(e => e.id === selectedEvent.id);
-
         if (currentIndex === -1) return;
-
         let nextIndex = -1;
-
-        if (autoplayDirection === 'desc') {
-            // Newest -> Oldest (Forward in array items, assuming list is Newest first)
-            if (currentIndex < allEvents.length - 1) {
-                nextIndex = currentIndex + 1;
-            }
-        } else {
-            // Oldest -> Newest (Backward in array items)
-            if (currentIndex > 0) {
-                nextIndex = currentIndex - 1;
-            }
-        }
-
-        if (nextIndex !== -1) {
-            setSelectedEvent(allEvents[nextIndex]);
-        }
+        if (autoplayDirection === 'desc') { if (currentIndex < allEvents.length - 1) nextIndex = currentIndex + 1; }
+        else { if (currentIndex > 0) nextIndex = currentIndex - 1; }
+        if (nextIndex !== -1) setSelectedEvent(allEvents[nextIndex]);
     }, [autoplayDirection, selectedEvent, filteredEvents]);
 
-    const handleVideoEnded = () => {
-        if (autoplayNext) {
-            goToNextEvent();
-        }
-    };
+    const handleVideoEnded = () => { if (autoplayNext) goToNextEvent(); };
 
-    // Auto-advance for images/snapshots
     useEffect(() => {
         let timer;
         if (autoplayNext && selectedEvent && selectedEvent.type === 'snapshot') {
-            timer = setTimeout(() => {
-                goToNextEvent();
-            }, 5000);
+            timer = setTimeout(() => { goToNextEvent(); }, 5000);
         }
-        return () => {
-            if (timer) clearTimeout(timer);
-        };
+        return () => { if (timer) clearTimeout(timer); };
     }, [autoplayNext, selectedEvent, goToNextEvent]);
 
     return (
         <div className="h-full flex flex-col px-5 py-4 lg:p-8">
-            {/* Page Header */}
             <div className="mb-4">
                 <h2 className="text-3xl font-bold tracking-tight flex items-baseline gap-2">
-                    Timeline
-                    <span className="text-lg font-normal text-muted-foreground">({filteredEvents.length} events)</span>
+                    Timeline <span className="text-lg font-normal text-muted-foreground">({filteredEvents.length} events)</span>
                 </h2>
                 <p className="text-muted-foreground mt-2">Browse recorded events and media.</p>
             </div>
 
             <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
-                {/* Mobile: Sticky Video Player at Top */}
-                {selectedEvent && (
-                    <div className="lg:hidden sticky top-0 z-30 bg-card border border-border rounded-xl p-3 flex flex-col shadow-lg">
-                        <div className="flex justify-between items-center mb-2">
-                            <div className="flex-1 min-w-0">
-                                <h3 className="text-sm font-bold truncate">{getCameraName(selectedEvent.camera_id)}</h3>
-                                <p className="text-[10px] text-muted-foreground truncate">
-                                    {new Date(selectedEvent.timestamp_start).toLocaleString()}
-                                </p>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                {/* Mobile Auto-next */}
-                                <label className="flex items-center space-x-1.5 px-2 py-1 bg-muted/50 rounded-lg cursor-pointer transition-all active:scale-95">
-                                    <input
-                                        type="checkbox"
-                                        checked={autoplayNext}
-                                        onChange={(e) => setAutoplayNext(e.target.checked)}
-                                        className="w-3.5 h-3.5 rounded border-gray-400 text-primary focus:ring-primary"
-                                    />
-                                    <span className="text-[10px] font-bold text-foreground/80 uppercase tracking-tighter">Auto-next</span>
-                                    {autoplayNext && (
-                                        <select
-                                            value={autoplayDirection}
-                                            onChange={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                setAutoplayDirection(e.target.value);
-                                            }}
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="ml-1 h-3.5 text-[9px] bg-transparent border-none focus:ring-0 cursor-pointer text-muted-foreground hover:text-foreground p-0 pr-1 pl-1"
-                                            title="Playback Order"
-                                        >
-                                            <option value="desc">Newest → Oldest</option>
-                                            <option value="asc">Oldest → Newest</option>
-                                        </select>
-                                    )}
-                                </label>
-                                <button
-                                    onClick={() => setSelectedEvent(null)}
-                                    className="p-1 hover:bg-accent rounded-lg text-muted-foreground transition-colors"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-                        <div className="aspect-video bg-black rounded-lg overflow-hidden relative">
-                            {selectedEvent.type === 'video' ? (
-                                <video
-                                    ref={videoRef}
-                                    controls
-                                    autoPlay
-                                    className="w-full h-full object-contain"
-                                    src={getMediaUrl(selectedEvent.file_path)}
-                                    onEnded={handleVideoEnded}
-                                    onLoadedMetadata={(e) => e.target.playbackRate = playbackSpeed}
-                                />
-                            ) : (
-                                <img
-                                    src={getMediaUrl(selectedEvent.file_path)}
-                                    alt="Event"
-                                    className="w-full h-full object-contain"
-                                />
-                            )}
-                            {/* Mobile Speed Overlay - Consistent with Desktop */}
-                            {selectedEvent.type === 'video' && (
-                                <div className="absolute top-2 right-2 px-2.5 py-1 rounded-md backdrop-blur-md shadow-lg bg-black/40 border border-white/20 active:scale-90 transition-all">
-                                    <select
-                                        value={playbackSpeed}
-                                        onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
-                                        className="bg-transparent text-xs font-black text-white/90 border-none focus:ring-0 cursor-pointer p-0 text-center w-8 appearance-none"
-                                        title="Playback Speed"
-                                    >
-                                        <option value={1} className="text-black">1x</option>
-                                        <option value={2} className="text-black">2x</option>
-                                        <option value={3} className="text-black">3x</option>
-                                    </select>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
+                {/* Mobile Preview */}
+                <EventPreview 
+                    isMobile={true}
+                    selectedEvent={selectedEvent} getCameraName={getCameraName} getCamera={getCamera} getMediaUrl={getMediaUrl} setSelectedEvent={setSelectedEvent}
+                    autoplayNext={autoplayNext} setAutoplayNext={setAutoplayNext} autoplayDirection={autoplayDirection} setAutoplayDirection={setAutoplayDirection}
+                    playbackSpeed={playbackSpeed} setPlaybackSpeed={setPlaybackSpeed} handleVideoEnded={handleVideoEnded} handleDelete={handleDelete} videoRef={videoRef} user={user}
+                />
 
-                {/* Left: Event List */}
+                {/* Event List & Ruler */}
                 <div className="w-full lg:w-[380px] flex-shrink-0 flex flex-col">
-                    {/* Filters */}
-                    <div className="flex flex-wrap items-center gap-3 mb-4 p-1">
-                        {/* ... (Previous filters remain unchanged) ... */}
-                        <div className="relative">
-                            <select
-                                className="appearance-none pl-3 pr-8 py-2 bg-card border border-border rounded-xl text-sm min-w-[140px] focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50"
-                                value={selectedCameraFilter}
-                                onChange={(e) => {
-                                    setSelectedCameraFilter(e.target.value);
-                                    const newParams = new URLSearchParams(searchParams);
-                                    if (e.target.value === 'all') newParams.delete('camera');
-                                    else newParams.set('camera', e.target.value);
-                                    setSearchParams(newParams);
-                                }}
-                            >
-                                <option value="all">All Cameras</option>
-                                {cameras.map(cam => (
-                                    <option key={cam.id} value={cam.id}>{cam.name}</option>
-                                ))}
-                            </select>
-                            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
-                                <Filter className="w-3.5 h-3.5" />
-                            </div>
-                        </div>
+                    <EventFilters 
+                        cameras={cameras} selectedCameraFilter={selectedCameraFilter} setSelectedCameraFilter={setSelectedCameraFilter}
+                        selectedTypeFilter={selectedTypeFilter} setSelectedTypeFilter={setSelectedTypeFilter}
+                        selectedDate={selectedDate} setSelectedDate={setSelectedDate}
+                        onReset={() => {
+                            const today = new Date().toLocaleDateString('en-CA');
+                            setSelectedDate(today); setSelectedHour(null); setSelectedCameraFilter('all'); setSelectedTypeFilter('all'); setSearchParams({});
+                        }}
+                        selectedHour={selectedHour} setSelectedHour={setSelectedHour} searchParams={searchParams} setSearchParams={setSearchParams}
+                    />
 
-                        <div className="relative">
-                            <select
-                                className="appearance-none pl-3 pr-8 py-2 bg-card border border-border rounded-xl text-sm min-w-[120px] focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50"
-                                value={selectedTypeFilter}
-                                onChange={(e) => {
-                                    setSelectedTypeFilter(e.target.value);
-                                    const newParams = new URLSearchParams(searchParams);
-                                    if (e.target.value === 'all') newParams.delete('type');
-                                    else newParams.set('type', e.target.value);
-                                    setSearchParams(newParams);
-                                }}
-                            >
-                                <option value="all">All Media</option>
-                                <option value="video">Videos</option>
-                                <option value="snapshot">Snapshots</option>
-                            </select>
-                            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
-                                {selectedTypeFilter === 'video' ? <Video className="w-3.5 h-3.5" /> : selectedTypeFilter === 'snapshot' ? <ImageIcon className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                            </div>
-                        </div>
-
-                        <div className="relative flex items-center">
-                            <input
-                                type="date"
-                                className="pl-9 pr-3 py-2 bg-card border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50"
-                                value={selectedDate}
-                                onChange={(e) => {
-                                    setSelectedDate(e.target.value);
-                                    const newParams = new URLSearchParams(searchParams);
-                                    newParams.set('date', e.target.value);
-                                    setSearchParams(newParams);
-                                }}
-                            />
-                            <Calendar className="absolute left-3 w-4 h-4 text-primary" />
-                        </div>
-
-                        <button
-                            onClick={() => {
-                                const today = new Date().toLocaleDateString('en-CA');
-                                setSelectedDate(today);
-                                setSelectedHour(null);
-                                setSelectedCameraFilter('all');
-                                setSelectedTypeFilter('all');
-                                setSearchParams({});
-                            }}
-                            className={`flex items-center space-x-1.5 px-3 py-2 border rounded-xl text-sm transition-all
-                            ${selectedDate === new Date().toLocaleDateString('en-CA') && selectedCameraFilter === 'all' && selectedTypeFilter === 'all'
-                                    ? 'bg-primary/10 border-primary/20 text-primary font-medium'
-                                    : 'bg-card border-border hover:bg-accent text-muted-foreground'
-                                }`}
-                        >
-                            <span>Reset</span>
-                        </button>
-
-                        {selectedHour !== null && (
-                            <button
-                                onClick={() => setSelectedHour(null)}
-                                className="px-3 py-2 text-sm bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-colors flex items-center gap-1.5"
-                            >
-                                <span className="font-bold">{selectedHour}:00</span>
-                                <span className="opacity-70">✕</span>
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Events area with vertical timeline */}
                     <div className="flex-1 flex flex-col min-h-0">
                         <div className="flex-1 flex gap-2 min-h-0 p-3">
-                            <HourTimeline
-                                events={events}
-                                onHourClick={(h) => setSelectedHour(selectedHour === h ? null : h)}
-                                selectedHour={selectedHour}
-                            />
-
+                            <HourTimeline events={events} onHourClick={(h) => setSelectedHour(selectedHour === h ? null : h)} selectedHour={selectedHour} />
                             <div className="flex-1 overflow-y-auto space-y-2 pr-1 text-[13px]">
                                 {filteredEvents.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
@@ -734,27 +283,13 @@ export const Timeline = () => {
                                 ) : (
                                     Object.entries(groupedEvents).map(([date, dateEvents]) => (
                                         <div key={date}>
-                                            <div className="sticky top-0 bg-background/90 backdrop-blur-sm py-1.5 mb-1 z-10">
-                                                <span className="text-[10px] font-semibold text-muted-foreground uppercase">{date}</span>
-                                            </div>
+                                            <div className="sticky top-0 bg-background/90 backdrop-blur-sm py-1.5 mb-1 z-10 text-[10px] font-semibold text-muted-foreground uppercase">{date}</div>
                                             <div className="space-y-1.5">
                                                 {dateEvents.map(event => (
-                                                    <EventCard
-                                                        key={event.id}
-                                                        event={event}
-                                                        onClick={(e) => {
-                                                            if (selectedIds.size > 0 && !e.shiftKey) {
-                                                                handleToggleSelect(event.id, false);
-                                                            } else {
-                                                                setSelectedEvent(event);
-                                                            }
-                                                        }}
-                                                        camera={getCamera(event.camera_id)}
-                                                        isSelected={selectedEvent?.id === event.id}
-                                                        isMultiSelected={selectedIds.has(event.id)}
-                                                        onToggleSelect={handleToggleSelect}
-                                                        getMediaUrl={getMediaUrl}
-                                                        onDelete={handleDelete}
+                                                    <EventCard 
+                                                        key={event.id} event={event} camera={getCamera(event.camera_id)} isSelected={selectedEvent?.id === event.id} isMultiSelected={selectedIds.has(event.id)}
+                                                        onClick={(e) => { if (user?.role === 'admin' && selectedIds.size > 0 && !e.shiftKey) handleToggleSelect(event.id, false); else setSelectedEvent(event); }}
+                                                        onToggleSelect={handleToggleSelect} getMediaUrl={getMediaUrl} onDelete={handleDelete}
                                                     />
                                                 ))}
                                             </div>
@@ -766,176 +301,17 @@ export const Timeline = () => {
                     </div>
                 </div>
 
-                {/* Right: Preview Panel - Hidden on mobile, shown on desktop */}
+                {/* Desktop Preview */}
                 <div className="hidden lg:flex flex-1 bg-card border border-border rounded-xl p-4 flex-col min-h-0 sticky top-8 h-[calc(100dvh-4rem)] self-start">
-                    {selectedEvent ? (
-                        <>
-                            <div className="flex justify-between items-start mb-3">
-                                <div>
-                                    <h3 className="text-lg font-bold">Event Details</h3>
-                                    <p className="text-xs text-muted-foreground">
-                                        {getCameraName(selectedEvent.camera_id)} • {new Date(selectedEvent.timestamp_start).toLocaleString()}
-                                        {getCamera(selectedEvent.camera_id)?.storage_profile && (
-                                            <span className="inline-flex items-center ml-2 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20">
-                                                <HardDrive className="w-2.5 h-2.5 mr-1" />
-                                                {getCamera(selectedEvent.camera_id).storage_profile.name}
-                                            </span>
-                                        )}
-                                        {selectedEvent.file_size > 0 && ` • ${selectedEvent.file_size < 1024 * 1024
-                                            ? (selectedEvent.file_size / 1024).toFixed(1) + ' KB'
-                                            : (selectedEvent.file_size / (1024 * 1024)).toFixed(1) + ' MB'}`}
-                                    </p>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    {/* Autoplay Toggle */}
-                                    <div className="flex items-center space-x-2 mr-2 bg-muted/30 px-2 py-1 rounded-lg">
-                                        <input
-                                            type="checkbox"
-                                            id="autoplayNext"
-                                            checked={autoplayNext}
-                                            onChange={(e) => setAutoplayNext(e.target.checked)}
-                                            className="rounded border-gray-400 text-primary focus:ring-primary"
-                                        />
-                                        <label htmlFor="autoplayNext" className="text-xs font-medium cursor-pointer select-none">Auto-next</label>
-
-                                        {autoplayNext && (
-                                            <select
-                                                value={autoplayDirection}
-                                                onChange={(e) => setAutoplayDirection(e.target.value)}
-                                                className="ml-1 h-5 text-[10px] bg-transparent border-none focus:ring-0 cursor-pointer text-muted-foreground hover:text-foreground p-0 pr-1 pl-1"
-                                                title="Playback Order"
-                                            >
-                                                <option value="desc">Newest → Oldest</option>
-                                                <option value="asc">Oldest → Newest</option>
-                                            </select>
-                                        )}
-                                    </div>
-
-                                    {/* Speed Selection */}
-                                    {selectedEvent.type === 'video' && (
-                                        <div className="flex items-center space-x-1 bg-muted/50 hover:bg-muted rounded-lg px-2 py-1 transition-colors border border-transparent hover:border-border">
-                                            <select
-                                                value={playbackSpeed}
-                                                onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
-                                                className="bg-transparent text-xs font-bold text-foreground border-none focus:ring-0 cursor-pointer p-0 text-center w-12 appearance-none"
-                                                title="Playback Speed"
-                                            >
-                                                <option value={1}>1x</option>
-                                                <option value={2}>2x</option>
-                                                <option value={3}>3x</option>
-                                            </select>
-                                        </div>
-                                    )}
-
-                                    <div className="w-px h-6 bg-border mx-1"></div>
-
-                                    <a
-                                        href={`/api/events/${selectedEvent.id}/download`}
-                                        download
-                                        className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors"
-                                    >
-                                        <Download className="w-4 h-4" />
-                                    </a>
-                                    {user?.role === 'admin' && (
-                                        <button
-                                            onClick={() => handleDelete(selectedEvent.id)}
-                                            className="p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-lg transition-colors"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="flex-1 bg-black rounded-lg overflow-hidden flex items-center justify-center min-h-0">
-                                {selectedEvent.type === 'video' ? (
-                                    <video
-                                        ref={videoRef}
-                                        controls
-                                        autoPlay
-                                        className="max-w-full max-h-full object-contain"
-                                        src={getMediaUrl(selectedEvent.file_path)}
-                                        onEnded={handleVideoEnded}
-                                        onLoadedMetadata={(e) => e.target.playbackRate = playbackSpeed}
-                                    >
-                                        Your browser does not support video.
-                                    </video>
-                                ) : (
-                                    <img
-                                        src={getMediaUrl(selectedEvent.file_path)}
-                                        alt="Event"
-                                        className="max-w-full max-h-full object-contain"
-                                    />
-                                )}
-                            </div>
-
-                            <div className="mt-2 text-[10px] text-muted-foreground font-mono bg-muted/30 p-1.5 rounded truncate">
-                                {selectedEvent.file_path}
-                            </div>
-                        </>
-                    ) : (
-                        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
-                            <Play className="w-12 h-12 mb-3 opacity-20" />
-                            <p className="text-sm">Select an event to preview</p>
-                        </div>
-                    )}
+                    <EventPreview 
+                        selectedEvent={selectedEvent} getCameraName={getCameraName} getCamera={getCamera} getMediaUrl={getMediaUrl} setSelectedEvent={setSelectedEvent}
+                        autoplayNext={autoplayNext} setAutoplayNext={setAutoplayNext} autoplayDirection={autoplayDirection} setAutoplayDirection={setAutoplayDirection}
+                        playbackSpeed={playbackSpeed} setPlaybackSpeed={setPlaybackSpeed} handleVideoEnded={handleVideoEnded} handleDelete={handleDelete} videoRef={videoRef} user={user}
+                    />
                 </div>
+
                 <ConfirmModal {...confirmConfig} />
-                
-                {/* Bulk Action Bar */}
-                {selectedIds.size > 0 && (
-                    <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 w-[95%] max-w-2xl px-2">
-                        <div className="bg-primary shadow-2xl shadow-primary/20 text-primary-foreground rounded-2xl px-2 py-1.5 sm:px-6 sm:py-3 flex items-center justify-between gap-1 sm:gap-6 border border-white/10 backdrop-blur-md">
-                            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
-                                <div className="flex bg-white/20 rounded-lg px-2 py-1 items-center justify-center min-w-[28px]">
-                                    <span className="text-xs sm:text-xl font-black leading-none">{selectedIds.size}</span>
-                                </div>
-                                <div className="h-5 sm:h-8 w-px bg-white/20 hidden sm:block" />
-                            </div>
-                            
-                            <div className="flex-1 flex items-center justify-end gap-1 sm:gap-4">
-                                <button
-                                    onClick={handleSelectAll}
-                                    className="px-1.5 py-1.5 hover:bg-white/10 rounded-xl transition-colors flex items-center gap-1 sm:gap-1.5"
-                                >
-                                    {selectedIds.size === filteredEvents.length ? (
-                                        <>
-                                            <X className="w-3.5 h-3.5" />
-                                            <span className="text-[10px] sm:text-sm font-semibold whitespace-nowrap">Deselect All</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <HardDrive className="w-3.5 h-3.5 opacity-70" />
-                                            <span className="text-[10px] sm:text-sm font-semibold whitespace-nowrap">Select All</span>
-                                        </>
-                                    )}
-                                </button>
-                                
-                                <button
-                                    onClick={() => setSelectedIds(new Set())}
-                                    title="Cancel"
-                                    className="p-2 sm:px-3 sm:py-1.5 hover:bg-white/10 rounded-xl transition-colors"
-                                >
-                                    <X className="w-4 h-4 sm:hidden" />
-                                    <span className="hidden sm:inline text-sm font-semibold">Cancel</span>
-                                </button>
-                                
-                                <button
-                                    onClick={handleBulkDelete}
-                                    disabled={isBulkDeleting}
-                                    className={`flex-shrink-0 px-3 py-2 sm:px-4 sm:py-2 bg-white text-primary hover:bg-white/90 rounded-xl text-xs sm:text-sm font-bold shadow-lg transition-all flex items-center gap-1.5 sm:gap-2 ${isBulkDeleting ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}`}
-                                >
-                                    {isBulkDeleting ? (
-                                        <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                                    ) : (
-                                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                    )}
-                                    <span className="whitespace-nowrap">Delete {selectedIds.size}</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <BulkActionBar selectedIds={selectedIds} filteredEvents={filteredEvents} handleSelectAll={handleSelectAll} setSelectedIds={setSelectedIds} handleBulkDelete={handleBulkDelete} isBulkDeleting={isBulkDeleting} user={user} />
             </div>
         </div>
     );
