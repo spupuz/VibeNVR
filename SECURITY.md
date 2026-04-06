@@ -66,7 +66,10 @@ VibeNVR's code includes specific mitigations against common attack vectors:
 2. **IP Ban Protection & DoS Mitigation**:
     - The VibeEngine (`camera_thread.py`) performs a mandatory **ffprobe pre-flight check** before initiating a full video stream connection. This prevents rapid authentication retries that trigger IP bans on many camera firmwares (e.g., Tapo/TP-Link).
     - If a 401 Unauthorized or 403 Forbidden is detected, the thread enters a **5-minute backoff period** before retrying. This mitigates accidental or malicious "denial of service" scenarios through camera lockouts while allowing for eventual recovery if credentials are corrected in the UI.
-3. **Secure RTSP (RSTSPS) & TLS Verification**:
+3. **Event File Deletion & Path Traversal**:
+    - All file deletion operations (Single, Bulk, and "Delete All") go through a mandatory **Path Sanitization** check before any `os.remove` call.
+    - The final resolved path MUST start with the `/data/` internal storage directory. Any attempt to delete files outside this boundary results in a security alert in the logs and the deletion is blocked.
+4. **Secure RTSP (RSTSPS) & TLS Verification**:
     - To ensure seamless compatibility with modern NVR systems like **UniFi Protect**, VibeNVR supports the `rstsps://` and `rtsps://` protocols.
     - For these specific protocols, VibeNVR intentionally disables TLS certificate verification (`tls_verify=0`) to handle self-signed certificates common in camera hardware.
     - This bypass is **strictly limited** to the secure RTSP schemes. Standard webhooks and API calls always enforce full certificate verification.

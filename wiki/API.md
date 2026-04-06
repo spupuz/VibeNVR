@@ -146,6 +146,20 @@ Delete multiple individual events and their associated media files in a single r
   }
   ```
 
+#### **DELETE** `/events/bulk/all`
+Delete all events in the system, with optional filtering by type.
+- **Query Params**:
+  - `event_type`: (Optional) `video` or `picture`. If omitted, all events are deleted.
+- **Auth Required**: Admin privileges.
+- **Response Example**:
+  ```json
+  {
+    "deleted_count": 150,
+    "deleted_size_mb": 1240.5,
+    "type": "all"
+  }
+  ```
+
 ---
 
 ### 📊 System & Stats (`/stats`)

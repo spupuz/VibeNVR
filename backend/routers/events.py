@@ -229,6 +229,42 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
 
     threading.Thread(target=_send, daemon=True).start()
 
+def delete_event_files(event: models.Event) -> int:
+    """Helper to safely delete event files from disk with path traversal protection. Returns bytes deleted."""
+    deleted_bytes = 0
+    # Map internal container paths to /data volume
+    paths = []
+    if event.file_path:
+        paths.append(('file', event.file_path))
+    if event.thumbnail_path:
+        paths.append(('thumb', event.thumbnail_path))
+
+    for ptype, raw_path in paths:
+        path = raw_path
+        if path.startswith("/var/lib/motion"):
+            path = path.replace("/var/lib/motion", "/data", 1)
+        elif path.startswith("/var/lib/vibe/recordings"):
+            path = path.replace("/var/lib/vibe/recordings", "/data", 1)
+        
+        try:
+            # Security Validation: Final path must be within /data/
+            abs_path = os.path.abspath(path)
+            if not abs_path.startswith("/data/"):
+                logger.warning(f"Security Alert: Blocked attempted deletion of file outside storage directory: {path}")
+                continue
+                
+            if os.path.exists(path):
+                if ptype == 'file': # Only count main file size for reporting
+                    try:
+                        deleted_bytes += os.path.getsize(path)
+                    except:
+                        pass
+                os.remove(path)
+        except Exception as e:
+            logger.error(f"Error deleting event file {path}: {e}")
+            
+    return deleted_bytes
+
 def cleanup_orphaned_file(file_path: str, camera_id: int):
     """Helper to delete files from disk if the camera no longer exists in DB"""
     if not file_path:
@@ -240,6 +276,13 @@ def cleanup_orphaned_file(file_path: str, camera_id: int):
     elif file_path.startswith("/var/lib/vibe/recordings"):
         local_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
     
+    # Security Validation
+    if local_path:
+        abs_path = os.path.abspath(local_path)
+        if not abs_path.startswith("/data/"):
+            logger.warning(f"Security Alert: Blocked orphaned file cleanup outside storage: {local_path}")
+            return
+
     if local_path and os.path.exists(local_path):
         try:
             os.remove(local_path)
@@ -508,44 +551,8 @@ def delete_event(event_id: int, db: Session = Depends(database.get_db), current_
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    # 2. Delete file
-    if event.file_path:
-        # DB path: /var/lib/motion/Camera1/...
-        # Backend path: /data/Camera1/...
-        # Replace /var/lib/motion/ with /data/
-        # Or just use relative path if it's consistent.
-        # Check if path starts with /var/lib/motion
-        prefix = "/var/lib/motion"
-        backend_prefix = "/data"
-        
-        file_path = event.file_path
-        if file_path.startswith("/var/lib/motion"):
-            file_path = file_path.replace("/var/lib/motion", "/data", 1)
-        elif file_path.startswith("/var/lib/vibe/recordings"):
-            file_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
-        
-        try:
-            if os.path.exists(file_path):
-                os.remove(file_path)
-            else:
-                logger.warning(f"File not found: {file_path}")
-                
-            # Delete thumbnail if exists
-            if event.thumbnail_path:
-                thumb_path = event.thumbnail_path
-                if thumb_path.startswith("/var/lib/motion"):
-                    thumb_path = thumb_path.replace("/var/lib/motion", "/data", 1)
-                elif thumb_path.startswith("/var/lib/vibe/recordings"):
-                    thumb_path = thumb_path.replace("/var/lib/vibe/recordings", "/data", 1)
-                
-                try:
-                    if os.path.exists(thumb_path):
-                        os.remove(thumb_path)
-                except Exception as e:
-                    logger.error(f"Error deleting thumbnail {thumb_path}: {e}")
-                    
-        except Exception as e:
-            logger.error(f"Error deleting file {file_path}: {e}")
+    # 2. Delete files safely using helper
+    delete_event_files(event)
             
     return event
 
@@ -607,37 +614,13 @@ def bulk_delete_events(request: schemas.BulkDeleteRequest, db: Session = Depends
     errors = []
     
     for event_id in request.event_ids:
-        # Reuse logic from single delete for safety
         event = db.query(models.Event).filter(models.Event.id == event_id).first()
         if not event:
             errors.append(f"Event {event_id} not found")
             continue
             
-        # Delete files from disk
-        if event.file_path:
-            file_path = event.file_path
-            if file_path.startswith("/var/lib/motion"):
-                file_path = file_path.replace("/var/lib/motion", "/data", 1)
-            elif file_path.startswith("/var/lib/vibe/recordings"):
-                file_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
-            
-            try:
-                if os.path.exists(file_path):
-                    os.remove(file_path)
-                
-                # Thumbnail
-                if event.thumbnail_path:
-                    thumb_path = event.thumbnail_path
-                    if thumb_path.startswith("/var/lib/motion"):
-                        thumb_path = thumb_path.replace("/var/lib/motion", "/data", 1)
-                    elif thumb_path.startswith("/var/lib/vibe/recordings"):
-                        thumb_path = thumb_path.replace("/var/lib/vibe/recordings", "/data", 1)
-                    if os.path.exists(thumb_path):
-                        os.remove(thumb_path)
-            except Exception as e:
-                logger.error(f"Bulk Delete I/O error for event {event_id}: {e}")
-
-        # Delete from DB
+        # Safely delete files and then the DB record
+        delete_event_files(event)
         db.delete(event)
         deleted_count += 1
         
@@ -663,34 +646,8 @@ def delete_all_events(event_type: Optional[str] = None, db: Session = Depends(da
     deleted_size = 0
     
     for event in events:
-        # Delete file
-        if event.file_path:
-            file_path = event.file_path
-            if file_path.startswith("/var/lib/motion"):
-                file_path = file_path.replace("/var/lib/motion", "/data", 1)
-            elif file_path.startswith("/var/lib/vibe/recordings"):
-                file_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
-            
-            try:
-                if os.path.exists(file_path):
-                    deleted_size += os.path.getsize(file_path)
-                    os.remove(file_path)
-            except Exception as e:
-                logger.error(f"Error deleting file {file_path}: {e}")
-        
-        # Delete thumbnail
-        if event.thumbnail_path:
-            thumb_path = event.thumbnail_path
-            if thumb_path.startswith("/var/lib/motion"):
-                thumb_path = thumb_path.replace("/var/lib/motion", "/data", 1)
-            elif thumb_path.startswith("/var/lib/vibe/recordings"):
-                thumb_path = thumb_path.replace("/var/lib/vibe/recordings", "/data", 1)
-            
-            try:
-                if os.path.exists(thumb_path):
-                    os.remove(thumb_path)
-            except:
-                pass
+        # Safely delete files and track size
+        deleted_size += delete_event_files(event)
         
         # Delete from DB
         db.delete(event)

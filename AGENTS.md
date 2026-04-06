@@ -227,6 +227,18 @@ def get_camera_frame(camera_id: int, raw: bool = False, ...):
     # If raw=true and admin, fetch unmasked frame from engine
     pass
 ```
+
+### Event Deletion & Path Traversal Pattern
+
+All file deletions must be performed via the `delete_event_files` helper to ensure mandatory path sanitization and prevent traversal attacks.
+
+```python
+# backend/routers/events.py (Pattern)
+def delete_event_files(event: models.Event) -> int:
+    # 1. Map container paths (/var/lib/...) to backend paths (/data/...)
+    # 2. MANDATORY: Verify os.path.abspath(path).startswith("/data/")
+    # 3. Securely remove file and return bytes deleted
+```
 ```
 
 ## Anti-Patterns to Avoid
@@ -308,7 +320,7 @@ logger.info(f"Connecting to {safe_url}")
 - **Code Size Policy**: 
   - **New files**: MUST NOT exceed **500 effective lines of code** (excluding comments/blank lines).
   - **Existing files (Legacy)**: MUST NOT exceed **1000 effective lines of code**. If reached, the file must be refactored into smaller modules.
-  - **Enforcement**: This is strictly checked via automated scanners during the commit workflow.
+  - **Enforcement**: This is strictly enforced via the `check_effective_loc.py` assurance script. Any violation will fail the security audit workflow.
 
 ### Contribution Template
 
