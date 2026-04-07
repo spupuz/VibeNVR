@@ -39,9 +39,11 @@ class TestNotificationConfig(BaseModel):
 class CameraBase(BaseModel):
     name: str
     rtsp_url: str
+    sub_rtsp_url: Optional[str] = None
     location: Optional[str] = None
     is_active: bool = True
     rtsp_transport: Optional[str] = "tcp" # tcp | udp
+    sub_rtsp_transport: Optional[str] = "tcp" # tcp | udp
     live_view_mode: Optional[str] = "auto" # auto | webcodecs | mjpeg
     storage_profile_id: Optional[int] = None
 
@@ -212,9 +214,9 @@ class CameraBase(BaseModel):
             raise ValueError('Path traversal characters (.., /) are not allowed')
         return v
 
-    @field_validator('rtsp_url')
+    @field_validator('rtsp_url', 'sub_rtsp_url')
     @classmethod
-    def validate_rtsp_url(cls, v: str) -> str:
+    def validate_rtsp_url(cls, v: Optional[str]) -> Optional[str]:
         if v:
             v_lower = v.strip().lower()
             if not v_lower.startswith(('rtsp://', 'rtsps://', 'http://', 'https://')):

@@ -9,9 +9,11 @@ class Camera(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     rtsp_url = Column(String, nullable=False)
+    sub_rtsp_url = Column(String, nullable=True)
     location = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
     rtsp_transport = Column(String, default="tcp") # tcp | udp
+    sub_rtsp_transport = Column(String, default="tcp") # tcp | udp
     live_view_mode = Column(String, default="auto") # auto | webcodecs | mjpeg
     
     # Video Device

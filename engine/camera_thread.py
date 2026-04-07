@@ -31,6 +31,18 @@ class CameraThread(threading.Thread):
             event_callback=self.event_callback,
             rtsp_transport=self.config.get('rtsp_transport', 'tcp')
         )
+
+        sub_url = self.config.get('sub_rtsp_url')
+        self.sub_stream_reader = None
+        if sub_url and isinstance(sub_url, str) and sub_url.strip():
+            logger.info(f"Camera {self.camera_id}: Initializing Sub-Stream Reader")
+            self.sub_stream_reader = StreamReader(
+                f"{self.camera_id}_sub", 
+                sub_url, 
+                f"{self.config.get('name', str(camera_id))} (Sub)", 
+                event_callback=self.event_callback,
+                rtsp_transport=self.config.get('sub_rtsp_transport', 'tcp')
+            )
         self.motion_detector = MotionDetector(self.camera_id, self.config.get('name', str(camera_id)), self.config)
         self.recording_manager = RecordingManager(self.camera_id, self.config.get('name', str(camera_id)), self.config)
         
@@ -90,6 +102,8 @@ class CameraThread(threading.Thread):
         self.running = True
         logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Starting loop")
         self.stream_reader.start()
+        if self.sub_stream_reader:
+            self.sub_stream_reader.start()
         
         while self.running:
             loop_start_time = time.time()
@@ -154,16 +168,25 @@ class CameraThread(threading.Thread):
                 
         self.stream_reader.stop()
         self.stream_reader.join(timeout=1.0)
+        if self.sub_stream_reader:
+            self.sub_stream_reader.stop()
+            self.sub_stream_reader.join(timeout=1.0)
         self.stop_recording()
         logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Stopped")
 
     def _update_ui_frame(self, frame, is_raw=False):
         try:
-            lv_max_h = self.config.get('opt_live_view_height_limit', 720)
             target_frame = frame
-            if frame.shape[0] > lv_max_h:
-                scale = lv_max_h / frame.shape[0]
-                target_frame = cv2.resize(frame, (int(frame.shape[1] * scale), lv_max_h), interpolation=cv2.INTER_NEAREST)
+            # Use Sub-Stream frame for the non-raw UI grid if available
+            if not is_raw and self.sub_stream_reader:
+                sub_frame, _ = self.sub_stream_reader.get_latest()
+                if sub_frame is not None:
+                    target_frame = sub_frame.copy()
+
+            lv_max_h = self.config.get('opt_live_view_height_limit', 720)
+            if target_frame.shape[0] > lv_max_h:
+                scale = lv_max_h / target_frame.shape[0]
+                target_frame = cv2.resize(target_frame, (int(target_frame.shape[1] * scale), lv_max_h), interpolation=cv2.INTER_NEAREST)
             
             lv_qual = self.config.get('opt_live_view_quality', 60)
             ret, jpeg = cv2.imencode('.jpg', target_frame, [int(cv2.IMWRITE_JPEG_QUALITY), lv_qual])
@@ -248,6 +271,25 @@ class CameraThread(threading.Thread):
         
         if 'rtsp_url' in new_config:
             self.stream_reader.update_url(new_config['rtsp_url'])
+            
+        sub_url_changed = 'sub_rtsp_url' in new_config and self.config.get('sub_rtsp_url') != new_config.get('sub_rtsp_url')
+        if sub_url_changed:
+            sub_url = new_config.get('sub_rtsp_url')
+            if self.sub_stream_reader:
+                if not sub_url:
+                    self.sub_stream_reader.stop()
+                    self.sub_stream_reader = None
+                else:
+                    self.sub_stream_reader.update_url(sub_url)
+            elif sub_url:
+                self.sub_stream_reader = StreamReader(
+                    f"{self.camera_id}_sub", 
+                    sub_url, 
+                    f"{self.config.get('name', str(self.camera_id))} (Sub)", 
+                    event_callback=self.event_callback,
+                    rtsp_transport=self.config.get('sub_rtsp_transport', 'tcp')
+                )
+                self.sub_stream_reader.start()
 
         pre_cap = self.config.get('pre_capture', 0)
         if pre_cap > 0 and self.pre_buffer.maxlen != pre_cap:

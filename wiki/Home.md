@@ -24,6 +24,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **Bulk Timeline Operations**: Multi-select events (with Shift+Click support) for rapid deletion and storage cleanup.
 - **UniFi First-Class Support**: Native RSTSPS streaming with automatic TLS verification bypass for UniFi controllers.
 - **WebCodecs Performance**: Ultra low-latency streaming with hardware acceleration and intelligent keyframe caching.
+- **Dual-Stream Optimization**: Dedicated sub-streams for lightweight dashboard grids, saving CPU and bandwidth.
 
 ## ⚠️ Important Notes
 

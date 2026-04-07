@@ -96,7 +96,7 @@ export const Slider = ({ value, onChange, min = 0, max = 100, step = 1, label, u
 };
 
 // Input Field Component
-export const InputField = ({ value, onChange, label, type = 'text', placeholder = '', unit = '', className = '', help = '', showPasswordToggle = false }) => {
+export const InputField = ({ value, onChange, label, type = 'text', placeholder = '', unit = '', className = '', help = '', showPasswordToggle = false, icon: Icon = null }) => {
     const [showPassword, setShowPassword] = useState(false);
     const isPassword = type === 'password';
     const actualType = isPassword && showPassword ? 'text' : type;
@@ -107,12 +107,17 @@ export const InputField = ({ value, onChange, label, type = 'text', placeholder 
                 <LabelWithHelp label={label} help={help} />
             </div>
             <div className="relative">
+                {Icon && (
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">
+                        <Icon className="w-4 h-4" />
+                    </div>
+                )}
                 <input
                     type={actualType}
                     value={value || ''}
                     onChange={(e) => onChange(type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)}
                     placeholder={placeholder}
-                    className="w-full bg-background border border-input rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                    className={`w-full bg-background border border-input rounded-lg ${Icon ? 'pl-10' : 'px-3'} py-2 focus:ring-2 focus:ring-primary focus:border-transparent transition-all`}
                 />
                 {unit && !isPassword && (
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">

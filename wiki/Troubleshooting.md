@@ -51,6 +51,13 @@ If you experience "black screens":
 
 ---
 
+### 🐢 High CPU Usage / UI Lag in Grid View
+If the browser or host CPU spikes when viewing multiple cameras:
+1. **Enable Dual-Stream**: Configure a low-resolution sub-stream for your cameras. the UI grid will automatically prioritize the sub-stream, saving massive amounts of bandwidth and decoding power.
+2. **Check FPS Throttle**: Increase `opt_live_view_fps_throttle` in Global Settings to reduce the frequency of MJPEG fallback frames.
+
+---
+
 ### 🐛 Reporting Bugs
 If you encounter a bug, please open an issue on GitHub.
 Include a **Diagnostic Bundle**:

@@ -180,10 +180,17 @@ To prevent cameras from banning the host IP due to rapid authentication retries 
 
 - **Rule**: A 401/403 result from `av.open` must enter a **5-minute backoff period**.
 - **Rule**: Connection refused/reset errors should trigger a longer backoff (60-300s).
+- **Rule**: If a Sub-Stream is configured, the system initializes an independent `sub_stream_reader`. The `CameraThread` prioritizes frames from the sub-stream for the UI grid view to optimize bandwidth.
 
 ```python
 # engine/camera_thread.py (Pattern)
 import av
+
+# Main Stream Reader
+self.stream_reader = StreamReader(url, transport, ...)
+# Optional Sub Stream Reader
+if sub_url:
+    self.sub_stream_reader = StreamReader(sub_url, sub_transport, ...)
 
 try:
     container = av.open(url, options={'rtsp_transport': 'tcp'}, timeout=8.0)

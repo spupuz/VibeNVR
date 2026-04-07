@@ -75,12 +75,12 @@ VibeNVR's code includes specific mitigations against common attack vectors:
     - This bypass is **strictly limited** to the secure RTSP schemes. Standard webhooks and API calls always enforce full certificate verification.
 4. **Secure Subprocess Execution**:
    - All internal calls to video tools (`ffmpeg`, `ffprobe`) are performed using **list-based arguments** (the secure default in Python's `subprocess.run`), effectively preventing any shell injection vulnerabilities via malicious camera URLs or paths.
-4. **Advanced Log Masking**:
-   - The logging infrastructure (`backend/routers/logs.py`) uses a robust regex-based redaction system. It automatically masks:
+4. **Advanced Log & GUI Masking**:
+   - The logging infrastructure (`backend/routers/logs.py`) and the custom `TokenRedactingFilter` in `main.py` automatically mask stdout logs for:
      - **RTSP Credentials**: `rtsp://user:***@host`
      - **Sensitive JSON fields**: `"password": "***"`, `"token": "***"`, etc.
      - **Headers**: `X-API-Key=REDACTED`, `Bearer REDACTED`.
-     - **IP Addresses**: External IP addresses are masked to preserve privacy, while `127.0.0.1` is kept for debugging.
+   - **RTSP URL Redaction (GUI Level)**: Starting from **v1.25.3**, the frontend configuration interface implements dynamic URL masking. RTSP and Sub-Stream URLs are displayed without plain-text passwords (redacted as `********`). If a user pastes a full URL containing a password, it is automatically extracted to the secure separate fields and redacted in real-time.
 5. **Privacy Masking & Motion Zones**: 
     - **Privacy Masks** are applied at the Engine level immediately after frame decoding. They are "burned" into the video frames *before* they reach the recording or motion analysis modules, ensuring that sensitive data is never persisted or processed if masked.
     - **Motion Zones** (Exclusion Zones) are used for motion detection optimization (e.g., ignoring moving trees). Unlike Privacy Masks, they do NOT obscure the video in recordings or live view.
