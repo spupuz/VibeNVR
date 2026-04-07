@@ -45,3 +45,10 @@ latest_system_auto.json
 sanity_backup.json
 tmp/sanity_snapshot.json
 tmp/latest_system_auto.json
+
+# OmniState Tracking
+antigravity.config.json
+project-summary.md
+tasks-history.json
+chunks/
+omnistate-plugin/
