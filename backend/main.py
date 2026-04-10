@@ -34,9 +34,12 @@ class TokenRedactingFilter(logging.Filter):
         # Redact token from the message itself
         if isinstance(record.msg, str):
             if "token=" in record.msg:
+                # Standard query param
                 record.msg = re.sub(r"token=[^&\s]*", "token=REDACTED", record.msg)
             if "X-API-Key" in record.msg:
                 record.msg = re.sub(r"X-API-Key[^\s]*[:=]\s*['\"]?[^'\"]+['\"]?", "X-API-Key: REDACTED", record.msg)
+            if "Authorization" in record.msg:
+                record.msg = re.sub(r"Authorization[:=]\s*Bearer\s+[\w\-\.]+", "Authorization: Bearer REDACTED", record.msg)
         
         # Redact token from uvicorn access log arguments (client, method, path, etc)
         if hasattr(record, "args") and record.args:
@@ -44,25 +47,47 @@ class TokenRedactingFilter(logging.Filter):
             for i, arg in enumerate(new_args):
                 if isinstance(arg, str):
                     if "token=" in arg:
+                        # Catch both "?token=..." and "token=..."
                         new_args[i] = re.sub(r"token=[^&\s]*", "token=REDACTED", arg)
-                    # Redact sensitive credentials in URLs
+                    # Redact sensitive credentials in URLs (e.g. RTSP)
                     if "://" in arg and "@" in arg:
                         new_args[i] = re.sub(r"://[^@]+@", r"://***@", arg)
             record.args = tuple(new_args)
         return True
 
-# Apply the filter to uvicorn access logs
-# Apply the filter to uvicorn access logs
-uvicorn_access_logger = logging.getLogger("uvicorn.access")
-uvicorn_access_logger.addFilter(TokenRedactingFilter())
+def apply_security_logging():
+    """
+    Forcefully apply TokenRedactingFilter to all relevant loggers and their handlers.
+    This is necessary because Uvicorn can reset logging config during startup or reloads.
+    """
+    redact_filter = TokenRedactingFilter()
+    
+    # Target loggers: root, uvicorn, and its sub-loggers
+    target_loggers = ["", "uvicorn", "uvicorn.access", "uvicorn.error", "websockets", "fastapi"]
+    
+    for name in target_loggers:
+        logger = logging.getLogger(name)
+        # 1. Add to logger (for propagation filtering)
+        if not any(isinstance(f, TokenRedactingFilter) for f in logger.filters):
+            logger.addFilter(redact_filter)
+        
+        # 2. Add to all existing handlers (the most robust way)
+        for handler in logger.handlers:
+            if not any(isinstance(f, TokenRedactingFilter) for f in handler.filters):
+                handler.addFilter(redact_filter)
+
+# Initial application on import
+apply_security_logging()
 
 # Configure timestamp for uvicorn access logs
 # Uvicorn's default formatter doesn't include time
 console_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
 # Apply formatter to all handlers of uvicorn.access
-if uvicorn_access_logger.hasHandlers():
-    for handler in uvicorn_access_logger.handlers:
+# Apply formatter to all handlers of uvicorn.access (Initial best effort)
+access_logger = logging.getLogger("uvicorn.access")
+if access_logger.hasHandlers():
+    for handler in access_logger.handlers:
         handler.setFormatter(console_formatter)
 else:
     # If no handlers yet (likely), add one or rely on uvicorn's default being added later?
@@ -138,6 +163,9 @@ async def lifespan(app: FastAPI):
                 
     except Exception as e:
         print(f"Log setup warning: {e}")
+
+    # Re-apply security logging inside lifespan to catch process-level resets/reloads
+    apply_security_logging()
 
     retry_count = 0
     while True:
