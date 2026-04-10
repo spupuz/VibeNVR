@@ -41,6 +41,14 @@ async def _fetch_and_update_health(db: Session, camera_id: int, engine_status: d
         elif previous_health in ("UNREACHABLE", "UNAUTHORIZED", "OFFLINE") and current_health == "CONNECTED":
             await trigger_health_notification(db, camera, "RECOVERED")
 
+    # Update DB fields
+    camera.status = current_health
+    if current_health == "CONNECTED":
+        from datetime import datetime, timezone
+        camera.last_seen = datetime.now(timezone.utc)
+    
+    db.commit()
+
     # Update cache
     HEALTH_CACHE[camera.id] = current_health
 

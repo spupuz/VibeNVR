@@ -8,17 +8,19 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, r
 import { CSS } from '@dnd-kit/utilities';
 
 const StatCard = ({ title, value, subtext, icon: Icon, trend }) => (
-    <div className="p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group h-full relative">
-        <div className="flex items-center justify-between mb-4">
+    <div className="p-4 md:p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group h-full relative flex flex-col justify-between">
+        <div className="flex items-center justify-between mb-2 md:mb-4">
             <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
             <div className="rounded-full bg-primary/10 p-2 text-primary group-hover:scale-110 transition-transform">
                 <Icon className="w-5 h-5" />
             </div>
         </div>
-        <p className="text-3xl font-bold">{value}</p>
-        <p className={`text-xs mt-1 ${trend === 'positive' ? 'text-green-500' : 'text-muted-foreground'}`}>
-            {subtext}
-        </p>
+        <div>
+            <p className="text-3xl font-bold">{value}</p>
+            <p className={`text-xs mt-1 ${trend === 'positive' ? 'text-green-500' : 'text-muted-foreground'}`}>
+                {subtext}
+            </p>
+        </div>
     </div>
 );
 
@@ -306,15 +308,30 @@ export const Dashboard = () => {
                 </div>
             )
         },
-        active_cameras: { group: 'cameras', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="Active Cameras" value={stats.active_cameras} subtext="Operational" icon={Camera} trend="positive" /> },
-        total_events: { group: 'videos', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="Last 24h" value={stats.events_24h || 0} subtext="Events Recorded" icon={Activity} /> },
-        network_stats: { group: 'system', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="Network I/O" value={`${stats.network?.recv_mbps || 0} MB/s`} subtext={`Out: ${stats.network?.sent_mbps || 0} MB/s`} icon={Network} /> },
-        db_stats: { group: 'system', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="Database" value={`${stats.database?.size_mb || 0} MB`} subtext={`${stats.database?.event_count || 0} Events`} icon={Database} /> },
+        active_cameras: { 
+            group: 'cameras', 
+            span: 'col-span-12 md:col-span-6 lg:col-span-3', 
+            render: () => {
+                const hasErrors = (stats.total_errors || 0) > 0;
+                return (
+                    <StatCard 
+                        title="Active Cameras" 
+                        value={stats.active_cameras} 
+                        subtext={hasErrors ? `${stats.total_errors} issue(s) detected` : "Operational"} 
+                        icon={Camera} 
+                        trend={hasErrors ? "negative" : "positive"} 
+                    />
+                );
+            }
+        },
+        total_events: { group: 'videos', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title="Last 24h" value={stats.events_24h || 0} subtext="Events Recorded" icon={Activity} /> },
+        network_stats: { group: 'system', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title="Network I/O" value={`${stats.network?.recv_mbps || 0} MB/s`} subtext={`Out: ${stats.network?.sent_mbps || 0} MB/s`} icon={Network} /> },
+        db_stats: { group: 'system', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title="Database" value={`${stats.database?.size_mb || 0} MB`} subtext={`${stats.database?.event_count || 0} Events`} icon={Database} /> },
         storage_used: {
             group: 'storage',
-            span: 'col-span-6 md:col-span-3 lg:col-span-3',
+            span: 'col-span-12 md:col-span-6 lg:col-span-3',
             render: () => (
-                <div className="p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group h-full relative flex flex-col justify-between">
+                <div className="p-4 md:p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group h-full relative flex flex-col justify-between">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-medium text-muted-foreground">Storage Used</h3>
                         <div className="rounded-full bg-primary/10 p-2 text-primary group-hover:scale-110 transition-transform">
@@ -371,13 +388,13 @@ export const Dashboard = () => {
                 </div>
             )
         },
-        cpu_usage: { group: 'system', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="CPU Usage" value={`${stats.resources?.cpu_percent || 0}%`} subtext={`Engine: ${stats.resources?.engine_cpu || 0}%`} icon={Cpu} /> },
-        memory_usage: { group: 'system', span: 'col-span-6 md:col-span-3 lg:col-span-3', render: () => <StatCard title="Memory" value={`${Math.round(stats.resources?.memory_mb || 0)} MB`} subtext={`Engine: ${Math.round(stats.resources?.engine_mem_mb || 0)} MB`} icon={MemoryStick} /> },
+        cpu_usage: { group: 'system', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title="CPU Usage" value={`${stats.resources?.cpu_percent || 0}%`} subtext={`Engine: ${stats.resources?.engine_cpu || 0}%`} icon={Cpu} /> },
+        memory_usage: { group: 'system', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title="Memory" value={`${Math.round(stats.resources?.memory_mb || 0)} MB`} subtext={`Engine: ${Math.round(stats.resources?.engine_mem_mb || 0)} MB`} icon={MemoryStick} /> },
         system_status: {
             group: 'system',
-            span: 'col-span-6 md:col-span-3 lg:col-span-3',
+            span: 'col-span-12 md:col-span-6 lg:col-span-3',
             render: () => (
-                <div className="p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group h-full relative">
+                <div className="p-4 md:p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group h-full relative">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-medium text-muted-foreground">System Status</h3>
                         <div className="rounded-full bg-primary/10 p-2 text-primary group-hover:scale-110 transition-transform">
@@ -628,7 +645,7 @@ export const Dashboard = () => {
                     items={widgetOrder}
                     strategy={rectSortingStrategy}
                 >
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
+                    <div className="grid grid-cols-12 gap-4">
                         {widgetOrder.filter(id => {
                             const conf = WIDGET_REGISTRY[id];
                             return conf && visibleWidgets[conf.group] !== false;

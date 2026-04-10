@@ -46,6 +46,8 @@ class CameraBase(BaseModel):
     sub_rtsp_transport: Optional[str] = "tcp" # tcp | udp
     live_view_mode: Optional[str] = "auto" # auto | webcodecs | mjpeg
     storage_profile_id: Optional[int] = None
+    status: Optional[str] = "STARTING"
+    last_seen: Optional[datetime] = None
 
     # Video Device
     resolution_width: Optional[int] = 800
@@ -396,6 +398,8 @@ class CameraSummary(BaseModel):
     recording_mode: str
     rtsp_transport: str
     live_view_mode: str
+    status: str
+    last_seen: Optional[datetime] = None
     privacy_masks: Optional[str] = None
     motion_masks: Optional[str] = None
     created_at: datetime

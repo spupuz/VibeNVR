@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, MapPin, HardDrive, Download, Edit, Trash2 } from 'lucide-react';
+import { Camera, MapPin, HardDrive, Download, Edit, Trash2, Activity, Clock } from 'lucide-react';
 import { Toggle } from '../ui/FormControls';
 import { Button } from '../ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
@@ -51,16 +51,39 @@ export const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelecte
                 </div>
 
                 <div className="mb-4">
-                    <h3 className="font-semibold text-lg flex items-center flex-wrap gap-2">
-                        <span className="mr-1">{camera.name}</span>
-                        <span className="text-xs font-mono bg-muted/50 px-1.5 py-0.5 rounded text-muted-foreground border border-border whitespace-nowrap">
-                            ID: {camera.id}
-                        </span>
+                    <h3 className="font-semibold text-lg flex items-center justify-between gap-2 min-h-[32px] w-full">
+                        <span className="truncate flex-1" title={camera.name}>{camera.name}</span>
+                        
+                        {/* Status & ID Badges Row */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            {/* Status Badge */}
+                            <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border
+                                ${camera.status === 'CONNECTED' ? 'bg-green-500/10 text-green-600 border-green-500/20' : 
+                                  camera.status === 'UNAUTHORIZED' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' : 
+                                  camera.status === 'UNREACHABLE' ? 'bg-red-500/10 text-red-600 border-red-500/20' : 
+                                  'bg-muted text-muted-foreground border-border'}
+                            `}>
+                                <Activity className={`w-3 h-3 ${camera.status === 'CONNECTED' ? 'animate-pulse' : ''}`} />
+                                <span>{camera.status || 'OFFLINE'}</span>
+                            </div>
+
+                            {/* ID Badge */}
+                            <span className="inline-flex items-center text-[10px] font-mono bg-muted/50 px-1.5 py-0.5 rounded text-muted-foreground border border-border whitespace-nowrap h-[18px]">
+                                ID: {camera.id}
+                            </span>
+                        </div>
                     </h3>
                     <div className="flex items-center text-xs text-muted-foreground mt-1">
                         <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
                         <span className="truncate" title={camera.location}>{camera.location || 'Unknown Location'}</span>
                     </div>
+
+                    {camera.status !== 'CONNECTED' && camera.last_seen && (
+                        <div className="flex items-center text-[10px] text-muted-foreground mt-1 italic">
+                            <Clock className="w-2.5 h-2.5 mr-1" />
+                            <span>Last seen: {new Date(camera.last_seen).toLocaleString()}</span>
+                        </div>
+                    )}
                     {camera.storage_profile && (
                         <div className="flex items-center text-[10px] text-primary/70 mt-1 font-medium bg-primary/5 w-fit px-1.5 py-0.5 rounded border border-primary/10">
                             <HardDrive className="w-2.5 h-2.5 mr-1" />

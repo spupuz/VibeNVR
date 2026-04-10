@@ -37,6 +37,8 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "rtsp_transport", "VARCHAR", "tcp")
     add_column_if_not_exists(engine, "cameras", "sub_rtsp_transport", "VARCHAR", "tcp")
     add_column_if_not_exists(engine, "cameras", "live_view_mode", "VARCHAR", "auto")
+    add_column_if_not_exists(engine, "cameras", "status", "VARCHAR", "STARTING")
+    add_column_if_not_exists(engine, "cameras", "last_seen", "TIMESTAMP WITH TIME ZONE")
 
     # Text Overlay
     add_column_if_not_exists(engine, "cameras", "text_left", "VARCHAR", "Camera Name")

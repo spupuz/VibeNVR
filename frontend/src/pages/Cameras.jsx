@@ -49,12 +49,22 @@ export const Cameras = () => {
 
     const [searchParams, setSearchParams] = useSearchParams();
 
-    // Fetch Cameras
+    // Fetch Cameras & Periodic Polling
     useEffect(() => {
         if (!token) return;
+        
+        // Initial fetch
         fetchCameras();
         fetchStats();
         fetchStorageProfiles();
+
+        // Polling loop for live status (15s)
+        const pollInterval = setInterval(() => {
+            fetchCameras();
+            fetchStats();
+        }, 15000);
+
+        return () => clearInterval(pollInterval);
     }, [token]);
 
     const fetchStorageProfiles = async () => {
@@ -430,10 +440,7 @@ export const Cameras = () => {
         <div className="space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight flex items-baseline gap-2">
-                        Cameras
-                        <span className="text-lg font-normal text-muted-foreground">({cameras.length} cameras)</span>
-                    </h2>
+                    <h2 className="text-3xl font-bold tracking-tight">Cameras</h2>
                     <p className="text-muted-foreground mt-2">Manage your video sources.</p>
                 </div>
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 w-full sm:w-auto overflow-hidden">
@@ -618,6 +625,36 @@ export const Cameras = () => {
                             </div>
                         </>
                     )}
+                </div>
+            </div>
+
+            {/* Quick Stats Summary Bar */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="bg-card border border-border rounded-lg p-2.5 flex flex-row justify-between items-center shadow-sm">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Configured</span>
+                    <span className="text-xl font-bold">{cameras.length}</span>
+                </div>
+                <div className="bg-card border border-border rounded-lg p-2.5 flex flex-row justify-between items-center shadow-sm border-l-4 border-l-primary">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Active</span>
+                    <span className="text-xl font-bold">{cameras.filter(c => c.is_active).length}</span>
+                </div>
+                <div className="bg-card border border-border rounded-lg p-2.5 flex flex-row justify-between items-center shadow-sm border-l-4 border-l-green-500">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Online</span>
+                    <span className="text-xl font-bold text-green-600">
+                        {cameras.filter(c => c.status === 'CONNECTED').length}
+                    </span>
+                </div>
+                <div className="bg-card border border-border rounded-lg p-2.5 flex flex-row justify-between items-center shadow-sm border-l-4 border-l-red-500">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Offline</span>
+                    <span className="text-xl font-bold text-red-600">
+                        {cameras.filter(c => c.status === 'UNREACHABLE' || c.status === 'OFFLINE' || !c.status).length}
+                    </span>
+                </div>
+                <div className="bg-card border border-border rounded-lg p-2.5 flex flex-row justify-between items-center shadow-sm border-l-4 border-l-amber-500">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Auth Errors</span>
+                    <span className="text-xl font-bold text-amber-600">
+                        {cameras.filter(c => c.status === 'UNAUTHORIZED').length}
+                    </span>
                 </div>
             </div>
 

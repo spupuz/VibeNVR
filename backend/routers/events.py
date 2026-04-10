@@ -420,6 +420,12 @@ async def webhook_event(
             new_status = payload.get("status")
             if new_status:
                 HEALTH_CACHE[camera.id] = new_status
+                # Persist to DB
+                camera.status = new_status
+                if new_status == "CONNECTED":
+                    from datetime import datetime, timezone
+                    camera.last_seen = datetime.now(timezone.utc)
+                db.commit()
         except ImportError:
             pass
         # Always send health notifications regardless of schedule (it's a system alert)

@@ -362,8 +362,15 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
     except Exception as e:
         print(f"Error getting DB size: {e}")
 
+    # 7. System Health Calculation
+    total_errors = len([c for c in cameras if c.status in ("UNREACHABLE", "UNAUTHORIZED") and c.is_active])
+    system_status = "Healthy" if total_errors == 0 else "Issues Detected"
+    if active_cameras_count == 0 and len(cameras) > 0:
+        system_status = "Standby"
+
     return {
         "active_cameras": active_cameras_count,
+        "total_errors": total_errors,
         "total_events": (global_movies[0] or 0) + (global_pics[0] or 0),
         "events_24h": events_24h,
         "video_count": global_movies[0] or 0,
@@ -401,7 +408,7 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
             "global": global_stats,
             "cameras": camera_stats
         },
-        "system_status": "Healthy",
+        "system_status": system_status,
         "uptime": uptime_str,
         "hw_accel": {
             "enabled": engine_hw_accel,
