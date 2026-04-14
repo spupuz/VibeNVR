@@ -16,10 +16,23 @@ class MotionDetector:
         self.consecutive_motion_frames = 0
         self.consecutive_still_frames = 0
         self.motion_frame_counter = 0
+        self.last_trigger_source = None
 
-    def detect(self, frame, event_callback, save_snapshot_cb, privacy_polygons, motion_polygons, apply_masks_fn):
+    def detect(self, frame, event_callback, save_snapshot_cb, privacy_polygons, motion_polygons, apply_masks_fn, external_motion_time=0, source="external"):
         detect_mode = self.config.get('detect_motion_mode', 'Always')
         recording_mode = self.config.get('recording_mode', 'Motion Triggered')
+        detect_engine = self.config.get('detect_engine', 'OpenCV')
+        
+        self.motion_frame_counter += 1
+        
+        # Periodic diagnostic log
+        if self.motion_frame_counter % 1000 == 0:
+            logger.info(f"Camera {self.camera_name} (ID: {self.camera_id}): Active Detect Engine: {detect_engine}")
+
+        
+        # Check for external motion (e.g. ONVIF Edge)
+        ext_motion_active = (time.time() - external_motion_time) < 2.0
+        
         if detect_mode == 'Off' or recording_mode == 'Off':
             if self.motion_detected:
                 self.motion_detected = False
@@ -28,8 +41,31 @@ class MotionDetector:
                     event_callback(self.camera_id, 'motion_end')
             return False
 
+        if detect_engine == 'ONVIF Edge':
+            if ext_motion_active:
+                self.last_motion_time = time.time()
+                if not self.motion_detected:
+                    self.motion_detected = True
+                    self.last_trigger_source = source or "ONVIF Edge"
+                    logger.info(f"[DETECTION] Camera {self.camera_name} (ID: {self.camera_id}): Motion START (Source: {self.last_trigger_source})")
+                    vid_mode = self.config.get('recording_mode', 'Off')
+                    snap_path = None
+                    if vid_mode != 'Off':
+                        snap_path = save_snapshot_cb(frame, is_temp=True)
+                    if event_callback:
+                        payload = {'file_path': snap_path} if snap_path else {}
+                        event_callback(self.camera_id, 'motion_start', payload)
+            else:
+                motion_gap = self.config.get('motion_gap', 10)
+                if self.motion_detected and (time.time() - self.last_motion_time > motion_gap):
+                    self.motion_detected = False
+                    logger.info(f"Camera {self.camera_name} (ID: {self.camera_id}): Motion END (ONVIF Edge)")
+                    if event_callback:
+                        event_callback(self.camera_id, 'motion_end')
+            return self.motion_detected
+
         motion_throttle = self.config.get('opt_motion_fps_throttle', 3)
-        self.motion_frame_counter += 1
+
         if self.motion_frame_counter % motion_throttle != 0:
             return self.motion_detected
 
@@ -68,7 +104,8 @@ class MotionDetector:
                 self.last_motion_time = time.time()
                 if not self.motion_detected:
                     self.motion_detected = True
-                    logger.info(f"Camera {self.camera_name} (ID: {self.camera_id}): Motion START")
+                    self.last_trigger_source = "OpenCV"
+                    logger.info(f"[DETECTION] Camera {self.camera_name} (ID: {self.camera_id}): Motion START (Source: {self.last_trigger_source})")
                     pic_mode = self.config.get('picture_recording_mode', 'Manual')
                     vid_mode = self.config.get('recording_mode', 'Off')
                     snap_path = None

@@ -59,6 +59,12 @@ class CameraManager:
         else:
             self.start_camera(camera_id, config)
 
+    def trigger_external_event(self, camera_id: int, event_type: str, source: str = "external"):
+        if camera_id in self.cameras:
+            self.cameras[camera_id].trigger_external_event(event_type, source)
+            return True
+        return False
+
     def get_frame(self, camera_id: int):
         if camera_id in self.cameras:
             return self.cameras[camera_id].get_frame_bytes()
@@ -77,9 +83,15 @@ class CameraManager:
     def handle_event(self, camera_id, event_type, payload=None):
         """ Call backend webhooks """
         name = self.cameras[camera_id].config.get('name', 'Unknown') if camera_id in self.cameras else "Unknown"
-        logger.info(f"Event {event_type} for camera {name} (ID: {camera_id})")
+        logger.debug(f"Event {event_type} for camera {name} (ID: {camera_id})")
         
-        # Map VibeEngine internal events to Backend Webhook types
+        # Consistent high-level logging for major state transitions
+        if event_type == "motion_start":
+             logger.info(f"[MOTION] Camera {name} ({camera_id}): Detected")
+        elif event_type == "motion_end":
+             logger.info(f"[MOTION] Camera {name} ({camera_id}): Idle")
+        elif event_type == "recording_end":
+             logger.info(f"[RECORDING] Camera {name} ({camera_id}): Saved")
         # backend/routers/events.py expects: "event_start", "movie_end", "picture_save"
         
         webhook_type = None
@@ -150,7 +162,7 @@ class CameraManager:
                     headers['X-Webhook-Secret'] = WEBHOOK_SECRET
                 
                 requests.post(url, json=data, timeout=5, headers=headers)
-                logger.info(f"Sent webhook {webhook_type} to {url}")
+                logger.debug(f"Sent webhook {webhook_type} to {url}")
             except Exception as e:
                 logger.error(f"Failed to send webhook: {e}")
 

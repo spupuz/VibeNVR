@@ -33,13 +33,24 @@ class TokenRedactingFilter(logging.Filter):
     def filter(self, record):
         # Redact token from the message itself
         if isinstance(record.msg, str):
+            # 1. Redact credentials in URLs (rtsp://user:pass@host)
+            record.msg = re.sub(r'([a-z]+://[^:]+:)([^@]+)(@)', r'\1***\3', record.msg)
+            
+            # 2. Sensitive keys list (matching logs.py)
+            sensitive_keys = r'password|pwd|secret|token|access_token|Authorization|X-API-Key|client_secret|totp_secret|media_token'
+            
+            # 3. Handle Bearer tokens specifically
+            record.msg = re.sub(r'(?i)Bearer\s+[\w\-\.]+', r'Bearer REDACTED', record.msg)
+            
+            # 4. Handle JSON/YAML/Quoted formats: "key": "value" or 'key': 'value'
+            record.msg = re.sub(rf'(?i)(["\']?({sensitive_keys})["\']?\s*[:=]\s*["\'])([^"\']+)(["\'])', r'\1***\4', record.msg)
+            
+            # 5. Handle unquoted key-value pairs: key=value or key: value
+            record.msg = re.sub(rf'(?i)\b({sensitive_keys})\b\s*[:=]\s*(?!Bearer )[\w\-\.!@#$%^&*()]+', r'\1=REDACTED', record.msg)
+
+            # 6. Legacy fallback for simple token=
             if "token=" in record.msg:
-                # Standard query param
                 record.msg = re.sub(r"token=[^&\s]*", "token=REDACTED", record.msg)
-            if "X-API-Key" in record.msg:
-                record.msg = re.sub(r"X-API-Key[^\s]*[:=]\s*['\"]?[^'\"]+['\"]?", "X-API-Key: REDACTED", record.msg)
-            if "Authorization" in record.msg:
-                record.msg = re.sub(r"Authorization[:=]\s*Bearer\s+[\w\-\.]+", "Authorization: Bearer REDACTED", record.msg)
         
         # Redact token from uvicorn access log arguments (client, method, path, etc)
         if hasattr(record, "args") and record.args:
@@ -47,7 +58,6 @@ class TokenRedactingFilter(logging.Filter):
             for i, arg in enumerate(new_args):
                 if isinstance(arg, str):
                     if "token=" in arg:
-                        # Catch both "?token=..." and "token=..."
                         new_args[i] = re.sub(r"token=[^&\s]*", "token=REDACTED", arg)
                     # Redact sensitive credentials in URLs (e.g. RTSP)
                     if "://" in arg and "@" in arg:
@@ -55,26 +65,54 @@ class TokenRedactingFilter(logging.Filter):
             record.args = tuple(new_args)
         return True
 
+class PollingSamplingFilter(logging.Filter):
+    """
+    Reduces the frequency of logging for high-volume polling endpoints like /health and /stats.
+    Logs successful requests only once every 10 times, but always logs errors or state changes.
+    """
+    def __init__(self, name: str = "", sample_rate: int = 10):
+        super().__init__(name)
+        self.sample_rate = sample_rate
+        self.counters = {}
+
+    def filter(self, record):
+        # record.args for uvicorn.access is (host, method, path, http_ver, status)
+        if hasattr(record, "args") and len(record.args) >= 5:
+            method = record.args[1]
+            path = record.args[2]
+            status = record.args[4]
+            
+            # Only sample successful GET requests to specific polling endpoints
+            if method == "GET" and status == 200 and any(p in path for p in ["/health", "/stats"]):
+                count = self.counters.get(path, 0)
+                self.counters[path] = (count + 1) % self.sample_rate
+                return count == 0 # Log every N-th request
+        return True
+
 def apply_security_logging():
     """
-    Forcefully apply TokenRedactingFilter to all relevant loggers and their handlers.
-    This is necessary because Uvicorn can reset logging config during startup or reloads.
+    Forcefully apply Redacting and Sampling filters to all relevant loggers.
     """
     redact_filter = TokenRedactingFilter()
+    sampling_filter = PollingSamplingFilter()
     
     # Target loggers: root, uvicorn, and its sub-loggers
     target_loggers = ["", "uvicorn", "uvicorn.access", "uvicorn.error", "websockets", "fastapi"]
     
     for name in target_loggers:
         logger = logging.getLogger(name)
-        # 1. Add to logger (for propagation filtering)
+        # 1. Add Filters to logger
         if not any(isinstance(f, TokenRedactingFilter) for f in logger.filters):
             logger.addFilter(redact_filter)
+        if name == "uvicorn.access" and not any(isinstance(f, PollingSamplingFilter) for f in logger.filters):
+            logger.addFilter(sampling_filter)
         
-        # 2. Add to all existing handlers (the most robust way)
+        # 2. Add to all existing handlers
         for handler in logger.handlers:
             if not any(isinstance(f, TokenRedactingFilter) for f in handler.filters):
                 handler.addFilter(redact_filter)
+            if name == "uvicorn.access" and not any(isinstance(f, PollingSamplingFilter) for f in handler.filters):
+                handler.addFilter(sampling_filter)
 
 # Initial application on import
 apply_security_logging()
@@ -202,6 +240,9 @@ async def lifespan(app: FastAPI):
     telemetry_service.start_telemetry()
     import backup_service
     backup_service.start_scheduler()
+    from onvif_event_service import event_manager
+    event_manager.start()
+    
     # Regenerate motion config
     with database.get_db_ctx() as db:
         try:
@@ -226,6 +267,8 @@ async def lifespan(app: FastAPI):
         
     yield
     # Shutdown actions (if any)
+    from onvif_event_service import event_manager
+    event_manager.stop()
 
 # Read version from package.json
 import json

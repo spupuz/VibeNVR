@@ -1,5 +1,5 @@
 import React from 'react';
-import { Copy } from 'lucide-react';
+import { Copy, Info } from 'lucide-react';
 import { Toggle, SelectField, Slider, InputField, SectionHeader } from '../../../ui/FormControls';
 import { Button } from '../../../ui/Button';
 import { useToast } from '../../../../contexts/ToastContext';
@@ -9,6 +9,26 @@ export const MotionTab = ({ newCamera, setNewCamera }) => {
 
     return (
         <div className="space-y-6">
+            <SectionHeader title="Detection Source" description="How should motion be detected?" />
+            <SelectField
+                label="Detection Engine"
+                value={newCamera.detect_engine || 'OpenCV'}
+                onChange={(val) => setNewCamera({ ...newCamera, detect_engine: val })}
+                options={[
+                    { value: 'OpenCV', label: 'OpenCV (Server Image Analysis)' },
+                    ...(newCamera.onvif_can_events ? [{ value: 'ONVIF Edge', label: 'ONVIF Edge (Camera-side Hardware)' }] : [])
+                ]}
+            />
+            {newCamera.detect_engine === 'ONVIF Edge' && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+                    <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                    <p>
+                        <strong>Hardware Detection Active:</strong> Sensitivity, threshold, and motion zones are handled by the camera hardware.
+                        Local server-side filters and Motion zones are ignored in this mode.
+                    </p>
+                </div>
+            )}
+
             <SectionHeader title="Detection Schedule" description="When should motion detection be active?" />
             <SelectField
                 label="Motion Schedule Mode"
@@ -92,32 +112,35 @@ export const MotionTab = ({ newCamera, setNewCamera }) => {
                 </div>
             )}
 
-            <div className="border-t border-border my-4"></div>
-            <SectionHeader title="Automatic Detection" description="Motion detection tuning options" />
-            <div className="space-y-1">
-                <Slider
-                    label="Motion Sensitivity (Threshold)"
-                    value={newCamera.threshold || 1500}
-                    onChange={(val) => setNewCamera({ ...newCamera, threshold: val })}
-                    min={100}
-                    max={10000}
-                    step={100}
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground px-1 -mt-2">
-                    <span>High Sensitivity</span>
-                    <span>Low Sensitivity</span>
-                </div>
-                <p className="text-[11px] text-muted-foreground pt-1">
-                    Controls how many pixels must change to trigger motion. <br />
-                    <span className="font-semibold">Lower value (left)</span> = Detects small movements (falling leaves, bugs). <br />
-                    <span className="font-semibold">Higher value (right)</span> = Detects only big objects (people, cars).
-                </p>
-            </div>
-            <Toggle
-                label="Despeckle Filter"
-                checked={newCamera.despeckle_filter}
-                onChange={(val) => setNewCamera({ ...newCamera, despeckle_filter: val })}
-            />
+            {newCamera.detect_engine !== 'ONVIF Edge' && (
+                <>
+                    <SectionHeader title="Automatic Detection" description="Motion detection tuning options" />
+                    <div className="space-y-1">
+                        <Slider
+                            label="Motion Sensitivity (Threshold)"
+                            value={newCamera.threshold || 1500}
+                            onChange={(val) => setNewCamera({ ...newCamera, threshold: val })}
+                            min={100}
+                            max={10000}
+                            step={100}
+                        />
+                        <div className="flex justify-between text-[10px] text-muted-foreground px-1 -mt-2">
+                            <span>High Sensitivity</span>
+                            <span>Low Sensitivity</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground pt-1">
+                            Controls how many pixels must change to trigger motion. <br />
+                            <span className="font-semibold">Lower value (left)</span> = Detects small movements (falling leaves, bugs). <br />
+                            <span className="font-semibold">Higher value (right)</span> = Detects only big objects (people, cars).
+                        </p>
+                    </div>
+                    <Toggle
+                        label="Despeckle Filter"
+                        checked={newCamera.despeckle_filter}
+                        onChange={(val) => setNewCamera({ ...newCamera, despeckle_filter: val })}
+                    />
+                </>
+            )}
 
             <SectionHeader title="Capture Settings" description="Pre/post motion capture options" />
             <InputField
@@ -149,13 +172,15 @@ export const MotionTab = ({ newCamera, setNewCamera }) => {
                     unit="seconds"
                 />
             </div>
-            <InputField
-                label="Minimum Motion Frames"
-                type="number"
-                value={newCamera.min_motion_frames}
-                onChange={(val) => setNewCamera({ ...newCamera, min_motion_frames: val })}
-                unit="frames"
-            />
+            {newCamera.detect_engine !== 'ONVIF Edge' && (
+                <InputField
+                    label="Minimum Motion Frames"
+                    type="number"
+                    value={newCamera.min_motion_frames}
+                    onChange={(val) => setNewCamera({ ...newCamera, min_motion_frames: val })}
+                    unit="frames"
+                />
+            )}
         </div>
     );
 };

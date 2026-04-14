@@ -212,18 +212,23 @@ async def probe_ptz_features(
     db: Session = Depends(database.get_db),
     current_user: schemas.User = Depends(auth_service.get_current_active_admin)
 ):
-    """Manually trigger a probe for PTZ features and update camera status."""
+    """Manually trigger a probe for ONVIF features and update camera status."""
     camera = crud.get_camera(db, camera_id)
     if not camera:
         raise HTTPException(status_code=404, detail="Camera not found")
     
     # 1. Probe ONVIF
-    features = await onvif_service.get_ptz_features(camera)
+    features = await onvif_service.get_onvif_features(camera)
     
     # 2. Update DB
     camera.ptz_can_pan_tilt = features["ptz_can_pan_tilt"]
     camera.ptz_can_zoom = features["ptz_can_zoom"]
+    camera.onvif_can_events = features["onvif_can_events"]
     db.commit()
     db.refresh(camera)
+    
+    # Trigger subscription update if mode is ONVIF Edge
+    from onvif_event_service import event_manager
+    event_manager.update_subscription(camera_id)
     
     return features

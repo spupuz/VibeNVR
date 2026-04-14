@@ -69,6 +69,12 @@ export const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelecte
                                 <span>{camera.status || 'OFFLINE'}</span>
                             </div>
 
+                            {camera.detect_motion_mode === 'ONVIF Edge' && (
+                                <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-indigo-500/10 text-indigo-600 border-indigo-500/20" title="Camera-side Motion Detection">
+                                    <span>EDGE</span>
+                                </div>
+                            )}
+
                             {/* ID Badge */}
                             <span className="inline-flex items-center text-[10px] font-mono bg-muted/50 px-1.5 py-0.5 rounded text-muted-foreground border border-border whitespace-nowrap h-[18px]">
                                 ID: {camera.id}

@@ -138,6 +138,15 @@ Delete a camera and its associated configuration (recordings are kept unless man
 Trigger a manual snapshot.
 - **Auth Required**: Admin privileges.
 
+---
+
+### 🧠 Motion Detection Engines
+
+VibeNVR supports two primary motion detection engines, configurable per-camera:
+
+1.  **OpenCV (Server-side)**: Default. The VibeEngine decodes the video stream and performs pixel-based motion analysis. Use this for cameras without ONVIF support.
+2.  **ONVIF Edge (Camera-side)**: Recommended. Offloads motion analysis to the camera's hardware. VibeNVR subscribes to ONVIF PullPoint events and triggers recording only when the camera reports motion.
+    - **Note**: When `ONVIF Edge` is selected, server-side sensitivity settings (Threshold, Despeckle) and local Motion Exclusion Zones are bypassed in favor of the camera's internal configuration.
 
 ---
 
@@ -385,7 +394,7 @@ curl -X GET "http://localhost:8080/stats" \
 <img src="http://localhost:8080/media/Camera1/2026-02-21/snap.jpg" />
 ```
 
-*(Current Version: v1.25.3)*
+*(Current Version: v1.25.5)*
 
 ---
 

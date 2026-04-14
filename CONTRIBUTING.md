@@ -48,7 +48,11 @@ To start developing locally:
 
 ```bash
 docker compose up -d --build
-docker compose logs -f
+```
+
+To see the logs:
+```bash
+docker compose logs --tail 100
 ```
 
 - **Frontend**: `http://localhost:8080`

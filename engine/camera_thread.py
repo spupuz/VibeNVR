@@ -50,6 +50,8 @@ class CameraThread(threading.Thread):
         self.latest_frame_jpeg = None
         self.latest_raw_frame_jpeg = None
         self.last_frame_update_time = 0.0
+        self.last_external_motion_time = 0.0
+        self.last_external_motion_source = "none"
         self.lock = threading.Lock()
         
         # Shared processing state
@@ -138,14 +140,18 @@ class CameraThread(threading.Thread):
                 apply_masks(frame, self.privacy_polygons, alpha=1.0, color=(0, 0, 0), camera_name=self.config.get('name'))
                 motion_active = self.motion_detector.detect(
                     frame, self.event_callback, self.save_snapshot, 
-                    self.privacy_polygons, self.motion_polygons, apply_masks
+                    self.privacy_polygons, self.motion_polygons, apply_masks,
+                    external_motion_time=self.last_external_motion_time,
+                    source=self.last_external_motion_source
                 )
                 
                 draw_overlay(frame, self.config)
                 
                 # Recording Management
+                trigger_source = self.motion_detector.last_trigger_source if motion_active else None
                 self.recording_manager.handle_recording(
-                    frame, motion_active, self.motion_detector.last_motion_time, self.stop_recording
+                    frame, motion_active, self.motion_detector.last_motion_time, self.stop_recording,
+                    trigger_source=trigger_source
                 )
                 
                 # Pre-capture buffer
@@ -250,6 +256,13 @@ class CameraThread(threading.Thread):
 
     def stop_recording(self):
         self.recording_manager.stop_recording(self.event_callback, self.width, self.height)
+
+    def trigger_external_event(self, event_type: str, source: str = "external"):
+        """Inject an event from outside (e.g., local sensor, ONVIF PullPoint)"""
+        if event_type == "motion":
+            self.last_external_motion_time = time.time()
+            self.last_external_motion_source = source
+            logger.debug(f"Camera {self.config.get('name')}: External motion event received (Source: {source})")
 
     def update_config(self, new_config):
         old_passthrough = self.config.get('movie_passthrough', False)

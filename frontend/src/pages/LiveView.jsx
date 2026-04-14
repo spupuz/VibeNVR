@@ -199,6 +199,12 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                         <span className="text-[10px] font-black text-white tracking-widest uppercase">AUTH ERROR</span>
                     </div>
                 )}
+                {camera.detect_motion_mode === 'ONVIF Edge' && (
+                    <div className="flex items-center space-x-2 bg-indigo-600 px-2.5 py-1 rounded shadow-2xl ring-1 ring-white/20 w-fit" title="Camera-side Motion Detection">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-200" />
+                        <span className="text-[10px] font-black text-white tracking-widest uppercase italic">EDGE</span>
+                    </div>
+                )}
 
                 {/* Camera Information Card */}
                 <div className="bg-black/60 backdrop-blur-md px-2.5 py-2 rounded-lg border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-fit max-w-[200px]">

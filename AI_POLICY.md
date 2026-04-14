@@ -22,8 +22,8 @@ These rules apply to all outside contributions. Maintainers are exempt from thes
 
 Before submitting any AI-assisted contribution, you must:
 
-1. Start the development environment: `docker compose up -d --build`
-2. Check logs for startup errors: `docker compose logs -f`
+1. Use `docker compose down && docker compose up -d --build` to deploy.
+2. Check logs for startup errors: `docker compose logs --tail 100`
 3. Access the frontend at `http://localhost:8080` and verify it works
 4. Verify the backend API docs load at `http://localhost:5005/docs`
 5. Test your specific changes manually (e.g., if you changed camera logic, test with a real or simulated stream)

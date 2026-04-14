@@ -111,7 +111,12 @@ def create_camera(
     new_camera = crud.create_camera(db=db, camera=camera)
     if new_camera.onvif_host:
         import onvif_service
-        background_tasks.add_task(onvif_service.probe_and_update_ptz_features, new_camera.id, None)
+        background_tasks.add_task(onvif_service.probe_and_update_onvif_features, new_camera.id, None)
+    
+    # Update ONVIF Event subscription if needed
+    from onvif_event_service import event_manager
+    event_manager.update_subscription(new_camera.id)
+    
     motion_service.generate_motion_config(db)
     return new_camera
 
@@ -177,7 +182,7 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks
     # Trigger PTZ probe if ONVIF host changed or was just added
     if db_camera.onvif_host and (db_camera.onvif_host != old_onvif_host):
         import onvif_service
-        background_tasks.add_task(onvif_service.probe_and_update_ptz_features, db_camera.id, None)
+        background_tasks.add_task(onvif_service.probe_and_update_onvif_features, db_camera.id, None)
     if db_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
     

@@ -77,13 +77,13 @@ VibeNVR's code includes specific mitigations against common attack vectors:
     - This bypass is **strictly limited** to the secure RTSP schemes. Standard webhooks and API calls always enforce full certificate verification.
 4. **Secure Subprocess Execution**:
    - All internal calls to video tools (`ffmpeg`, `ffprobe`) are performed using **list-based arguments** (the secure default in Python's `subprocess.run`), effectively preventing any shell injection vulnerabilities via malicious camera URLs or paths.
-4. **Advanced Log & GUI Masking**:
-    - The logging infrastructure (`backend/routers/logs.py`) and the custom `TokenRedactingFilter` in `main.py` automatically mask stdout logs for:
-      - **RTSP Credentials**: `rtsp://user:***@host`
-      - **Sensitive JSON fields**: `"password": "***"`, `"token": "***"`, etc.
-      - **Headers & Parameters**: `X-API-Key=REDACTED`, `Bearer REDACTED`, `token=REDACTED`.
-    - **ONVIF Credential Fallback**: To simplify setup, VibeNVR can automatically extract ONVIF management credentials from a camera's RTSP URL if not explicitly provided. These extracted credentials are treated with the same masking and redaction policies as manual entries.
-    - **Perpetual Security Audit**: Mandatory runtime and static scans are performed during the security audit workflow to ensure that sensitive strings never leak into the application's stdout and that known vulnerabilities are identified via **Bandit (SAST)**.
+    - **Advanced Log & GUI Masking**:
+        - The logging infrastructure (`backend/routers/logs.py`) and the **hardened `TokenRedactingFilter`** in `main.py` automatically redact sensitive information from stdout for:
+          - **RTSP & ONVIF Credentials**: Redacts passwords in both URLs (`rtsp://user:***@host`) and JSON/KV strings (`"password": "***"`, `password=***`).
+          - **Authorization Tokens**: Redacts `X-API-Key`, `Bearer` tokens, `totp_secret`, and `media_token`.
+        - **ONVIF Credential Fallback**: To simplify setup, VibeNVR can automatically extract ONVIF management credentials from a camera's RTSP URL if not explicitly provided. These extracted credentials are treated with the same masking and redaction policies as manual entries.
+        - **Robust ONVIF Event Parsing**: v1.25.5 introduces a multi-vendor robust parser for ONVIF event notifications. It employs fuzzy matching for boolean payload states (e.g., `IsMotion`, `State`, `Active`) and topic-payload correlation to ensure reliable triggers across Hikvision, Dahua, Reolink, and Axis devices without compromising XML parsing safety.
+        - **Perpetual Security Audit**: Mandatory runtime and static scans are performed during the security audit workflow to ensure that sensitive strings never leak into the application's stdout.
    - **RTSP URL Redaction (GUI Level)**: Starting from **v1.25.3**, the frontend configuration interface implements dynamic URL masking. RTSP and Sub-Stream URLs are displayed without plain-text passwords (redacted as `********`). If a user pastes a full URL containing a password, it is automatically extracted to the secure separate fields and redacted in real-time.
 5. **Privacy Masking & Motion Zones**: 
     - **Privacy Masks** are applied at the Engine level immediately after frame decoding. They are "burned" into the video frames *before* they reach the recording or motion analysis modules, ensuring that sensitive data is never persisted or processed if masked.

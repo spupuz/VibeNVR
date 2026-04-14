@@ -28,6 +28,7 @@ class Camera(Base):
     # PTZ Capabilities
     ptz_can_pan_tilt = Column(Boolean, default=True)
     ptz_can_zoom = Column(Boolean, default=True)
+    onvif_can_events = Column(Boolean, default=False)
     
     # Video Device
     resolution_width = Column(Integer, default=800)
@@ -108,8 +109,9 @@ class Camera(Base):
     notify_attach_image_telegram = Column(Boolean, default=True)
 
 
-    # Schedule
-    detect_motion_mode = Column(String, default="Always") # Always | Working Schedule
+    # Schedule & Detection Settings
+    detect_motion_mode = Column(String, default="Always") # Always | Working Schedule | Manual Toggle
+    detect_engine = Column(String, default="OpenCV") # OpenCV | ONVIF Edge
     
     schedule_monday = Column(Boolean, default=True)
     schedule_monday_start = Column(String, default="00:00")

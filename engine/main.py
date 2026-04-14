@@ -11,7 +11,13 @@ import sys
 import logging
 import psutil
 
-# Setup Logger
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    force=True
+)
+
+# Setup Logger custom level
 VERBOSE_LEVEL = 5
 logging.addLevelName(VERBOSE_LEVEL, "VERBOSE")
 def verbose_log(self, message, *args, **kws):
@@ -19,11 +25,43 @@ def verbose_log(self, message, *args, **kws):
         self._log(VERBOSE_LEVEL, message, args, **kws)
 logging.Logger.verbose = verbose_log
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    force=True
-)
+class PollingSamplingFilter(logging.Filter):
+    def __init__(self, name: str = "", sample_rate: int = 10):
+        super().__init__(name)
+        self.sample_rate = sample_rate
+        self.counters = {}
+
+    def filter(self, record):
+        if hasattr(record, "args") and len(record.args) >= 5:
+            method = record.args[1]
+            path = record.args[2]
+            status = record.args[4]
+            if method == "GET" and status == 200 and path in ["/", "/stats", "/health"]:
+                count = self.counters.get(path, 0)
+                self.counters[path] = (count + 1) % self.sample_rate
+                return count == 0
+        return True
+
+def apply_logging_filters():
+    sampling_filter = PollingSamplingFilter()
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    
+    # Target access logs for sampling
+    access_logger = logging.getLogger("uvicorn.access")
+    access_logger.addFilter(sampling_filter)
+    for handler in access_logger.handlers:
+        handler.addFilter(sampling_filter)
+        handler.setFormatter(formatter)
+    
+    # Force generic uvicorn log formatting
+    for name in ["uvicorn", "uvicorn.error"]:
+        l = logging.getLogger(name)
+        for handler in l.handlers:
+            handler.setFormatter(formatter)
+
+# Initial application
+apply_logging_filters()
+
 logger = logging.getLogger("VibeEngine")
 
 # Global Engine Config (Synced from Backend)
@@ -64,8 +102,10 @@ from core import manager
 app = FastAPI(title="VibeEngine")
 
 class CameraConfig(BaseModel):
+    id: int
+    name: str
     rtsp_url: str
-    name: str = "Camera"
+    stream_url: Optional[str] = None
     width: int = 1920
     height: int = 1080
     framerate: int = 15
@@ -114,6 +154,13 @@ class CameraConfig(BaseModel):
     # PTZ Capabilities (Synced from Backend)
     ptz_can_pan_tilt: bool = True
     ptz_can_zoom: bool = True
+    detect_motion_mode: str = "Always"
+    detect_engine: str = "OpenCV"
+
+
+class EventTrigger(BaseModel):
+    event_type: str = "motion"
+    source: str = "external"
 
 @app.get("/")
 def health_check():
@@ -301,6 +348,14 @@ def stop_all_cameras():
 def update_config(camera_id: int, config: CameraConfig):
     manager.update_camera(camera_id, config.model_dump())
     return {"status": "updated", "camera_id": camera_id}
+
+@app.post("/cameras/{camera_id}/trigger_event")
+def trigger_event(camera_id: int, trigger: EventTrigger):
+    """Inject an external event (e.g., from ONVIF) into the camera's processing pipeline."""
+    success = manager.trigger_external_event(camera_id, trigger.event_type, trigger.source)
+    if not success:
+        raise HTTPException(status_code=404, detail="Camera not found or not active")
+    return {"status": "triggered", "camera_id": camera_id, "type": trigger.event_type, "source": trigger.source}
     
 @app.post("/cameras/{camera_id}/snapshot")
 def take_snapshot(camera_id: int):

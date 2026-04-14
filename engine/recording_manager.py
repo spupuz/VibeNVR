@@ -20,10 +20,11 @@ class RecordingManager:
         self.passthrough_active = False
         self.passthrough_error_count = 0
 
-    def handle_recording(self, frame, motion_detected, last_motion_time, stop_recording_cb):
+    def handle_recording(self, frame, motion_detected, last_motion_time, stop_recording_cb, trigger_source=None):
         mode = self.config.get('recording_mode', 'Off')
         should_record = False
-        if mode in ['Always', 'Continuous'] or (mode == 'Motion Triggered' and motion_detected):
+        reason = "Continuous" if mode in ['Always', 'Continuous'] else ("Motion" if mode == 'Motion Triggered' and motion_detected else None)
+        if reason:
             should_record = True
             
         max_len = self.config.get('max_movie_length', 0)
@@ -33,7 +34,7 @@ class RecordingManager:
                 stop_recording_cb()
 
         if should_record and not self.is_recording:
-            self.start_recording(frame.shape[1], frame.shape[0], None) # pre_buffer handled by CameraThread
+            self.start_recording(frame.shape[1], frame.shape[0], None, reason=reason, trigger_source=trigger_source) # pre_buffer handled by CameraThread
             return True
         elif not should_record and self.is_recording:
             post_cap = self.config.get('post_capture', 5)
@@ -67,14 +68,15 @@ class RecordingManager:
         except Exception:
             pass
 
-    def start_recording(self, width, height, pre_buffer_frames, event_callback=None):
+    def start_recording(self, width, height, pre_buffer_frames, event_callback=None, reason="Manual", trigger_source=None):
         format_str = self.config.get('movie_file_name', '%Y-%m-%d/%H-%M-%S').replace('%q', '00')
         timestamp_path = datetime.now().strftime(format_str)
         output_dir = f"/var/lib/vibe/recordings/{self.camera_id}"
         full_path = os.path.join(output_dir, f"{timestamp_path}.mp4")
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
         
-        logger.info(f"Camera {self.camera_name} (ID: {self.camera_id}): Start Recording to {full_path}")
+        trigger_info = f" (Trigger: {trigger_source})" if trigger_source else ""
+        logger.info(f"[RECORDING] Camera {self.camera_name} (ID: {self.camera_id}): Start Recording (Reason: {reason}) to {full_path}{trigger_info}")
         
         if self.passthrough_error_count > 1:
             self.passthrough_active = False
@@ -151,10 +153,13 @@ class RecordingManager:
                 event_callback(self.camera_id, 'recording_start', {"file_path": full_path, "width": width, "height": height})
         except Exception as e:
             logger.error(f"Camera {self.camera_name} (ID: {self.camera_id}): Failed to start ffmpeg: {e}")
+            self.is_recording = False
+            self.recording_process = None
+
 
     def stop_recording(self, event_callback=None, width=0, height=0):
         if not self.is_recording: return
-        logger.info(f"Camera {self.camera_name} (ID: {self.camera_id}): Stop Recording")
+        logger.info(f"[RECORDING] Camera {self.camera_name} (ID: {self.camera_id}): Stop Recording")
         if self.recording_process:
             if self.passthrough_active:
                 self.recording_process.terminate()

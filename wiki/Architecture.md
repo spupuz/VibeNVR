@@ -23,6 +23,7 @@ The dedicated video processing service. This is the "heavy lifter" of the system
 - **Image Processing**: Leverages **OpenCV (cv2)** for motion detection analysis, text overlays, and dynamic JPEG encoding for legacy previews.
 - **Modular Design**: The engine core is highly modularized (`stream_reader`, `motion_detector`, `recording_manager`, `mask_handler`, `overlay_handler`) for maximum stability.
 - **Security**: Communicates via internal Docker networks and requires a shared `WEBHOOK_SECRET` for backend interaction.
+- **Decoupled Detection**: Supports both server-side pixel analysis (OpenCV) and hardware-side edge event handling (ONVIF PullPoint). The detection engine is logically decoupled from the activation schedule (Always, Scheduled, Manual), allowing for hybrid configurations.
 
 ### 4. Database (PostgreSQL)
 Uses **PostgreSQL 15** for reliable storage of all persistent data, including camera configurations, user settings, and the event timeline.

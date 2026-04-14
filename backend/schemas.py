@@ -59,6 +59,7 @@ class CameraBase(BaseModel):
     # PTZ Capabilities
     ptz_can_pan_tilt: bool = True
     ptz_can_zoom: bool = True
+    onvif_can_events: bool = False
 
     # Video Device
     resolution_width: Optional[int] = 800
@@ -182,6 +183,8 @@ class CameraBase(BaseModel):
 
     # Schedule
     detect_motion_mode: Optional[str] = "Always"
+    detect_engine: Optional[str] = "OpenCV" # OpenCV | ONVIF Edge
+
     
     schedule_monday: Optional[bool] = True
     schedule_monday_start: Optional[str] = "00:00"

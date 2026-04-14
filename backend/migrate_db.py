@@ -50,6 +50,7 @@ def migrate():
     # PTZ Capabilities
     add_column_if_not_exists(engine, "cameras", "ptz_can_pan_tilt", "BOOLEAN", True)
     add_column_if_not_exists(engine, "cameras", "ptz_can_zoom", "BOOLEAN", True)
+    add_column_if_not_exists(engine, "cameras", "onvif_can_events", "BOOLEAN", False)
 
     # Text Overlay
     add_column_if_not_exists(engine, "cameras", "text_left", "VARCHAR", "Camera Name")
@@ -90,6 +91,8 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "auto_noise_detection", "BOOLEAN", True)
     add_column_if_not_exists(engine, "cameras", "light_switch_detection", "INTEGER", 0)
     add_column_if_not_exists(engine, "cameras", "despeckle_filter", "BOOLEAN", False)
+    add_column_if_not_exists(engine, "cameras", "detect_motion_mode", "VARCHAR", "Always")
+    add_column_if_not_exists(engine, "cameras", "detect_engine", "VARCHAR", "OpenCV")
     add_column_if_not_exists(engine, "cameras", "motion_gap", "INTEGER", 10)
     add_column_if_not_exists(engine, "cameras", "captured_before", "INTEGER", 30)
     add_column_if_not_exists(engine, "cameras", "captured_after", "INTEGER", 30)

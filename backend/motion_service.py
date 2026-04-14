@@ -50,6 +50,7 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
         opt_settings = {}
         
     config = {
+        "id": cam.id,
         "rtsp_url": cam.rtsp_url,
         "name": cam.name,
         "width": cam.resolution_width or 1920, # Fallback if 0/None
@@ -75,6 +76,7 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
         "min_motion_frames": cam.min_motion_frames or 2,
         "despeckle_filter": cam.despeckle_filter if cam.despeckle_filter is not None else False,
         "detect_motion_mode": cam.detect_motion_mode or "Always",
+        "detect_engine": cam.detect_engine or "OpenCV",
         "privacy_masks": cam.privacy_masks,
         "motion_masks": cam.motion_masks,
         "ptz_can_pan_tilt": cam.ptz_can_pan_tilt if cam.ptz_can_pan_tilt is not None else True,

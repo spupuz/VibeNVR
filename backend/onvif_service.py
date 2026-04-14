@@ -5,6 +5,8 @@ import ipaddress
 from typing import List, Dict, Optional
 from onvif import ONVIFCamera
 import zeep
+from zeep.transports import Transport
+from requests import Session
 
 logger = logging.getLogger("VibeOnvif")
 logger.setLevel(logging.DEBUG)
@@ -21,6 +23,13 @@ EXTENDED_ONVIF_PORTS = sorted(list(set(COMMON_ONVIF_PORTS + [
 ])))
 # Common RTSP ports. 554 is standard, 7447 is UniFi standard, 7441 is UniFi secure.
 COMMON_RTSP_PORTS = [554, 7447, 7441]
+
+def get_onvif_transport(timeout: float = 10.0) -> Transport:
+    """Create a Zeep Transport with a configured timeout to prevent hanging."""
+    session = Session()
+    # connect timeout (e.g. 3.1) and read timeout (e.g. timeout)
+    # Using a tuple (connect, read) is more robust in requests
+    return Transport(session=session, timeout=(3.1, timeout))
 
 async def check_port(ip: str, port: int, timeout: float = 1.2, retries: int = 0) -> bool:
     """Check if a port is open on a given IP with optional retries."""
@@ -48,7 +57,10 @@ async def get_onvif_details(ip: str, port: int, user: str = "", password: str = 
         logger.info(f"Probing ONVIF device at {ip}:{port} with user '{user}'")
         # ONVIFCamera constructor can be slow (WSDL parsing), wrap in to_thread
         # Some cameras require adjust_time=True to avoid timestamp errors
-        device = await asyncio.to_thread(ONVIFCamera, ip, port, user, password, adjust_time=True)
+        transport = get_onvif_transport(timeout=10.0)
+        # Add a secondary fail-safe timeout for the constructor itself
+        async with asyncio.timeout(15.0):
+            device = await asyncio.to_thread(ONVIFCamera, ip, port, user, password, adjust_time=True, transport=transport)
         
         # Get device information
         dev_info = await asyncio.to_thread(device.devicemgmt.GetDeviceInformation)
@@ -181,7 +193,8 @@ async def quick_probe(ip: str, port: int, user: str = "", password: str = "") ->
         # 3 seconds is enough for a local network device to respond if it's capable
         async with asyncio.timeout(3.0):
             # initialize device (WSDL parsing)
-            device = await asyncio.to_thread(ONVIFCamera, ip, port, user, password, adjust_time=True)
+            transport = get_onvif_transport(timeout=3.0)
+            device = await asyncio.to_thread(ONVIFCamera, ip, port, user, password, adjust_time=True, transport=transport)
             # Try to get info
             dev_info = await asyncio.to_thread(device.devicemgmt.GetDeviceInformation)
             return {
@@ -250,7 +263,10 @@ async def get_ptz_service(camera: "models.Camera"):
     if not host:
         raise ValueError("ONVIF host not configured and could not be parsed from RTSP URL")
         
-    device = await asyncio.to_thread(ONVIFCamera, host, port, user or "", password or "", adjust_time=True)
+    transport = get_onvif_transport(timeout=10.0)
+    # Add a secondary fail-safe timeout for the constructor itself
+    async with asyncio.timeout(15.0):
+        device = await asyncio.to_thread(ONVIFCamera, host, port, user or "", password or "", adjust_time=True, transport=transport)
     ptz_service = await asyncio.to_thread(device.create_ptz_service)
     media_service = await asyncio.to_thread(device.create_media_service)
     
@@ -313,73 +329,98 @@ async def get_ptz_presets(camera: "models.Camera"):
         logger.error(f"Failed to get PTZ presets for {camera.name}: {e}")
         return []
 
-async def get_ptz_features(camera: "models.Camera"):
-    """Detect supported PTZ features (Pan/Tilt, Zoom) for a camera profile."""
+async def get_onvif_features(camera: "models.Camera"):
+    """Detect supported ONVIF features (Pan/Tilt, Zoom, Events) for a camera."""
+    features = {
+        "ptz_can_pan_tilt": False, 
+        "ptz_can_zoom": False,
+        "onvif_can_events": False
+    }
     try:
-        ptz, token = await get_ptz_service(camera)
+        host = camera.onvif_host
+        port = camera.onvif_port or 80
+        user = camera.onvif_username
+        password = camera.onvif_password
         
-        # Get configuration options for the current profile
-        # ConfigurationToken is often the same as ProfileToken in many implementations,
-        # but technically we should fetch the PTZConfiguration first.
-        # However, many cameras accept the ProfileToken here or have a 1:1 mapping.
-        
-        # To be safe, let's fetch the configuration first
-        configurations = await asyncio.to_thread(ptz.GetConfigurations)
-        if not configurations:
-            return {"ptz_can_pan_tilt": False, "ptz_can_zoom": False}
-            
-        # Match configuration to profile token if possible, or just take the first one
-        config = configurations[0]
-        for c in configurations:
-            if hasattr(c, 'token') and c.token == token:
-                config = c
-                break
-        
-        configs = await asyncio.to_thread(ptz.GetConfigurationOptions, {'ConfigurationToken': config.token})
-        
-        can_pan_tilt = False
-        can_zoom = False
-        
-        if configs and hasattr(configs, 'Spaces'):
-            spaces = configs.Spaces
-            logger.info(f"PTZ Spaces detected for {camera.name}: {spaces}")
-            if hasattr(spaces, 'ContinuousPanTiltVelocitySpace') and spaces.ContinuousPanTiltVelocitySpace:
-                can_pan_tilt = True
-            if hasattr(spaces, 'ContinuousZoomVelocitySpace') and spaces.ContinuousZoomVelocitySpace:
-                can_zoom = True
-            # Also check for Relative and Absolute as indicators of capability (must have actual space definitions)
-            if not can_zoom:
-                rel_zoom = getattr(spaces, 'RelativeZoomTranslationSpace', [])
-                abs_zoom = getattr(spaces, 'AbsoluteZoomPositionSpace', [])
-                if (rel_zoom and len(rel_zoom) > 0) or (abs_zoom and len(abs_zoom) > 0):
-                    logger.info(f"Camera {camera.name} uses Relative/Absolute Zoom.")
-                    can_zoom = True
-        
-        return {
-            "ptz_can_pan_tilt": can_pan_tilt,
-            "ptz_can_zoom": can_zoom
-        }
-    except Exception as e:
-        logger.error(f"Failed to detect PTZ features for {camera.name}: {e}")
-        # Return default (False for zoom if probe fails, to be safe)
-        return {
-            "ptz_can_pan_tilt": True,
-            "ptz_can_zoom": False
-        }
+        # Fallback to RTSP URL parsing if ONVIF details are missing
+        if not host:
+            from urllib.parse import urlparse
+            parsed = urlparse(camera.rtsp_url)
+            host = parsed.hostname
+            if not user and parsed.username: user = parsed.username
+            if not password and parsed.password: password = parsed.password
 
-async def probe_and_update_ptz_features(camera_id: int, db_session_factory):
-    """Probe PTZ features and update the database. Designed for BackgroundTasks."""
+        if not host:
+            return features
+
+        transport = get_onvif_transport(timeout=5.0)
+        # Add a secondary fail-safe timeout for the constructor itself
+        async with asyncio.timeout(10.0):
+            device = await asyncio.to_thread(ONVIFCamera, host, port, user or "", password or "", adjust_time=True, transport=transport)
+        
+        # 1. Detect Events Capability
+        try:
+            capabilities = await asyncio.to_thread(device.devicemgmt.GetCapabilities)
+            if hasattr(capabilities, 'Events') and capabilities.Events:
+                # To be absolutely sure, try to create the events service
+                await asyncio.to_thread(device.create_events_service)
+                features["onvif_can_events"] = True
+        except Exception as e:
+            logger.debug(f"Event capability detection failed for {camera.name}: {e}")
+
+        # 2. Detect PTZ Capabilities
+        try:
+            ptz_service = await asyncio.to_thread(device.create_ptz_service)
+            media_service = await asyncio.to_thread(device.create_media_service)
+            
+            token = camera.onvif_profile_token
+            if not token:
+                profiles = await asyncio.to_thread(media_service.GetProfiles)
+                if profiles: token = profiles[0].token
+            
+            if token:
+                configurations = await asyncio.to_thread(ptz_service.GetConfigurations)
+                if configurations:
+                    config = configurations[0]
+                    for c in configurations:
+                        if hasattr(c, 'token') and c.token == token:
+                            config = c
+                            break
+                    
+                    configs = await asyncio.to_thread(ptz_service.GetConfigurationOptions, {'ConfigurationToken': config.token})
+                    if configs and hasattr(configs, 'Spaces'):
+                        spaces = configs.Spaces
+                        if hasattr(spaces, 'ContinuousPanTiltVelocitySpace') and spaces.ContinuousPanTiltVelocitySpace:
+                            features["ptz_can_pan_tilt"] = True
+                        if hasattr(spaces, 'ContinuousZoomVelocitySpace') and spaces.ContinuousZoomVelocitySpace:
+                            features["ptz_can_zoom"] = True
+                        if not features["ptz_can_zoom"]:
+                            rel_zoom = getattr(spaces, 'RelativeZoomTranslationSpace', [])
+                            abs_zoom = getattr(spaces, 'AbsoluteZoomPositionSpace', [])
+                            if (rel_zoom and len(rel_zoom) > 0) or (abs_zoom and len(abs_zoom) > 0):
+                                features["ptz_can_zoom"] = True
+        except Exception as e:
+            logger.debug(f"PTZ capability detection failed for {camera.name}: {e}")
+            
+        return features
+    except Exception as e:
+        logger.error(f"Failed to detect ONVIF features for {camera.name}: {e}")
+        return features
+
+async def probe_and_update_onvif_features(camera_id: int, db_session_factory=None):
+    """Probe ONVIF and update the database. Designed for BackgroundTasks."""
     from database import get_db_ctx
     import crud
     
     with get_db_ctx() as db:
         camera = crud.get_camera(db, camera_id)
-        if not camera or not camera.onvif_host:
+        if not camera:
             return
             
-        features = await get_ptz_features(camera)
+        features = await get_onvif_features(camera)
         
         camera.ptz_can_pan_tilt = features["ptz_can_pan_tilt"]
         camera.ptz_can_zoom = features["ptz_can_zoom"]
+        camera.onvif_can_events = features["onvif_can_events"]
         db.commit()
-        logger.info(f"Updated PTZ features for camera {camera_id}: {features}")
+        logger.info(f"Updated ONVIF features for camera {camera_id}: {features}")
