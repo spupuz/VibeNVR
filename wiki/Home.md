@@ -18,6 +18,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **[Privacy Masking](Privacy-Masking.md)** - Configuring obscured areas and motion exclusion zones.
 - **[Backup & Restore](Backups.md)** - System snapshots and configuration management.
 - **[UniFi Protect Integration](UniFi-Protect.md)** - Native support for RSTSPS and UniFi ports.
+- **[ONVIF Management](ONVIF-Management.md)** - Pan-Tilt-Zoom (PTZ) controls and hardware probing.
 
 ## 🚀 Featured Capabilities
 
@@ -25,6 +26,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **UniFi First-Class Support**: Native RSTSPS streaming with automatic TLS verification bypass for UniFi controllers.
 - **WebCodecs Performance**: Ultra low-latency streaming with hardware acceleration and intelligent keyframe caching.
 - **Dual-Stream Optimization**: Dedicated sub-streams for lightweight dashboard grids, saving CPU and bandwidth.
+- **Advanced PTZ**: Native ONVIF support for low-latency Pan, Tilt, and Zoom controls via an intuitive joystick overlay.
 
 ## ⚠️ Important Notes
 

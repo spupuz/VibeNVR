@@ -18,6 +18,13 @@ class Camera(Base):
     status = Column(String, default="STARTING")
     last_seen = Column(DateTime(timezone=True), nullable=True)
     
+    # ONVIF Management
+    onvif_host = Column(String, nullable=True)
+    onvif_port = Column(Integer, default=80)
+    onvif_username = Column(String, nullable=True)
+    onvif_password = Column(String, nullable=True)
+    onvif_profile_token = Column(String, nullable=True)
+    
     # Video Device
     resolution_width = Column(Integer, default=800)
     resolution_height = Column(Integer, default=600)

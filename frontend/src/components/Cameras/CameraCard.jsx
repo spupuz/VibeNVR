@@ -8,6 +8,8 @@ import { useToast } from '../../contexts/ToastContext';
 export const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSelect }) => {
     const { user, token } = useAuth();
     const { showToast } = useToast();
+
+    const hasOnvif = camera.onvif_host || (camera.rtsp_url && camera.rtsp_url.includes('://'));
     
     return (
         <div
@@ -151,7 +153,6 @@ export const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelecte
                             className="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40"
                             title="Export Camera Settings"
                         >
-                            <Download className="w-5 h-5" />
                         </Button>
                         <Button
                             variant="ghost"

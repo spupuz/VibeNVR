@@ -90,7 +90,11 @@ List all configured cameras.
     "sub_rtsp_url": "rtsp://192.168.1.10:554/sub",
     "sub_rtsp_transport": "udp",
     "privacy_masks": "[{\"points\":[...]}]",
-    "motion_masks": "[]"
+    "motion_masks": "[]",
+    "onvif_host": "192.168.1.10",
+    "onvif_port": 80,
+    "onvif_username": "admin",
+    "onvif_profile_token": "Profile_1"
   }
 ]
 ```
@@ -305,6 +309,53 @@ Update a specific system setting.
 Retrieve the real-time runtime status of the video engine (Admin only).
 - **Usage**: Diagnostic tool to verify mask synchronization and thread health.
 - **Response**: Map of camera IDs to their engine state.
+
+---
+
+### 🎮 ONVIF & PTZ (`/onvif`)
+
+#### **POST** `/onvif/probe`
+Full probe of a specific device to retrieve manufacturer, model, and available RTSP profiles.
+- **Auth Required**: Admin privileges.
+- **Payload**:
+  ```json
+  {
+    "ip": "192.168.1.100",
+    "port": 80,
+    "user": "admin",
+    "password": "password123"
+  }
+  ```
+
+#### **POST** `/onvif/ptz/move/{camera_id}`
+Trigger continuous PTZ movement for a specific camera.
+- **Auth Required**: Admin privileges.
+- **Payload**:
+  ```json
+  {
+    "pan": 1.0,
+    "tilt": -0.5,
+    "zoom": 0.0
+  }
+  ```
+
+#### **POST** `/onvif/ptz/stop/{camera_id}`
+Stop all currently active PTZ movements for a specific camera.
+- **Auth Required**: Admin privileges.
+
+#### **GET** `/onvif/ptz/presets/{camera_id}`
+Retrieve the list of hardware-defined PTZ presets from the camera.
+- **Auth Required**: Admin privileges.
+- **Response**: List of preset tokens and names.
+
+#### **GET** `/onvif/scan/stream`
+Securely scan a network range for ONVIF and RTSP devices. Returns a Server-Sent Events (SSE) stream.
+- **Query Params**:
+  - `ip_range`: CIDR (e.g., `192.168.1.0/24`) or Range (e.g., `192.168.1.1-50`).
+- **Headers**:
+  - `X-Scanner-User`: Base username to attempt during probe.
+  - `X-Scanner-Password`: Base password to attempt during probe.
+- **Auth Required**: Admin privileges.
 
 ---
 

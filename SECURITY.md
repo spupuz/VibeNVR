@@ -50,6 +50,7 @@ Actions protected by the Admin RBAC include:
 - Generating API tokens (`routers/api_tokens.py`)
 - Forcing full system cleanups or manual snapshots
 - Modifying general system settings and user accounts
+- Configuring ONVIF Management credentials and performing PTZ operations (`routers/onvif_router.py`)
 
 ### Standard User Privileges
 Standard users pass the `Depends(auth_service.get_current_user)` check but fail the Admin check. They are restricted to purely Read-Only operations essential for monitoring:
@@ -80,6 +81,7 @@ VibeNVR's code includes specific mitigations against common attack vectors:
       - **RTSP Credentials**: `rtsp://user:***@host`
       - **Sensitive JSON fields**: `"password": "***"`, `"token": "***"`, etc.
       - **Headers & Parameters**: `X-API-Key=REDACTED`, `Bearer REDACTED`, `token=REDACTED`.
+    - **ONVIF Credential Fallback**: To simplify setup, VibeNVR can automatically extract ONVIF management credentials from a camera's RTSP URL if not explicitly provided. These extracted credentials are treated with the same masking and redaction policies as manual entries.
     - **Perpetual Security Audit**: Mandatory runtime scans are performed during the CI/CD and security audit workflows to ensure that sensitive strings never leak into the application's stdout.
    - **RTSP URL Redaction (GUI Level)**: Starting from **v1.25.3**, the frontend configuration interface implements dynamic URL masking. RTSP and Sub-Stream URLs are displayed without plain-text passwords (redacted as `********`). If a user pastes a full URL containing a password, it is automatically extracted to the secure separate fields and redacted in real-time.
 5. **Privacy Masking & Motion Zones**: 

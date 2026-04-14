@@ -8,6 +8,7 @@ import onvif_service
 import auth_service
 from sqlalchemy.orm import Session
 import database
+import crud
 
 router = APIRouter(prefix="/onvif", tags=["onvif"])
 
@@ -157,3 +158,50 @@ async def deep_scan_onvif(req: schemas.OnvifDeepScanRequest, current_user: schem
             }]
             
     return final
+
+@router.post("/ptz/move/{camera_id}")
+async def ptz_move(
+    camera_id: int, 
+    req: schemas.PTZMoveRequest,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.User = Depends(auth_service.get_current_active_admin)
+):
+    """Trigger continuous PTZ movement."""
+    camera = crud.get_camera(db, camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Camera not found")
+        
+    success = await onvif_service.ptz_continuous_move(camera, req.pan, req.tilt, req.zoom)
+    if not success:
+        raise HTTPException(status_code=500, detail="PTZ Move command failed")
+    return {"status": "ok"}
+
+@router.post("/ptz/stop/{camera_id}")
+async def ptz_stop(
+    camera_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.User = Depends(auth_service.get_current_active_admin)
+):
+    """Stop PTZ movement."""
+    camera = crud.get_camera(db, camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Camera not found")
+        
+    success = await onvif_service.ptz_stop(camera)
+    if not success:
+        raise HTTPException(status_code=500, detail="PTZ Stop command failed")
+    return {"status": "ok"}
+
+@router.get("/ptz/presets/{camera_id}")
+async def get_ptz_presets(
+    camera_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.User = Depends(auth_service.get_current_active_admin)
+):
+    """Get list of PTZ presets."""
+    camera = crud.get_camera(db, camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Camera not found")
+        
+    presets = await onvif_service.get_ptz_presets(camera)
+    return presets

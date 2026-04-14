@@ -16,6 +16,7 @@ import { MoviesTab } from './Tabs/MoviesTab';
 import { SnapshotsTab } from './Tabs/SnapshotsTab';
 import { AlertsTab } from './Tabs/AlertsTab';
 import { OverlayTab } from './Tabs/OverlayTab';
+import { OnvifTab } from './Tabs/OnvifTab';
 
 export const CameraAddEditModal = ({
     showAddModal,
@@ -47,6 +48,7 @@ export const CameraAddEditModal = ({
         { id: 'still_images', label: 'Snapshots', icon: Image },
         { id: 'notifications', label: 'Alerts', icon: Bell },
         { id: 'overlay', label: 'Overlay', icon: Type },
+        { id: 'onvif', label: 'ONVIF', icon: Shield },
     ];
 
     return (
@@ -172,6 +174,12 @@ export const CameraAddEditModal = ({
                             )}
                             {activeTab === 'overlay' && (
                                 <OverlayTab 
+                                    newCamera={newCamera} 
+                                    setNewCamera={setNewCamera} 
+                                />
+                            )}
+                            {activeTab === 'onvif' && (
+                                <OnvifTab 
                                     newCamera={newCamera} 
                                     setNewCamera={setNewCamera} 
                                 />

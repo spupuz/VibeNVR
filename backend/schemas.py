@@ -49,6 +49,13 @@ class CameraBase(BaseModel):
     status: Optional[str] = "STARTING"
     last_seen: Optional[datetime] = None
 
+    # ONVIF Management
+    onvif_host: Optional[str] = None
+    onvif_port: Optional[int] = 80
+    onvif_username: Optional[str] = None
+    onvif_password: Optional[str] = None
+    onvif_profile_token: Optional[str] = None
+
     # Video Device
     resolution_width: Optional[int] = 800
     resolution_height: Optional[int] = 600
@@ -522,3 +529,9 @@ class OnvifDeviceDetails(BaseModel):
     model: Optional[str] = None
     profiles: List[OnvifProfile] = []
     auth_required: bool = False
+
+# PTZ Controls
+class PTZMoveRequest(BaseModel):
+    pan: float = 0.0  # -1.0 to 1.0
+    tilt: float = 0.0 # -1.0 to 1.0
+    zoom: float = 0.0 # -1.0 to 1.0

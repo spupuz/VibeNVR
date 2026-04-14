@@ -40,6 +40,13 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "status", "VARCHAR", "STARTING")
     add_column_if_not_exists(engine, "cameras", "last_seen", "TIMESTAMP WITH TIME ZONE")
 
+    # ONVIF Management
+    add_column_if_not_exists(engine, "cameras", "onvif_host", "VARCHAR")
+    add_column_if_not_exists(engine, "cameras", "onvif_port", "INTEGER", 80)
+    add_column_if_not_exists(engine, "cameras", "onvif_username", "VARCHAR")
+    add_column_if_not_exists(engine, "cameras", "onvif_password", "VARCHAR")
+    add_column_if_not_exists(engine, "cameras", "onvif_profile_token", "VARCHAR")
+
     # Text Overlay
     add_column_if_not_exists(engine, "cameras", "text_left", "VARCHAR", "Camera Name")
     add_column_if_not_exists(engine, "cameras", "text_right", "VARCHAR", "%Y-%m-%d %H:%M:%S")

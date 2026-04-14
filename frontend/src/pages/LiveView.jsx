@@ -5,6 +5,8 @@ import { Toggle } from '../components/ui/FormControls';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { WebCodecsPlayer } from '../components/WebCodecsPlayer';
+import { PTZControls } from '../components/Cameras/PTZControls';
+import { Move } from 'lucide-react';
 
 const API_BASE = `/api`;
 
@@ -17,6 +19,7 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
     const mountedRef = useRef(true);
     const containerRef = useRef(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [showPTZ, setShowPTZ] = useState(false);
 
     // 'webcodecs' = primary path (VideoDecoder available)
     // 'fallback'  = JPEG polling (VideoDecoder unavailable or hard fail)
@@ -259,9 +262,21 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                     </button>
 
                     {user?.role === 'admin' && (
-                        <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1 text-primary-foreground bg-primary hover:bg-primary/80 rounded-md transition-all shrink-0" title="Settings">
-                            <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        </button>
+                        <>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowPTZ(!showPTZ);
+                                }}
+                                className={`p-1 rounded-md transition-all shrink-0 ${showPTZ ? 'bg-primary text-white shadow-[0_0_10px_rgba(var(--primary),0.5)]' : 'text-white hover:bg-primary/50'}`}
+                                title={showPTZ ? "Hide PTZ Controls" : "Show PTZ Controls"}
+                            >
+                                <Move className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            </button>
+                            <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1 text-primary-foreground bg-primary hover:bg-primary/80 rounded-md transition-all shrink-0" title="Settings">
+                                <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            </button>
+                        </>
                     )}
                 </div>
             </div>
@@ -292,6 +307,13 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                         <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-black/90">
                             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                         </div>
+                    )}
+
+                    {showPTZ && (
+                        <PTZControls 
+                            cameraId={camera.id} 
+                            onClose={() => setShowPTZ(false)} 
+                        />
                     )}
                 </>
             )}

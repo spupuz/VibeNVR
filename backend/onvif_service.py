@@ -225,3 +225,80 @@ async def deep_scan_host(ip: str, concurrency: int = 50) -> List[int]:
     
     logger.info(f"Extended scan finished for {ip}, found {len(open_ports)} open ports.")
     return open_ports
+
+async def get_ptz_service(camera: "models.Camera"):
+    """Initialize and return the PTZ service for a camera."""
+    host = camera.onvif_host
+    port = camera.onvif_port or 80
+    user = camera.onvif_username
+    password = camera.onvif_password
+    
+    # Fallback to RTSP URL parsing if ONVIF details are missing
+    if not host or not user or not password:
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(camera.rtsp_url)
+            if not host:
+                host = parsed.hostname
+            if not user and parsed.username:
+                user = parsed.username
+            if not password and parsed.password:
+                password = parsed.password
+        except Exception as e:
+            logger.debug(f"Could not parse RTSP URL for ONVIF fallback: {e}")
+
+    if not host:
+        raise ValueError("ONVIF host not configured and could not be parsed from RTSP URL")
+        
+    device = await asyncio.to_thread(ONVIFCamera, host, port, user or "", password or "", adjust_time=True)
+    ptz_service = await asyncio.to_thread(device.create_ptz_service)
+    media_service = await asyncio.to_thread(device.create_media_service)
+    
+    # Use cached profile token if available, otherwise fetch first profile
+    token = camera.onvif_profile_token
+    if not token:
+        profiles = await asyncio.to_thread(media_service.GetProfiles)
+        if not profiles:
+            raise ValueError("No ONVIF profiles found for camera")
+        token = profiles[0].token
+        
+    return ptz_service, token
+
+async def ptz_continuous_move(camera: "models.Camera", pan: float, tilt: float, zoom: float):
+    """Trigger continuous movement via ONVIF."""
+    try:
+        ptz, token = await get_ptz_service(camera)
+        
+        request = {
+            'ProfileToken': token,
+            'Velocity': {
+                'PanTilt': {'x': pan, 'y': tilt},
+                'Zoom': {'x': zoom}
+            }
+        }
+        
+        await asyncio.to_thread(ptz.ContinuousMove, request)
+        return True
+    except Exception as e:
+        logger.error(f"PTZ Move failed for {camera.name}: {e}")
+        return False
+
+async def ptz_stop(camera: "models.Camera"):
+    """Stop all PTZ movement."""
+    try:
+        ptz, token = await get_ptz_service(camera)
+        await asyncio.to_thread(ptz.Stop, {'ProfileToken': token, 'PanTilt': True, 'Zoom': True})
+        return True
+    except Exception as e:
+        logger.error(f"PTZ Stop failed for {camera.name}: {e}")
+        return False
+
+async def get_ptz_presets(camera: "models.Camera"):
+    """Retrieve list of defined PTZ presets."""
+    try:
+        ptz, token = await get_ptz_service(camera)
+        presets = await asyncio.to_thread(ptz.GetPresets, {'ProfileToken': token})
+        return [{"token": p.token, "name": p.Name} for p in presets]
+    except Exception as e:
+        logger.error(f"Failed to get PTZ presets for {camera.name}: {e}")
+        return []
