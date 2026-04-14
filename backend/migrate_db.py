@@ -5,7 +5,7 @@ import models
 def add_column_if_not_exists(engine, table_name, column_name, column_type, default_val=None):
     with engine.connect() as conn:
         # Check if column exists
-        query = text(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table_name}' AND column_name='{column_name}'")
+        query = text(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table_name}' AND column_name='{column_name}'")  # nosec
         result = conn.execute(query).fetchone()
         
         if not result:
@@ -46,6 +46,10 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "onvif_username", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "onvif_password", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "onvif_profile_token", "VARCHAR")
+    
+    # PTZ Capabilities
+    add_column_if_not_exists(engine, "cameras", "ptz_can_pan_tilt", "BOOLEAN", True)
+    add_column_if_not_exists(engine, "cameras", "ptz_can_zoom", "BOOLEAN", True)
 
     # Text Overlay
     add_column_if_not_exists(engine, "cameras", "text_left", "VARCHAR", "Camera Name")

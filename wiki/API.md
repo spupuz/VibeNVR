@@ -343,6 +343,11 @@ Trigger continuous PTZ movement for a specific camera.
 Stop all currently active PTZ movements for a specific camera.
 - **Auth Required**: Admin privileges.
 
+#### **POST** `/onvif/ptz/probe-features/{camera_id}`
+Manually trigger a deep capability discovery for a camera. This updates `ptz_can_pan_tilt` and `ptz_can_zoom` flags in the database based on the camera's actual ONVIF space definitions.
+- **Usage**: Use this if PTZ buttons are missing or incorrectly displayed after a firmware update or camera replacement.
+- **Auth Required**: Admin privileges.
+
 #### **GET** `/onvif/ptz/presets/{camera_id}`
 Retrieve the list of hardware-defined PTZ presets from the camera.
 - **Auth Required**: Admin privileges.

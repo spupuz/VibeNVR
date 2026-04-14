@@ -51,6 +51,7 @@ Actions protected by the Admin RBAC include:
 - Forcing full system cleanups or manual snapshots
 - Modifying general system settings and user accounts
 - Configuring ONVIF Management credentials and performing PTZ operations (`routers/onvif_router.py`)
+- Scanning networks for ONVIF devices via secure SSE streams.
 
 ### Standard User Privileges
 Standard users pass the `Depends(auth_service.get_current_user)` check but fail the Admin check. They are restricted to purely Read-Only operations essential for monitoring:
@@ -82,7 +83,7 @@ VibeNVR's code includes specific mitigations against common attack vectors:
       - **Sensitive JSON fields**: `"password": "***"`, `"token": "***"`, etc.
       - **Headers & Parameters**: `X-API-Key=REDACTED`, `Bearer REDACTED`, `token=REDACTED`.
     - **ONVIF Credential Fallback**: To simplify setup, VibeNVR can automatically extract ONVIF management credentials from a camera's RTSP URL if not explicitly provided. These extracted credentials are treated with the same masking and redaction policies as manual entries.
-    - **Perpetual Security Audit**: Mandatory runtime scans are performed during the CI/CD and security audit workflows to ensure that sensitive strings never leak into the application's stdout.
+    - **Perpetual Security Audit**: Mandatory runtime and static scans are performed during the security audit workflow to ensure that sensitive strings never leak into the application's stdout and that known vulnerabilities are identified via **Bandit (SAST)**.
    - **RTSP URL Redaction (GUI Level)**: Starting from **v1.25.3**, the frontend configuration interface implements dynamic URL masking. RTSP and Sub-Stream URLs are displayed without plain-text passwords (redacted as `********`). If a user pastes a full URL containing a password, it is automatically extracted to the secure separate fields and redacted in real-time.
 5. **Privacy Masking & Motion Zones**: 
     - **Privacy Masks** are applied at the Engine level immediately after frame decoding. They are "burned" into the video frames *before* they reach the recording or motion analysis modules, ensuring that sensitive data is never persisted or processed if masked.
@@ -99,6 +100,13 @@ VibeNVR's code includes specific mitigations against common attack vectors:
    - In development or non-standard environments, using a weak or default `SECRET_KEY` triggers a **loud warning** in the logs but allows the application to proceed for troubleshooting.
    - If `ENVIRONMENT=production` (default), the application **refuses to start** with a weak key (shorter than 32 chars or a known default) to ensure critical security.
    - **Bypass**: If strictly necessary, set `ALLOW_WEAK_SECRET=true` in your `.env` to override the production exit (NOT RECOMMENDED).
+
+10. **Browser Security Headers**: 
+    - Starting from **v1.25.4**, VibeNVR implements standard security headers via the Nginx frontend:
+      - **X-Frame-Options: SAMEORIGIN**: Prevents clickjacking by restricting embedding to the same origin.
+      - **X-Content-Type-Options: nosniff**: Prevents MIME-type sniffing.
+      - **Referrer-Policy: strict-origin-when-cross-origin**: Protects referrer privacy.
+      - **Content-Security-Policy (CSP)**: Implements a strict policy to mitigate XSS and injection attacks. It is currently deployed in **Report-Only** mode to allow for safe, monitored adoption in diverse network environments.
 
 ## ⚠️ Known Accepted Trade-offs
 

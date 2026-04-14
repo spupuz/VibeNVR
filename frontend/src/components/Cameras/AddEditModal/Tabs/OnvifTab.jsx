@@ -62,8 +62,8 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
             />
 
             <div className="bg-muted/30 p-4 rounded-lg border border-border space-y-4">
-                <div className="grid grid-cols-4 gap-4">
-                    <div className="col-span-3">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <div className="sm:col-span-3">
                         <InputField
                             label="ONVIF Host / IP"
                             value={newCamera.onvif_host}
@@ -81,7 +81,7 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                     />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InputField
                         label="ONVIF Username"
                         value={newCamera.onvif_username}

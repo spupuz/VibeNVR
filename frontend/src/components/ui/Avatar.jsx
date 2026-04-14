@@ -21,6 +21,8 @@ const getColorFromString = (str) => {
 };
 
 export const Avatar = ({ user, className = "", size = "md", onClick }) => {
+    const [hasError, setHasError] = React.useState(false);
+    
     // Sizes: sm, md, lg, xl, 2xl
     const sizeClasses = {
         xs: "w-6 h-6 text-xs",
@@ -34,30 +36,27 @@ export const Avatar = ({ user, className = "", size = "md", onClick }) => {
     const bgColor = useMemo(() => getColorFromString(user?.username), [user?.username]);
     const initial = user?.username ? user.username[0].toUpperCase() : '?';
 
-    // Media URLs now use HttpOnly cookies for authentication.
-
-    const avatarUrl = user?.avatar_path
+    const avatarUrl = !hasError && user?.avatar_path
         ? `/api/media/${user.avatar_path}?v=${encodeURIComponent(user.avatar_path)}`
         : null;
 
-    if (avatarUrl) {
-        return (
-            <img
-                src={avatarUrl}
-                alt={user?.username}
-                className={`${sizeClasses[size] || sizeClasses.md} rounded-full object-cover border border-border ${className} cursor-pointer`}
-                onClick={onClick}
-                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-            />
-        );
-    }
-
     return (
-        <div
-            className={`${sizeClasses[size] || sizeClasses.md} rounded-full ${bgColor} text-white flex items-center justify-center font-bold border border-white/10 shadow-sm ${className} cursor-pointer`}
+        <div 
+            className={`relative inline-block ${sizeClasses[size] || sizeClasses.md} border border-border rounded-full overflow-hidden ${className} cursor-pointer`}
             onClick={onClick}
         >
-            {initial}
+            {avatarUrl ? (
+                <img
+                    src={avatarUrl}
+                    alt={user?.username}
+                    className="w-full h-full object-cover"
+                    onError={() => setHasError(true)}
+                />
+            ) : (
+                <div className={`w-full h-full ${bgColor} text-white flex items-center justify-center font-bold shadow-sm`}>
+                    {initial}
+                </div>
+            )}
         </div>
     );
 };

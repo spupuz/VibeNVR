@@ -55,6 +55,10 @@ class CameraBase(BaseModel):
     onvif_username: Optional[str] = None
     onvif_password: Optional[str] = None
     onvif_profile_token: Optional[str] = None
+    
+    # PTZ Capabilities
+    ptz_can_pan_tilt: bool = True
+    ptz_can_zoom: bool = True
 
     # Video Device
     resolution_width: Optional[int] = 800
@@ -409,6 +413,9 @@ class CameraSummary(BaseModel):
     last_seen: Optional[datetime] = None
     privacy_masks: Optional[str] = None
     motion_masks: Optional[str] = None
+    # PTZ Capabilities
+    ptz_can_pan_tilt: bool = True
+    ptz_can_zoom: bool = True
     created_at: datetime
     
     model_config = ConfigDict(from_attributes=True)

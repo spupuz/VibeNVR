@@ -25,6 +25,10 @@ class Camera(Base):
     onvif_password = Column(String, nullable=True)
     onvif_profile_token = Column(String, nullable=True)
     
+    # PTZ Capabilities
+    ptz_can_pan_tilt = Column(Boolean, default=True)
+    ptz_can_zoom = Column(Boolean, default=True)
+    
     # Video Device
     resolution_width = Column(Integer, default=800)
     resolution_height = Column(Integer, default=600)

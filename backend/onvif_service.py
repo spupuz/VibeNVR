@@ -7,7 +7,7 @@ from onvif import ONVIFCamera
 import zeep
 
 logger = logging.getLogger("VibeOnvif")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 # Common ONVIF ports. Order by probability.
 COMMON_ONVIF_PORTS = [80, 8080, 8000, 2020, 8899, 8888, 5000, 10000, 81, 8001, 8002, 8081, 888, 889]
@@ -269,18 +269,28 @@ async def ptz_continuous_move(camera: "models.Camera", pan: float, tilt: float, 
     try:
         ptz, token = await get_ptz_service(camera)
         
+        # Build velocity dynamically to avoid sending 0-commands to axes that should stay still.
+        # Some cameras are sensitive to receiving PanTilt {0,0} when only Zoom is intended.
+        velocity = {}
+        if pan != 0 or tilt != 0:
+            velocity['PanTilt'] = {'x': pan, 'y': tilt}
+        if zoom != 0:
+            velocity['Zoom'] = {'x': zoom}
+            
+        if not velocity:
+            logger.debug(f"PTZ Move for {camera.name} ignored: all axes are 0")
+            return True
+
         request = {
             'ProfileToken': token,
-            'Velocity': {
-                'PanTilt': {'x': pan, 'y': tilt},
-                'Zoom': {'x': zoom}
-            }
+            'Velocity': velocity
         }
         
+        logger.info(f"Sending PTZ ContinuousMove to {camera.name}: {request}")
         await asyncio.to_thread(ptz.ContinuousMove, request)
         return True
     except Exception as e:
-        logger.error(f"PTZ Move failed for {camera.name}: {e}")
+        logger.error(f"PTZ Move failed for {camera.name}: {e}", exc_info=True)
         return False
 
 async def ptz_stop(camera: "models.Camera"):
@@ -302,3 +312,74 @@ async def get_ptz_presets(camera: "models.Camera"):
     except Exception as e:
         logger.error(f"Failed to get PTZ presets for {camera.name}: {e}")
         return []
+
+async def get_ptz_features(camera: "models.Camera"):
+    """Detect supported PTZ features (Pan/Tilt, Zoom) for a camera profile."""
+    try:
+        ptz, token = await get_ptz_service(camera)
+        
+        # Get configuration options for the current profile
+        # ConfigurationToken is often the same as ProfileToken in many implementations,
+        # but technically we should fetch the PTZConfiguration first.
+        # However, many cameras accept the ProfileToken here or have a 1:1 mapping.
+        
+        # To be safe, let's fetch the configuration first
+        configurations = await asyncio.to_thread(ptz.GetConfigurations)
+        if not configurations:
+            return {"ptz_can_pan_tilt": False, "ptz_can_zoom": False}
+            
+        # Match configuration to profile token if possible, or just take the first one
+        config = configurations[0]
+        for c in configurations:
+            if hasattr(c, 'token') and c.token == token:
+                config = c
+                break
+        
+        configs = await asyncio.to_thread(ptz.GetConfigurationOptions, {'ConfigurationToken': config.token})
+        
+        can_pan_tilt = False
+        can_zoom = False
+        
+        if configs and hasattr(configs, 'Spaces'):
+            spaces = configs.Spaces
+            logger.info(f"PTZ Spaces detected for {camera.name}: {spaces}")
+            if hasattr(spaces, 'ContinuousPanTiltVelocitySpace') and spaces.ContinuousPanTiltVelocitySpace:
+                can_pan_tilt = True
+            if hasattr(spaces, 'ContinuousZoomVelocitySpace') and spaces.ContinuousZoomVelocitySpace:
+                can_zoom = True
+            # Also check for Relative and Absolute as indicators of capability (must have actual space definitions)
+            if not can_zoom:
+                rel_zoom = getattr(spaces, 'RelativeZoomTranslationSpace', [])
+                abs_zoom = getattr(spaces, 'AbsoluteZoomPositionSpace', [])
+                if (rel_zoom and len(rel_zoom) > 0) or (abs_zoom and len(abs_zoom) > 0):
+                    logger.info(f"Camera {camera.name} uses Relative/Absolute Zoom.")
+                    can_zoom = True
+        
+        return {
+            "ptz_can_pan_tilt": can_pan_tilt,
+            "ptz_can_zoom": can_zoom
+        }
+    except Exception as e:
+        logger.error(f"Failed to detect PTZ features for {camera.name}: {e}")
+        # Return default (False for zoom if probe fails, to be safe)
+        return {
+            "ptz_can_pan_tilt": True,
+            "ptz_can_zoom": False
+        }
+
+async def probe_and_update_ptz_features(camera_id: int, db_session_factory):
+    """Probe PTZ features and update the database. Designed for BackgroundTasks."""
+    from database import get_db_ctx
+    import crud
+    
+    with get_db_ctx() as db:
+        camera = crud.get_camera(db, camera_id)
+        if not camera or not camera.onvif_host:
+            return
+            
+        features = await get_ptz_features(camera)
+        
+        camera.ptz_can_pan_tilt = features["ptz_can_pan_tilt"]
+        camera.ptz_can_zoom = features["ptz_can_zoom"]
+        db.commit()
+        logger.info(f"Updated PTZ features for camera {camera_id}: {features}")

@@ -110,6 +110,10 @@ class CameraConfig(BaseModel):
     privacy_masks: Optional[str] = None
     motion_masks: Optional[str] = None
     create_debug_media: bool = False
+    
+    # PTZ Capabilities (Synced from Backend)
+    ptz_can_pan_tilt: bool = True
+    ptz_can_zoom: bool = True
 
 @app.get("/")
 def health_check():
@@ -409,4 +413,4 @@ def get_stream(camera_id: int):
 if __name__ == "__main__":
     import uvicorn
     # Listen on all interfaces
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)  # nosec

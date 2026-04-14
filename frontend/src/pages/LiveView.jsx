@@ -311,7 +311,7 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
 
                     {showPTZ && (
                         <PTZControls 
-                            cameraId={camera.id} 
+                            camera={camera} 
                             onClose={() => setShowPTZ(false)} 
                         />
                     )}

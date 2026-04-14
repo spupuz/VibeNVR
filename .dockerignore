@@ -1,0 +1,16 @@
+# Docker exclusions
+.git
+.gitignore
+scripts/
+backend/scripts/
+.agents/
+.gemini/
+node_modules/
+dist/
+venv/
+*.log
+*.sqlite3
+backend/error_trace.txt
+sanity_snapshot.json
+latest_system_auto.json
+sanity_backup.json

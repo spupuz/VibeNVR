@@ -10,6 +10,24 @@ VibeNVR supports advanced camera management via the **ONVIF (Open Network Video 
 - **PTZ Presets**: View and trigger hardware-defined camera presets (Upcoming).
 - **Probing**: Automatically discover camera details (Manufacturer, Model, RTSP profiles).
 - **Credential Fallback**: Automatically attempts to use RTSP streaming credentials if management credentials are not explicitly set.
+- **Network Discovery**: Securely scan your local network for ONVIF and RTSP devices using an optimized SSE (Server-Sent Events) stream.
+
+---
+
+## 🔍 Network Discovery (Scanner)
+
+VibeNVR includes a secure, high-concurrency network scanner to help you find cameras without needing to check your router's DHCP list.
+
+### How it works
+1.  **Select Range**: Enter an IP range (e.g., `192.168.1.0/24` or `192.168.1.1-100`).
+2.  **SSE Streaming**: The scanner uses **Server-Sent Events** to provide real-time feedback. Results appear as they are discovered, rather than waiting for the entire scan to finish.
+3.  **Secure Probing**: 
+    - The scanner attempts to probe ONVIF ports (`80`, `8080`, `8899`, etc.) and RTSP ports (`554`).
+    - It uses **HTTP Headers** (`X-Scanner-User`, `X-Scanner-Password`) to securely pass test credentials during discovery, ensuring that passwords never leak into URL logs or browser history.
+4.  **Auto-Verification**: If discovery succeeds, the system identifies the manufacturer, model, and whether authentication is required.
+
+> [!IMPORTANT]
+> To use the scanner, navigate to the **Add Camera** modal and click the **"Scan Network"** button. Ensure you provide the base credentials for your cameras to allow the scanner to verify specialized profiles.
 
 ---
 
@@ -39,6 +57,17 @@ Once ONVIF is configured, a **Move** icon (four arrows) will appear in the actio
 2.  **Move**: Click and **hold** the directional arrows to move the camera.
 3.  **Zoom**: Use the `+` and `-` buttons on the right to control optical/digital zoom.
 4.  **Stop**: Releasing any button sends a mandatory `Stop` command to prevent the camera from moving indefinitely.
+
+### 🧠 Intelligent Capability Detection
+
+VibeNVR does not simply "guess" if your camera supports PTZ based on the presence of a PTZ service. Instead, it performs a **Deep Capability Probe** that inspects the actual ONVIF Vector Spaces defined by the camera manufacturer.
+
+- **Selective UI**: PTZ buttons (Pan/Tilt and Zoom) are only displayed if the camera explicitly supports their corresponding movements. For example, if a camera has a moving motor but no optical zoom, the Zoom buttons will automatically hide to keep the UI clean.
+- **Manual Re-Probe**: If you have recently upgraded your camera's firmware or replaced the device and PTZ controls are not appearing correctly, you can trigger a manual re-probe.
+  1. Go to **Camera Settings** -> **ONVIF** tab.
+  2. Click the **"Re-Probe Device"** button.
+  3. The PTZ metadata will be refreshed immediately.
+
 5.  **Exit**: Click the **X** in the top-right of the overlay or toggle the Move icon again to hide the controls.
 
 ---

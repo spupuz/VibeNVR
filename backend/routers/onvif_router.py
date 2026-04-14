@@ -205,3 +205,25 @@ async def get_ptz_presets(
         
     presets = await onvif_service.get_ptz_presets(camera)
     return presets
+
+@router.post("/ptz/probe-features/{camera_id}")
+async def probe_ptz_features(
+    camera_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.User = Depends(auth_service.get_current_active_admin)
+):
+    """Manually trigger a probe for PTZ features and update camera status."""
+    camera = crud.get_camera(db, camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Camera not found")
+    
+    # 1. Probe ONVIF
+    features = await onvif_service.get_ptz_features(camera)
+    
+    # 2. Update DB
+    camera.ptz_can_pan_tilt = features["ptz_can_pan_tilt"]
+    camera.ptz_can_zoom = features["ptz_can_zoom"]
+    db.commit()
+    db.refresh(camera)
+    
+    return features

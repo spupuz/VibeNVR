@@ -53,3 +53,19 @@ If you expose VibeNVR to the internet or your LAN via an **external reverse prox
   ```
 - **Nginx Proxy Manager:** Edit your Proxy Host, go to the **Details** tab, and toggle the **"Websockets Support"** switch to ON.
 - **Caddy / Traefik:** WebSockets are supported automatically by default.
+
+---
+
+## 🔒 Browser Security Headers (v1.25.4+)
+
+Starting from version **v1.25.4**, VibeNVR includes standard browser security headers served by the internal Nginx frontend. These provide an extra layer of defense against common web vulnerabilities.
+
+| Header | Value | Purpose |
+|--------|-------|---------|
+| **X-Frame-Options** | `SAMEORIGIN` | Prevents Clickjacking by restricting embedding. |
+| **X-Content-Type-Options** | `nosniff` | Prevents MIME-type sniffing. |
+| **Referrer-Policy** | `strict-origin-when-cross-origin` | Protects privacy when navigating to external links. |
+| **Content-Security-Policy-Report-Only** | *(Strict)* | Mitigates XSS. See [SECURITY.md](SECURITY.md) for details. |
+
+> [!NOTE]
+> **Custom Proxies**: If you are using an external reverse proxy (like Nginx Proxy Manager or Traefik), you do **not** need to manually add these headers to your proxy configuration, as they are already served by the internal VibeNVR frontend and passed through by your proxy.

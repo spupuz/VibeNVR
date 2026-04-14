@@ -79,7 +79,12 @@ def sanitize_rtsp_url(url: str) -> str:
         return url
 
 @router.post("", response_model=schemas.Camera)
-def create_camera(camera: schemas.CameraCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def create_camera(
+    camera: schemas.CameraCreate, 
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(database.get_db), 
+    current_user: models.User = Depends(auth_service.get_current_active_admin)
+):
     # Sanitize URL credentials
     if camera.rtsp_url:
         camera.rtsp_url = sanitize_rtsp_url(camera.rtsp_url)
@@ -104,6 +109,9 @@ def create_camera(camera: schemas.CameraCreate, db: Session = Depends(database.g
             print("Probe failed, using provided resolution.", flush=True)
 
     new_camera = crud.create_camera(db=db, camera=camera)
+    if new_camera.onvif_host:
+        import onvif_service
+        background_tasks.add_task(onvif_service.probe_and_update_ptz_features, new_camera.id, None)
     motion_service.generate_motion_config(db)
     return new_camera
 
@@ -161,7 +169,15 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks
     # Store old active status to decide on start vs update
     was_active = existing_camera.is_active
     
+    # Store old ONVIF for probe trigger
+    old_onvif_host = existing_camera.onvif_host
+    
     db_camera = crud.update_camera(db, camera_id=camera_id, camera=camera)
+    
+    # Trigger PTZ probe if ONVIF host changed or was just added
+    if db_camera.onvif_host and (db_camera.onvif_host != old_onvif_host):
+        import onvif_service
+        background_tasks.add_task(onvif_service.probe_and_update_ptz_features, db_camera.id, None)
     if db_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
     
