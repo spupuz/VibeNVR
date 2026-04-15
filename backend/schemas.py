@@ -432,6 +432,7 @@ class GroupAction(BaseModel):
     action: str  # enable_motion, disable_motion, copy_settings
     source_camera_id: Optional[int] = None
     target_camera_ids: Optional[list[int]] = None
+    categories: Optional[List[str]] = None
 
 # API Tokens
 class ApiTokenCreate(BaseModel):

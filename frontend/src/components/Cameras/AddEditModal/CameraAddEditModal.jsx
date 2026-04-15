@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
 import { 
-    X, Info, Settings2, Activity, EyeOff, Shield, Film, Image, Bell, Type, Copy 
+    X, Info, Settings2, Activity, EyeOff, Shield, Film, Image, Bell, Type, Copy, Check 
 } from 'lucide-react';
 import { Portal } from '../../ui/Portal';
 import { SelectField } from '../../ui/FormControls';
 import { Button } from '../../ui/Button';
+import { CAMERA_SETTINGS_CATEGORIES, CATEGORY_FIELD_MAP, EXCLUDED_FIELDS } from '../../../utils/cameraSettingsMapping';
 
 // Import Tabs
 import { GeneralTab } from './Tabs/GeneralTab';
@@ -36,14 +37,57 @@ export const CameraAddEditModal = ({
     handleTestNotification,
     setShowCopyModal
 }) => {
-    if (!showAddModal) return null;
-    
+    const [cloneSourceId, setCloneSourceId] = React.useState('');
+    const [selectedCloneCategories, setSelectedCloneCategories] = React.useState(CAMERA_SETTINGS_CATEGORIES.map(c => c.id));
+
     // Redirect away from motion_zones if engine is ONVIF Edge
     useEffect(() => {
-        if (activeTab === 'motion_zones' && newCamera.detect_engine === 'ONVIF Edge') {
+        if (newCamera && activeTab === 'motion_zones' && newCamera.detect_engine === 'ONVIF Edge') {
             setActiveTab('motion');
         }
-    }, [newCamera.detect_engine, activeTab, setActiveTab]);
+    }, [newCamera?.detect_engine, activeTab, setActiveTab]);
+
+    if (!showAddModal) return null;
+
+    const performClone = (sourceId, categories) => {
+        const source = cameras.find(c => c.id === parseInt(sourceId));
+        if (!source) return;
+
+        // Determine which fields to copy
+        const fieldsToCopy = [];
+        categories.forEach(cat => {
+            if (CATEGORY_FIELD_MAP[cat]) {
+                fieldsToCopy.push(...CATEGORY_FIELD_MAP[cat]);
+            }
+        });
+
+        const settingsToCopy = Object.keys(source).reduce((acc, key) => {
+            if (fieldsToCopy.includes(key) && !EXCLUDED_FIELDS.includes(key)) {
+                acc[key] = source[key];
+            }
+            return acc;
+        }, {});
+
+        setNewCamera(prev => ({
+            ...prev,
+            ...settingsToCopy,
+            id: undefined,
+            name: prev.name || `Copy of ${source.name}`,
+            location: prev.location || source.location,
+            is_active: source.is_active,
+            created_at: undefined
+        }));
+    };
+
+    const toggleCloneCategory = (id) => {
+        const next = selectedCloneCategories.includes(id)
+            ? selectedCloneCategories.filter(c => c !== id)
+            : [...selectedCloneCategories, id];
+        setSelectedCloneCategories(next);
+        if (cloneSourceId) {
+            performClone(cloneSourceId, next);
+        }
+    };
 
     const tabs = [
         { id: 'general', label: 'General', icon: Info },
@@ -73,7 +117,7 @@ export const CameraAddEditModal = ({
                             </p>
                         </div>
                         <button
-                            onClick={() => setShowAddModal(false)}
+                            onClick={() => { setShowAddModal(false); setEditingId(null); setCloneSourceId(''); }}
                             className="p-2 hover:bg-muted rounded-full transition-colors"
                         >
                             <X className="w-5 h-5" />
@@ -81,22 +125,19 @@ export const CameraAddEditModal = ({
                     </div>
 
                     {!editingId && (
-                        <div className="mb-6 p-3 bg-primary/5 border border-primary/20 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-xl animate-in fade-in slide-in-from-top-2 duration-300 shadow-sm">
+                            <div className="flex items-center gap-2 mb-3 text-primary">
+                                <Copy className="w-4 h-4" />
+                                <span className="text-xs font-bold uppercase tracking-wider">Clone Settings</span>
+                            </div>
+                            
                             <SelectField
-                                label="Clone Settings From..."
+                                label="Source Camera"
+                                value={cloneSourceId}
                                 onChange={(val) => {
+                                    setCloneSourceId(val);
                                     if (val) {
-                                        const source = cameras.find(c => c.id === parseInt(val));
-                                        if (source) {
-                                            setNewCamera(prev => ({
-                                                ...source,
-                                                id: undefined,
-                                                name: `Copy of ${source.name}`,
-                                                location: source.location,
-                                                is_active: source.is_active,
-                                                created_at: undefined
-                                            }));
-                                        }
+                                        performClone(val, selectedCloneCategories);
                                     }
                                 }}
                                 options={[
@@ -104,6 +145,33 @@ export const CameraAddEditModal = ({
                                     ...cameras.map(c => ({ value: c.id, label: c.name }))
                                 ]}
                             />
+
+                            {cloneSourceId && (
+                                <div className="mt-4 animate-in fade-in zoom-in-95 duration-200">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-primary/70">Categories to Import</span>
+                                        <div className="flex gap-2">
+                                            <button type="button" className="text-[10px] uppercase font-bold text-blue-600 hover:underline" onClick={() => { setSelectedCloneCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); performClone(cloneSourceId, CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); }}>All</button>
+                                            <button type="button" className="text-[10px] uppercase font-bold text-muted-foreground hover:underline" onClick={() => { setSelectedCloneCategories([]); performClone(cloneSourceId, []); }}>None</button>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 bg-background/50 p-2 rounded-lg border border-primary/10">
+                                        {CAMERA_SETTINGS_CATEGORIES.map(cat => (
+                                            <div
+                                                key={cat.id}
+                                                className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors border ${selectedCloneCategories.includes(cat.id) ? 'bg-primary/10 border-primary/20 text-primary font-medium' : 'hover:bg-muted border-transparent text-muted-foreground'}`}
+                                                onClick={() => toggleCloneCategory(cat.id)}
+                                            >
+                                                <span className="text-[11px] truncate">{cat.label}</span>
+                                                <div className={`w-3.5 h-3.5 rounded border transition-colors flex items-center justify-center shrink-0 ${selectedCloneCategories.includes(cat.id) ? 'bg-primary border-primary' : 'border-muted-foreground/30'}`}>
+                                                    {selectedCloneCategories.includes(cat.id) && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-2 italic">* Unique settings (URLs, ONVIF credentials, Storage Profiles) are never cloned.</p>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -202,7 +270,7 @@ export const CameraAddEditModal = ({
                                     type="button"
                                     variant="outline"
                                     onClick={() => setShowCopyModal(true)}
-                                    className="flex items-center justify-center space-x-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-4 py-2 rounded-lg transition-colors border-blue-100 dark:border-blue-900/30 w-full sm:w-auto"
+                                    className="flex items-center justify-center space-x-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-4 py-2 rounded-lg transition-colors border-blue-100 dark:border-blue-900/30 w-full sm:w-auto whitespace-nowrap"
                                 >
                                     <Copy className="w-4 h-4" />
                                     <span>Copy Settings to...</span>
@@ -214,7 +282,7 @@ export const CameraAddEditModal = ({
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    onClick={() => setShowAddModal(false)}
+                                    onClick={() => { setShowAddModal(false); setEditingId(null); setCloneSourceId(''); }}
                                     className="flex-1 sm:flex-none border border-border sm:border-none"
                                 >
                                     Cancel

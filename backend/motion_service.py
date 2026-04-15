@@ -81,6 +81,9 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
         "motion_masks": cam.motion_masks,
         "ptz_can_pan_tilt": cam.ptz_can_pan_tilt if cam.ptz_can_pan_tilt is not None else True,
         "ptz_can_zoom": cam.ptz_can_zoom if cam.ptz_can_zoom is not None else True,
+        "rtsp_transport": cam.rtsp_transport or "tcp",
+        "sub_rtsp_transport": cam.sub_rtsp_transport or "tcp",
+        "live_view_mode": cam.live_view_mode or "auto",
         "storage_path": cam.storage_profile.path if cam.storage_profile else "/var/lib/vibe/recordings"
     }
     

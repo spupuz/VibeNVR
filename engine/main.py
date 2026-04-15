@@ -156,6 +156,9 @@ class CameraConfig(BaseModel):
     ptz_can_zoom: bool = True
     detect_motion_mode: str = "Always"
     detect_engine: str = "OpenCV"
+    rtsp_transport: str = "tcp"
+    sub_rtsp_transport: str = "tcp"
+    live_view_mode: str = "auto"
 
 
 class EventTrigger(BaseModel):

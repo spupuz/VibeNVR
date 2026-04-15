@@ -14,6 +14,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **[API Documentation](API.md)** - Detailed reference for integrating with the VibeNVR backend.
 - **[Access Recovery Guide](Access-Recovery.md)** - Securely regaining account access from the host terminal.
 - **[Storage Profiles](Storage-Profiles.md)** - Managing quotas and recording retention.
+- **[Camera Settings](Camera-Settings.md)** - Logic and behavior of the Bulk "Copy Settings" feature.
 - **[System Architecture](Architecture.md)** - Deep dive into VibeEngine, PyAV/OpenCV, and microservices.
 - **[Privacy Masking](Privacy-Masking.md)** - Configuring obscured areas and motion exclusion zones.
 - **[Backup & Restore](Backups.md)** - System snapshots and configuration management.

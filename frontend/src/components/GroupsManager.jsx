@@ -4,6 +4,7 @@ import { Toggle } from './ui/FormControls';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { CAMERA_SETTINGS_CATEGORIES } from '../utils/cameraSettingsMapping';
 
 export const GroupsManager = ({ cameras, onUpdate }) => {
     const { token, user } = useAuth();
@@ -22,6 +23,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
     // Copy Modal
     const [copyingGroup, setCopyingGroup] = useState(null);
     const [sourceCameraId, setSourceCameraId] = useState('');
+    const [selectedCategories, setSelectedCategories] = useState(CAMERA_SETTINGS_CATEGORIES.map(c => c.id));
 
     useEffect(() => {
         if (token) fetchGroups();
@@ -160,7 +162,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
         }
     };
 
-    const handleAction = async (groupId, action, sourceId = null) => {
+    const handleAction = async (groupId, action, sourceId = null, categories = null) => {
         let message = 'Are you sure? This will update all cameras in the group.';
         let title = 'Group Action';
 
@@ -172,7 +174,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
             message = 'This will disable motion detection and recording for all cameras in this group. Continue?';
         } else if (action === 'copy_settings') {
             title = 'Copy Settings';
-            message = 'This will overwrite settings for all cameras in this group with settings from the source camera. Continue?';
+            message = `This will overwrite selected settings categories for all cameras in this group with settings from the source camera. ${categories ? `(${categories.length} categories selected)` : ''} Continue?`;
         }
 
         setConfirmConfig({
@@ -183,6 +185,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                 try {
                     const body = { action };
                     if (sourceId) body.source_camera_id = parseInt(sourceId);
+                    if (categories) body.categories = categories;
 
                     const res = await fetch(`/api/groups/${groupId}/action`, {
                         method: 'POST',
@@ -194,6 +197,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                         const data = await res.json();
                         showToast(`Action completed. Modified ${data.modified_count} cameras.`, 'success');
                         setCopyingGroup(null);
+                        setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id));
                         fetchGroups(); // Refresh groups to update UI
                         if (onUpdate) onUpdate(); // Refresh cameras in parent component
                     } else {
@@ -207,6 +211,14 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
             },
             onCancel: () => setConfirmConfig({ isOpen: false })
         });
+    };
+
+    const toggleCategory = (id) => {
+        if (selectedCategories.includes(id)) {
+            setSelectedCategories(selectedCategories.filter(c => c !== id));
+        } else {
+            setSelectedCategories([...selectedCategories, id]);
+        }
     };
 
     return (
@@ -438,35 +450,67 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
 
             {/* Copy Settings Modal */}
             {copyingGroup && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-card p-6 rounded-xl w-full max-w-sm border border-border">
-                        <h3 className="text-lg font-bold mb-2">Copy Settings</h3>
-                        <p className="text-sm text-muted-foreground mb-4">Select a source camera to copy settings FROM. These settings will be applied to all cameras in <strong>{copyingGroup.name}</strong>.</p>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-card p-6 rounded-xl w-full max-w-md border border-border shadow-2xl flex flex-col max-h-[90vh]">
+                        <div className="flex items-center gap-2 mb-2 text-blue-500">
+                            <Copy className="w-5 h-5" />
+                            <h3 className="text-lg font-bold text-foreground">Copy Settings</h3>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-6">Select a source camera and the categories to apply to all cameras in <strong>{copyingGroup.name}</strong>.</p>
 
-                        <select
-                            className="w-full px-3 py-2 bg-background border border-input rounded-md mb-6"
-                            value={sourceCameraId}
-                            onChange={e => setSourceCameraId(e.target.value)}
-                        >
-                            <option value="">-- Select Source Camera --</option>
-                            {cameras.filter(c => !copyingGroup.cameras.some(gc => gc.id === c.id)).map(c => (
-                                <option key={c.id} value={c.id}>External: {c.name}</option>
-                            ))}
-                            {/* Also allow copying from within group? Yes */}
-                            <option disabled>-- Inside Group --</option>
-                            {copyingGroup.cameras.map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                        </select>
+                        <div className="space-y-6 overflow-y-auto pr-2 -mr-2 mb-6">
+                            <div>
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 block">1. Source Camera</span>
+                                <select
+                                    className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm"
+                                    value={sourceCameraId}
+                                    onChange={e => setSourceCameraId(e.target.value)}
+                                >
+                                    <option value="">-- Select Source Camera --</option>
+                                    <option disabled>-- Outside Group --</option>
+                                    {cameras.filter(c => !copyingGroup.cameras.some(gc => gc.id === c.id)).map(c => (
+                                        <option key={c.id} value={c.id}>External: {c.name}</option>
+                                    ))}
+                                    <option disabled>-- Inside Group --</option>
+                                    {copyingGroup.cameras.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
 
-                        <div className="flex justify-end space-x-2">
-                            <button onClick={() => setCopyingGroup(null)} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md">Cancel</button>
+                            <div>
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">2. Settings Categories</span>
+                                    <div className="flex gap-2">
+                                        <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline" onClick={() => setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id))}>All</button>
+                                        <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline" onClick={() => setSelectedCategories([])}>None</button>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 gap-1.5 bg-muted/20 p-2 rounded-lg border border-border/50">
+                                    {CAMERA_SETTINGS_CATEGORIES.map(cat => (
+                                        <div
+                                            key={cat.id}
+                                            className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors ${selectedCategories.includes(cat.id) ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'hover:bg-muted text-muted-foreground'}`}
+                                            onClick={() => toggleCategory(cat.id)}
+                                        >
+                                            <span className="text-xs font-medium">{cat.label}</span>
+                                            <div className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${selectedCategories.includes(cat.id) ? 'bg-blue-500 border-blue-500' : 'border-muted-foreground/30'}`}>
+                                                {selectedCategories.includes(cat.id) && <Check className="w-3 h-3 text-white" />}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end space-x-2 pt-4 border-t border-border">
+                            <button onClick={() => { setCopyingGroup(null); setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); }} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md transition-colors">Cancel</button>
                             <button
-                                onClick={() => handleAction(copyingGroup.id, 'copy_settings', sourceCameraId)}
-                                disabled={!sourceCameraId}
-                                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md disabled:opacity-50"
+                                onClick={() => handleAction(copyingGroup.id, 'copy_settings', sourceCameraId, selectedCategories)}
+                                disabled={!sourceCameraId || selectedCategories.length === 0}
+                                className="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50 disabled:bg-muted disabled:text-muted-foreground shadow-lg shadow-blue-500/10 transition-all font-medium"
                             >
-                                Apply
+                                Apply to Group
                             </button>
                         </div>
                     </div>

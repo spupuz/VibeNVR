@@ -69,7 +69,7 @@ def migrate():
 
     # Movies
     add_column_if_not_exists(engine, "cameras", "movie_file_name", "VARCHAR", "%Y-%m-%d/%H-%M-%S")
-    add_column_if_not_exists(engine, "cameras", "movie_passthrough", "BOOLEAN", True)
+    add_column_if_not_exists(engine, "cameras", "movie_passthrough", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "movie_quality", "INTEGER", 75)
     add_column_if_not_exists(engine, "cameras", "recording_mode", "VARCHAR", "Motion Triggered")
     add_column_if_not_exists(engine, "cameras", "previous_recording_mode", "VARCHAR")  # For toggle state memory
@@ -94,8 +94,8 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "detect_motion_mode", "VARCHAR", "Always")
     add_column_if_not_exists(engine, "cameras", "detect_engine", "VARCHAR", "OpenCV")
     add_column_if_not_exists(engine, "cameras", "motion_gap", "INTEGER", 10)
-    add_column_if_not_exists(engine, "cameras", "captured_before", "INTEGER", 30)
-    add_column_if_not_exists(engine, "cameras", "captured_after", "INTEGER", 30)
+    add_column_if_not_exists(engine, "cameras", "captured_before", "INTEGER", 2)
+    add_column_if_not_exists(engine, "cameras", "captured_after", "INTEGER", 2)
     add_column_if_not_exists(engine, "cameras", "min_motion_frames", "INTEGER", 2)
     add_column_if_not_exists(engine, "cameras", "mask", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "show_frame_changes", "BOOLEAN", True)
@@ -137,8 +137,7 @@ def migrate():
         add_column_if_not_exists(engine, "cameras", f"schedule_{day}", "BOOLEAN", True)
         add_column_if_not_exists(engine, "cameras", f"schedule_{day}_start", "VARCHAR", "00:00")
         add_column_if_not_exists(engine, "cameras", f"schedule_{day}_end", "VARCHAR", "23:59")
-    
-    add_column_if_not_exists(engine, "cameras", "detect_motion_mode", "VARCHAR", "Always")
+
 
     # Events Table Improvements
     add_column_if_not_exists(engine, "events", "event_type", "VARCHAR")
@@ -189,6 +188,9 @@ def migrate():
             models.RecoveryCode.__table__.create(engine)
             conn.commit()
             print("recovery_codes table created.")
+
+    # Camera Group Improvements
+    add_column_if_not_exists(engine, "camera_groups", "description", "VARCHAR")
 
     # Storage Profiles (New Feature)
     with engine.connect() as conn:

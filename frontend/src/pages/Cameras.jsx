@@ -14,6 +14,7 @@ import { CameraAddEditModal } from '../components/Cameras/AddEditModal/CameraAdd
 import { CopySettingsModal } from '../components/Cameras/CopySettingsModal';
 import { parseRtspUrl } from '../utils/cameraUtils';
 import { DEFAULT_CAMERA_STATE } from '../constants/cameraDefaults';
+import { CATEGORY_FIELD_MAP, EXCLUDED_FIELDS } from '../utils/cameraSettingsMapping';
 import { BulkActionsBar } from '../components/Cameras/BulkActionsBar';
 import { ProcessingOverlay } from '../components/Cameras/ProcessingOverlay';
 
@@ -356,26 +357,35 @@ export const Cameras = () => {
         setShowScanner(false);
     };
 
-    const handleCopySettings = async () => {
+    const handleCopySettings = async (selectedCategories) => {
         if (copyTargets.length === 0) return;
 
         setConfirmConfig({
             isOpen: true,
             title: 'Copy Settings',
-            message: `Overwrite settings for ${copyTargets.length} cameras?`,
+            message: `Overwrite ${selectedCategories.length} categories of settings for ${copyTargets.length} cameras?`,
             onConfirm: async () => {
-                // Fields to EXCLUDE (Unique/Hardware specific items)
-                const EXCLUDED_FIELDS = [
-                    'id', 'name', 'rtsp_url', 'stream_url', 'created_at', 'location', 'stream_port',
-                    'resolution_width', 'resolution_height', 'auto_resolution'
-                ];
+                // Determine which fields to copy based on selected categories
+                const fieldsToCopy = [];
+                selectedCategories.forEach(cat => {
+                    if (CATEGORY_FIELD_MAP[cat]) {
+                        fieldsToCopy.push(...CATEGORY_FIELD_MAP[cat]);
+                    }
+                });
 
                 const settingsToCopy = Object.keys(newCamera).reduce((acc, key) => {
-                    if (!EXCLUDED_FIELDS.includes(key)) {
+                    // Only copy if it's in the selected categories AND not explicitly excluded
+                    if (fieldsToCopy.includes(key) && !EXCLUDED_FIELDS.includes(key)) {
                         acc[key] = newCamera[key];
                     }
                     return acc;
                 }, {});
+
+                if (Object.keys(settingsToCopy).length === 0) {
+                    showToast('No settings selected to copy', 'warning');
+                    setConfirmConfig({ isOpen: false });
+                    return;
+                }
 
                 for (const targetId of copyTargets) {
                     const targetCam = cameras.find(c => c.id === targetId);
@@ -401,7 +411,7 @@ export const Cameras = () => {
                 setShowCopyModal(false);
                 setCopyTargets([]);
                 fetchCameras();
-                showToast("Settings copied to selected cameras.", "success");
+                showToast("Settings copied successfully.", "success");
                 setConfirmConfig({ isOpen: false });
             },
             onCancel: () => setConfirmConfig({ isOpen: false })
