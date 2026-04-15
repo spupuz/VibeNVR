@@ -59,6 +59,7 @@ class CameraBase(BaseModel):
     # PTZ Capabilities
     ptz_can_pan_tilt: bool = True
     ptz_can_zoom: bool = True
+    ptz_can_home: bool = True
     onvif_can_events: bool = False
 
     # Video Device
@@ -419,6 +420,7 @@ class CameraSummary(BaseModel):
     # PTZ Capabilities
     ptz_can_pan_tilt: bool = True
     ptz_can_zoom: bool = True
+    ptz_can_home: bool = True
     created_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
@@ -539,6 +541,7 @@ class OnvifDeviceDetails(BaseModel):
     manufacturer: Optional[str] = None
     model: Optional[str] = None
     profiles: List[OnvifProfile] = []
+    features: Optional[Dict[str, bool]] = None
     auth_required: bool = False
 
 # PTZ Controls

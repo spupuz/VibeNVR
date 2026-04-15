@@ -50,7 +50,7 @@ Actions protected by the Admin RBAC include:
 - Generating API tokens (`routers/api_tokens.py`)
 - Forcing full system cleanups or manual snapshots
 - Modifying general system settings and user accounts
-- Configuring ONVIF Management credentials and performing PTZ operations (`routers/onvif_router.py`)
+- Configuring ONVIF Management credentials and performing PTZ operations, including **Home Position** management (`routers/onvif_router.py`)
 - Scanning networks for ONVIF devices via secure SSE streams.
 
 ### Standard User Privileges
@@ -68,7 +68,9 @@ VibeNVR's code includes specific mitigations against common attack vectors:
 2. **IP Ban Protection & DoS Mitigation**:
     - The VibeEngine (`camera_thread.py`) performs a mandatory **ffprobe pre-flight check** before initiating a full video stream connection. This prevents rapid authentication retries that trigger IP bans on many camera firmwares (e.g., Tapo/TP-Link).
     - If a 401 Unauthorized or 403 Forbidden is detected, the thread enters a **5-minute backoff period** before retrying. This mitigates accidental or malicious "denial of service" scenarios through camera lockouts while allowing for eventual recovery if credentials are corrected in the UI.
-3. **Event File Deletion & Path Traversal**:
+3. **Robust PTZ Home Fallbacks**:
+    - PTZ Home positioning utilizes a **3-stage fallback** (Native -> Existing Preset -> Create Preset) to ensure functionality on hardware with non-standard ONVIF implementations. This prevents sensitive 400-series errors from leaking directly to the UI and provides a consistent security boundary for device interactions.
+4. **Event File Deletion & Path Traversal**:
     - All file deletion operations (Single, Bulk, and "Delete All") go through a mandatory **Path Sanitization** check before any `os.remove` call.
     - The final resolved path MUST start with the `/data/` internal storage directory. Any attempt to delete files outside this boundary results in a security alert in the logs and the deletion is blocked.
 4. **Secure RTSP (RSTSPS) & TLS Verification**:

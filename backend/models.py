@@ -28,6 +28,7 @@ class Camera(Base):
     # PTZ Capabilities
     ptz_can_pan_tilt = Column(Boolean, default=True)
     ptz_can_zoom = Column(Boolean, default=True)
+    ptz_can_home = Column(Boolean, default=True)
     onvif_can_events = Column(Boolean, default=False)
     
     # Video Device

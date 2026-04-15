@@ -93,6 +93,17 @@ async def get_onvif_details(ip: str, port: int, user: str = "", password: str = 
                 })
             except Exception as e:
                 logger.warning(f"Could not get stream URI for profile {profile.Name} on {ip}: {e}")
+        
+        # Detect features for the first profile found
+        if profiles:
+            results["features"] = await _detect_onvif_capabilities(device, profiles[0].token)
+        else:
+            results["features"] = {
+                "ptz_can_pan_tilt": False,
+                "ptz_can_zoom": False,
+                "ptz_can_home": False,
+                "onvif_can_events": False
+            }
                 
         return results
     except (ConnectionRefusedError, zeep.exceptions.Error, socket.timeout) as e:
@@ -319,6 +330,101 @@ async def ptz_stop(camera: "models.Camera"):
         logger.error(f"PTZ Stop failed for {camera.name}: {e}")
         return False
 
+async def ptz_set_home(camera: "models.Camera"):
+    """Set the current position as the PTZ home position with fallback to Preset 1."""
+    try:
+        ptz, token = await get_ptz_service(camera)
+        try:
+            # 1. Attempt standard ONVIF SetHomePosition
+            await asyncio.to_thread(ptz.SetHomePosition, {'ProfileToken': token})
+            logger.info(f"Set PTZ Home Position for {camera.name}")
+            return True
+        except Exception as e:
+            logger.warning(f"Standard PTZ SetHomePosition failed for {camera.name}, attempting fallback: {e}")
+            
+            # 2. Fallback: Attempt to update a preset named "Home" or "1"
+            presets = await get_ptz_presets(camera)
+            target_preset = None
+            
+            for p in presets:
+                if p['name'].lower() == 'home':
+                    target_preset = p['token']
+                    break
+            
+            if not target_preset:
+                for p in presets:
+                    if p['name'] == '1' or p['token'] == '1':
+                        target_preset = p['token']
+                        break
+            
+            if target_preset:
+                logger.info(f"Attempting PTZ SetHome fallback to existing Preset '{target_preset}' for {camera.name}")
+                await asyncio.to_thread(ptz.SetPreset, {
+                    'ProfileToken': token,
+                    'PresetToken': target_preset
+                })
+                return True
+            else:
+                # 3. Last Resort: Attempt to CREATE a new preset named "Home"
+                logger.info(f"Attempting to CREATE a new 'Home' preset for PTZ fallback on {camera.name}")
+                try:
+                    await asyncio.to_thread(ptz.SetPreset, {
+                        'ProfileToken': token,
+                        'PresetName': 'Home'
+                    })
+                    return True
+                except Exception as create_err:
+                    logger.error(f"Failed to create new Home preset for {camera.name}: {create_err}")
+            
+            logger.error(f"No suitable Home preset found and creation failed for {camera.name}")
+            return False
+    except Exception as e:
+        logger.error(f"PTZ SetHome failed for {camera.name}: {e}")
+        return False
+
+async def ptz_goto_home(camera: "models.Camera"):
+    """Move the PTZ to the configured home position with fallback to Preset 1."""
+    try:
+        ptz, token = await get_ptz_service(camera)
+        try:
+            # 1. Attempt standard ONVIF GotoHomePosition
+            await asyncio.to_thread(ptz.GotoHomePosition, {'ProfileToken': token})
+            logger.info(f"Triggered standard PTZ GotoHomePosition for {camera.name}")
+            return True
+        except Exception as e:
+            logger.warning(f"Standard PTZ GotoHomePosition failed for {camera.name}, attempting fallback: {e}")
+            
+            # 2. Fallback: Attempt to move to a preset named "Home" or "1"
+            presets = await get_ptz_presets(camera)
+            target_preset = None
+            
+            # Try to find "Home" (case insensitive)
+            for p in presets:
+                if p['name'].lower() == 'home':
+                    target_preset = p['token']
+                    break
+            
+            # If not found, try to find preset "1"
+            if not target_preset:
+                for p in presets:
+                    if p['name'] == '1' or p['token'] == '1':
+                        target_preset = p['token']
+                        break
+            
+            if target_preset:
+                logger.info(f"Attempting PTZ Home fallback to Preset '{target_preset}' for {camera.name}")
+                await asyncio.to_thread(ptz.GotoPreset, {
+                    'ProfileToken': token,
+                    'PresetToken': target_preset
+                })
+                return True
+            
+            logger.error(f"PTZ Home fallback failed for {camera.name}: No 'Home' or '1' preset found.")
+            return False
+    except Exception as e:
+        logger.error(f"PTZ GotoHomePosition failed for {camera.name}: {e}")
+        return False
+
 async def get_ptz_presets(camera: "models.Camera"):
     """Retrieve list of defined PTZ presets."""
     try:
@@ -329,13 +435,77 @@ async def get_ptz_presets(camera: "models.Camera"):
         logger.error(f"Failed to get PTZ presets for {camera.name}: {e}")
         return []
 
-async def get_onvif_features(camera: "models.Camera"):
-    """Detect supported ONVIF features (Pan/Tilt, Zoom, Events) for a camera."""
+async def _detect_onvif_capabilities(device: ONVIFCamera, profile_token: Optional[str] = None):
+    """Helper to detect capabilities for a given ONVIF device object."""
     features = {
         "ptz_can_pan_tilt": False, 
         "ptz_can_zoom": False,
+        "ptz_can_home": False,
         "onvif_can_events": False
     }
+    
+    # 1. Detect Events Capability
+    try:
+        capabilities = await asyncio.to_thread(device.devicemgmt.GetCapabilities)
+        if hasattr(capabilities, 'Events') and capabilities.Events:
+            # To be absolutely sure, try to create the events service
+            await asyncio.to_thread(device.create_events_service)
+            features["onvif_can_events"] = True
+    except Exception as e:
+        logger.debug(f"Event capability detection failed: {e}")
+
+    # 2. Detect PTZ Capabilities
+    try:
+        ptz_service = await asyncio.to_thread(device.create_ptz_service)
+        media_service = await asyncio.to_thread(device.create_media_service)
+        
+        token = profile_token
+        if not token:
+            profiles = await asyncio.to_thread(media_service.GetProfiles)
+            if profiles: token = profiles[0].token
+        
+        if token:
+            configurations = await asyncio.to_thread(ptz_service.GetConfigurations)
+            if configurations:
+                config = configurations[0]
+                for c in configurations:
+                    if hasattr(c, 'token') and c.token == token:
+                        config = c
+                        break
+                
+                configs = await asyncio.to_thread(ptz_service.GetConfigurationOptions, {'ConfigurationToken': config.token})
+                if configs and hasattr(configs, 'Spaces'):
+                    spaces = configs.Spaces
+                    if hasattr(spaces, 'ContinuousPanTiltVelocitySpace') and spaces.ContinuousPanTiltVelocitySpace:
+                        features["ptz_can_pan_tilt"] = True
+                    if hasattr(spaces, 'ContinuousZoomVelocitySpace') and spaces.ContinuousZoomVelocitySpace:
+                        features["ptz_can_zoom"] = True
+                        # Optional checks for relative/absolute zoom if needed
+                
+                # 3. Detect Home Support (Native or Fallback)
+                try:
+                    if hasattr(ptz_service, 'GotoHomePosition'):
+                        features["ptz_can_home"] = True
+                except:
+                    pass
+                
+                if not features["ptz_can_home"]:
+                    try:
+                        presets = await asyncio.to_thread(ptz_service.GetPresets, {'ProfileToken': token})
+                        for p in presets:
+                            p_name = str(p.Name).lower()
+                            if p_name == "home" or p_name == "1" or str(p.token) == "1":
+                                features["ptz_can_home"] = True
+                                break
+                    except:
+                        pass
+    except Exception as e:
+        logger.debug(f"PTZ capability detection failed: {e}")
+        
+    return features
+
+async def get_onvif_features(camera: "models.Camera"):
+    """Detect supported ONVIF features (Pan/Tilt, Zoom, Events) for a camera."""
     try:
         host = camera.onvif_host
         port = camera.onvif_port or 80
@@ -351,61 +521,22 @@ async def get_onvif_features(camera: "models.Camera"):
             if not password and parsed.password: password = parsed.password
 
         if not host:
-            return features
+            return {
+                "ptz_can_pan_tilt": False, "ptz_can_zoom": False,
+                "ptz_can_home": False, "onvif_can_events": False
+            }
 
         transport = get_onvif_transport(timeout=5.0)
-        # Add a secondary fail-safe timeout for the constructor itself
         async with asyncio.timeout(10.0):
             device = await asyncio.to_thread(ONVIFCamera, host, port, user or "", password or "", adjust_time=True, transport=transport)
         
-        # 1. Detect Events Capability
-        try:
-            capabilities = await asyncio.to_thread(device.devicemgmt.GetCapabilities)
-            if hasattr(capabilities, 'Events') and capabilities.Events:
-                # To be absolutely sure, try to create the events service
-                await asyncio.to_thread(device.create_events_service)
-                features["onvif_can_events"] = True
-        except Exception as e:
-            logger.debug(f"Event capability detection failed for {camera.name}: {e}")
-
-        # 2. Detect PTZ Capabilities
-        try:
-            ptz_service = await asyncio.to_thread(device.create_ptz_service)
-            media_service = await asyncio.to_thread(device.create_media_service)
-            
-            token = camera.onvif_profile_token
-            if not token:
-                profiles = await asyncio.to_thread(media_service.GetProfiles)
-                if profiles: token = profiles[0].token
-            
-            if token:
-                configurations = await asyncio.to_thread(ptz_service.GetConfigurations)
-                if configurations:
-                    config = configurations[0]
-                    for c in configurations:
-                        if hasattr(c, 'token') and c.token == token:
-                            config = c
-                            break
-                    
-                    configs = await asyncio.to_thread(ptz_service.GetConfigurationOptions, {'ConfigurationToken': config.token})
-                    if configs and hasattr(configs, 'Spaces'):
-                        spaces = configs.Spaces
-                        if hasattr(spaces, 'ContinuousPanTiltVelocitySpace') and spaces.ContinuousPanTiltVelocitySpace:
-                            features["ptz_can_pan_tilt"] = True
-                        if hasattr(spaces, 'ContinuousZoomVelocitySpace') and spaces.ContinuousZoomVelocitySpace:
-                            features["ptz_can_zoom"] = True
-                        if not features["ptz_can_zoom"]:
-                            rel_zoom = getattr(spaces, 'RelativeZoomTranslationSpace', [])
-                            abs_zoom = getattr(spaces, 'AbsoluteZoomPositionSpace', [])
-                            if (rel_zoom and len(rel_zoom) > 0) or (abs_zoom and len(abs_zoom) > 0):
-                                features["ptz_can_zoom"] = True
-        except Exception as e:
-            logger.debug(f"PTZ capability detection failed for {camera.name}: {e}")
-            
-        return features
+        return await _detect_onvif_capabilities(device, camera.onvif_profile_token)
     except Exception as e:
         logger.error(f"Failed to detect ONVIF features for {camera.name}: {e}")
-        return features
+        return {
+            "ptz_can_pan_tilt": False, "ptz_can_zoom": False,
+            "ptz_can_home": False, "onvif_can_events": False
+        }
 
 async def probe_and_update_onvif_features(camera_id: int, db_session_factory=None):
     """Probe ONVIF and update the database. Designed for BackgroundTasks."""
@@ -421,6 +552,7 @@ async def probe_and_update_onvif_features(camera_id: int, db_session_factory=Non
         
         camera.ptz_can_pan_tilt = features["ptz_can_pan_tilt"]
         camera.ptz_can_zoom = features["ptz_can_zoom"]
+        camera.ptz_can_home = features["ptz_can_home"]
         camera.onvif_can_events = features["onvif_can_events"]
         db.commit()
         logger.info(f"Updated ONVIF features for camera {camera_id}: {features}")

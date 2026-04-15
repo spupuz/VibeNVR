@@ -6,10 +6,10 @@ VibeNVR supports advanced camera management via the **ONVIF (Open Network Video 
 
 ## 🎮 Key Features
 
-- **Real-time PTZ**: Control Pan, Tilt, and Zoom directly from the Live View with intuitive overlay controls.
+- **Real-time PTZ**: Control Pan, Tilt, Zoom, and **Home Positions** directly from the Live View.
 - **ONVIF Edge Motion**: Offload detection logic to camera hardware to save server resources.
-- **PTZ Presets**: View and trigger hardware-defined camera presets (Upcoming).
-- **Probing**: Automatically discover camera details (Manufacturer, Model, RTSP profiles).
+- **Advanced PTZ Home**: Native support for `SetHomePosition` and `GotoHomePosition` with intelligent software fallbacks for restrictive hardware.
+- **Probing**: Automatically discover camera details (Manufacturer, Model, RTSP profiles, and hardware capabilities) as visual badges.
 - **Credential Fallback**: Automatically attempts to use RTSP streaming credentials if management credentials are not explicitly set.
 - **Network Discovery**: Securely scan your local network for ONVIF and RTSP devices using an optimized SSE (Server-Sent Events) stream.
 
@@ -63,11 +63,9 @@ Once ONVIF is configured, a **Move** icon (four arrows) will appear in the actio
 
 VibeNVR does not simply "guess" if your camera supports PTZ based on the presence of a PTZ service. Instead, it performs a **Deep Capability Probe** that inspects the actual ONVIF Vector Spaces defined by the camera manufacturer.
 
-- **Selective UI**: PTZ buttons (Pan/Tilt and Zoom) are only displayed if the camera explicitly supports their corresponding movements. For example, if a camera has a moving motor but no optical zoom, the Zoom buttons will automatically hide to keep the UI clean.
-- **Manual Re-Probe**: If you have recently upgraded your camera's firmware or replaced the device and PTZ controls are not appearing correctly, you can trigger a manual re-probe.
-  1. Go to **Camera Settings** -> **ONVIF** tab.
-  2. Click the **"Re-Probe Device"** button.
-  3. The PTZ metadata will be refreshed immediately.
+- **Selective UI**: PTZ buttons (Pan/Tilt, Zoom, and Home) are only displayed if the camera explicitly supports their corresponding movements. For example, if a camera supports panning but has no optical zoom, the Zoom buttons will automatically hide.
+- **Home Fallbacks**: VibeNVR implements a 3-stage fallback for Home positions. If the camera rejects the native ONVIF command, the system will attempt to use presets named "Home" or "1", or even create a new "Home" preset if one is missing.
+- **Centralized Probing**: Configuration details and hardware capabilities are refreshed by clicking the **"Test ONVIF Connection"** button in the camera settings modal. This removes setup clutter from the Live View while ensuring capabilities are always synchronized.
 
 5.  **Exit**: Click the **X** in the top-right of the overlay or toggle the Move icon again to hide the controls.
 

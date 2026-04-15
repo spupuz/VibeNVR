@@ -204,85 +204,89 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
 
 
                 {/* Camera Information Card */}
-                <div className="bg-black/60 backdrop-blur-md px-2.5 py-2 rounded-lg border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-fit max-w-[200px]">
-                    <h3 className="text-white font-bold text-xs sm:text-sm tracking-tight leading-tight truncate">
-                        {camera.name}
-                    </h3>
-                    <div className="text-white/50 text-[9px] mt-0.5 font-mono">
-                        {camera.resolution_width}x{camera.resolution_height}
+                {!showPTZ && (
+                    <div className="bg-black/60 backdrop-blur-md px-2.5 py-2 rounded-lg border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-fit max-w-[200px]">
+                        <h3 className="text-white font-bold text-xs sm:text-sm tracking-tight leading-tight truncate">
+                            {camera.name}
+                        </h3>
+                        <div className="text-white/50 text-[9px] mt-0.5 font-mono">
+                            {camera.resolution_width}x{camera.resolution_height}
+                        </div>
+                        {streamMode === 'webcodecs' && (
+                            <div className="text-green-400/80 text-[9px] mt-0.5 font-mono">
+                                WS / H.264
+                            </div>
+                        )}
+                        {streamMode === 'fallback' && (
+                            <div className="text-yellow-400/70 text-[9px] mt-0.5 font-mono">
+                                JPEG Poll
+                            </div>
+                        )}
                     </div>
-                    {streamMode === 'webcodecs' && (
-                        <div className="text-green-400/80 text-[9px] mt-0.5 font-mono">
-                            WS / H.264
-                        </div>
-                    )}
-                    {streamMode === 'fallback' && (
-                        <div className="text-yellow-400/70 text-[9px] mt-0.5 font-mono">
-                            JPEG Poll
-                        </div>
-                    )}
-                </div>
+                )}
             </div>
 
             {/* ACTION BAR */}
-            <div className="absolute inset-x-0 bottom-0 p-2 z-40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex justify-center pointer-events-none">
-                <div className="flex items-center gap-0.5 sm:gap-1 bg-black/80 backdrop-blur-xl p-1 rounded-xl border border-white/10 shadow-3xl pointer-events-auto max-w-full overflow-hidden">
-                    <button onClick={() => onFocus(camera.id)} className={`p-1 rounded-md text-white transition-all shrink-0 ${isFocused ? 'bg-primary' : 'hover:bg-white/10'}`} title="Focus">
-                        <Square className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </button>
-                    <button onClick={handleFullscreen} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Fullscreen">
-                        <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </button>
+            {!showPTZ && (
+                <div className="absolute inset-x-0 bottom-0 p-2 z-40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex justify-center pointer-events-none">
+                    <div className="flex items-center gap-0.5 sm:gap-1 bg-black/80 backdrop-blur-xl p-1 rounded-xl border border-white/10 shadow-3xl pointer-events-auto max-w-full overflow-hidden">
+                        <button onClick={() => onFocus(camera.id)} className={`p-1 rounded-md text-white transition-all shrink-0 ${isFocused ? 'bg-primary' : 'hover:bg-white/10'}`} title="Focus">
+                            <Square className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        </button>
+                        <button onClick={handleFullscreen} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Fullscreen">
+                            <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        </button>
 
-                    <div className="w-px h-4 bg-white/10 mx-0.5 self-center shrink-0" />
+                        <div className="w-px h-4 bg-white/10 mx-0.5 self-center shrink-0" />
 
-                    <button onClick={() => {
-                        fetch(`${API_BASE}/cameras/${camera.id}/snapshot`, {
-                            method: 'POST',
-                            headers: { Authorization: `Bearer ${token}` }
-                        }).then(res => { if (res.ok) showToast(`Snapshot saved`, 'success'); });
-                    }} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Take Photo">
-                        <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </button>
-                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=snapshot`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Gallery">
-                        <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </button>
-                    <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=video`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Videos">
-                        <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </button>
+                        <button onClick={() => {
+                            fetch(`${API_BASE}/cameras/${camera.id}/snapshot`, {
+                                method: 'POST',
+                                headers: { Authorization: `Bearer ${token}` }
+                            }).then(res => { if (res.ok) showToast(`Snapshot saved`, 'success'); });
+                        }} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Take Photo">
+                            <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        </button>
+                        <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=snapshot`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Gallery">
+                            <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        </button>
+                        <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=video`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Videos">
+                            <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        </button>
 
-                    <div className="w-px h-4 bg-white/10 mx-0.5 self-center shrink-0" />
+                        <div className="w-px h-4 bg-white/10 mx-0.5 self-center shrink-0" />
 
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleRecording(camera);
-                        }}
-                        className={`p-1 rounded-md transition-all shrink-0 ${(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? 'bg-red-600 text-white animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]' : 'text-white hover:bg-red-600/50'}`}
-                        title={(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? "Stop Recording" : "Start Continuous Recording"}
-                    >
-                        <Disc className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </button>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleRecording(camera);
+                            }}
+                            className={`p-1 rounded-md transition-all shrink-0 ${(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? 'bg-red-600 text-white animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]' : 'text-white hover:bg-red-600/50'}`}
+                            title={(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? "Stop Recording" : "Start Continuous Recording"}
+                        >
+                            <Disc className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        </button>
 
-                    {user?.role === 'admin' && (
-                        <>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowPTZ(!showPTZ);
-                                }}
-                                className={`p-1 rounded-md transition-all shrink-0 ${showPTZ ? 'bg-primary text-white shadow-[0_0_10px_rgba(var(--primary),0.5)]' : 'text-white hover:bg-primary/50'}`}
-                                title={showPTZ ? "Hide PTZ Controls" : "Show PTZ Controls"}
-                            >
-                                <Move className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                            </button>
-                            <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1 text-primary-foreground bg-primary hover:bg-primary/80 rounded-md transition-all shrink-0" title="Settings">
-                                <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                            </button>
-                        </>
-                    )}
+                        {user?.role === 'admin' && (
+                            <>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowPTZ(!showPTZ);
+                                    }}
+                                    className={`p-1 rounded-md transition-all shrink-0 ${showPTZ ? 'bg-primary text-white shadow-[0_0_10px_rgba(var(--primary),0.5)]' : 'text-white hover:bg-primary/50'}`}
+                                    title={showPTZ ? "Hide PTZ Controls" : "Show PTZ Controls"}
+                                >
+                                    <Move className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                </button>
+                                <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1 text-primary-foreground bg-primary hover:bg-primary/80 rounded-md transition-all shrink-0" title="Settings">
+                                    <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                </button>
+                            </>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Video Content Layer */}
             {isUnauthorized ? (

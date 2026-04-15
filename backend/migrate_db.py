@@ -50,6 +50,7 @@ def migrate():
     # PTZ Capabilities
     add_column_if_not_exists(engine, "cameras", "ptz_can_pan_tilt", "BOOLEAN", True)
     add_column_if_not_exists(engine, "cameras", "ptz_can_zoom", "BOOLEAN", True)
+    add_column_if_not_exists(engine, "cameras", "ptz_can_home", "BOOLEAN", True)
     add_column_if_not_exists(engine, "cameras", "onvif_can_events", "BOOLEAN", False)
 
     # Text Overlay

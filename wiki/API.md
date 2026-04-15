@@ -369,9 +369,19 @@ Trigger continuous PTZ movement for a specific camera.
 Stop all currently active PTZ movements for a specific camera.
 - **Auth Required**: Admin privileges.
 
-#### **POST** `/onvif/ptz/probe-features/{camera_id}`
-Manually trigger a deep capability discovery for a camera. This updates `ptz_can_pan_tilt` and `ptz_can_zoom` flags in the database based on the camera's actual ONVIF space definitions.
+#### **POST /api/onvif/ptz/probe-features/{camera_id}**
+Manually trigger a deep capability discovery for a camera. This updates `ptz_can_pan_tilt`, `ptz_can_zoom`, and `ptz_can_home` flags in the database based on the camera's actual ONVIF space definitions and present presets.
 - **Usage**: Use this if PTZ buttons are missing or incorrectly displayed after a firmware update or camera replacement.
+- **Auth Required**: Admin privileges.
+
+#### **POST /api/onvif/ptz/goto-home/{camera_id}**
+Move the camera to its defined Home position.
+- **Resilience**: Automatically falls back to presets named "Home" or "1" if native ONVIF GotoHomePosition is rejected.
+- **Auth Required**: Admin privileges.
+
+#### **POST /api/onvif/ptz/set-home/{camera_id}**
+Save the current camera position as the Home position.
+- **Resilience**: 3-stage fallback: 1. Native SetHomePosition, 2. Update existing "Home"/"1" preset, 3. Create a new "Home" preset.
 - **Auth Required**: Admin privileges.
 
 #### **GET** `/onvif/ptz/presets/{camera_id}`

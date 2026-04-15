@@ -1,20 +1,27 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { 
     ChevronUp, ChevronDown, ChevronLeft, ChevronRight, 
-    Link, Plus, Minus, Move, Loader2, X, Square 
+    Link, Plus, Minus, Move, Loader2, X, Square,
+    Home, Save
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { ConfirmModal } from '../ui/ConfirmModal';
 
 export const PTZControls = ({ camera, onClose }) => {
     const { token } = useAuth();
+    const { showToast } = useToast();
     const cameraId = camera.id;
     const [activeAction, setActiveAction] = useState(null);
     const [isProbing, setIsProbing] = useState(false);
+    const [isGoingHome, setIsGoingHome] = useState(false);
+    const [isSettingHome, setIsSettingHome] = useState(false);
+    const [showSetHomeConfirm, setShowSetHomeConfirm] = useState(false);
     const stopRef = useRef(null);
 
-    // Capabilities from camera object
-    const canPanTilt = camera.ptz_can_pan_tilt !== false;
-    const canZoom = camera.ptz_can_zoom !== false;
+    const canPanTilt = camera?.ptz_can_pan_tilt ?? true;
+    const canZoom = camera?.ptz_can_zoom ?? true;
+    const canHome = camera?.ptz_can_home ?? true;
     const hasAnyPTZ = canPanTilt || canZoom;
 
     const sendPTZCommand = useCallback(async (pan, tilt, zoom, actionName) => {
@@ -47,22 +54,52 @@ export const PTZControls = ({ camera, onClose }) => {
         }
     }, [cameraId, token]);
 
-    const probeFeatures = useCallback(async () => {
-        setIsProbing(true);
+    const gotoHome = useCallback(async () => {
+        setIsGoingHome(true);
         try {
-            await fetch(`/api/onvif/ptz/probe-features/${cameraId}`, {
+            const res = await fetch(`/api/onvif/ptz/goto-home/${cameraId}`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` }
             });
-            // The parent should ideally refresh camera data, 
-            // but for now we just show it's done.
-            // In a real app, we'd use a global state or refresh callback.
+            const data = await res.json();
+            if (res.ok) {
+                showToast("Moving to Home position...", "success");
+            } else {
+                showToast(data.detail || "Failed to trigger Home navigation", "error");
+            }
         } catch (err) {
-            console.error('PTZ Probe failed', err);
+            console.error('PTZ GotoHome failed', err);
+            showToast("Network error while triggering Home", "error");
         } finally {
-            setIsProbing(false);
+            setIsGoingHome(false);
         }
-    }, [cameraId, token]);
+    }, [cameraId, token, showToast]);
+
+    const setHome = () => {
+        setShowSetHomeConfirm(true);
+    };
+
+    const handleConfirmSetHome = async () => {
+        setShowSetHomeConfirm(false);
+        setIsSettingHome(true);
+        try {
+            const res = await fetch(`/api/onvif/ptz/set-home/${cameraId}`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast("New Home position saved to camera memory", "success");
+            } else {
+                showToast(data.detail || "Failed to save Home position", "error");
+            }
+        } catch (err) {
+            console.error('PTZ SetHome failed', err);
+            showToast("Network error while saving Home position", "error");
+        } finally {
+            setIsSettingHome(false);
+        }
+    };
 
     const handleActionStart = (pan, tilt, zoom, action) => {
         sendPTZCommand(pan, tilt, zoom, action);
@@ -112,7 +149,7 @@ export const PTZControls = ({ camera, onClose }) => {
                 </button>
             )}
 
-            {!hasAnyPTZ ? (
+            {!hasAnyPTZ && (
                 <div className="bg-background/90 backdrop-blur-md p-6 rounded-2xl border border-border shadow-2xl pointer-events-auto flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
                     <div className="p-3 bg-muted rounded-full">
                         <Move className="w-8 h-8 text-muted-foreground opacity-50" />
@@ -120,19 +157,13 @@ export const PTZControls = ({ camera, onClose }) => {
                     <div className="text-center">
                         <p className="font-bold text-sm">PTZ Not Supported</p>
                         <p className="text-[10px] text-muted-foreground mt-1 max-w-[180px]">
-                            This camera does not appear to support PTZ commands via ONVIF.
+                            This camera does not appear to support PTZ commands via ONVIF. Configure it in Camera Settings.
                         </p>
                     </div>
-                    <button 
-                        onClick={probeFeatures}
-                        disabled={isProbing}
-                        className="text-[10px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
-                    >
-                        {isProbing ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-                        {isProbing ? 'Probing...' : 'Re-Probe Device'}
-                    </button>
                 </div>
-            ) : (
+            )}
+
+            {hasAnyPTZ && (
                 <>
                     {/* D-Pad Container */}
                     {canPanTilt && (
@@ -185,7 +216,31 @@ export const PTZControls = ({ camera, onClose }) => {
                         </div>
                     )}
 
-                    {/* Zoom Controls */}
+                    {/* Advanced PTZ Utils (Home/Save) - Bottom Left */}
+                    {canPanTilt && canHome && (
+                        <div className="absolute bottom-4 left-4 flex flex-col gap-3 pointer-events-auto">
+                            <button 
+                                onClick={gotoHome}
+                                disabled={isGoingHome}
+                                onContextMenu={(e) => e.preventDefault()}
+                                className="p-3 rounded-full bg-background/80 hover:bg-indigo-500 hover:text-white border border-border shadow-lg transition-all active:scale-95 flex items-center justify-center"
+                                title="Go to Home Position"
+                            >
+                                {isGoingHome ? <Loader2 className="w-5 h-5 animate-spin" /> : <Home className="w-5 h-5" />}
+                            </button>
+                            <button 
+                                onClick={setHome}
+                                disabled={isSettingHome || isGoingHome}
+                                onContextMenu={(e) => e.preventDefault()}
+                                className="p-3 rounded-full bg-background/80 hover:bg-green-600 hover:text-white border border-border shadow-lg transition-all active:scale-95 flex items-center justify-center"
+                                title="Set Current as Home"
+                            >
+                                {isSettingHome ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Zoom Controls - Bottom Right */}
                     {canZoom && (
                         <div className="absolute bottom-4 right-4 flex flex-col gap-3 pointer-events-auto">
                             <ControlButton 
@@ -202,11 +257,26 @@ export const PTZControls = ({ camera, onClose }) => {
                     )}
 
                     {/* Hint overlay - Moved higher to avoid overlapping buttons */}
-                    <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-[10px] px-3 py-1 rounded-full border border-white/20 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        Press and hold to move • Release to stop
+                    <div className="absolute top-2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                        <div className="bg-black/60 text-white text-[10px] px-3 py-1 rounded-full border border-white/20 backdrop-blur-md">
+                            Press and hold to move • Release to stop
+                        </div>
+                        <div className="text-[8px] text-white/40 italic">
+                            Home positions are stored on the camera hardware
+                        </div>
                     </div>
                 </>
             )}
+
+            <ConfirmModal
+                isOpen={showSetHomeConfirm}
+                title="Set Home Position"
+                message="Set the current camera position as the new Home position? This will overwrite the previous home coordinates."
+                confirmText="Set Home"
+                onConfirm={handleConfirmSetHome}
+                onCancel={() => setShowSetHomeConfirm(false)}
+                variant="primary"
+            />
         </div>
     );
 };

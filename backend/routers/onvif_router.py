@@ -192,6 +192,44 @@ async def ptz_stop(
         raise HTTPException(status_code=500, detail="PTZ Stop command failed")
     return {"status": "ok"}
 
+@router.post("/ptz/set-home/{camera_id}")
+async def ptz_set_home(
+    camera_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.User = Depends(auth_service.get_current_active_admin)
+):
+    """Set the current position as the home position."""
+    camera = crud.get_camera(db, camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Camera not found")
+        
+    success = await onvif_service.ptz_set_home(camera)
+    if not success:
+        raise HTTPException(
+            status_code=400, 
+            detail="Failed to set home position. Your camera might not support ONVIF SetHomePosition."
+        )
+    return {"status": "success"}
+
+@router.post("/ptz/goto-home/{camera_id}")
+async def ptz_goto_home(
+    camera_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.User = Depends(auth_service.get_current_active_admin)
+):
+    """Go to the configured home position."""
+    camera = crud.get_camera(db, camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Camera not found")
+        
+    success = await onvif_service.ptz_goto_home(camera)
+    if not success:
+        raise HTTPException(
+            status_code=400, 
+            detail="Failed to trigger Go to Home. Your camera hardware might not support this command and no fallback presets (Home/1) were found."
+        )
+    return {"status": "success"}
+
 @router.get("/ptz/presets/{camera_id}")
 async def get_ptz_presets(
     camera_id: int,

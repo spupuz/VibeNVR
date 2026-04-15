@@ -10,6 +10,7 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
     const { showToast } = useToast();
     const [probing, setProbing] = useState(false);
     const [probeStatus, setProbeStatus] = useState(null); // 'success' | 'error'
+    const [probeResult, setProbeResult] = useState(null);
 
     const handleProbe = async () => {
         if (!newCamera.onvif_host) {
@@ -37,10 +38,19 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
             if (res.ok) {
                 const data = await res.json();
                 setProbeStatus('success');
+                setProbeResult(data);
                 showToast(`Connected to ${data.manufacturer} ${data.model}`, 'success');
                 
-                // If profiles are returned and we don't have an RTSP URL yet, maybe suggest one?
-                // For now just confirm connection.
+                // Automatically update camera capabilities based on probe result
+                if (data.features) {
+                    setNewCamera(prev => ({
+                        ...prev,
+                        ptz_can_pan_tilt: data.features.ptz_can_pan_tilt,
+                        ptz_can_zoom: data.features.ptz_can_zoom,
+                        ptz_can_home: data.features.ptz_can_home,
+                        onvif_can_events: data.features.onvif_can_events
+                    }));
+                }
             } else {
                 setProbeStatus('error');
                 const err = await res.json();
@@ -97,7 +107,6 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                         placeholder="••••••"
                     />
                 </div>
-
                 <div className="pt-2 flex items-center justify-between">
                     <Button
                         type="button"
@@ -128,6 +137,58 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                     )}
                 </div>
             </div>
+
+            {probeStatus === 'success' && probeResult && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="p-4 bg-muted/20 rounded-lg border border-border">
+                        <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Detected Capabilities</h5>
+                        <div className="flex flex-wrap gap-2">
+                            {probeResult.features?.ptz_can_pan_tilt && (
+                                <span className="px-2 py-1 bg-indigo-500/10 text-indigo-500 text-[10px] font-bold rounded-md border border-indigo-500/20 flex items-center gap-1">
+                                    <ShieldCheck className="w-3 h-3" /> Pan/Tilt
+                                </span>
+                            )}
+                            {probeResult.features?.ptz_can_zoom && (
+                                <span className="px-2 py-1 bg-blue-500/10 text-blue-500 text-[10px] font-bold rounded-md border border-blue-500/20 flex items-center gap-1">
+                                    <ShieldCheck className="w-3 h-3" /> Zoom
+                                </span>
+                            )}
+                            {probeResult.features?.ptz_can_home && (
+                                <span className="px-2 py-1 bg-green-500/10 text-green-500 text-[10px] font-bold rounded-md border border-green-500/20 flex items-center gap-1">
+                                    <ShieldCheck className="w-3 h-3" /> Home Position
+                                </span>
+                            )}
+                            {probeResult.features?.onvif_can_events && (
+                                <span className="px-2 py-1 bg-amber-500/10 text-amber-500 text-[10px] font-bold rounded-md border border-amber-500/20 flex items-center gap-1">
+                                    <ShieldCheck className="w-3 h-3" /> Edge Events
+                                </span>
+                            )}
+                            {!Object.values(probeResult.features || {}).some(v => v) && (
+                                <span className="text-[10px] text-muted-foreground italic">No advanced features detected</span>
+                            )}
+                        </div>
+                    </div>
+
+                    {probeResult.profiles?.length > 0 && (
+                        <div className="p-4 bg-muted/20 rounded-lg border border-border">
+                            <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Detected Stream Profiles</h5>
+                            <div className="space-y-2">
+                                {probeResult.profiles.map((profile, idx) => (
+                                    <div key={idx} className="flex flex-col gap-1 p-2 bg-background/50 rounded border border-border/50">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-bold">{profile.name}</span>
+                                            <span className="text-[9px] text-muted-foreground opacity-50 font-mono">{profile.token}</span>
+                                        </div>
+                                        <div className="text-[9px] text-muted-foreground truncate font-mono bg-muted/30 p-1 rounded">
+                                            {profile.url}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                 <h5 className="text-xs font-bold uppercase tracking-wider text-primary mb-2 flex items-center gap-2">
