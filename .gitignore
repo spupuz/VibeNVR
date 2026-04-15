@@ -39,6 +39,7 @@ frontend/.env
 scripts/
 .agents/
 .agents/workflows/
+.roo/
 # Sanity Test Artifacts & Snapshots
 sanity_snapshot.json
 latest_system_auto.json

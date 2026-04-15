@@ -19,6 +19,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **[Backup & Restore](Backups.md)** - System snapshots and configuration management.
 - **[UniFi Protect Integration](UniFi-Protect.md)** - Native support for RSTSPS and UniFi ports.
 - **[ONVIF Management](ONVIF-Management.md)** - Pan-Tilt-Zoom (PTZ) controls and hardware probing.
+- **[2FA & Trusted Devices](MFA-Trusted-Devices.md)** - Two-Factor Authentication, recovery codes, and security tokens.
 
 ## 🚀 Featured Capabilities
 

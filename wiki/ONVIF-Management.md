@@ -6,7 +6,8 @@ VibeNVR supports advanced camera management via the **ONVIF (Open Network Video 
 
 ## 🎮 Key Features
 
-- **Real-time PTZ**: Control Pan, Tilt, and Zoom directly from the Live View.
+- **Real-time PTZ**: Control Pan, Tilt, and Zoom directly from the Live View with intuitive overlay controls.
+- **ONVIF Edge Motion**: Offload detection logic to camera hardware to save server resources.
 - **PTZ Presets**: View and trigger hardware-defined camera presets (Upcoming).
 - **Probing**: Automatically discover camera details (Manufacturer, Model, RTSP profiles).
 - **Credential Fallback**: Automatically attempts to use RTSP streaming credentials if management credentials are not explicitly set.
@@ -93,5 +94,25 @@ VibeNVR does not simply "guess" if your camera supports PTZ based on the presenc
 
 ---
 
-> [!NOTE]
-> Future updates will include support for **ONVIF Events**, allowing VibeNVR to use the camera's built-in motion sensor to trigger recordings, significantly reducing server CPU load.
+---
+2: 
+3: ## 🤖 ONVIF Edge Motion Detection
+4: 
+5: VibeNVR can subscribe to camera-side motion events via the **ONVIF PullPoint** service. This allows the camera's hardware to decide when motion is occurring, bypassing the NVR's CPU-intensive image analysis.
+6: 
+7: ### Benefits
+8: - **CPU Efficiency**: The NVR server does not need to decode and analyze video frames for motion, drastically reducing overall system load.
+9: - **Native Accuracy**: Take advantage of manufacturer-specific tuned sensors and onboard AI algorithms.
+10: - **Bypass Bounding Boxes**: Reduces false triggers by using the camera's internal logic.
+11: 
+12: ### Configuration & Logic
+13: 
+14: 1.  Go to **Camera Settings** -> **Motion** tab.
+15: 2.  Select **"ONVIF Edge (Camera-side Hardware)"** in the **Detection Engine** dropdown.
+16:     - *Note: This option is only available if an ONVIF Host is configured and the camera supports event subscriptions.*
+17: 3.  **Intelligent UI**: When ONVIF Edge is active, the **Motion Zones** tab is automatically hidden from the interface. Since the camera hardware handles the detection, local NVR exclusion zones are ignored.
+18: 4.  **Privacy**: Privacy masks are still respected as they are burned into the stream before recording.
+19: 
+20: ---
+21: 
+22: 

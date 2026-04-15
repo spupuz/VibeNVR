@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
     X, Info, Settings2, Activity, EyeOff, Shield, Film, Image, Bell, Type, Copy 
 } from 'lucide-react';
@@ -37,6 +37,13 @@ export const CameraAddEditModal = ({
     setShowCopyModal
 }) => {
     if (!showAddModal) return null;
+    
+    // Redirect away from motion_zones if engine is ONVIF Edge
+    useEffect(() => {
+        if (activeTab === 'motion_zones' && newCamera.detect_engine === 'ONVIF Edge') {
+            setActiveTab('motion');
+        }
+    }, [newCamera.detect_engine, activeTab, setActiveTab]);
 
     const tabs = [
         { id: 'general', label: 'General', icon: Info },
@@ -49,7 +56,10 @@ export const CameraAddEditModal = ({
         { id: 'notifications', label: 'Alerts', icon: Bell },
         { id: 'overlay', label: 'Overlay', icon: Type },
         { id: 'onvif', label: 'ONVIF', icon: Shield },
-    ];
+    ].filter(tab => {
+        if (tab.id === 'motion_zones' && newCamera.detect_engine === 'ONVIF Edge') return false;
+        return true;
+    });
 
     return (
         <Portal>

@@ -4,6 +4,17 @@ import { Toggle, SelectField, Slider, InputField, SectionHeader } from '../../..
 import { Button } from '../../../ui/Button';
 
 export const MoviesTab = ({ editingId, newCamera, setNewCamera, stats, handleCleanup }) => {
+    const hasPrivacyMasks = (() => {
+        try {
+            const masks = typeof newCamera.privacy_masks === 'string'
+                ? JSON.parse(newCamera.privacy_masks)
+                : newCamera.privacy_masks;
+            return Array.isArray(masks) && masks.length > 0;
+        } catch (e) {
+            return false;
+        }
+    })();
+
     return (
         <div className="space-y-6">
             <SectionHeader title="Recording Settings" description="Configure video recording options" />
@@ -17,16 +28,29 @@ export const MoviesTab = ({ editingId, newCamera, setNewCamera, stats, handleCle
                     { value: 'Off', label: 'Off' }
                 ]}
             />
-            <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/50 p-3 rounded-lg text-xs mb-4">
+            <div className={`p-3 rounded-lg text-xs mb-4 transition-all duration-300 ${
+                hasPrivacyMasks 
+                    ? 'bg-muted/50 border border-border opacity-80' 
+                    : 'bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/50'
+            }`}>
                 <Toggle
                     label="Passthrough Recording (CPU Saver)"
-                    checked={!!newCamera.movie_passthrough}
+                    checked={hasPrivacyMasks ? false : !!newCamera.movie_passthrough}
                     onChange={(val) => setNewCamera({ ...newCamera, movie_passthrough: val })}
+                    disabled={hasPrivacyMasks}
                 />
                 <p className="mt-1 text-muted-foreground ml-1">
-                    Directly saves the video stream without re-encoding. <br />
-                    <span className="font-semibold text-green-600 dark:text-green-400">Pros:</span> Near-zero CPU usage, original quality. <br />
-                    <span className="font-semibold text-red-600 dark:text-red-400">Cons:</span> No Text Overylays, potential start delay, MP4 container only.
+                    {hasPrivacyMasks ? (
+                        <span className="text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1.5 mt-2">
+                             Privacy Masks Active: The NVR must re-encode the video to permanently burn the masks into recordings. Passthrough is disabled.
+                        </span>
+                    ) : (
+                        <>
+                            Directly saves the video stream without re-encoding. <br />
+                            <span className="font-semibold text-green-600 dark:text-green-400">Pros:</span> Near-zero CPU usage, original quality. <br />
+                            <span className="font-semibold text-red-600 dark:text-red-400">Cons:</span> No Text Overylays, potential start delay, MP4 container only.
+                        </>
+                    )}
                 </p>
             </div>
             <Slider

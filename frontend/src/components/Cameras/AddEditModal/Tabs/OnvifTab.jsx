@@ -135,9 +135,9 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                     Why configure ONVIF?
                 </h5>
                 <ul className="text-xs space-y-2 text-muted-foreground list-disc pl-4">
-                    <li>Enable Pan, Tilt, and Zoom controls directly from the dashboard.</li>
-                    <li>Synchronize camera time automatically.</li>
-                    <li>Future: Receive motion events directly from the camera sensor to save CPU.</li>
+                    <li>Enable real-time Pan, Tilt, and Zoom controls directly from the dashboard.</li>
+                    <li>Enable <strong>ONVIF Edge Motion Detection</strong> to offload processing to camera hardware, drastically reducing NVR server CPU usage.</li>
+                    <li>Higher detection accuracy by utilizing the camera's native sensor-level analytics.</li>
                 </ul>
             </div>
         </div>

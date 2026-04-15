@@ -16,7 +16,7 @@ export const MotionTab = ({ newCamera, setNewCamera }) => {
                 onChange={(val) => setNewCamera({ ...newCamera, detect_engine: val })}
                 options={[
                     { value: 'OpenCV', label: 'OpenCV (Server Image Analysis)' },
-                    ...(newCamera.onvif_can_events ? [{ value: 'ONVIF Edge', label: 'ONVIF Edge (Camera-side Hardware)' }] : [])
+                    ...(newCamera.onvif_host && newCamera.onvif_can_events ? [{ value: 'ONVIF Edge', label: 'ONVIF Edge (Camera-side Hardware)' }] : [])
                 ]}
             />
             {newCamera.detect_engine === 'ONVIF Edge' && (
