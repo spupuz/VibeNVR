@@ -88,7 +88,10 @@ List all configured cameras.
     "resolution_height": 1080,
     "recording_mode": "Motion Triggered",
     "sub_rtsp_url": "rtsp://192.168.1.10:554/sub",
+    "rtsp_transport": "tcp",
     "sub_rtsp_transport": "udp",
+    "live_view_mode": "webcodecs",
+    "detect_motion_mode": "ONVIF Edge",
     "privacy_masks": "[{\"points\":[...]}]",
     "motion_masks": "[]",
     "onvif_host": "192.168.1.10",
@@ -116,6 +119,8 @@ Create a new camera configuration.
     "rtsp_transport": "tcp",
     "sub_rtsp_url": "rtsp://admin:pass@192.168.1.10:554/sub",
     "sub_rtsp_transport": "udp",
+    "live_view_mode": "webcodecs",
+    "detect_motion_mode": "ONVIF Edge",
     "is_active": true
   }
   ```
@@ -147,7 +152,19 @@ VibeNVR supports two primary motion detection engines, configurable per-camera:
 1.  **OpenCV (Server-side)**: Default. The VibeEngine decodes the video stream and performs pixel-based motion analysis. Use this for cameras without ONVIF support.
 2.  **ONVIF Edge (Camera-side)**: Recommended. Offloads motion analysis to the camera's hardware. VibeNVR subscribes to ONVIF PullPoint events and triggers recording only when the camera reports motion.
     - **Note**: When `ONVIF Edge` is selected, server-side sensitivity settings (Threshold, Despeckle) and local Motion Exclusion Zones are bypassed in favor of the camera's internal configuration.
-
+ 
+---
+ 
+### ⚙️ Engine Synchronization
+VibeNVR v1.26.0+ features advanced, real-time configuration synchronization between the Backend and the Video Engine. This ensures that critical streaming parameters are applied without restarting processing threads.
+ 
+#### **Synchronized Fields**
+The following fields are transmitted to the engine in real-time upon camera update:
+- `rtsp_transport`: (tcp/udp) Main stream protocol.
+- `sub_rtsp_transport`: (tcp/udp) Sub-stream protocol.
+- `live_view_mode`: (webcodecs/mjpeg) UI rendering engine.
+- `detect_motion_mode`: (OpenCV/ONVIF Edge) Trigger source.
+ 
 ---
 
 ### 🔔 Events (`/events`)
@@ -394,7 +411,7 @@ curl -X GET "http://localhost:8080/stats" \
 <img src="http://localhost:8080/media/Camera1/2026-02-21/snap.jpg" />
 ```
 
-*(Current Version: v1.25.5)*
+*(Current Version: v1.26.0)*
 
 ---
 

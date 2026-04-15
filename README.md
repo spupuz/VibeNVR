@@ -42,6 +42,8 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | 📊 **Real-time Monitoring** | Native **WebCodecs H.264** low-latency WebSocket streaming, with selectable modes and adaptive JPEG polling fallback. |
 | 🛡️ **IP Ban Protection** | Automated `ffprobe` pre-flight checks and per-camera **RTSP Transport** selection (TCP/UDP). Support for **Secure RTSP (RSTSPS/RTSPS)** with automated certificate handling. |
 | 🔀 **Dual-Stream Support** | Render ultra-lightweight UI grids using low-res sub-streams, while dedicating high-res main streams entirely to motion recording. |
+| 🔄 **Selective Settings** | Rapidly propagate Recording, Motion, or Alert settings across cameras or groups without overwriting unique hardware identities. |
+| 👯 **Camera Cloning** | Instant device provisioning via the 'Clone Settings' dropdown during initial camera creation. |
 | 🤖 **ONVIF Edge Motion** | Offload motion detection to camera hardware via ONVIF PullPoint events. Includes intelligent UI logic that dynamically hides redundant NVR zones and restricts engine selection to cameras with configured management credentials. |
 | 🎮 **Advanced ONVIF PTZ** | Real-time Pan, Tilt, and Zoom controls via an intuitive "Press and Hold" overlay directly on the Live View. Supports credential fallback from RTSP URLs. |
 | 🔍 **Network Discovery** | Securely scan network ranges for ONVIF/RTSP devices via authenticated **SSE (Server-Sent Events)** streams. |

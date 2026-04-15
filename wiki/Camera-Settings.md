@@ -35,20 +35,43 @@ Users can selectively pick which categories of settings to propagate. The availa
 
 ## 🛠️ Feature Workflows
 
+- [Selective Propagation](#selective-propagation)
+- [Camera Cloning](#camera-cloning)
+- [Advanced Engine Sync](#advanced-engine-sync)
+- [Edge Motion Visual Feedback](#edge-motion-visual-feedback)
+- [💡 Pro Tips](#pro-tips)
+
 ### 1. Cloning during Creation
 When adding a **New Camera**, you can use the "Clone Settings From..." dropdown. 
 1. Select a source camera.
 2. Toggle the specific **Categories** you wish to import (Recording, Motion, etc.).
 3. The form will automatically populate with those settings, while keeping the Name, URLs, and unique configurations fresh.
 
-### 2. Individual Selective Copy
-From the **Camera Edit Modal**, click "Copy Settings to...". This opens a modal where you can select one or more target cameras and exactly which categories to apply.
+### 2. Selective Propagation
+From the camera list, select "Copy Settings to...". This opens a modal where you can select one or more target cameras and exactly which categories to apply.
 
 ### 3. Group-Level Propagation
 In the **Groups Manager**, each group has a "Copy Settings" button.
 1. Select a *Source Camera* (from anywhere in the system).
 2. Select the categories to apply.
 3. Every camera in that group will be updated simultaneously with the selected settings.
+
+---
+
+## Advanced Engine Sync
+Certain critical settings are automatically synchronized with the recording engine to ensure streaming stability and correct rendering:
+
+- **RTSP Transport**: Whether to use TCP or UDP for the main stream.
+- **Sub RTSP Transport**: Independent transport setting for the sub-stream.
+- **Live View Mode**: Global preference for WebCodecs (WebSocket/H.264) vs MJPEG fallback.
+
+These settings are applied in real-time when the camera configuration is saved.
+
+## Edge Motion Visual Feedback
+When a camera is configured for **ONVIF Edge** motion detection, the system provides specialized feedback in the **Live View**:
+
+- **Dynamic Labeling**: During active motion, the standard red badge will display `EDGE MOTION` instead of the generic `MOTION` text.
+- **Noise Reduction**: The static indigo `EDGE` indicator is suppressed in the Live View to provide a cleaner monitoring experience, appearing only as part of the dynamic motion pulse.
 
 ---
 
