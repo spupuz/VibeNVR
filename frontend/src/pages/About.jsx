@@ -91,20 +91,6 @@ export const About = () => {
                                 <LayoutDashboard className="w-5 h-5" />
                                 <span>Public Telemetry</span>
                             </a>
-                            <a
-                                href="https://www.producthunt.com/products/vibenvr?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-vibenvr"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center justify-center transition-all duration-300 hover:scale-105 rounded-lg overflow-hidden"
-                            >
-                                <img
-                                    src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1070162&theme=light&t=1769727454865"
-                                    alt="VibeNVR - Simple, privacy-respecting local NVR | Product Hunt"
-                                    width="250"
-                                    height="54"
-                                    className="w-[250px] h-[54px]"
-                                />
-                            </a>
                         </div>
                     </div>
                 </div>
