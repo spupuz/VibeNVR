@@ -44,6 +44,15 @@ VibeNVR implements a "Security by Design" approach:
 
 ---
 
+## 🧼 Development Hygiene & Build Isolation
+
+VibeNVR enforces strict isolation between development artifacts and production assets:
+- **Build Hygiene**: Every Docker context is isolated via rigorous `.dockerignore` files, ensuring no `venv`, `__pycache__`, or `node_modules` leak into the ultra-lean (~1GB) production images.
+- **Repository Integrity**: The project uses recursive `.gitignore` policies to ensure all local management scripts and temporary artifacts remain local-only and are never tracked by Git.
+- **Automated Assurance**: Every build is verified against a custom security and hygiene auditor (`check_image_hygiene.py`) to maintain these standards.
+
+---
+
 ## ⚡ Performance Optimization
 
 - **Passthrough Recording**: Optionally records raw RTSP streams directly to disk without re-encoding, resulting in near-zero CPU usage.

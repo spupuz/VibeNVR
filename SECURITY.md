@@ -134,6 +134,19 @@ To ensure project portability and prevent the leakage of sensitive host-specific
 4. **Automated Enforcement**: Automated scans are performed during the security audit workflow to block any commit containing unauthorized absolute path patterns.
 
 
+## 🧼 Repository & Build Hygiene
+
+To ensure the integrity of the release images and prevent the leakage of development artifacts, VibeNVR enforces strict hygiene policies for both the Git repository and Docker images:
+
+1. **Docker Isolation**:
+   - Every build context (`engine/`, `frontend/`, `backend/`) MUST have a dedicated `.dockerignore` file.
+   - Prohibited files (e.g., `venv/`, `__pycache__/`, `node_modules/`, `*.log`) MUST be explicitly excluded from the build context to prevent them from being baked into production images.
+   - Use `--no-install-recommends` in `apt-get install` commands to minimize the attack surface and image size.
+
+2. **Git Hygiene**:
+   - The `.gitignore` file utilizes recursive patterns (`**/venv/`, `**/__pycache__/`) to ensure that development artifacts are never tracked, regardless of their location in the project structure.
+   - Absolute host paths are strictly prohibited in the codebase and documentation to maintain project portability and privacy.
+
 ## 🛑 Vulnerability Disclosure
 
 If you happen to find a security vulnerability within VibeNVR, please do **NOT** open a public GitHub issue. 

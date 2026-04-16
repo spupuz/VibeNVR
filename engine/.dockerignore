@@ -1,0 +1,7 @@
+# Engine Build Context Exclusions
+__pycache__/
+scripts/
+*.log
+venv/
+Dockerfile
+.dockerignore

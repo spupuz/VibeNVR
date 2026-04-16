@@ -1,0 +1,7 @@
+# Frontend Build Context Exclusions
+node_modules/
+dist/
+Dockerfile
+.dockerignore
+*.log
+.git
