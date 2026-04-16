@@ -113,6 +113,16 @@ VibeNVR's code includes specific mitigations against common attack vectors:
       - **Referrer-Policy: strict-origin-when-cross-origin**: Protects referrer privacy.
       - **Content-Security-Policy (CSP)**: Implements a strict policy to mitigate XSS and injection attacks. It is currently deployed in **Report-Only** mode to allow for safe, monitored adoption in diverse network environments.
 
+11. **Live Audio Privacy & Control**:
+    - **Disabled by Default**: Audio listening is explicitly disabled by default for all cameras. Users must manually enable it in the camera settings (`enable_audio`).
+    - **Backend-Only Proxying**: Audio streams are NOT bridged directly between the camera and the client. The VibeEngine decodes the audio and re-transmits it via an authenticated WebSocket proxy (port 5005), ensuring that all listeners are processed through the RBAC system.
+    - **Encrypted in Transit**: All audio data transmitted via the web interface is protected by TLS encryption when accessed via HTTPS/WSS.
+    - **Log Suppression**: Audio-related metadata is treated as privacy-sensitive and is suppressed from high-verbosity logs unless specifically requested via debug flags.
+
+12. **PTZ Mobile Integrity**:
+    - The mobile-optimized PTZ UI follows the same RBAC rules as the desktop interface. Every movement request (Pan, Tilt, Zoom, Preset, Home) is validated against the user's role on the backend.
+    - Compact preset selection is implemented via secure tokens that do not expose external ONVIF profile details.
+
 ## ⚠️ Known Accepted Trade-offs
 
 These are documented security trade-offs made intentionally for compatibility or usability:
@@ -122,7 +132,10 @@ These are documented security trade-offs made intentionally for compatibility or
 - **JWT has no server-side revocation**: Since JWTs are stateless, logging out only clears the client cookie. The token remains cryptographically valid until its 7-day expiry. This is an accepted trade-off for simplicity. Mitigation: the `HttpOnly` cookie is cleared on logout, requiring physical cookie theft for further misuse.
 - **Webhook SSRF allows private IPs**: The global settings webhook validation (`settings.py`) deliberately permits private IP ranges to allow Home Assistant and other local integrations. Per-camera webhook validation in `schemas.py` enforces stricter SSRF protection.
 - **WebSocket live stream uses `?token=` query parameter**: The Browser WebSocket API cannot send custom headers during the HTTP upgrade handshake. The JWT is therefore passed as `?token=` for the `/cameras/{id}/ws` live stream endpoint. This is mitigated by: (1) the Nginx `map` directive which redacts `?token=` from all access logs before they are written to disk, (2) TLS encryption in production which prevents interception in transit, and (3) an HttpOnly `media_token` cookie which serves as an automatic fallback when available. The engine's raw WebSocket endpoint (port 8000) is internal-only and not exposed externally.
-- **WebCodecs Resilience**: To ensure instant startup in high-latency environments, the engine caches the most recent H.264 keyframe (SPS/PPS/IDR) and pushes it immediately to new WebSocket clients. The frontend employs a micro-jitter buffer (2 frames) to absorb network fluctuations. Users can manually override the streaming mode per-camera in **Settings** if specific network or codec incompatibilities arise.
+- **WebCodecs & Multi-Stream Resilience**: 
+    - To ensure instant startup in high-latency environments, the engine caches the most recent H.264 keyframe (SPS/PPS/IDR) and pushes it immediately to new WebSocket clients. 
+    - **Hybrid Packetization**: Starting from **v1.26.0**, the WebSocket stream uses a 10-byte binary header to multiplex video and audio packets.
+    - **Resilience**: The frontend employs a micro-jitter buffer (2 frames) to absorb network fluctuations and handles decoder re-initialization automatically if a resolution switch is detected.
 
 ## 📁 Host Privacy & Path Sanitization
 
