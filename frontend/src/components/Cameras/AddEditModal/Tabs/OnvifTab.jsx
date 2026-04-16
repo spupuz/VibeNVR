@@ -48,7 +48,8 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                         ptz_can_pan_tilt: data.features.ptz_can_pan_tilt,
                         ptz_can_zoom: data.features.ptz_can_zoom,
                         ptz_can_home: data.features.ptz_can_home,
-                        onvif_can_events: data.features.onvif_can_events
+                        onvif_can_events: data.features.onvif_can_events,
+                        audio_enabled: data.features.audio_enabled
                     }));
                 }
             } else {
@@ -161,6 +162,11 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                             {probeResult.features?.onvif_can_events && (
                                 <span className="px-2 py-1 bg-amber-500/10 text-amber-500 text-[10px] font-bold rounded-md border border-amber-500/20 flex items-center gap-1">
                                     <ShieldCheck className="w-3 h-3" /> Edge Events
+                                </span>
+                            )}
+                            {probeResult.features?.audio_enabled && (
+                                <span className="px-2 py-1 bg-pink-500/10 text-pink-500 text-[10px] font-bold rounded-md border border-pink-500/20 flex items-center gap-1">
+                                    <ShieldCheck className="w-3 h-3" /> Audio
                                 </span>
                             )}
                             {!Object.values(probeResult.features || {}).some(v => v) && (

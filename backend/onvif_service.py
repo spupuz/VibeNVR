@@ -102,7 +102,8 @@ async def get_onvif_details(ip: str, port: int, user: str = "", password: str = 
                 "ptz_can_pan_tilt": False,
                 "ptz_can_zoom": False,
                 "ptz_can_home": False,
-                "onvif_can_events": False
+                "onvif_can_events": False,
+                "audio_enabled": False
             }
                 
         return results
@@ -455,7 +456,8 @@ async def _detect_onvif_capabilities(device: ONVIFCamera, profile_token: Optiona
         "ptz_can_pan_tilt": False, 
         "ptz_can_zoom": False,
         "ptz_can_home": False,
-        "onvif_can_events": False
+        "onvif_can_events": False,
+        "audio_enabled": False
     }
     
     # 1. Detect Events Capability
@@ -515,6 +517,36 @@ async def _detect_onvif_capabilities(device: ONVIFCamera, profile_token: Optiona
                         pass
     except Exception as e:
         logger.debug(f"PTZ capability detection failed: {e}")
+
+    # 4. Detect Audio Capability
+    try:
+        # Check if the profile has an audio source configuration
+        # This is the most reliable way to know if audio is available for the current profile
+        media_service = await asyncio.to_thread(device.create_media_service)
+        profiles = await asyncio.to_thread(media_service.GetProfiles)
+        
+        target_profile = None
+        if profile_token:
+            for p in profiles:
+                if p.token == profile_token:
+                    target_profile = p
+                    break
+        
+        if not target_profile and profiles:
+            target_profile = profiles[0]
+            
+        if target_profile and hasattr(target_profile, 'AudioSourceConfiguration') and target_profile.AudioSourceConfiguration:
+            features["audio_enabled"] = True
+            logger.info(f"Audio detected for ONVIF device (Profile: {target_profile.token})")
+        else:
+            # Secondary check: Are there any audio sources at all?
+            try:
+                sources = await asyncio.to_thread(media_service.GetAudioSources)
+                if sources:
+                    features["audio_enabled"] = True
+            except: pass
+    except Exception as e:
+        logger.debug(f"Audio capability detection failed: {e}")
         
     return features
 
@@ -537,7 +569,8 @@ async def get_onvif_features(camera: "models.Camera"):
         if not host:
             return {
                 "ptz_can_pan_tilt": False, "ptz_can_zoom": False,
-                "ptz_can_home": False, "onvif_can_events": False
+                "ptz_can_home": False, "onvif_can_events": False,
+                "audio_enabled": False
             }
 
         transport = get_onvif_transport(timeout=5.0)
@@ -549,7 +582,8 @@ async def get_onvif_features(camera: "models.Camera"):
         logger.error(f"Failed to detect ONVIF features for {camera.name}: {e}")
         return {
             "ptz_can_pan_tilt": False, "ptz_can_zoom": False,
-            "ptz_can_home": False, "onvif_can_events": False
+            "ptz_can_home": False, "onvif_can_events": False,
+            "audio_enabled": False
         }
 
 async def probe_and_update_onvif_features(camera_id: int, db_session_factory=None):
@@ -568,5 +602,6 @@ async def probe_and_update_onvif_features(camera_id: int, db_session_factory=Non
         camera.ptz_can_zoom = features["ptz_can_zoom"]
         camera.ptz_can_home = features["ptz_can_home"]
         camera.onvif_can_events = features["onvif_can_events"]
+        camera.audio_enabled = features["audio_enabled"]
         db.commit()
         logger.info(f"Updated ONVIF features for camera {camera_id}: {features}")

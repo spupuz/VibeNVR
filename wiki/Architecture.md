@@ -49,7 +49,7 @@ VibeNVR implements a "Security by Design" approach:
 VibeNVR enforces strict isolation between development artifacts and production assets:
 - **Build Hygiene**: Every Docker context is isolated via rigorous `.dockerignore` files, ensuring no `venv`, `__pycache__`, or `node_modules` leak into the ultra-lean (~1GB) production images.
 - **Repository Integrity**: The project uses recursive `.gitignore` policies to ensure all local management scripts and temporary artifacts remain local-only and are never tracked by Git.
-- **Automated Assurance**: Every build is verified against a custom security and hygiene auditor (`check_image_hygiene.py`) to maintain these standards.
+- **Automated Assurance**: Every build is verified against a custom security and hygiene auditor to maintain these standards.
 
 ---
 
@@ -59,3 +59,4 @@ VibeNVR enforces strict isolation between development artifacts and production a
 - **Dual-Stream Handling**: The Engine initializes independent `StreamReader` instances for main and sub-streams. Sub-streams are prioritized for UI frame generation to reduce client-side bandwidth and CPU overhead in grid views.
 - **Fallback Logic**: If a sub-stream is not configured (optional), the Engine automatically falls back to the main stream reader for all operations, including live UI frames.
 - **Adaptive Streaming**: Automatically switches between high-performance WebCodecs (H.264), optimized Sub-Streams, and compatible JPEG polling fallback.
+- **Live Audio**: Implements low-latency audio streaming using browser WebCodecs (PCM ALAW/ULAW). The Engine performs secure authentication and direct passthrough of G.711 streams to the client, minimizing backend CPU overhead and ensuring perfect AV synchronization.

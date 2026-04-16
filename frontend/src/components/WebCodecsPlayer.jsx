@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { Volume2, VolumeX, Activity } from 'lucide-react';
 
 const MAX_RETRIES = 5;
 const RETRY_BASE_MS = 1500;
@@ -41,7 +42,25 @@ function detectCodecFromSPS(naluBytes) {
     return null; // SPS not found in this packet
 }
 
-export const WebCodecsPlayer = ({ camera, onStateChange }) => {
+/**
+ * G.711 A-law to 16-bit PCM decoder
+ */
+function alaw2linear(alaw) {
+    alaw ^= 0x55;
+    let sign = (alaw & 0x80) ? -1 : 1;
+    let exponent = (alaw & 0x70) >> 4;
+    let mantissa = alaw & 0x0f;
+    let sample = 0;
+    if (exponent === 0) {
+        sample = (mantissa << 4) + 8;
+    } else {
+        sample = (mantissa << 4) + 0x108;
+        sample <<= (exponent - 1);
+    }
+    return (sign * sample) / 32768.0; // Normalize to -1.0..1.0 for Web Audio
+}
+
+export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, isAuditing }) => {
     const { token } = useAuth();
     const cameraId = camera?.id;
     const canvasRef = useRef(null);
@@ -55,6 +74,11 @@ export const WebCodecsPlayer = ({ camera, onStateChange }) => {
     const animFrameRef = useRef(null);
     const watchdogTimerRef = useRef(null);
     const isMountedRef = useRef(true);
+
+    // Audio Refs
+    const audioCtxRef = useRef(null);
+    const audioStartTimeRef = useRef(0);
+    const [isMuted, setIsMuted] = useState(true);
 
     const [status, setStatus] = useState('connecting');
 
@@ -205,6 +229,7 @@ export const WebCodecsPlayer = ({ camera, onStateChange }) => {
             const dec = new VideoDecoder({
                 output: (frame) => {
                     if (!isMountedRef.current) { try { frame.close(); } catch (_) { } return; }
+                    if (!videoEnabled) { try { frame.close(); } catch (_) { } return; }
                     pendingFramesRef.current.push(frame);
                     scheduleRender();
                     // Signal 'loaded' on first rendered frame
@@ -287,12 +312,60 @@ export const WebCodecsPlayer = ({ camera, onStateChange }) => {
         }
     }, []);
 
+    const initAudio = useCallback(() => {
+        if (!audioCtxRef.current) {
+            audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)({
+                sampleRate: 8000 // Match camera sample rate for best sync
+            });
+            audioStartTimeRef.current = 0;
+        }
+        if (audioCtxRef.current.state === 'suspended') {
+            audioCtxRef.current.resume();
+        }
+    }, []);
+
+    const playAudioChunk = useCallback((pcmData) => {
+        if (!audioCtxRef.current || !isAuditing) return;
+        
+        const ctx = audioCtxRef.current;
+        const buffer = ctx.createBuffer(1, pcmData.length, ctx.sampleRate);
+        buffer.getChannelData(0).set(pcmData);
+        
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        
+        // Simple scheduling logic
+        const currentTime = ctx.currentTime;
+        if (audioStartTimeRef.current < currentTime) {
+            audioStartTimeRef.current = currentTime + 0.05; // 50ms buffer
+        }
+        
+        source.start(audioStartTimeRef.current);
+        audioStartTimeRef.current += buffer.duration;
+    }, [isAuditing]);
+
+    // --- Audio Lifecycle Control ---
+    useEffect(() => {
+        if (isAuditing) {
+            if (!audioCtxRef.current) {
+                initAudio();
+            } else if (audioCtxRef.current.state === 'suspended') {
+                audioCtxRef.current.resume();
+            }
+        } else {
+            if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+                audioCtxRef.current.suspend();
+            }
+        }
+    }, [isAuditing, initAudio]);
+
     // ── Main connect function ─────────────────────────────────────────────────
     const connect = useCallback(() => {
         if (!isMountedRef.current) return;
         if (!cameraId) return;
 
-        if (!('VideoDecoder' in window)) {
+        if (!('VideoDecoder' in window) && videoEnabled) {
             console.warn('[WebCodecs] VideoDecoder API not available.');
             setStatus('unsupported');
             return;
@@ -334,42 +407,52 @@ export const WebCodecsPlayer = ({ camera, onStateChange }) => {
             }, watchdogTimeout);
 
             const buffer = event.data;
-            if (!(buffer instanceof ArrayBuffer) || buffer.byteLength < 10) return;
+            if (!(buffer instanceof ArrayBuffer) || buffer.byteLength < 11) return;
 
             try {
                 const view = new DataView(buffer);
-                const isKeyframe = view.getUint8(0) === 1;
-                const tsSec = view.getFloat64(1, true); // little-endian
+                const pType = view.getUint8(0); // 0=Video, 1=Audio
+                const isKeyframe = view.getUint8(1) === 1;
+                const tsSec = view.getFloat64(2, true); // little-endian
                 const tsUs = Math.floor(tsSec * 1_000_000);
-                const naluBytes = new Uint8Array(buffer, 9);
+                
+                if (pType === 0) { // VIDEO
+                    const naluBytes = new Uint8Array(buffer, 10);
 
-                // Wait for the first I-frame before starting to decode
-                if (!isReadyRef.current) {
-                    if (!isKeyframe) return;
-                    isReadyRef.current = true;
-                }
-
-                // ── Deferred codec configuration ──
-                // On every keyframe, try to find the real codec from the SPS NAL.
-                // This correctly handles cameras that stream Main (4d) or High (64) profile.
-                if (isKeyframe) {
-                    const detected = detectCodecFromSPS(naluBytes);
-                    const codec = detected || 'avc1.42E01E';
-                    if (!ensureDecoderConfigured(codec)) {
-                        console.error('[WebCodecs] Cannot configure decoder — aborting.');
-                        setStatus('error');
-                        return;
+                    if (!isReadyRef.current) {
+                        if (!isKeyframe) return;
+                        isReadyRef.current = true;
                     }
+
+                    if (!videoEnabled) return;
+
+                    // ── Deferred codec configuration ──
+                    if (isKeyframe) {
+                        const detected = detectCodecFromSPS(naluBytes);
+                        const codec = detected || 'avc1.42E01E';
+                        if (!ensureDecoderConfigured(codec)) {
+                            console.error('[WebCodecs] Cannot configure decoder — aborting.');
+                            setStatus('error');
+                            return;
+                        }
+                    }
+
+                    if (!decoderRef.current || decoderRef.current.state !== 'configured') return;
+
+                    decoderRef.current.decode(new EncodedVideoChunk({
+                        type: isKeyframe ? 'key' : 'delta',
+                        timestamp: tsUs,
+                        data: naluBytes,
+                        duration: 0,
+                    }));
+                } else if (pType === 1) { // AUDIO
+                    const pcmALaw = new Uint8Array(buffer, 10);
+                    const pcmLinear = new Float32Array(pcmALaw.length);
+                    for (let i = 0; i < pcmALaw.length; i++) {
+                        pcmLinear[i] = alaw2linear(pcmALaw[i]);
+                    }
+                    playAudioChunk(pcmLinear);
                 }
-
-                if (!decoderRef.current || decoderRef.current.state !== 'configured') return;
-
-                decoderRef.current.decode(new EncodedVideoChunk({
-                    type: isKeyframe ? 'key' : 'delta',
-                    timestamp: tsUs,
-                    data: naluBytes,
-                    duration: 0,
-                }));
 
             } catch (err) {
                 console.error('[WebCodecs] Packet handling error:', err);
@@ -421,15 +504,28 @@ export const WebCodecsPlayer = ({ camera, onStateChange }) => {
             closeWS();
             closeDecoder();
         };
-    }, [cameraId, token]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [cameraId, token, connect, closeWS, closeDecoder]);
+
+    useEffect(() => {
+        if (onStateChange) onStateChange(status);
+    }, [status, onStateChange]);
 
     return (
-        <canvas
-            ref={canvasRef}
-            className="absolute inset-0 w-full h-full object-contain"
-            style={{
-                display: status === 'loaded' ? 'block' : 'none'
-            }}
-        />
+        <div className="absolute inset-0">
+            {videoEnabled && (
+                <canvas
+                    ref={canvasRef}
+                    className="absolute inset-0 w-full h-full object-contain"
+                    style={{
+                        display: status === 'loaded' ? 'block' : 'none'
+                    }}
+                />
+            )}
+            {camera.audio_enabled && status === 'loaded' && isAuditing && (
+                <div className="absolute top-2 right-2 z-50 p-2 bg-primary/20 backdrop-blur-md rounded-full border border-primary/30 animate-in fade-in zoom-in duration-300">
+                    <Volume2 className="w-4 h-4 text-primary animate-pulse" />
+                </div>
+            )}
+        </div>
     );
 };

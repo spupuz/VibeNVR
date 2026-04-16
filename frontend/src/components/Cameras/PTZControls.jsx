@@ -2,13 +2,13 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { 
     ChevronUp, ChevronDown, ChevronLeft, ChevronRight, 
     Link, Plus, Minus, Move, Loader2, X, Square,
-    Home, Save, Bookmark
+    Home, Save, Bookmark, Volume2, VolumeX
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { ConfirmModal } from '../ui/ConfirmModal';
 
-export const PTZControls = ({ camera, onClose }) => {
+export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebCodecPlayback }) => {
     const { token } = useAuth();
     const { showToast } = useToast();
     const cameraId = camera.id;
@@ -189,6 +189,30 @@ export const PTZControls = ({ camera, onClose }) => {
     return (
         <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/5 pointer-events-none group-hover:bg-black/10 transition-colors">
 
+            {/* Top Left Audio Controls */}
+            {camera.audio_enabled && (
+                <div className="absolute top-2 left-2 z-[110] pointer-events-auto">
+                    <button
+                        onClick={() => isWebCodecPlayback && onToggleAudio(camera.id)}
+                        onContextMenu={(e) => e.preventDefault()}
+                        disabled={!isWebCodecPlayback}
+                        className={`p-3 rounded-full border shadow-xl transition-all flex items-center justify-center
+                            ${!isWebCodecPlayback 
+                                ? 'bg-background/40 border-border/50 text-muted-foreground/30 cursor-not-allowed opacity-50 grayscale' 
+                                : isAuditing 
+                                    ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary ring-offset-2 active:scale-95' 
+                                    : 'bg-background/80 hover:bg-muted border-border text-muted-foreground active:scale-95'
+                            }`}
+                        title={!isWebCodecPlayback 
+                            ? "Audio requires WebCodecs playback" 
+                            : isAuditing ? "Stop Auditing" : "Listen Live"
+                        }
+                    >
+                        {isAuditing ? <Volume2 className="w-5 h-5 animate-pulse" /> : <VolumeX className="w-5 h-5" />}
+                    </button>
+                </div>
+            )}
+
             {/* Close Button */}
             {onClose && (
                 <button
@@ -335,20 +359,22 @@ export const PTZControls = ({ camera, onClose }) => {
                     </div>
 
                     {/* Zoom Controls - Bottom Right */}
-                    {canZoom && (
-                        <div className="absolute bottom-4 right-4 flex flex-col gap-3 pointer-events-auto">
-                            <ControlButton 
-                                icon={Plus} 
-                                onClickStart={() => handleActionStart(0, 0, 1, 'zoom-in')} 
-                                action="zoom-in" 
-                            />
-                            <ControlButton 
-                                icon={Minus} 
-                                onClickStart={() => handleActionStart(0, 0, -1, 'zoom-out')} 
-                                action="zoom-out" 
-                            />
-                        </div>
-                    )}
+                    <div className="absolute bottom-4 right-4 flex flex-col gap-3 pointer-events-auto">
+                        {canZoom && (
+                            <>
+                                <ControlButton 
+                                    icon={Plus} 
+                                    onClickStart={() => handleActionStart(0, 0, 1, 'zoom-in')} 
+                                    action="zoom-in" 
+                                />
+                                <ControlButton 
+                                    icon={Minus} 
+                                    onClickStart={() => handleActionStart(0, 0, -1, 'zoom-out')} 
+                                    action="zoom-out" 
+                                />
+                            </>
+                        )}
+                    </div>
 
                     {/* Hint overlay - Moved higher to avoid overlapping buttons */}
                     <div className="absolute top-2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">

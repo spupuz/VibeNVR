@@ -1,16 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, CameraOff, Maximize2, Minimize2, Settings, Image as ImageIcon, Play, Square, Power, Disc, Grid, X } from 'lucide-react';
+import { Camera, CameraOff, Maximize2, Minimize2, Settings, Image as ImageIcon, Play, Square, Power, Disc, Grid, X, Volume2, VolumeX, Move } from 'lucide-react';
 import { Toggle } from '../components/ui/FormControls';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { WebCodecsPlayer } from '../components/WebCodecsPlayer';
 import { PTZControls } from '../components/Cameras/PTZControls';
-import { Move } from 'lucide-react';
 
 const API_BASE = `/api`;
 
-const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onToggleRecording, isRecording, isLiveMotion, healthStatus }) => {
+const VideoPlayer = ({ 
+    camera, 
+    index, 
+    onFocus, 
+    isFocused, 
+    onToggleActive, 
+    onToggleRecording, 
+    isRecording, 
+    isLiveMotion, 
+    healthStatus, 
+    isAuditing, 
+    onToggleAudio 
+}) => {
     const { token, user } = useAuth();
     const { showToast } = useToast();
     const [loadState, setLoadState] = useState('loading');
@@ -295,10 +306,12 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                 <img src="/no-signal.png" alt="No Signal" className="absolute inset-0 w-full h-full object-cover" />
             ) : (
                 <>
-                    {useWebCodecs && (
+                    {(useWebCodecs || camera.audio_enabled) && (
                         <WebCodecsPlayer
                             camera={camera}
                             onStateChange={handleWebCodecsState}
+                            videoEnabled={useWebCodecs}
+                            isAuditing={isAuditing}
                         />
                     )}
 
@@ -320,6 +333,9 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
                         <PTZControls 
                             camera={camera} 
                             onClose={() => setShowPTZ(false)} 
+                            isAuditing={isAuditing}
+                            onToggleAudio={onToggleAudio}
+                            isWebCodecPlayback={useWebCodecs}
                         />
                     )}
                 </>
@@ -331,11 +347,14 @@ const VideoPlayer = ({ camera, index, onFocus, isFocused, onToggleActive, onTogg
 
 export const LiveView = () => {
     const { token } = useAuth();
+    const { showToast } = useToast();
+    const navigate = useNavigate();
     const [cameras, setCameras] = useState([]);
     const [activeMotionIds, setActiveMotionIds] = useState([]);
     const [liveMotionIds, setLiveMotionIds] = useState([]);
     const [cameraHealth, setCameraHealth] = useState({});
     const [focusCameraId, setFocusCameraId] = useState(null);
+    const [auditingCameraId, setAuditingCameraId] = useState(null);
     const [columnSetting, setColumnSetting] = useState(() => {
         return localStorage.getItem('liveViewColumns') || 'auto';
     });
@@ -407,6 +426,10 @@ export const LiveView = () => {
             });
             if (res.ok) fetchCameras();
         } catch (err) { console.error(err); }
+    };
+
+    const handleToggleAudio = (id) => {
+        setAuditingCameraId(prev => prev === id ? null : id);
     };
 
     const [selectedGroup, setSelectedGroup] = useState('all');
@@ -562,6 +585,8 @@ export const LiveView = () => {
                                                         isRecording={activeMotionIds.includes(cam.id)}
                                                         isLiveMotion={liveMotionIds.includes(cam.id)}
                                                         healthStatus={cameraHealth[String(cam.id)]}
+                                                        isAuditing={auditingCameraId === cam.id}
+                                                        onToggleAudio={handleToggleAudio}
                                                     />
                                                 ))}
                                             </div>
@@ -596,6 +621,8 @@ export const LiveView = () => {
                                                         isRecording={activeMotionIds.includes(cam.id)}
                                                         isLiveMotion={liveMotionIds.includes(cam.id)}
                                                         healthStatus={cameraHealth[String(cam.id)]}
+                                                        isAuditing={auditingCameraId === cam.id}
+                                                        onToggleAudio={handleToggleAudio}
                                                     />
                                                 ))}
                                             </div>
@@ -630,6 +657,8 @@ export const LiveView = () => {
                                 isRecording={activeMotionIds.includes(cam.id)}
                                 isLiveMotion={liveMotionIds.includes(cam.id)}
                                 healthStatus={cameraHealth[String(cam.id)]}
+                                isAuditing={auditingCameraId === cam.id}
+                                onToggleAudio={handleToggleAudio}
                             />
                         ))}
                     </div>

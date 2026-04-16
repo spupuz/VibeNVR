@@ -279,6 +279,7 @@ async def probe_ptz_features(
     camera.ptz_can_pan_tilt = features["ptz_can_pan_tilt"]
     camera.ptz_can_zoom = features["ptz_can_zoom"]
     camera.onvif_can_events = features["onvif_can_events"]
+    camera.audio_enabled = features["audio_enabled"]
     db.commit()
     db.refresh(camera)
     

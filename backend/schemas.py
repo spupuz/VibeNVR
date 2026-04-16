@@ -49,6 +49,10 @@ class CameraBase(BaseModel):
     status: Optional[str] = "STARTING"
     last_seen: Optional[datetime] = None
 
+    # Audio Capabilities
+    audio_enabled: bool = False
+    enable_audio: bool = False
+
     # ONVIF Management
     onvif_host: Optional[str] = None
     onvif_port: Optional[int] = 80
@@ -417,6 +421,10 @@ class CameraSummary(BaseModel):
     last_seen: Optional[datetime] = None
     privacy_masks: Optional[str] = None
     motion_masks: Optional[str] = None
+    
+    # Audio Capabilities
+    audio_enabled: bool
+    enable_audio: bool
     # PTZ Capabilities
     ptz_can_pan_tilt: bool = True
     ptz_can_zoom: bool = True

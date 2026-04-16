@@ -75,7 +75,6 @@ class StreamReader(threading.Thread):
         # Secure RTSP (RSTSPS/RTSPS) - Skip TLS certificate verification (common for self-signed NVRs)
         if self.url.lower().startswith(('rstsps://', 'rtsps://')):
             opts['tls_verify'] = '0'
-            opts['allowed_media_types'] = 'video'
             logger.info(f"StreamReader ({self.camera_name}): Secure RTSP detected, skipping TLS verification")
         hw_accel_enabled = os.environ.get('HW_ACCEL', 'false').lower() == 'true'
         hw_accel_type = os.environ.get('HW_ACCEL_TYPE', 'auto').lower()
@@ -200,7 +199,7 @@ class StreamReader(threading.Thread):
                     self.connected = True
                 self.consecutive_failures = 0
 
-                for packet in container.demux(video=0):
+                for packet in container.demux():
                     if not self.running:
                         break
 
@@ -214,8 +213,14 @@ class StreamReader(threading.Thread):
                     if current_health == "STARTING":
                         break
 
+                    stream_type = packet.stream.type
+                    if stream_type not in ('video', 'audio'):
+                        continue
+
                     raw_data = bytes(packet)
-                    if len(raw_data) > 4:
+                    
+                    # Video specific NAL parsing for keyframe headers (SPS/PPS)
+                    if stream_type == 'video' and len(raw_data) > 4:
                         pos = 0
                         while pos < len(raw_data) - 4:
                             if raw_data.startswith(b'\x00\x00\x01', pos):
@@ -240,17 +245,25 @@ class StreamReader(threading.Thread):
                             time_base = getattr(packet, 'time_base', None)
                             time_sec = float(pts * time_base) if pts is not None and time_base is not None else 0.0
                             is_keyframe = 1 if getattr(packet, 'is_keyframe', False) else 0
-                            header: bytes = struct.pack('<Bd', is_keyframe, time_sec)
-                            full_payload: bytes = header + raw_data
                             
-                            if is_keyframe:
-                                with self.lock:
-                                    lh: bytes = self.last_headers or b''
-                                    self.last_keyframe = header + lh + raw_data
+                            # Packet Type: 0 = Video, 1 = Audio
+                            p_type = 0 if stream_type == 'video' else 1
                             
-                            broadcast_payload = full_payload
-                            if is_keyframe and self.last_headers:
-                                broadcast_payload = header + self.last_headers + raw_data
+                            # New 10-byte header: Type (1b) + Keyframe (1b) + Timestamp (8b)
+                            header: bytes = struct.pack('<BBd', p_type, is_keyframe, time_sec)
+                            
+                            if stream_type == 'video':
+                                if is_keyframe:
+                                    with self.lock:
+                                        lh: bytes = self.last_headers or b''
+                                        self.last_keyframe = header + lh + raw_data
+                                
+                                broadcast_payload = header + raw_data
+                                if is_keyframe and self.last_headers:
+                                    broadcast_payload = header + self.last_headers + raw_data
+                            else:
+                                # Audio packet
+                                broadcast_payload = header + raw_data
                                 
                             for q, loop in clients:
                                 if not q.full():
@@ -258,12 +271,13 @@ class StreamReader(threading.Thread):
                         except Exception as e:
                             logger.error(f"StreamReader ({self.camera_name}): WS Broadcast error: {e}")
 
-                    for frame in packet.decode():
-                        img = frame.to_ndarray(format='bgr24')
-                        with self.lock:
-                            self.latest_frame = img
-                            self.last_read_time = time.time()
-                            self.health_status = "CONNECTED"
+                    if stream_type == 'video':
+                        for frame in packet.decode():
+                            img = frame.to_ndarray(format='bgr24')
+                            with self.lock:
+                                self.latest_frame = img
+                                self.last_read_time = time.time()
+                                self.health_status = "CONNECTED"
 
             except Exception as e:
                 if isinstance(e, av.error.FFmpegError) or "av.error" in str(type(e)):

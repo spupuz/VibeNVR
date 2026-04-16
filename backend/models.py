@@ -38,6 +38,10 @@ class Camera(Base):
     rotation = Column(Integer, default=0) # 0, 90, 180, 270
     auto_resolution = Column(Boolean, default=True)
 
+    # Audio Capabilities
+    audio_enabled = Column(Boolean, default=False) # Detected via ONVIF
+    enable_audio = Column(Boolean, default=False)  # User preference for listening
+
     # Text Overlay
     text_left = Column(String, default="Camera Name")
     text_right = Column(String, default="%Y-%m-%d %H:%M:%S")

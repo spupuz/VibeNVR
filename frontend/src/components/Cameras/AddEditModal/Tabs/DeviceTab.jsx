@@ -60,6 +60,15 @@ export const DeviceTab = ({ newCamera, setNewCamera }) => {
                 unit=" fps"
                 marks={['1', '5', '10', '15', '20', '25', '30']}
             />
+
+            <SectionHeader title="Audio" description="Live audio listening settings" />
+            <Toggle
+                label="Enable Live Audio"
+                checked={newCamera.enable_audio}
+                onChange={(val) => setNewCamera({ ...newCamera, enable_audio: val })}
+                disabled={!newCamera.audio_enabled}
+                help={newCamera.audio_enabled ? "Enable live audio listening via WebSockets." : "Audio capability not detected for this camera via ONVIF."}
+            />
         </div>
     );
 };
