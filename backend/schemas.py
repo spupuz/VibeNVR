@@ -549,3 +549,6 @@ class PTZMoveRequest(BaseModel):
     pan: float = 0.0  # -1.0 to 1.0
     tilt: float = 0.0 # -1.0 to 1.0
     zoom: float = 0.0 # -1.0 to 1.0
+
+class PTZGotoPresetRequest(BaseModel):
+    preset_token: str

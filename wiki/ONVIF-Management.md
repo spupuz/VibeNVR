@@ -57,7 +57,8 @@ Once ONVIF is configured, a **Move** icon (four arrows) will appear in the actio
 1.  **Toggle Controls**: Click the Move icon to show the joystick overlay.
 2.  **Move**: Click and **hold** the directional arrows to move the camera.
 3.  **Zoom**: Use the `+` and `-` buttons on the right to control optical/digital zoom.
-4.  **Stop**: Releasing any button sends a mandatory `Stop` command to prevent the camera from moving indefinitely.
+4.  **Presets**: Click the **Bookmark** icon to open a dropdown menu of your camera's saved hardware presets. Select a preset to move the camera to that position instantly.
+5.  **Stop**: Releasing any button sends a mandatory `Stop` command to prevent the camera from moving indefinitely.
 
 ### 🧠 Intelligent Capability Detection
 

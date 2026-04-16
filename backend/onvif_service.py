@@ -425,6 +425,20 @@ async def ptz_goto_home(camera: "models.Camera"):
         logger.error(f"PTZ GotoHomePosition failed for {camera.name}: {e}")
         return False
 
+async def ptz_goto_preset(camera: "models.Camera", preset_token: str):
+    """Move the PTZ to a specific preset token."""
+    try:
+        ptz, token = await get_ptz_service(camera)
+        await asyncio.to_thread(ptz.GotoPreset, {
+            'ProfileToken': token,
+            'PresetToken': preset_token
+        })
+        logger.info(f"Triggered PTZ GotoPreset (Token: {preset_token}) for {camera.name}")
+        return True
+    except Exception as e:
+        logger.error(f"PTZ GotoPreset failed for {camera.name}: {e}")
+        return False
+
 async def get_ptz_presets(camera: "models.Camera"):
     """Retrieve list of defined PTZ presets."""
     try:

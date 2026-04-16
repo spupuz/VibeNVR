@@ -229,6 +229,23 @@ async def ptz_goto_home(
             detail="Failed to trigger Go to Home. Your camera hardware might not support this command and no fallback presets (Home/1) were found."
         )
     return {"status": "success"}
+    
+@router.post("/ptz/goto-preset/{camera_id}")
+async def ptz_goto_preset(
+    camera_id: int,
+    req: schemas.PTZGotoPresetRequest,
+    db: Session = Depends(database.get_db),
+    current_user: schemas.User = Depends(auth_service.get_current_active_admin)
+):
+    """Go to a specific PTZ preset."""
+    camera = crud.get_camera(db, camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Camera not found")
+        
+    success = await onvif_service.ptz_goto_preset(camera, req.preset_token)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to trigger PTZ GotoPreset")
+    return {"status": "success"}
 
 @router.get("/ptz/presets/{camera_id}")
 async def get_ptz_presets(

@@ -1,8 +1,8 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { 
     ChevronUp, ChevronDown, ChevronLeft, ChevronRight, 
     Link, Plus, Minus, Move, Loader2, X, Square,
-    Home, Save
+    Home, Save, Bookmark
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -17,6 +17,10 @@ export const PTZControls = ({ camera, onClose }) => {
     const [isGoingHome, setIsGoingHome] = useState(false);
     const [isSettingHome, setIsSettingHome] = useState(false);
     const [showSetHomeConfirm, setShowSetHomeConfirm] = useState(false);
+    const [presets, setPresets] = useState([]);
+    const [isLoadingPresets, setIsLoadingPresets] = useState(false);
+    const [activePreset, setActivePreset] = useState(null);
+    const [showPresets, setShowPresets] = useState(false);
     const stopRef = useRef(null);
 
     const canPanTilt = camera?.ptz_can_pan_tilt ?? true;
@@ -100,6 +104,54 @@ export const PTZControls = ({ camera, onClose }) => {
             setIsSettingHome(false);
         }
     };
+
+    const fetchPresets = useCallback(async () => {
+        setIsLoadingPresets(true);
+        try {
+            const res = await fetch(`/api/onvif/ptz/presets/${cameraId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setPresets(data || []);
+            }
+        } catch (err) {
+            console.error('Failed to fetch PTZ presets', err);
+        } finally {
+            setIsLoadingPresets(false);
+        }
+    }, [cameraId, token]);
+
+    useEffect(() => {
+        if (hasAnyPTZ) {
+            fetchPresets();
+        }
+    }, [hasAnyPTZ, fetchPresets]);
+
+    const gotoPreset = useCallback(async (presetToken, presetName) => {
+        setActivePreset(presetToken);
+        try {
+            const res = await fetch(`/api/onvif/ptz/goto-preset/${cameraId}`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}` 
+                },
+                body: JSON.stringify({ preset_token: presetToken })
+            });
+            if (res.ok) {
+                showToast(`Moving to preset: ${presetName}...`, "success");
+            } else {
+                const data = await res.json();
+                showToast(data.detail || "Failed to trigger preset navigation", "error");
+            }
+        } catch (err) {
+            console.error('PTZ GotoPreset failed', err);
+            showToast("Network error while triggering preset", "error");
+        } finally {
+            setActivePreset(null);
+        }
+    }, [cameraId, token, showToast]);
 
     const handleActionStart = (pan, tilt, zoom, action) => {
         sendPTZCommand(pan, tilt, zoom, action);
@@ -216,29 +268,71 @@ export const PTZControls = ({ camera, onClose }) => {
                         </div>
                     )}
 
-                    {/* Advanced PTZ Utils (Home/Save) - Bottom Left */}
-                    {canPanTilt && canHome && (
-                        <div className="absolute bottom-4 left-4 flex flex-col gap-3 pointer-events-auto">
-                            <button 
-                                onClick={gotoHome}
-                                disabled={isGoingHome}
-                                onContextMenu={(e) => e.preventDefault()}
-                                className="p-3 rounded-full bg-background/80 hover:bg-indigo-500 hover:text-white border border-border shadow-lg transition-all active:scale-95 flex items-center justify-center"
-                                title="Go to Home Position"
-                            >
-                                {isGoingHome ? <Loader2 className="w-5 h-5 animate-spin" /> : <Home className="w-5 h-5" />}
-                            </button>
-                            <button 
-                                onClick={setHome}
-                                disabled={isSettingHome || isGoingHome}
-                                onContextMenu={(e) => e.preventDefault()}
-                                className="p-3 rounded-full bg-background/80 hover:bg-green-600 hover:text-white border border-border shadow-lg transition-all active:scale-95 flex items-center justify-center"
-                                title="Set Current as Home"
-                            >
-                                {isSettingHome ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                            </button>
-                        </div>
-                    )}
+                    {/* Advanced PTZ Utils (Home/Save/Presets) - Bottom Left */}
+                    <div className="absolute bottom-4 left-4 flex flex-col items-start gap-2 pointer-events-auto">
+                        {/* Preset Dropdown Menu */}
+                        {presets.length > 0 && (
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowPresets(!showPresets)}
+                                    className={`p-2 rounded-full border shadow-lg transition-all active:scale-95 flex items-center justify-center
+                                        ${showPresets 
+                                            ? 'bg-primary text-primary-foreground border-primary' 
+                                            : 'bg-background/80 hover:bg-muted border-border'
+                                        }`}
+                                    title="Camera Presets"
+                                >
+                                    <Bookmark className="w-4 h-4" />
+                                </button>
+
+                                {showPresets && (
+                                    <div className="absolute bottom-full left-0 mb-2 w-32 bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-2 duration-200">
+                                        <div className="p-1 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20">
+                                            {presets.map((preset) => (
+                                                <button
+                                                    key={preset.token}
+                                                    onClick={() => {
+                                                        gotoPreset(preset.token, preset.name);
+                                                        setShowPresets(false);
+                                                    }}
+                                                    disabled={activePreset === preset.token}
+                                                    className={`w-full text-left px-3 py-2 text-[10px] font-medium transition-colors hover:bg-primary/10 flex items-center gap-2
+                                                        ${activePreset === preset.token ? 'bg-primary/20 text-primary' : 'text-foreground'}
+                                                    `}
+                                                >
+                                                    <Bookmark className="w-3 h-3 opacity-50" />
+                                                    <span className="truncate">{preset.name}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {canPanTilt && canHome && (
+                            <div className="flex flex-col gap-2">
+                                <button 
+                                    onClick={gotoHome}
+                                    disabled={isGoingHome}
+                                    onContextMenu={(e) => e.preventDefault()}
+                                    className="p-2 rounded-full bg-background/80 hover:bg-indigo-500 hover:text-white border border-border shadow-lg transition-all active:scale-95 flex items-center justify-center"
+                                    title="Go to Home Position"
+                                >
+                                    {isGoingHome ? <Loader2 className="w-4 h-4 animate-spin" /> : <Home className="w-4 h-4" />}
+                                </button>
+                                <button 
+                                    onClick={setHome}
+                                    disabled={isSettingHome || isGoingHome}
+                                    onContextMenu={(e) => e.preventDefault()}
+                                    className="p-2 rounded-full bg-background/80 hover:bg-green-600 hover:text-white border border-border shadow-lg transition-all active:scale-95 flex items-center justify-center"
+                                    title="Set Current as Home"
+                                >
+                                    {isSettingHome ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Zoom Controls - Bottom Right */}
                     {canZoom && (

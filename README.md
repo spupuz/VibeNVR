@@ -45,7 +45,7 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | 🔄 **Selective Settings** | Rapidly propagate Recording, Motion, or Alert settings across cameras or groups without overwriting unique hardware identities. |
 | 👯 **Camera Cloning** | Instant device provisioning via the 'Clone Settings' dropdown during initial camera creation. |
 | 🤖 **ONVIF Edge Motion** | Offload motion detection to camera hardware via ONVIF PullPoint events. Includes intelligent UI logic that dynamically hides redundant NVR zones and restricts engine selection to cameras with configured management credentials. |
-| 🎮 **Advanced ONVIF PTZ** | Real-time Pan, Tilt, Zoom, and **Home Positions** via an intuitive overlay. Supports intelligent 3-stage hardware fallbacks for restrictive cameras. |
+| 🎮 **Advanced ONVIF PTZ** | Real-time Pan, Tilt, Zoom, **Home Positions**, and **Presets Navigation** via an intuitive overlay. Supports intelligent 3-stage hardware fallbacks for restrictive cameras. |
 | 🔍 **Network Discovery** | Securely scan network ranges for ONVIF/RTSP devices via authenticated **SSE (Server-Sent Events)** streams. |
 | 🐳 **Docker-Native** | Zero-dependency deployment with **Tag-Driven CI/CD** for stable, predictable releases. |
 

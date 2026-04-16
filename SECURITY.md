@@ -50,7 +50,7 @@ Actions protected by the Admin RBAC include:
 - Generating API tokens (`routers/api_tokens.py`)
 - Forcing full system cleanups or manual snapshots
 - Modifying general system settings and user accounts
-- Configuring ONVIF Management credentials and performing PTZ operations, including **Home Position** management (`routers/onvif_router.py`)
+- Configuring ONVIF Management credentials and performing PTZ operations, including **Home Position** and **Presets** navigation (`routers/onvif_router.py`)
 - Scanning networks for ONVIF devices via secure SSE streams.
 
 ### Standard User Privileges
