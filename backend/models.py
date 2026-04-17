@@ -24,6 +24,11 @@ class Camera(Base):
     onvif_username = Column(String, nullable=True)
     onvif_password = Column(String, nullable=True)
     onvif_profile_token = Column(String, nullable=True)
+    onvif_manufacturer = Column(String, nullable=True)
+    onvif_model = Column(String, nullable=True)
+    onvif_firmware = Column(String, nullable=True)
+    onvif_serial = Column(String, nullable=True)
+    onvif_hw_id = Column(String, nullable=True)
     
     # PTZ Capabilities
     ptz_can_pan_tilt = Column(Boolean, default=True)

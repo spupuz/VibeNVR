@@ -73,9 +73,11 @@ async def get_onvif_details(ip: str, port: int, user: str = "", password: str = 
         results = {
             "ip": ip,
             "port": port,
-            "manufacturer": dev_info.Manufacturer,
-            "model": dev_info.Model,
-            "hw_id": dev_info.HardwareId,
+            "manufacturer": getattr(dev_info, 'Manufacturer', None),
+            "model": getattr(dev_info, 'Model', None),
+            "firmware": getattr(dev_info, 'FirmwareVersion', None),
+            "serial": getattr(dev_info, 'SerialNumber', None),
+            "hw_id": getattr(dev_info, 'HardwareId', None),
             "profiles": []
         }
         
@@ -465,7 +467,8 @@ async def _detect_onvif_capabilities(device: ONVIFCamera, profile_token: Optiona
     
     # 1. Detect Events Capability
     try:
-        capabilities = await asyncio.to_thread(device.devicemgmt.GetCapabilities)
+        # Pass Category='All' to GetCapabilities, which is required for many Tapo/TP-Link cameras
+        capabilities = await asyncio.to_thread(device.devicemgmt.GetCapabilities, {'Category': 'All'})
         if hasattr(capabilities, 'Events') and capabilities.Events:
             # To be absolutely sure, try to create the events service
             await asyncio.to_thread(device.create_events_service)

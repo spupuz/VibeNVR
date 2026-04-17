@@ -59,6 +59,11 @@ class CameraBase(BaseModel):
     onvif_username: Optional[str] = None
     onvif_password: Optional[str] = None
     onvif_profile_token: Optional[str] = None
+    onvif_manufacturer: Optional[str] = None
+    onvif_model: Optional[str] = None
+    onvif_firmware: Optional[str] = None
+    onvif_serial: Optional[str] = None
+    onvif_hw_id: Optional[str] = None
     
     # PTZ Capabilities
     ptz_can_pan_tilt: bool = True
@@ -550,6 +555,9 @@ class OnvifDeviceDetails(BaseModel):
     port: int
     manufacturer: Optional[str] = None
     model: Optional[str] = None
+    firmware: Optional[str] = None
+    serial: Optional[str] = None
+    hw_id: Optional[str] = None
     profiles: List[OnvifProfile] = []
     features: Optional[Dict[str, bool]] = None
     auth_required: bool = False

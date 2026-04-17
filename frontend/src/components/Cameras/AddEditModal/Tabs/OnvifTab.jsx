@@ -118,7 +118,12 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                         ptz_can_zoom: data.features.ptz_can_zoom,
                         ptz_can_home: data.features.ptz_can_home,
                         onvif_can_events: data.features.onvif_can_events,
-                        audio_enabled: data.features.audio_enabled
+                        audio_enabled: data.features.audio_enabled,
+                        onvif_manufacturer: data.manufacturer,
+                        onvif_model: data.model,
+                        onvif_firmware: data.firmware,
+                        onvif_serial: data.serial,
+                        onvif_hw_id: data.hw_id
                     }));
                 }
             } else {
@@ -223,43 +228,78 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                 </div>
             </div>
 
-            {probeStatus === 'success' && probeResult && (
+            {((probeStatus === 'success' && probeResult) || (newCamera.onvif_manufacturer || newCamera.onvif_model)) && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="p-4 bg-muted/20 rounded-lg border border-border">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Settings className="w-3.5 h-3.5 text-muted-foreground" />
+                            <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground m-0">Device Information</h5>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            <div className="flex flex-col">
+                                <span className="text-[9px] uppercase font-bold text-muted-foreground opacity-70 mb-1">Manufacturer</span>
+                                <span className="text-sm font-medium break-words" title={probeResult?.manufacturer || newCamera.onvif_manufacturer || '-'}>{probeResult?.manufacturer || newCamera.onvif_manufacturer || '-'}</span>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[9px] uppercase font-bold text-muted-foreground opacity-70 mb-1">Model</span>
+                                <span className="text-sm font-medium break-words" title={probeResult?.model || newCamera.onvif_model || '-'}>{probeResult?.model || newCamera.onvif_model || '-'}</span>
+                            </div>
+                            <div className="flex flex-col sm:col-span-1">
+                                <span className="text-[9px] uppercase font-bold text-muted-foreground opacity-70 mb-1">Firmware</span>
+                                <span className="text-sm font-medium break-words" title={probeResult?.firmware || newCamera.onvif_firmware || '-'}>{probeResult?.firmware || newCamera.onvif_firmware || '-'}</span>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[9px] uppercase font-bold text-muted-foreground opacity-70 mb-1">Serial Number</span>
+                                <span className="text-sm font-medium break-words" title={probeResult?.serial || newCamera.onvif_serial || '-'}>{probeResult?.serial || newCamera.onvif_serial || '-'}</span>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[9px] uppercase font-bold text-muted-foreground opacity-70 mb-1">Hardware ID</span>
+                                <span className="text-sm font-medium break-words" title={probeResult?.hw_id || newCamera.onvif_hw_id || '-'}>{probeResult?.hw_id || newCamera.onvif_hw_id || '-'}</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="p-4 bg-muted/20 rounded-lg border border-border">
                         <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Detected Capabilities</h5>
                         <div className="flex flex-wrap gap-2">
-                            {probeResult.features?.ptz_can_pan_tilt && (
+                            {(probeResult?.features?.ptz_can_pan_tilt ?? newCamera.ptz_can_pan_tilt) && (
                                 <span className="px-2 py-1 bg-indigo-500/10 text-indigo-500 text-[10px] font-bold rounded-md border border-indigo-500/20 flex items-center gap-1">
                                     <ShieldCheck className="w-3 h-3" /> Pan/Tilt
                                 </span>
                             )}
-                            {probeResult.features?.ptz_can_zoom && (
+                            {(probeResult?.features?.ptz_can_zoom ?? newCamera.ptz_can_zoom) && (
                                 <span className="px-2 py-1 bg-blue-500/10 text-blue-500 text-[10px] font-bold rounded-md border border-blue-500/20 flex items-center gap-1">
                                     <ShieldCheck className="w-3 h-3" /> Zoom
                                 </span>
                             )}
-                            {probeResult.features?.ptz_can_home && (
+                            {(probeResult?.features?.ptz_can_home ?? newCamera.ptz_can_home) && (
                                 <span className="px-2 py-1 bg-green-500/10 text-green-500 text-[10px] font-bold rounded-md border border-green-500/20 flex items-center gap-1">
                                     <ShieldCheck className="w-3 h-3" /> Home Position
                                 </span>
                             )}
-                            {probeResult.features?.onvif_can_events && (
+                            {(probeResult?.features?.onvif_can_events ?? newCamera.onvif_can_events) && (
                                 <span className="px-2 py-1 bg-amber-500/10 text-amber-500 text-[10px] font-bold rounded-md border border-amber-500/20 flex items-center gap-1">
                                     <ShieldCheck className="w-3 h-3" /> Edge Events
                                 </span>
                             )}
-                            {probeResult.features?.audio_enabled && (
+                            {(probeResult?.features?.audio_enabled ?? newCamera.audio_enabled) && (
                                 <span className="px-2 py-1 bg-pink-500/10 text-pink-500 text-[10px] font-bold rounded-md border border-pink-500/20 flex items-center gap-1">
                                     <ShieldCheck className="w-3 h-3" /> Audio
                                 </span>
                             )}
-                            {!Object.values(probeResult.features || {}).some(v => v) && (
+                            {![
+                                probeResult?.features?.ptz_can_pan_tilt ?? newCamera.ptz_can_pan_tilt,
+                                probeResult?.features?.ptz_can_zoom ?? newCamera.ptz_can_zoom,
+                                probeResult?.features?.ptz_can_home ?? newCamera.ptz_can_home,
+                                probeResult?.features?.onvif_can_events ?? newCamera.onvif_can_events,
+                                probeResult?.features?.audio_enabled ?? newCamera.audio_enabled
+                            ].some(v => v) && (
                                 <span className="text-[10px] text-muted-foreground italic">No advanced features detected</span>
                             )}
                         </div>
                     </div>
 
-                    {probeResult.profiles?.length > 0 && (
+                    {probeResult?.profiles?.length > 0 && (
                         <div className="p-4 bg-muted/20 rounded-lg border border-border">
                             <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Detected Stream Profiles</h5>
                             <div className="space-y-2">

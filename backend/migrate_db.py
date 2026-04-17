@@ -50,6 +50,11 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "onvif_username", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "onvif_password", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "onvif_profile_token", "VARCHAR")
+    add_column_if_not_exists(engine, "cameras", "onvif_manufacturer", "VARCHAR")
+    add_column_if_not_exists(engine, "cameras", "onvif_model", "VARCHAR")
+    add_column_if_not_exists(engine, "cameras", "onvif_firmware", "VARCHAR")
+    add_column_if_not_exists(engine, "cameras", "onvif_serial", "VARCHAR")
+    add_column_if_not_exists(engine, "cameras", "onvif_hw_id", "VARCHAR")
     
     # PTZ Capabilities
     add_column_if_not_exists(engine, "cameras", "ptz_can_pan_tilt", "BOOLEAN", True)
