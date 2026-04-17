@@ -198,7 +198,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
                         disabled={!isWebCodecPlayback}
                         className={`p-3 rounded-full border shadow-xl transition-all flex items-center justify-center
                             ${!isWebCodecPlayback 
-                                ? 'bg-background/40 border-border/50 text-muted-foreground/30 cursor-not-allowed opacity-50 grayscale' 
+                                ? 'bg-background/80 border-border text-muted-foreground/60 cursor-not-allowed' 
                                 : isAuditing 
                                     ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary ring-offset-2 active:scale-95' 
                                     : 'bg-background/80 hover:bg-muted border-border text-muted-foreground active:scale-95'
