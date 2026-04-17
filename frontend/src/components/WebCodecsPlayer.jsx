@@ -335,9 +335,15 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
         source.buffer = buffer;
         source.connect(ctx.destination);
         
-        // Simple scheduling logic
+        // Simple scheduling logic with drift correction
         const currentTime = ctx.currentTime;
-        if (audioStartTimeRef.current < currentTime) {
+        const drift = audioStartTimeRef.current - currentTime;
+        
+        // If audio is lagging more than 300ms or is too far in the past, reset to "now"
+        if (drift > 0.3 || audioStartTimeRef.current < currentTime) {
+            if (drift > 0.3) {
+                console.debug(`[WebCodecs] Audio drift detected (${Math.round(drift * 1000)}ms). Resetting buffer for sync.`);
+            }
             audioStartTimeRef.current = currentTime + 0.05; // 50ms buffer
         }
         

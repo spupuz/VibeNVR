@@ -82,7 +82,14 @@ class OnvifEventManager:
         """Background task to manage a single camera subscription."""
         # Cancel existing task if any
         if camera_id in self._subscriptions:
-            self._subscriptions[camera_id].cancel()
+            old_task = self._subscriptions[camera_id]
+            logger.info(f"Camera {camera_id}: Cancelling existing ONVIF subscription task...")
+            old_task.cancel()
+            try:
+                # Wait for the old task to truly finish to avoid SOAP session conflicts on the camera
+                await old_task
+            except (asyncio.CancelledError, Exception):
+                pass
             del self._subscriptions[camera_id]
 
         # Check if we should still be subscribed
@@ -106,8 +113,7 @@ class OnvifEventManager:
                 break
             except Exception as e:
                 logger.error(f"Error in ONVIF polling loop for camera {camera_id}: {e}")
-                if "unknown" not in str(e).lower() and "error" not in str(e).lower():
-                    logger.error(traceback.format_exc())
+                logger.error(traceback.format_exc())
                 await asyncio.sleep(retry_delay)
                 retry_delay = min(retry_delay * 2, 300) # Exp backoff
 
