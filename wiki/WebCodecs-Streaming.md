@@ -41,3 +41,12 @@ You can override the streaming technology:
     - **Auto**: Optimal performance with WebCodecs fallback.
     - **Force WebCodecs**: Explicit H.264.
     - **Force JPEG Polling**: Legacy approach for maximum compatibility.
+
+---
+
+## 🎙️ Audio Synchronization
+
+VibeNVR muxes video and audio packets into a single WebSocket stream. To ensure a low-latency experience:
+- **Auto-Sync**: The player monitors the drift between video frames and audio playback.
+- **Drift Correction**: If the audio lag exceeds **300ms** (common after network spikes), the buffer is automatically reset to "jump" the audio back into perfect sync with the video.
+- **A-law Support**: Native G.711 A-law decoding is handled client-side for immediate playback without backend transcoding latency.

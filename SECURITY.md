@@ -135,7 +135,10 @@ These are documented security trade-offs made intentionally for compatibility or
 - **WebCodecs & Multi-Stream Resilience**: 
     - To ensure instant startup in high-latency environments, the engine caches the most recent H.264 keyframe (SPS/PPS/IDR) and pushes it immediately to new WebSocket clients. 
     - **Hybrid Packetization**: Starting from **v1.26.0**, the WebSocket stream uses a 10-byte binary header to multiplex video and audio packets.
+    - **Audio Sync Optimization**: Now, the player implements active drift detection. If audio lag exceeds **300ms**, the buffer is automatically reset to resync with the video stream.
     - **Resilience**: The frontend employs a micro-jitter buffer (2 frames) to absorb network fluctuations and handles decoder re-initialization automatically if a resolution switch is detected.
+- **ONVIF Polling Stability**:
+    - Configuration updates (e.g., Audio toggle) automatically trigger a clean subscription restart. The system explicitly awaits the cancellation of the previous background task before initializing a new SOAP session, preventing session lease conflicts on the camera hardware.
 
 ## 📁 Host Privacy & Path Sanitization
 
