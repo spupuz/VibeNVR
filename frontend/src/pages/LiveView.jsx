@@ -194,7 +194,7 @@ const VideoPlayer = ({
                     <div className="flex items-center space-x-2 bg-red-600 px-2 py-1 rounded shadow-2xl animate-pulse ring-1 ring-white/40 w-fit">
                         <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_white]" />
                         <span className="text-[10px] font-black text-white tracking-widest uppercase">
-                            {camera.detect_motion_mode === 'ONVIF Edge' ? 'EDGE MOTION' : 'MOTION'}
+                            {camera.detect_engine === 'ONVIF Edge' ? 'EDGE MOTION' : 'MOTION'}
                         </span>
                     </div>
                 ) : null}

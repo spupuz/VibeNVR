@@ -434,6 +434,7 @@ class CameraSummary(BaseModel):
     ptz_can_pan_tilt: bool = True
     ptz_can_zoom: bool = True
     ptz_can_home: bool = True
+    detect_engine: str = "OpenCV"
     created_at: datetime
     
     model_config = ConfigDict(from_attributes=True)

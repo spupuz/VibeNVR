@@ -201,6 +201,9 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks
         if db_camera.is_active:
             print(f"Camera {camera.name} updated. Applying runtime config...", flush=True)
             motion_service.update_camera_runtime(db_camera)
+            # Update ONVIF Event subscription if needed
+            from onvif_event_service import event_manager
+            event_manager.update_subscription(camera_id)
             # Immediate health refresh
             background_tasks.add_task(health_service.refresh_camera_health, camera_id)
         else:
