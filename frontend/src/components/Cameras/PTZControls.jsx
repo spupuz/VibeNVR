@@ -226,16 +226,9 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
             )}
 
             {!hasAnyPTZ && (
-                <div className="bg-background/90 backdrop-blur-md p-6 rounded-2xl border border-border shadow-2xl pointer-events-auto flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
-                    <div className="p-3 bg-muted rounded-full">
-                        <Move className="w-8 h-8 text-muted-foreground opacity-50" />
-                    </div>
-                    <div className="text-center">
-                        <p className="font-bold text-sm">PTZ Not Supported</p>
-                        <p className="text-[10px] text-muted-foreground mt-1 max-w-[180px]">
-                            This camera does not appear to support PTZ commands via ONVIF. Configure it in Camera Settings.
-                        </p>
-                    </div>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/50 backdrop-blur-md rounded-full border border-white/10 pointer-events-auto flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <Move className="w-3.5 h-3.5 text-white/70" />
+                    <span className="text-[10px] text-white/90 font-medium whitespace-nowrap">PTZ Not Supported</span>
                 </div>
             )}
 

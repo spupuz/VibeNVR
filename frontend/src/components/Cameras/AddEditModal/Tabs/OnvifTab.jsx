@@ -1,16 +1,81 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { InputField, SectionHeader } from '../../../ui/FormControls';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useToast } from '../../../../contexts/ToastContext';
-import { Settings, ShieldCheck, ShieldAlert, Loader2 } from 'lucide-react';
+import { Settings, ShieldCheck, ShieldAlert, Loader2, Crosshair } from 'lucide-react';
 import { Button } from '../../../ui/Button';
+import { parseRtspUrl } from '../../../../utils/cameraUtils';
 
 export const OnvifTab = ({ newCamera, setNewCamera }) => {
     const { token } = useAuth();
     const { showToast } = useToast();
     const [probing, setProbing] = useState(false);
+    const [probingPort, setProbingPort] = useState(false);
     const [probeStatus, setProbeStatus] = useState(null); // 'success' | 'error'
     const [probeResult, setProbeResult] = useState(null);
+
+    // Auto-fill ONVIF details from RTSP URL if empty
+    useEffect(() => {
+        const hasHost = newCamera.onvif_host && newCamera.onvif_host.trim() !== '';
+        if (!hasHost && newCamera.rtsp_url) {
+            console.log("OnvifTab: Auto-filling from RTSP URL...");
+            const { user, pass, host } = parseRtspUrl(newCamera.rtsp_url);
+            // Extract IP/Host from RTSP host (which might include port)
+            const IPOnly = host?.split(':')[0];
+            
+            if (IPOnly) {
+                setNewCamera(prev => ({
+                    ...prev,
+                    onvif_host: prev.onvif_host || IPOnly,
+                    onvif_username: prev.onvif_username || user,
+                    onvif_password: prev.onvif_password || pass
+                }));
+            }
+        }
+    }, [newCamera.rtsp_url, newCamera.onvif_host, setNewCamera]);
+
+    const handlePortProbe = async () => {
+        if (!newCamera.onvif_host) {
+            showToast('Please enter an ONVIF Host IP first', 'error');
+            return;
+        }
+
+        setProbingPort(true);
+        try {
+            const res = await fetch('/api/onvif/deep-scan', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ ip: newCamera.onvif_host })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    // Find the best ONVIF port (priority to status onvif_confirmed)
+                    const confirmed = data.find(d => d.status === 'onvif_confirmed');
+                    const best = confirmed || data[0];
+                    
+                    if (best && best.port) {
+                        setNewCamera(prev => ({ ...prev, onvif_port: best.port }));
+                        showToast(`Found ONVIF port: ${best.port}`, 'success');
+                    } else {
+                        showToast('Scan finished, but no ONVIF ports were found.', 'warning');
+                    }
+                } else {
+                    showToast('No ONVIF services detected at this IP.', 'error');
+                }
+            } else {
+                showToast('Port probe failed', 'error');
+            }
+        } catch (err) {
+            showToast('Network error during port probe', 'error');
+        } finally {
+            setProbingPort(false);
+        }
+    };
 
     const handleProbe = async () => {
         if (!newCamera.onvif_host) {
@@ -83,13 +148,28 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                             help="IP address used for ONVIF management (often same as camera IP)"
                         />
                     </div>
-                    <InputField
-                        label="Port"
-                        type="number"
-                        value={newCamera.onvif_port}
-                        onChange={(val) => setNewCamera({ ...newCamera, onvif_port: val })}
-                        placeholder="80"
-                    />
+                    <div className="relative group">
+                        <InputField
+                            label="Port"
+                            type="number"
+                            value={newCamera.onvif_port}
+                            onChange={(val) => setNewCamera({ ...newCamera, onvif_port: val })}
+                            placeholder="80"
+                        />
+                        <button
+                            type="button"
+                            onClick={handlePortProbe}
+                            disabled={probingPort}
+                            className="absolute right-2 top-[34px] p-1.5 hover:bg-primary/10 rounded-md transition-all text-primary hover:text-primary-foreground disabled:opacity-50 z-10"
+                            title="Probe ONVIF Port"
+                        >
+                            {probingPort ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                                <Crosshair className="w-3.5 h-3.5" />
+                            )}
+                        </button>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
