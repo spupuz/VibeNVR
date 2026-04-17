@@ -48,7 +48,11 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify({ ip: newCamera.onvif_host })
+                body: JSON.stringify({ 
+                    ip: newCamera.onvif_host,
+                    user: newCamera.onvif_username || '',
+                    password: newCamera.onvif_password || ''
+                })
             });
 
             if (res.ok) {

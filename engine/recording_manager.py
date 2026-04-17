@@ -171,6 +171,8 @@ class RecordingManager:
             self.recording_process = None
         self.is_recording = False
         
+        time.sleep(0.5)
+        
         valid_recording = False
         if self.recording_filename and os.path.exists(self.recording_filename):
             try:

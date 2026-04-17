@@ -108,9 +108,11 @@ async def get_onvif_details(ip: str, port: int, user: str = "", password: str = 
                 
         return results
     except (ConnectionRefusedError, zeep.exceptions.Error, socket.timeout) as e:
-        err_msg = str(e)
-        if "Connection refused" in err_msg or "Errno 111" in err_msg:
+        err_msg = str(e).lower()
+        if "connection refused" in err_msg or "errno 111" in err_msg:
             logger.warning(f"ONVIF connection refused for {ip}:{port}. Check if ONVIF is enabled on this port.")
+        elif "authority failure" in err_msg or "401" in err_msg or "unauthorized" in err_msg:
+            logger.warning(f"ONVIF Authentication failed for {ip}:{port}: {err_msg}")
         else:
             logger.error(f"ONVIF probe failed for {ip}:{port}: {err_msg}")
         return None
@@ -202,13 +204,14 @@ async def quick_probe(ip: str, port: int, user: str = "", password: str = "") ->
     """Try to get basic info without full auth if possible, or just confirm ONVIF."""
     try:
         # Aggressive timeout for quick probe to avoid hanging the scanner
-        # 3 seconds is enough for a local network device to respond if it's capable
-        async with asyncio.timeout(3.0):
+        # BUT generous enough for slow WSDL parsing (5 seconds)
+        async with asyncio.timeout(5.0):
             # initialize device (WSDL parsing)
-            transport = get_onvif_transport(timeout=3.0)
+            transport = get_onvif_transport(timeout=5.0)
             device = await asyncio.to_thread(ONVIFCamera, ip, port, user, password, adjust_time=True, transport=transport)
             # Try to get info
             dev_info = await asyncio.to_thread(device.devicemgmt.GetDeviceInformation)
+            logger.info(f"ONVIF Quick probe succeeded for {ip}:{port} (Manufacturer: {dev_info.Manufacturer}, Model: {dev_info.Model})")
             return {
                 "ip": ip,
                 "port": port,
@@ -222,7 +225,7 @@ async def quick_probe(ip: str, port: int, user: str = "", password: str = "") ->
         return None
     except Exception as e:
         err_str = str(e).lower()
-        if "401" in err_str or "unauthorized" in err_str:
+        if "401" in err_str or "unauthorized" in err_str or "authority failure" in err_str:
             return {
                 "ip": ip,
                 "port": port,
@@ -241,8 +244,8 @@ async def deep_scan_host(ip: str, concurrency: int = 50) -> List[int]:
     
     async def worker(port):
         async with semaphore:
-            # Slightly longer timeout for deep scan to be sure
-            if await check_port(ip, port, timeout=0.5):
+            # More generous timeout and retry for deep scan (single host) to be sure
+            if await check_port(ip, port, timeout=1.5, retries=1):
                 open_ports.append(port)
                 
     tasks = [worker(p) for p in EXTENDED_ONVIF_PORTS]

@@ -504,6 +504,8 @@ class OnvifScanRequest(BaseModel):
 
 class OnvifDeepScanRequest(BaseModel):
     ip: str
+    user: Optional[str] = ""
+    password: Optional[str] = ""
 
     @field_validator('ip')
     @classmethod

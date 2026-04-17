@@ -142,20 +142,35 @@ async def deep_scan_onvif(req: schemas.OnvifDeepScanRequest, current_user: schem
     potential_ports = [p for p in open_ports if p != 554]
     
     # Try to quick probe them in parallel
-    results = await asyncio.gather(*[onvif_service.quick_probe(req.ip, p) for p in potential_ports])
+    results = await asyncio.gather(*[onvif_service.quick_probe(req.ip, p, req.user or "", req.password or "") for p in potential_ports])
     
     # Filter only functional ONVIF results
     final = [r for r in results if r is not None]
     
+    # Prioritize ports that are in COMMON_ONVIF_PORTS
+    from onvif_service import COMMON_ONVIF_PORTS
+    def get_priority(res):
+        try:
+            # Lower index = higher priority
+            return COMMON_ONVIF_PORTS.index(res['port'])
+        except ValueError:
+            return 9999 # Not in common ports
+            
+    final.sort(key=get_priority)
+
     if not final:
-        # If no ONVIF found but 554 is open, return a placeholder
-        if 554 in open_ports:
-            return [{
-                "ip": req.ip,
-                "port": 0,
-                "status": "rtsp_only",
-                "rtsp_open": True
-            }]
+        # Fallback: if quick_probe failed but ports were actually open, return them as potential
+        if open_ports:
+             # Create list of potentials
+             potentials = [{
+                 "ip": req.ip,
+                 "port": p,
+                 "status": "potential_onvif",
+                 "rtsp_open": 554 in open_ports
+             } for p in open_ports if p != 554]
+             # Sort potentials as well
+             potentials.sort(key=get_priority)
+             return potentials
             
     return final
 
