@@ -76,7 +76,7 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
         "show_motion_box": False, # Disabled as requested by user
         "min_motion_frames": cam.min_motion_frames or 2,
         "despeckle_filter": cam.despeckle_filter if cam.despeckle_filter is not None else False,
-        "detect_motion_mode": cam.detect_motion_mode or "Always",
+        "detect_motion_mode": cam.detect_motion_mode if cam.detect_motion_mode not in (None, 'Off', '') else "Always",
         "detect_engine": cam.detect_engine or "OpenCV",
         "privacy_masks": cam.privacy_masks,
         "motion_masks": cam.motion_masks,

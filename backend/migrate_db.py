@@ -216,6 +216,13 @@ def migrate():
     # Add storage_profile_id to cameras
     add_column_if_not_exists(engine, "cameras", "storage_profile_id", "INTEGER")
 
+    # [v1.27.1] Cleanup: Ensure detect_motion_mode is not 'Off' (which was disabled in new UI)
+    # This prevents cameras from being stuck in a non-detecting state after upgrade.
+    with engine.connect() as conn:
+        print("Ensuring detect_motion_mode is not 'Off' (v1.27.1 upgrade)...")
+        conn.execute(text("UPDATE cameras SET detect_motion_mode = 'Always' WHERE detect_motion_mode = 'Off' OR detect_motion_mode IS NULL"))
+        conn.commit()
+
 if __name__ == "__main__":
     print("Starting migration...")
     migrate()

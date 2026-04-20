@@ -93,7 +93,13 @@ class OnvifEventManager:
                 await old_task
             except (asyncio.CancelledError, Exception):
                 pass
-            del self._subscriptions[camera_id]
+            
+            # CRITICAL: Wait for the camera firmware to prune the stale session
+            # Most consumer cameras (Tapo/Reolink) reject new connections if the old one isn't timed out.
+            await asyncio.sleep(5)
+            
+            if camera_id in self._subscriptions:
+                del self._subscriptions[camera_id]
 
         # Check if we should still be subscribed
         db = SessionLocal()
