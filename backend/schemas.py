@@ -94,6 +94,7 @@ class CameraBase(BaseModel):
     recording_mode: Optional[str] = "Motion Triggered"
     previous_recording_mode: Optional[str] = None
     max_movie_length: Optional[int] = 120  # Default 2 minutes, range 60-300 (1-5 min)
+    record_audio: bool = False
     preserve_movies: Optional[str] = "For One Week"
     max_storage_gb: Optional[float] = 0  # 0 = unlimited
 
@@ -430,6 +431,7 @@ class CameraSummary(BaseModel):
     # Audio Capabilities
     audio_enabled: bool
     enable_audio: bool
+    record_audio: bool
     # PTZ Capabilities
     ptz_can_pan_tilt: bool = True
     ptz_can_zoom: bool = True

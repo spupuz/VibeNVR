@@ -183,7 +183,8 @@ class CameraManager:
                 "fps": thread.fps,
                 "motion": thread.motion_detected,
                 "recording": thread.is_recording,
-                "last_frame_bytes": len(thread.latest_frame_jpeg) if thread.latest_frame_jpeg else 0
+                "last_frame_bytes": len(thread.latest_frame_jpeg) if thread.latest_frame_jpeg else 0,
+                "config": mask_config(thread.config)
             }
             status[cid] = cam_status
         return status

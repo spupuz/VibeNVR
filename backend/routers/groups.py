@@ -113,7 +113,7 @@ def perform_group_action(group_id: int, action: schemas.GroupAction, db: Session
 
         # Category mapping
         category_map = {
-            'recording': ['recording_mode', 'movie_quality', 'movie_passthrough', 'max_movie_length', 'preserve_movies', 'max_storage_gb', 'live_view_mode', 'rtsp_transport', 'sub_rtsp_transport'],
+            'recording': ['recording_mode', 'movie_quality', 'movie_passthrough', 'max_movie_length', 'preserve_movies', 'max_storage_gb', 'live_view_mode', 'rtsp_transport', 'sub_rtsp_transport', 'record_audio'],
             'snapshots': ['picture_quality', 'picture_recording_mode', 'preserve_pictures', 'enable_manual_snapshots', 'max_pictures_storage_gb'],
             'motion': [
                 'threshold', 'despeckle_filter', 'motion_gap', 'captured_before', 'captured_after', 

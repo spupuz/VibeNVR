@@ -62,6 +62,7 @@ class Camera(Base):
     recording_mode = Column(String, default="Motion Triggered")
     previous_recording_mode = Column(String, nullable=True)  # Stores mode before manual override
     max_movie_length = Column(Integer, default=120)
+    record_audio = Column(Boolean, default=False)
     preserve_movies = Column(String, default="For One Week")
     max_storage_gb = Column(Float, default=0)  # 0 = unlimited
 

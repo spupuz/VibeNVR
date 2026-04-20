@@ -68,6 +68,7 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
         "movie_quality": cam.movie_quality or 75,
         "movie_passthrough": cam.movie_passthrough if cam.movie_passthrough is not None else False,
         "max_movie_length": cam.max_movie_length or 0,
+        "record_audio": cam.record_audio if cam.record_audio is not None else False,
         "movie_file_name": cam.movie_file_name or "%Y-%m-%d/%H-%M-%S",
         "picture_quality": cam.picture_quality or 75,
         "picture_recording_mode": cam.picture_recording_mode or "Manual",

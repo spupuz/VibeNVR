@@ -28,6 +28,12 @@ export const MoviesTab = ({ editingId, newCamera, setNewCamera, stats, handleCle
                     { value: 'Off', label: 'Off' }
                 ]}
             />
+            <Toggle
+                label="Record Audio"
+                checked={!!newCamera.record_audio}
+                onChange={(val) => setNewCamera({ ...newCamera, record_audio: val })}
+                help="Saves the audio stream along with the video. Available in both Passthrough and Transcoding modes."
+            />
             <div className={`p-3 rounded-lg text-xs mb-4 transition-all duration-300 ${
                 hasPrivacyMasks 
                     ? 'bg-muted/50 border border-border opacity-80' 

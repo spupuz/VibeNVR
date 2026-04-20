@@ -84,9 +84,10 @@ class RecordingManager:
             self.passthrough_active = self.config.get('movie_passthrough', False)
         
         if self.passthrough_active:
+            audio_args = ['-c:a', 'aac', '-b:a', '128k'] if self.config.get('record_audio') else ['-an']
             command = [
                 'ffmpeg', '-y', '-rtsp_transport', 'tcp', '-hide_banner', '-loglevel', 'error',
-                '-i', self.config['rtsp_url'], '-c:v', 'copy', '-an', '-f', 'mp4',
+                '-i', self.config['rtsp_url'], '-c:v', 'copy', *audio_args, '-f', 'mp4',
                 '-movflags', '+faststart', full_path
             ]
             try:
@@ -130,8 +131,20 @@ class RecordingManager:
         command = [
             'ffmpeg', '-y', '-loglevel', ffmpeg_loglevel, '-f', 'rawvideo', '-vcodec', 'rawvideo',
             '-s', f'{width}x{height}', '-pix_fmt', 'bgr24', '-r', str(self.config.get('framerate', 15)),
-            '-i', '-', '-c:v', video_codec, *codec_specific_args, '-pix_fmt', 'yuv420p', full_path
+            '-i', '-'
         ]
+        
+        if self.config.get('record_audio'):
+            # Fetch audio from RTSP as a second input
+            command += [
+                '-rtsp_transport', self.config.get('rtsp_transport', 'tcp'),
+                '-i', self.config['rtsp_url'],
+                '-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '128k'
+            ]
+        else:
+            command += ['-an']
+
+        command += ['-c:v', video_codec, *codec_specific_args, '-pix_fmt', 'yuv420p', full_path]
         
         try:
             self.recording_process = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)

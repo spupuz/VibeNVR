@@ -30,6 +30,13 @@ export const Timeline = () => {
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [lastSelectedId, setLastSelectedId] = useState(null);
     const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+    const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1024);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobileView(window.innerWidth < 1024);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const cameraId = searchParams.get('camera');
     const type = searchParams.get('type');
@@ -251,12 +258,14 @@ export const Timeline = () => {
 
             <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
                 {/* Mobile Preview */}
-                <EventPreview 
-                    isMobile={true}
-                    selectedEvent={selectedEvent} getCameraName={getCameraName} getCamera={getCamera} getMediaUrl={getMediaUrl} setSelectedEvent={setSelectedEvent}
-                    autoplayNext={autoplayNext} setAutoplayNext={setAutoplayNext} autoplayDirection={autoplayDirection} setAutoplayDirection={setAutoplayDirection}
-                    playbackSpeed={playbackSpeed} setPlaybackSpeed={setPlaybackSpeed} handleVideoEnded={handleVideoEnded} handleDelete={handleDelete} videoRef={videoRef} user={user}
-                />
+                {isMobileView && (
+                    <EventPreview 
+                        isMobile={true}
+                        selectedEvent={selectedEvent} getCameraName={getCameraName} getCamera={getCamera} getMediaUrl={getMediaUrl} setSelectedEvent={setSelectedEvent}
+                        autoplayNext={autoplayNext} setAutoplayNext={setAutoplayNext} autoplayDirection={autoplayDirection} setAutoplayDirection={setAutoplayDirection}
+                        playbackSpeed={playbackSpeed} setPlaybackSpeed={setPlaybackSpeed} handleVideoEnded={handleVideoEnded} handleDelete={handleDelete} videoRef={videoRef} user={user}
+                    />
+                )}
 
                 {/* Event List & Ruler */}
                 <div className="w-full lg:w-[380px] flex-shrink-0 flex flex-col">
@@ -302,13 +311,15 @@ export const Timeline = () => {
                 </div>
 
                 {/* Desktop Preview */}
-                <div className="hidden lg:flex flex-1 bg-card border border-border rounded-xl p-4 flex-col min-h-0 sticky top-8 h-[calc(100dvh-4rem)] self-start">
-                    <EventPreview 
-                        selectedEvent={selectedEvent} getCameraName={getCameraName} getCamera={getCamera} getMediaUrl={getMediaUrl} setSelectedEvent={setSelectedEvent}
-                        autoplayNext={autoplayNext} setAutoplayNext={setAutoplayNext} autoplayDirection={autoplayDirection} setAutoplayDirection={setAutoplayDirection}
-                        playbackSpeed={playbackSpeed} setPlaybackSpeed={setPlaybackSpeed} handleVideoEnded={handleVideoEnded} handleDelete={handleDelete} videoRef={videoRef} user={user}
-                    />
-                </div>
+                {!isMobileView && (
+                    <div className="hidden lg:flex flex-1 bg-card border border-border rounded-xl p-4 flex-col min-h-0 sticky top-8 h-[calc(100dvh-4rem)] self-start">
+                        <EventPreview 
+                            selectedEvent={selectedEvent} getCameraName={getCameraName} getCamera={getCamera} getMediaUrl={getMediaUrl} setSelectedEvent={setSelectedEvent}
+                            autoplayNext={autoplayNext} setAutoplayNext={setAutoplayNext} autoplayDirection={autoplayDirection} setAutoplayDirection={setAutoplayDirection}
+                            playbackSpeed={playbackSpeed} setPlaybackSpeed={setPlaybackSpeed} handleVideoEnded={handleVideoEnded} handleDelete={handleDelete} videoRef={videoRef} user={user}
+                        />
+                    </div>
+                )}
 
                 <ConfirmModal {...confirmConfig} />
                 <BulkActionBar selectedIds={selectedIds} filteredEvents={filteredEvents} handleSelectAll={handleSelectAll} setSelectedIds={setSelectedIds} handleBulkDelete={handleBulkDelete} isBulkDeleting={isBulkDeleting} user={user} />
