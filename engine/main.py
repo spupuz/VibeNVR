@@ -160,6 +160,8 @@ class CameraConfig(BaseModel):
     rtsp_transport: str = "tcp"
     sub_rtsp_transport: str = "tcp"
     live_view_mode: str = "auto"
+    audio_enabled: bool = False
+    enable_audio: bool = False
 
 
 class EventTrigger(BaseModel):

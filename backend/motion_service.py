@@ -85,6 +85,8 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
         "rtsp_transport": cam.rtsp_transport or "tcp",
         "sub_rtsp_transport": cam.sub_rtsp_transport or "tcp",
         "live_view_mode": cam.live_view_mode or "auto",
+        "audio_enabled": cam.audio_enabled if cam.audio_enabled is not None else False,
+        "enable_audio": cam.enable_audio if cam.enable_audio is not None else False,
         "storage_path": cam.storage_profile.path if cam.storage_profile else "/var/lib/vibe/recordings"
     }
     

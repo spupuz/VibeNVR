@@ -1,0 +1,24 @@
+# Backend Build Context Exclusions
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.env
+*.log
+*.sqlite3
+.git/
+.gitignore
+.agents/
+.gemini/
+scripts/
+docs/
+wiki/
+Dockerfile
+.dockerignore
+error_trace.txt
+sanity_snapshot.json
+latest_system_auto.json
+sanity_backup.json
