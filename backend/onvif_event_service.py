@@ -26,6 +26,7 @@ class OnvifEventManager:
         self._loop = None
         self._thread = None
         self._last_motion_state: Dict[int, bool] = {} # camera_id -> bool
+        self._http_session = requests.Session()
 
     def start(self):
         """Start the background event manager thread."""
@@ -287,8 +288,12 @@ class OnvifEventManager:
             topic_l = topic.lower()
             is_motion_topic = any(kw in topic_l for kw in ["motion", "cellmotion", "ruleengine", "motionalarm"])
             
-            # Use INFO for topics temporarily to help user debug their camera's specific ONVIF implementation
-            logger.info(f"Camera {camera_id} ONVIF Event | Topic: {topic} | MotionTopic: {is_motion_topic}")
+            # Use DEBUG for topics to keep logs clean, unless it's a motion topic
+            if is_motion_topic:
+                logger.debug(f"Camera {camera_id} ONVIF Motion Event | Topic: {topic}")
+            else:
+                # Log non-motion topics only in debug to reduce noise
+                pass
 
             # 2. Extract and Parse Payload
             is_motion = False
@@ -339,7 +344,8 @@ class OnvifEventManager:
                 if field_match:
                     parsed_val = self._parse_boolean(value)
                     if parsed_val is not None:
-                        logger.info(f"Camera {camera_id} ONVIF Match Found: {name}={value} (Parsed: {parsed_val})")
+                        # Only log match at debug level to prevent flooding
+                        logger.debug(f"Camera {camera_id} ONVIF Match Found: {name}={value} (Parsed: {parsed_val})")
                         is_motion = parsed_val
                         found_match = True
                         break # Take the first definitive match
@@ -355,21 +361,25 @@ class OnvifEventManager:
                         logger.info(f"Camera {camera_id}: Motion topic received with no payload. Treating as trigger.")
                         is_motion = True
 
-            # 5. Trigger Engine
+            # 5. Trigger Engine only on state change (Rising Edge)
+            last_state = self._last_motion_state.get(camera_id, False)
             if is_motion:
-                last_state = self._last_motion_state.get(camera_id, False)
                 if not last_state:
-                    # Rising edge: Only log INFO once per motion start
-                    logger.info(f"[ONVIF] Motion detected for camera {camera_id}")
+                    # Rising edge: Start of motion
+                    logger.info(f"🏃 [ONVIF] Motion START detected for camera {camera_id}")
+                    self._last_motion_state[camera_id] = True
+                    self._trigger_engine(camera_id)
                 else:
-                    # Still active: Log as DEBUG to reduce frequency
-                    logger.debug(f"[ONVIF] Motion still active for camera {camera_id}")
-                
-                self._last_motion_state[camera_id] = True
-                self._trigger_engine(camera_id)
+                    # Still active: No need to re-trigger engine
+                    pass
             else:
-                # Store the inactive state for edge detection
-                self._last_motion_state[camera_id] = False
+                if last_state:
+                    # Falling edge: End of motion
+                    logger.info(f"🛑 [ONVIF] Motion END detected for camera {camera_id}")
+                    self._last_motion_state[camera_id] = False
+                else:
+                    # Still inactive
+                    pass
                 
         except Exception as e:
             logger.error(f"Error parsing ONVIF message for camera {camera_id}: {e}")
@@ -377,12 +387,16 @@ class OnvifEventManager:
 
     def _trigger_engine(self, camera_id: int):
         """Call the Engine API to trigger an external event."""
-        try:
-            url = f"{ENGINE_BASE_URL}/cameras/{camera_id}/trigger_event"
-            # async call to requests (blocking) in a thread
-            threading.Thread(target=lambda: requests.post(url, json={"event_type": "motion", "source": "ONVIF PullPoint"}, timeout=2)).start()
-        except Exception as e:
-            logger.error(f"Failed to trigger engine for camera {camera_id}: {e}")
+        def do_post():
+            try:
+                url = f"{ENGINE_BASE_URL}/cameras/{camera_id}/trigger_event"
+                self._http_session.post(url, json={"event_type": "motion", "source": "ONVIF PullPoint"}, timeout=3)
+            except Exception as e:
+                logger.error(f"Failed to trigger engine for camera {camera_id}: {e}")
+        
+        # Still using a thread to avoid blocking the asyncio loop, 
+        # but now we trigger much less frequently (only on rising edge)
+        threading.Thread(target=do_post, daemon=True).start()
 
 # Global Manager Instance
 event_manager = OnvifEventManager()

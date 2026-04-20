@@ -78,7 +78,13 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
     // Audio Refs
     const audioCtxRef = useRef(null);
     const audioStartTimeRef = useRef(0);
+    const isAuditingRef = useRef(isAuditing); // Use ref to avoid stale closure in WS handler
     const [isMuted, setIsMuted] = useState(true);
+
+    // Sync ref with prop
+    useEffect(() => {
+        isAuditingRef.current = isAuditing;
+    }, [isAuditing]);
 
     const [status, setStatus] = useState('connecting');
 
@@ -325,7 +331,7 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
     }, []);
 
     const playAudioChunk = useCallback((pcmData) => {
-        if (!audioCtxRef.current || !isAuditing) return;
+        if (!audioCtxRef.current || !isAuditingRef.current) return;
         
         const ctx = audioCtxRef.current;
         const buffer = ctx.createBuffer(1, pcmData.length, ctx.sampleRate);
@@ -457,7 +463,11 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
                     for (let i = 0; i < pcmALaw.length; i++) {
                         pcmLinear[i] = alaw2linear(pcmALaw[i]);
                     }
-                    playAudioChunk(pcmLinear);
+                    try {
+                        playAudioChunk(pcmLinear);
+                    } catch (audioErr) {
+                        console.warn('[WebCodecs] Audio playback skipped to protect video stream:', audioErr);
+                    }
                 }
 
             } catch (err) {
