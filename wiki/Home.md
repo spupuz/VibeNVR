@@ -29,6 +29,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **WebCodecs Performance**: Ultra low-latency streaming with hardware acceleration and intelligent keyframe caching.
 - **Dual-Stream Optimization**: Dedicated sub-streams for lightweight dashboard grids, saving CPU and bandwidth.
 - **Advanced PTZ**: Native ONVIF support for low-latency Pan, Tilt, Zoom, and **Home Positions** with resident hardware fallbacks.
+- **System Integrity Assurance**: Integrated security, RBAC, and path-sanitization audits running on every release.
 
 ## ⚠️ Important Notes
 

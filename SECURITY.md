@@ -116,6 +116,7 @@ VibeNVR's code includes specific mitigations against common attack vectors:
 11. **Live Audio Privacy & Control**:
     - **Disabled by Default**: Audio listening is explicitly disabled by default for all cameras. Users must manually enable it in the camera settings (`enable_audio`).
     - **Backend-Only Proxying**: Audio streams are NOT bridged directly between the camera and the client. The VibeEngine decodes the audio and re-transmits it via an authenticated WebSocket proxy (port 5005), ensuring that all listeners are processed through the RBAC system.
+    - **Backend-Engine Sync**: Audio capability flags (`audio_enabled`, `enable_audio`) are synchronized between the backend and engine via authenticated Admin-only routes, ensuring that hardware audio support is correctly reported and enforced at the edge.
     - **Encrypted in Transit**: All audio data transmitted via the web interface is protected by TLS encryption when accessed via HTTPS/WSS.
     - **Log Suppression**: Audio-related metadata is treated as privacy-sensitive and is suppressed from high-verbosity logs unless specifically requested via debug flags.
 

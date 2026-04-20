@@ -164,6 +164,8 @@ The following fields are transmitted to the engine in real-time upon camera upda
 - `sub_rtsp_transport`: (tcp/udp) Sub-stream protocol.
 - `live_view_mode`: (webcodecs/mjpeg) UI rendering engine.
 - `detect_motion_mode`: (OpenCV/ONVIF Edge) Trigger source.
+- `audio_enabled`: (bool) Hardware audio support toggle.
+- `enable_audio`: (bool) Live audio transmission toggle.
  
 ---
 
@@ -421,7 +423,7 @@ curl -X GET "http://localhost:8080/stats" \
 <img src="http://localhost:8080/media/Camera1/2026-02-21/snap.jpg" />
 ```
 
-*(Current Version: v1.26.0)*
+*(Current Version: v1.26.13)*
 
 ---
 
