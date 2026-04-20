@@ -423,7 +423,7 @@ curl -X GET "http://localhost:8080/stats" \
 <img src="http://localhost:8080/media/Camera1/2026-02-21/snap.jpg" />
 ```
 
-*(Current Version: v1.26.13)*
+*(Current Version: v1.27.0)*
 
 ---
 
