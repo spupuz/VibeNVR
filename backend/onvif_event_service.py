@@ -7,6 +7,8 @@ import traceback
 from typing import Dict, Optional
 from onvif import ONVIFCamera
 import zeep
+import requests.exceptions
+import onvif.exceptions
 
 from database import SessionLocal
 import models
@@ -112,8 +114,18 @@ class OnvifEventManager:
                 logger.info(f"Subscription task for camera {camera_id} cancelled")
                 break
             except Exception as e:
-                logger.error(f"Error in ONVIF polling loop for camera {camera_id}: {e}")
-                logger.error(traceback.format_exc())
+                # Check if this was a transient error already warned about
+                err_str = str(e).lower()
+                is_handled = any(msg in err_str for msg in ["unknown error", "connection aborted", "remotedisconnected", "subscription expired"])
+                
+                if is_handled:
+                    # Just log a concise info/warning if not already warned (usually already warned in _run_polling_loop)
+                    # We skip the traceback to keep logs clean
+                    pass 
+                else:
+                    logger.error(f"Critical error in ONVIF polling loop for camera {camera_id}: {e}")
+                    logger.error(traceback.format_exc())
+                
                 await asyncio.sleep(retry_delay)
                 retry_delay = min(retry_delay * 2, 300) # Exp backoff
 
@@ -146,9 +158,9 @@ class OnvifEventManager:
             except Exception as e:
                 logger.warning(f"Camera {camera.name}: Could not fetch EventProperties: {e}")
 
-            # PT10M = 10 minute initial termination time (better compatibility)
+            # PT5M = 5 minute initial termination time (better for recovering from crashes)
             pull_point = await asyncio.to_thread(events_service.CreatePullPointSubscription, 
-                                               {'InitialTerminationTime': 'PT10M'})
+                                               {'InitialTerminationTime': 'PT5M'})
             subscription_reference = pull_point.SubscriptionReference
             address = subscription_reference.Address._value_1
             logger.info(f"Camera {camera.name}: PullPoint Address: {address}")
@@ -156,8 +168,8 @@ class OnvifEventManager:
             # Create specialized PullPoint service (binds the events wsdl to the pullpoint address)
             pullpoint_service = await asyncio.to_thread(device.create_onvif_service, 'pullpoint', address)
         except zeep.exceptions.Fault as f:
-            if "error" in str(f).lower():
-                logger.warning(f"Camera {camera.name}: Camera rejected subscription. It may have reached its max subscriptions limit. Retrying later...")
+            if "error" in str(f).lower() or "limit" in str(f).lower() or "capacity" in str(f).lower():
+                logger.warning(f"Camera {camera.name}: Camera rejected subscription. It has likely reached its max ONVIF subscriptions limit. Please check camera settings or reboot the camera. Retrying in 1 minute...")
             else:
                 logger.error(f"Camera {camera.name}: SOAP Fault during subscription: {f}")
             raise f
@@ -170,29 +182,83 @@ class OnvifEventManager:
                 logger.error(f"Camera {camera.name}: Failed to create PullPoint: {e}")
             raise e
         
-        # Polling Loop
-        while True:
+        try:
+            # Polling Loop with hardening
+            consecutive_errors = 0
+            max_consecutive_errors = 3
+            last_renewal = time.time()
+            
+            while True:
+                try:
+                    # After 4 minutes, we break the loop to perform a fresh subscripiton.
+                    # This is more robust than 'Renew' which is not supported by all cameras.
+                    current_time = time.time()
+                    if current_time - last_renewal > 240:
+                        logger.info(f"Camera {camera.name}: 4-minute lease reached, rebinding subscription for stability...")
+                        break # Break to trigger Unsubscribe (finally) and Resubscribe (outer loop)
+                    
+                    logger.info(f"Camera {camera.name}: Pulling ONVIF messages...")
+                    # Use raw dict to bypass zeep wsdl inheritance bug for rw-2 elements
+                    response = await asyncio.to_thread(
+                        pullpoint_service.PullMessages,
+                        {'Timeout': 'PT5S', 'MessageLimit': 10}
+                    )
+                    
+                    # Process notifications
+                    if hasattr(response, 'NotificationMessage'):
+                        for msg in response.NotificationMessage:
+                            self._handle_notification(camera.id, msg)
+                    
+                    # Reset error counter on success
+                    if consecutive_errors > 0:
+                        logger.info(f"Camera {camera.name}: ONVIF polling connection restored.")
+                    consecutive_errors = 0
+                    
+                    # Small sleep to yield to other tasks
+                    await asyncio.sleep(0.1)
+                    
+                except (requests.exceptions.RequestException, onvif.exceptions.ONVIFError) as e:
+                    err_str = str(e)
+                    is_transient = any(msg in err_str for msg in ["Connection aborted", "RemoteDisconnected", "EOF occurred"])
+                    
+                    if is_transient:
+                        consecutive_errors += 1
+                        if consecutive_errors < max_consecutive_errors:
+                            logger.warning(f"Camera {camera.name}: Transient ONVIF disconnection (attempt {consecutive_errors}/{max_consecutive_errors}). Retrying in 2s...")
+                            await asyncio.sleep(2)
+                            continue
+                        else:
+                            logger.error(f"Camera {camera.name}: Max consecutive ONVIF disconnections reached. Renewing subscription...")
+                            break # Break inner loop to renew subscription
+                    else:
+                        # Not a transient/handled error
+                        logger.error(f"Camera {camera.name}: Non-transient ONVIF error in polling: {e}")
+                        raise e
+
+                except zeep.exceptions.Fault as fault:
+                    # Often happens if subscription expires
+                    if "NoSubscription" in str(fault) or "Subscription" in str(fault) or "InvalidReference" in str(fault):
+                        logger.warning(f"Camera {camera.name}: Subscription expired or invalid, renewing...")
+                    else:
+                        logger.error(f"Camera {camera.name}: SOAP Fault in polling: {fault}")
+                    break # Break to renew subscription
+        
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            # This catches errors from the subscription setup or persistent loop issues
+            raise e
+        finally:
+            # Graceful cleanup: Try to Unsubscribe to free up the camera slot immediately
             try:
-                # Use raw dict to bypass zeep wsdl inheritance bug for rw-2 elements
-                response = await asyncio.to_thread(
-                    pullpoint_service.PullMessages,
-                    {'Timeout': 'PT5S', 'MessageLimit': 10}
-                )
-                
-                # Process notifications
-                if hasattr(response, 'NotificationMessage'):
-                    for msg in response.NotificationMessage:
-                        self._handle_notification(camera.id, msg)
-                
-                # Small sleep to yield to other tasks
-                await asyncio.sleep(0.1)
-                
-            except zeep.exceptions.Fault as fault:
-                # Often happens if subscription expires
-                if "NoSubscription" in str(fault) or "Subscription" in str(fault):
-                    logger.warning(f"Camera {camera.name}: Subscription expired, renewing...")
-                    break 
-                raise fault
+                # Use locals().get() to safely check for pullpoint_service without name errors
+                ps = locals().get('pullpoint_service')
+                if ps:
+                    logger.info(f"Camera {camera.name}: Closing ONVIF subscription gracefully...")
+                    await asyncio.to_thread(ps.Unsubscribe)
+            except Exception as e:
+                # Silence errors during unsubscribe if the session is already dead
+                logger.debug(f"Camera {camera.name}: Unsubscribe failed (expected if session already closed): {e}")
 
     def _parse_boolean(self, value: str) -> Optional[bool]:
         """Helper to parse various boolean-like strings from cameras."""
@@ -221,7 +287,8 @@ class OnvifEventManager:
             topic_l = topic.lower()
             is_motion_topic = any(kw in topic_l for kw in ["motion", "cellmotion", "ruleengine", "motionalarm"])
             
-            logger.debug(f"Camera {camera_id} Event | Topic: {topic} | MotionTopic: {is_motion_topic}")
+            # Use INFO for topics temporarily to help user debug their camera's specific ONVIF implementation
+            logger.info(f"Camera {camera_id} ONVIF Event | Topic: {topic} | MotionTopic: {is_motion_topic}")
 
             # 2. Extract and Parse Payload
             is_motion = False
@@ -272,7 +339,7 @@ class OnvifEventManager:
                 if field_match:
                     parsed_val = self._parse_boolean(value)
                     if parsed_val is not None:
-                        logger.debug(f"Camera {camera_id} Match Found: {name}={value} (Parsed: {parsed_val})")
+                        logger.info(f"Camera {camera_id} ONVIF Match Found: {name}={value} (Parsed: {parsed_val})")
                         is_motion = parsed_val
                         found_match = True
                         break # Take the first definitive match
