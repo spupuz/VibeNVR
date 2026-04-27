@@ -31,7 +31,8 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | 🛡️ **Secure by Design** | Full JWT authentication, **2FA with Trusted Devices**, Rate Limiting, and HttpOnly Media Cookies. |
 | 📷 **Advanced Video Engine** | Custom Python engine using PyAV & FFmpeg for RTSP streaming, with OpenCV for motion detection and image processing. |
 | ⚡ **Passthrough Recording** | Direct Stream Copy support for near-zero CPU usage recording (experimental, with auto-fallback). |
-| 🎯 **Smart Motion Detection** | Native motion detection with adjustable sensitivity, gap, and pre/post-capture buffers. |
+| 🎯 **Smart Motion Detection** | Three detection engines: **OpenCV** (classic), **ONVIF Edge** (hardware offload), and **AI** (TFLite object recognition). |
+| 🤖 **AI Object Detection** | Hardware-accelerated ML inference with **Google Coral Edge TPU** or CPU. Detects people, vehicles, animals, and filters by confidence. Detected objects are stored per-event for Timeline filtering. |
 | 📅 **Event Timeline** | Unified browser for movie recordings and high-res snapshots with instant filters. |
 | 🛡️ **Privacy Masking** | Permanent black-out zones burned into recordings. **Motion Zones** for exclusion masking. |
 | 🔑 **API Access Tokens** | Secure, read-only API tokens with **TTL (Expiration)** and hashed storage for 3rd party integrations. |
@@ -46,6 +47,7 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | 🔄 **Selective Settings** | Rapidly propagate Recording, Motion, or Alert settings across cameras or groups without overwriting unique hardware identities. |
 | 👯 **Camera Cloning** | Instant device provisioning via the 'Clone Settings' dropdown during initial camera creation. |
 | 🤖 **ONVIF Edge Motion** | Offload motion detection to camera hardware via ONVIF. **Stability+**: New Auto-Rebind pattern ensures reliability on devices with session limits. |
+| 📊 **AI Timeline Filtering** | Filter recorded events by detected object type (Person, Vehicle) directly from the Timeline view. |
 | 🎮 **Advanced ONVIF PTZ** | Real-time Pan, Tilt, Zoom, **Home Positions**, and **Presets Navigation** via an intuitive overlay. Supports intelligent 3-stage hardware fallbacks for restrictive cameras. |
 | 🔍 **Network Discovery** | Securely scan network ranges for ONVIF/RTSP devices via authenticated **SSE (Server-Sent Events)** streams. |
 | 🛡️ **System Integrity Audit** | Integrated security and consistency audits verify RBAC isolation, path sanitization, and **Backend-Engine synchronization** (e.g., Audio capabilities) on every release. |
@@ -365,7 +367,7 @@ VibeNVR is split into four main microservices:
 
 *   **Frontend**: React-based SPA providing a sleek, responsive dashboard.
 *   **Backend**: FastAPI server handling logic, secure database access, and **secure HttpOnly cookie-based media relay**.
-*   **VibeEngine**: Custom decoupled modular processing engine (`stream_reader`, `motion_detector`, `recording_manager`) for motion detection, recording, and overlays. Uses PyAV for RTSP stream ingestion and OpenCV (cv2) for frame processing.
+*   **VibeEngine**: Custom decoupled modular processing engine (`stream_reader`, `motion_detector`, `recording_manager`, `ai_detector`) for motion detection, recording, and overlays. Uses PyAV for RTSP stream ingestion, OpenCV for frame processing, and TFLite for AI inference with optional Coral Edge TPU acceleration.
 *   **Database**: PostgreSQL for persistent storage of camera configs and events.
 
 ---

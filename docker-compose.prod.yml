@@ -110,6 +110,10 @@ services:
     #         - driver: nvidia
     #           count: 1
     #           capabilities: [gpu]
+    
+    # Coral TPU / USB Devices:
+    # Note: 'privileged: true' provides access to all host devices (/dev/bus/usb, etc).
+    # Hardcoding non-existent device paths in 'devices:' will cause startup failure.
     restart: always
     init: true
     shm_size: '512mb'
@@ -127,7 +131,7 @@ services:
     security_opt:
       - seccomp:unconfined
       - apparmor:unconfined
-    privileged: false # Set to true for Proxmox/OMV/LXC if you see permission errors
+    privileged: true
     networks:
       - vibe-network
     # ─────────────────────────────────────────────────────────────────────────
@@ -151,10 +155,10 @@ services:
     restart: always
     init: true
     # Fix for Proxmox/pve kernel: Unix socket Permission denied
-    security_opt:
-      - seccomp:unconfined
-      - apparmor:unconfined
-    privileged: false # Set to true for Proxmox/OMV/LXC if you see permission errors
+    # security_opt:
+    #   - seccomp:unconfined
+    #   - apparmor:unconfined
+    # privileged: true
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-vibenvr}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-vibenvrpass}

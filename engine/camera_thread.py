@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from collections import deque
 import cv2
+import numpy as np
 
 from utils import mask_url
 from stream_reader import StreamReader
@@ -12,6 +13,7 @@ from motion_detector import MotionDetector
 from recording_manager import RecordingManager
 from mask_handler import parse_polygons, apply_masks
 from overlay_handler import draw_overlay
+from ai_detector import AIDetector
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +47,7 @@ class CameraThread(threading.Thread):
             )
         self.motion_detector = MotionDetector(self.camera_id, self.config.get('name', str(camera_id)), self.config)
         self.recording_manager = RecordingManager(self.camera_id, self.config.get('name', str(camera_id)), self.config)
+        self.ai_detector = AIDetector(self.camera_id, self.config)
         
         # Buffered results for UI
         self.latest_frame_jpeg = None
@@ -138,20 +141,79 @@ class CameraThread(threading.Thread):
 
                 # Masking -> Motion -> Overlay
                 apply_masks(frame, self.privacy_polygons, alpha=1.0, color=(0, 0, 0), camera_name=self.config.get('name'))
-                motion_active = self.motion_detector.detect(
-                    frame, self.event_callback, self.save_snapshot, 
-                    self.privacy_polygons, self.motion_polygons, apply_masks,
-                    external_motion_time=self.last_external_motion_time,
-                    source=self.last_external_motion_source
-                )
+                
+                detect_engine = self.config.get('detect_engine', 'OpenCV')
+                
+                # AI Inference Logic
+                ai_results = []
+                motion_active = False
+                
+                if detect_engine == 'AI':
+                    # AI-Primary Mode: Run AI directly (subject to throttle)
+                    ai_throttle = max(1, self.config.get('opt_motion_fps_throttle', 3))
+                    if self.live_view_counter % ai_throttle == 0:
+                        raw_ai_results = self.ai_detector.detect(frame, camera_id=self.camera_id, config=self.config)
+                        # Filter results by motion zones (Exclusion zones)
+                        ai_results = self._filter_ai_results_by_zones(raw_ai_results)
+                        
+                        if ai_results:
+                            self.last_external_motion_time = time.time()
+                            hw_label = self.ai_detector.hardware.upper()
+                            self.last_external_motion_source = f"AI Engine [{hw_label}]"
+                            # Sync with motion detector so handle_recording knows it's active
+                            if not self.motion_detector.motion_detected:
+                                self.motion_detector.motion_detected = True
+                                
+                                # Log specifically what the AI found
+                                detected_items = ", ".join([f"{r.get('label')} ({r.get('confidence', 0)*100:.0f}%)" for r in ai_results])
+                                logger.info(f"[AI DETECT] Camera {self.config.get('name')} (ID: {self.camera_id}): Motion START. Found: {detected_items}")
+                                
+                                snap_path = self.save_snapshot(frame, is_temp=True)
+                                if self.event_callback:
+                                    self.event_callback(self.camera_id, 'motion_start', {'source': f'AI Engine [{hw_label}]', 'file_path': snap_path})
+                            
+                            self.motion_detector.last_motion_time = self.last_external_motion_time
+                        else:
+                            # If we had results but they were filtered, treat as no motion for this frame
+                            pass
+                    
+                    # Handle Motion End for AI
+                    motion_gap = self.config.get('motion_gap', 10)
+                    if self.motion_detector.motion_detected and (time.time() - self.motion_detector.last_motion_time > motion_gap):
+                        self.motion_detector.motion_detected = False
+                        hw_label = self.ai_detector.hardware.upper()
+                        logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Motion END (AI Engine [{hw_label}])")
+                        if self.event_callback:
+                            self.event_callback(self.camera_id, 'motion_end')
+
+                    # Persist motion state based on last_motion_time
+                    post_motion_delay = self.config.get('post_capture', 5)
+                    motion_active = (time.time() - self.motion_detector.last_motion_time) < post_motion_delay
+                else:
+                    # OpenCV or ONVIF Mode: Run motion detector first
+                    motion_active = self.motion_detector.detect(
+                        frame, self.event_callback, self.save_snapshot, 
+                        self.privacy_polygons, self.motion_polygons, apply_masks,
+                        external_motion_time=self.last_external_motion_time,
+                        source=self.last_external_motion_source
+                    )
+                    
+                    # AI as a filter is no longer supported per user request.
+                    # AI only runs if detect_engine == 'AI'.
+                    pass
+                
+                # Draw specific AI boxes ONLY if AI is the primary engine or explicitly active
+                if detect_engine == 'AI' and ai_results:
+                    self._draw_ai_boxes(frame, ai_results)
                 
                 draw_overlay(frame, self.config)
                 
                 # Recording Management
-                trigger_source = self.motion_detector.last_trigger_source if motion_active else None
+                trigger_source = self.last_external_motion_source if motion_active else None
                 self.recording_manager.handle_recording(
                     frame, motion_active, self.motion_detector.last_motion_time, self.stop_recording,
-                    trigger_source=trigger_source
+                    trigger_source=trigger_source,
+                    ai_results=ai_results
                 )
                 
                 # Pre-capture buffer
@@ -159,7 +221,7 @@ class CameraThread(threading.Thread):
 
                 # Update Processed frames for UI Live View
                 if self.live_view_counter % lv_throttle == 0:
-                    self._update_ui_frame(frame)
+                    self._update_ui_frame(frame, ai_results=ai_results if detect_engine == 'AI' else None)
                     # Sync health
                     if self.stream_reader.health_status != "CONNECTED":
                         with self.stream_reader.lock: self.stream_reader.health_status = "CONNECTED"
@@ -180,7 +242,7 @@ class CameraThread(threading.Thread):
         self.stop_recording()
         logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Stopped")
 
-    def _update_ui_frame(self, frame, is_raw=False):
+    def _update_ui_frame(self, frame, is_raw=False, ai_results=None):
         try:
             target_frame = frame
             # Use Sub-Stream frame for the non-raw UI grid if available
@@ -194,6 +256,10 @@ class CameraThread(threading.Thread):
                 scale = lv_max_h / target_frame.shape[0]
                 target_frame = cv2.resize(target_frame, (int(target_frame.shape[1] * scale), lv_max_h), interpolation=cv2.INTER_NEAREST)
             
+            # Draw AI boxes on the final UI frame (scaled correctly)
+            if ai_results:
+                self._draw_ai_boxes(target_frame, ai_results)
+
             lv_qual = self.config.get('opt_live_view_quality', 60)
             ret, jpeg = cv2.imencode('.jpg', target_frame, [int(cv2.IMWRITE_JPEG_QUALITY), lv_qual])
             if ret:
@@ -263,6 +329,78 @@ class CameraThread(threading.Thread):
             self.last_external_motion_time = time.time()
             self.last_external_motion_source = source
             logger.debug(f"Camera {self.config.get('name')}: External motion event received (Source: {source})")
+            
+    def _draw_ai_boxes(self, frame, results):
+        """Draw AI detection boxes and labels on the frame"""
+        for res in results:
+            try:
+                label = res.get('label', 'unknown')
+                conf = res.get('confidence', 0.0)
+                box = res.get('box', [0, 0, 0, 0]) # [x1, y1, x2, y2]
+                
+                # Colors for different classes
+                color = (0, 255, 0) # Default Green
+                if label in ['person']: color = (0, 255, 0) # Green for people
+                elif label in ['vehicle', 'car', 'bus', 'truck']: color = (255, 0, 0) # Blue for vehicles
+                elif label in ['dog', 'cat', 'bird']: color = (0, 165, 255) # Orange for animals
+                
+                # Draw Box
+                ymin, xmin, ymax, xmax = box
+                h, w = frame.shape[:2]
+                x1 = int(xmin * w)
+                y1 = int(ymin * h)
+                x2 = int(xmax * w)
+                y2 = int(ymax * h)
+                
+                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+                
+                # Draw Label
+                text = f"{label.capitalize()} {int(conf * 100)}%"
+                (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+                cv2.rectangle(frame, (x1, y1 - 20), (x1 + tw, y1), color, -1)
+                cv2.putText(frame, text, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            except Exception as e:
+                logger.error(f"Error drawing AI box: {e}")
+
+    def _filter_ai_results_by_zones(self, results):
+        """
+        Filters AI results based on motion zones (exclusion polygons).
+        An object is ignored if its center point falls inside an exclusion zone.
+        """
+        if not results:
+            return []
+        if not self.motion_polygons:
+            return results
+            
+        filtered = []
+        for res in results:
+            ymin, xmin, ymax, xmax = res.get('box', [0, 0, 0, 0])
+            # Center point of the box (normalized)
+            cx = (xmin + xmax) / 2
+            cy = (ymin + ymax) / 2
+            
+            # Convert to absolute pixel coordinates relative to the original stream resolution
+            abs_cx = int(cx * self.width)
+            abs_cy = int(cy * self.height)
+            
+            is_excluded = False
+            for poly in self.motion_polygons:
+                # Ensure poly is a numpy array of type int32 for OpenCV
+                if not isinstance(poly, np.ndarray):
+                    poly_np = np.array(poly, dtype=np.int32).reshape((-1, 1, 2))
+                else:
+                    poly_np = poly.astype(np.int32).reshape((-1, 1, 2))
+                
+                if cv2.pointPolygonTest(poly_np, (abs_cx, abs_cy), False) >= 0:
+                    is_excluded = True
+                    break
+            
+            if not is_excluded:
+                filtered.append(res)
+            else:
+                logger.debug(f"[AI-ZONE] Filtered out {res.get('label')} at ({abs_cx}, {abs_cy}) - Inside exclusion zone")
+                
+        return filtered
 
     def update_config(self, new_config):
         old_passthrough = self.config.get('movie_passthrough', False)
@@ -271,6 +409,7 @@ class CameraThread(threading.Thread):
         self.config.update(new_config)
         self.motion_detector.config = self.config
         self.recording_manager.config = self.config
+        self.ai_detector.config = self.config
         
         if old_masks != (self.config.get('privacy_masks', '[]'), self.config.get('motion_masks', '[]')):
             self._update_masks()

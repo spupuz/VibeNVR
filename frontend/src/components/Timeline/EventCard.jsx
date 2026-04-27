@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Video, Image as ImageIcon, Download, Trash2, Camera, HardDrive } from 'lucide-react';
+import { Video, Image as ImageIcon, Download, Trash2, Camera, HardDrive, Brain } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 /**
@@ -128,6 +128,19 @@ export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected,
                     <p className="text-[10px] text-muted-foreground truncate">
                         {event.file_path?.split('/').pop()}
                     </p>
+                    {event.ai_metadata && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                            {event.ai_metadata.split(',').map((label, idx) => (
+                                <div 
+                                    key={idx} 
+                                    className="flex items-center gap-0.5 px-1 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-md text-[9px] font-bold uppercase border border-blue-500/20 shadow-sm"
+                                >
+                                    <Brain className="w-2 h-2" />
+                                    {label}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
                 <div className="flex justify-between items-center">
                     <div className="flex flex-col">

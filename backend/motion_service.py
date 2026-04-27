@@ -2,6 +2,8 @@ import os
 import requests
 import threading
 import time
+import json
+from typing import Any
 from sqlalchemy.orm import Session, object_session
 from models import Camera, SystemSettings
 
@@ -10,6 +12,32 @@ ENGINE_BASE_URL = "http://engine:8000"
 
 # Global lock for camera synchronization
 sync_lock = threading.Lock()
+
+def _parse_ai_object_types(v: Any) -> list[str]:
+    if not v:
+        if isinstance(v, list): return []
+        return ["person", "vehicle"]
+    
+    if isinstance(v, list):
+        return [str(item) for item in v]
+        
+    if isinstance(v, str):
+        v_sanitized = v.strip()
+        if not v_sanitized or v_sanitized == "[]":
+            return []
+            
+        try:
+            data = json.loads(v_sanitized)
+            if isinstance(data, list):
+                return [str(item) for item in data]
+        except:
+            try:
+                data = json.loads(v_sanitized.replace("'", '"'))
+                if isinstance(data, list):
+                    return [str(item) for item in data]
+            except:
+                pass
+    return ["person", "vehicle"]
 
 def get_optimization_settings(db: Session) -> dict:
     """Read optimization settings from DB with defaults (if not initialized yet)"""
@@ -87,7 +115,13 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
         "live_view_mode": cam.live_view_mode or "auto",
         "audio_enabled": cam.audio_enabled if cam.audio_enabled is not None else False,
         "enable_audio": cam.enable_audio if cam.enable_audio is not None else False,
-        "storage_path": cam.storage_profile.path if cam.storage_profile else "/var/lib/vibe/recordings"
+        "storage_path": cam.storage_profile.path if cam.storage_profile else "/var/lib/vibe/recordings",
+        # AI & Tracking
+        "ai_enabled": cam.ai_enabled if cam.ai_enabled is not None else False,
+        "ai_object_types": _parse_ai_object_types(cam.ai_object_types),
+        "ai_threshold": cam.ai_threshold if cam.ai_threshold is not None else 0.5,
+        "ai_hardware": cam.ai_hardware or "auto",
+        "ai_tracking_enabled": cam.ai_tracking_enabled if cam.ai_tracking_enabled is not None else False
     }
     
     # Inject Global Optimizations

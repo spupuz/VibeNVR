@@ -22,3 +22,5 @@ error_trace.txt
 sanity_snapshot.json
 latest_system_auto.json
 sanity_backup.json
+local_tests/
+scripts/mock_ai_notification.py

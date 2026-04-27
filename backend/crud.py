@@ -12,7 +12,13 @@ def get_camera_by_rtsp_url(db: Session, rtsp_url: str):
     return db.query(models.Camera).filter(models.Camera.rtsp_url == rtsp_url).first()
 
 def create_camera(db: Session, camera: schemas.CameraCreate):
-    db_camera = models.Camera(**camera.dict())
+    create_data = camera.dict()
+    # Convert list to JSON string for the DB column
+    if 'ai_object_types' in create_data and isinstance(create_data['ai_object_types'], list):
+        import json
+        create_data['ai_object_types'] = json.dumps(create_data['ai_object_types'])
+        
+    db_camera = models.Camera(**create_data)
     db.add(db_camera)
     db.commit()
     db.refresh(db_camera)
@@ -21,7 +27,13 @@ def create_camera(db: Session, camera: schemas.CameraCreate):
 def update_camera(db: Session, camera_id: int, camera: schemas.CameraCreate):
     db_camera = db.query(models.Camera).filter(models.Camera.id == camera_id).first()
     if db_camera:
-        for key, value in camera.dict().items():
+        update_data = camera.dict()
+        # Convert list to JSON string for the DB column
+        if 'ai_object_types' in update_data and isinstance(update_data['ai_object_types'], list):
+            import json
+            update_data['ai_object_types'] = json.dumps(update_data['ai_object_types'])
+            
+        for key, value in update_data.items():
             setattr(db_camera, key, value)
         db.commit()
         db.refresh(db_camera)

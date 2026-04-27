@@ -7,6 +7,7 @@ tmp/
 **/.*.swp
 **/.*.swo
 **/*~
+core.[0-9]*
 
 # Python / Backend
 **/__pycache__/
@@ -61,3 +62,12 @@ omnistate-plugin/
 .agents/
 /omnistate-dashboard.html
 tasks-archive.json
+scripts/local_tests/
+engine/scripts/verify_ai_engine.py
+engine/scripts/test_zone_logic.py
+backend/scripts/mock_ai_notification.py
+engine/scripts/test_coral.py
+
+# AI Models (binary files, downloaded at Docker build time via download_models.py)
+engine/models/
+**/*.tflite

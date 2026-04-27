@@ -106,6 +106,7 @@ class CameraManager:
             if payload:
                 if isinstance(payload, dict):
                     data["file_path"] = payload.get("file_path")
+                    data["source"] = payload.get("source")
                 else:
                     data["file_path"] = payload
             # Compatibility: Also trigger the legacy event_start for notifications
@@ -116,6 +117,7 @@ class CameraManager:
             if payload:
                 if isinstance(payload, dict):
                     data["file_path"] = payload.get("file_path")
+                    data["source"] = payload.get("source")
                 else:
                     data["file_path"] = payload
 
@@ -129,6 +131,8 @@ class CameraManager:
                     data["file_path"] = payload.get("file_path")
                     data["width"] = payload.get("width")
                     data["height"] = payload.get("height")
+                    if "ai_metadata" in payload:
+                        data["ai_metadata"] = payload["ai_metadata"]
                 else:
                     data["file_path"] = payload # legacy string payload
 
@@ -146,6 +150,8 @@ class CameraManager:
                     data["file_path"] = payload.get("file_path")
                     data["width"] = payload.get("width")
                     data["height"] = payload.get("height")
+                    if "ai_metadata" in payload:
+                        data["ai_metadata"] = payload["ai_metadata"]
                 else:
                     data["file_path"] = payload # legacy string payload
         

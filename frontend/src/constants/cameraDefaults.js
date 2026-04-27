@@ -77,5 +77,13 @@ export const DEFAULT_CAMERA_STATE = {
     notify_attach_image_email: true,
     notify_attach_image_telegram: true,
     privacy_masks: null,
-    motion_masks: null
+    motion_masks: null,
+    
+    // AI & Tracking
+    ai_enabled: false,
+    ai_object_types: ['person', 'vehicle'],
+    ai_threshold: 0.5,
+    ai_hardware: 'auto',
+    ai_tracking_enabled: false,
+    detect_engine: 'OpenCV'
 };

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { 
-    X, Info, Settings2, Activity, EyeOff, Shield, Film, Image, Bell, Type, Copy, Check 
+    X, Info, Settings2, Activity, EyeOff, Shield, Film, Image, Bell, Type, Copy, Check, Brain 
 } from 'lucide-react';
 import { Portal } from '../../ui/Portal';
 import { SelectField } from '../../ui/FormControls';
@@ -18,6 +18,7 @@ import { SnapshotsTab } from './Tabs/SnapshotsTab';
 import { AlertsTab } from './Tabs/AlertsTab';
 import { OverlayTab } from './Tabs/OverlayTab';
 import { OnvifTab } from './Tabs/OnvifTab';
+import { AITab } from './Tabs/AITab';
 
 export const CameraAddEditModal = ({
     showAddModal,
@@ -41,8 +42,12 @@ export const CameraAddEditModal = ({
     const [selectedCloneCategories, setSelectedCloneCategories] = React.useState(CAMERA_SETTINGS_CATEGORIES.map(c => c.id));
 
     // Redirect away from motion_zones if engine is ONVIF Edge
+    // OR away from AI tab if engine is not AI
     useEffect(() => {
         if (newCamera && activeTab === 'motion_zones' && newCamera.detect_engine === 'ONVIF Edge') {
+            setActiveTab('motion');
+        }
+        if (newCamera && activeTab === 'ai' && newCamera.detect_engine !== 'AI') {
             setActiveTab('motion');
         }
     }, [newCamera?.detect_engine, activeTab, setActiveTab]);
@@ -100,8 +105,10 @@ export const CameraAddEditModal = ({
         { id: 'notifications', label: 'Alerts', icon: Bell },
         { id: 'overlay', label: 'Overlay', icon: Type },
         { id: 'onvif', label: 'ONVIF', icon: Shield },
+        { id: 'ai', label: 'AI & Tracking', icon: Brain },
     ].filter(tab => {
         if (tab.id === 'motion_zones' && newCamera.detect_engine === 'ONVIF Edge') return false;
+        if (tab.id === 'ai' && newCamera.detect_engine !== 'AI') return false;
         return true;
     });
 
@@ -207,6 +214,7 @@ export const CameraAddEditModal = ({
                                 <MotionTab 
                                     newCamera={newCamera} 
                                     setNewCamera={setNewCamera} 
+                                    setActiveTab={setActiveTab}
                                 />
                             )}
                             {activeTab === 'privacy' && (
@@ -258,6 +266,12 @@ export const CameraAddEditModal = ({
                             )}
                             {activeTab === 'onvif' && (
                                 <OnvifTab 
+                                    newCamera={newCamera} 
+                                    setNewCamera={setNewCamera} 
+                                />
+                            )}
+                            {activeTab === 'ai' && (
+                                <AITab 
                                     newCamera={newCamera} 
                                     setNewCamera={setNewCamera} 
                                 />

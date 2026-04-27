@@ -67,11 +67,21 @@ Certain critical settings are automatically synchronized with the recording engi
 
 These settings are applied in real-time when the camera configuration is saved.
 
-## Edge Motion Visual Feedback
-When a camera is configured for **ONVIF Edge** motion detection, the system provides specialized feedback in the **Live View**:
+## Edge Motion & AI Motion Visual Feedback
 
-- **Dynamic Labeling**: During active motion, the standard red badge will display `EDGE MOTION` instead of the generic `MOTION` text.
-- **Noise Reduction**: The static indigo `EDGE` indicator is suppressed in the Live View to provide a cleaner monitoring experience, appearing only as part of the dynamic motion pulse.
+VibeNVR supports three detection engines, each with dedicated Live View feedback:
+
+| Engine | Badge Label | Description |
+|--------|-------------|-------------|
+| **OpenCV** | `MOTION` | Classical background subtraction (MOG2). Fast, no hardware required. |
+| **ONVIF Edge** | `EDGE MOTION` | Motion events triggered by the camera hardware via ONVIF protocol. |
+| **AI** | `AI MOTION` | TFLite object recognition (MobileNet SSD COCO) on CPU or Coral TPU. |
+
+- **Dynamic Labeling**: The red pulsing badge in Live View automatically reflects the active engine.
+- **Noise Reduction**: The static indigo `EDGE` indicator is suppressed in Live View to provide a cleaner monitoring experience when ONVIF edge detection is active.
+
+> [!TIP]
+> For full documentation on setting up **AI detection** with a **Google Coral Edge TPU**, including Docker Compose configuration and Proxmox LXC USB passthrough, see the dedicated **[AI Object Detection Guide](AI-Detection.md)**.
 
 ---
 

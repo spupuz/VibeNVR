@@ -152,7 +152,12 @@ class Camera(Base):
     schedule_sunday_start = Column(String, default="00:00")
     schedule_sunday_end = Column(String, default="23:59")
 
-
+    # AI & Tracking
+    ai_enabled = Column(Boolean, default=False)
+    ai_object_types = Column(String, default='["person", "vehicle"]') # JSON list
+    ai_threshold = Column(Float, default=0.5)
+    ai_hardware = Column(String, default="auto") # auto, cpu, tpu
+    ai_tracking_enabled = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     events = relationship("Event", back_populates="camera", cascade="all, delete-orphan")
@@ -205,6 +210,7 @@ class Event(Base):
     width = Column(Integer, nullable=True)
     height = Column(Integer, nullable=True)
     motion_score = Column(Float, nullable=True)
+    ai_metadata = Column(String, nullable=True) # JSON object of detections
     
     camera = relationship("Camera", back_populates="events")
 

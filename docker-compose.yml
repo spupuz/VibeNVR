@@ -92,6 +92,7 @@ services:
     volumes:
       - ./engine:/app
       - ${VIBENVR_DATA:-vibenvr_data}:/var/lib/vibe/recordings
+      - /dev/bus/usb:/dev/bus/usb
       # Custom Storage Profiles (uncomment to enable)
       # - ${VIBENVR_STORAGE_SSD}:/storage/ssd
       # - ${VIBENVR_STORAGE_NAS}:/storage/nas
@@ -116,6 +117,10 @@ services:
     #         - driver: nvidia
     #           count: 1
     #           capabilities: [gpu]
+    # Coral TPU / USB Devices:
+    # Note: 'privileged: true' provides access to all host devices (/dev/bus/usb, etc).
+    # Hardcoding non-existent device paths in 'devices:' will cause startup failure.
+    privileged: true
     entrypoint: [ "/bin/sh", "./entrypoint.sh" ]
     stop_grace_period: 30s
     labels:
@@ -126,11 +131,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    # Fix for Proxmox/pve kernel: socket.socketpair() Permission denied
-    #security_opt:
-    #  - seccomp:unconfined
-    #  - apparmor:unconfined
-    privileged: false # Set to true for Proxmox/OMV/LXC if you see permission errors
     networks:
       - vibe-network
     # ─────────────────────────────────────────────────────────────────────────

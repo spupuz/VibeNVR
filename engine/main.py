@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconn
 from fastapi.responses import StreamingResponse, JSONResponse
 import asyncio
 from pydantic import BaseModel, field_validator
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 import logging
 import psutil
 import os
@@ -36,7 +36,7 @@ class PollingSamplingFilter(logging.Filter):
             method = record.args[1]
             path = record.args[2]
             status = record.args[4]
-            if method == "GET" and status == 200 and path in ["/", "/stats", "/health"]:
+            if method == "GET" and status == 200 and (path == "/" or any(p in path for p in ["/stats", "/health", "/frame"])):
                 count = self.counters.get(path, 0)
                 self.counters[path] = (count + 1) % self.sample_rate
                 return count == 0
@@ -162,6 +162,27 @@ class CameraConfig(BaseModel):
     live_view_mode: str = "auto"
     audio_enabled: bool = False
     enable_audio: bool = False
+    # AI & Tracking
+    ai_enabled: bool = False
+    ai_object_types: List[str] = ["person", "vehicle"]
+    ai_threshold: float = 0.5
+    ai_hardware: str = "auto"
+    ai_tracking_enabled: bool = False
+    
+    @field_validator('ai_object_types', mode='before')
+    @classmethod
+    def validate_ai_object_types(cls, v: Any) -> List[str]:
+        if isinstance(v, str):
+            import json
+            try:
+                data = json.loads(v)
+                if isinstance(data, list):
+                    return [str(item) for item in data]
+            except:
+                pass
+        if isinstance(v, list):
+            return [str(item) for item in v]
+        return ["person", "vehicle"]
 
 
 class EventTrigger(BaseModel):

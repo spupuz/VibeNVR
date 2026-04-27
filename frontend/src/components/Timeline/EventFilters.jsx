@@ -1,5 +1,5 @@
 import React from 'react';
-import { Filter, Video, Image as ImageIcon, Play, Calendar } from 'lucide-react';
+import { Filter, Video, Image as ImageIcon, Play, Calendar, Brain } from 'lucide-react';
 
 /**
  * Event Filters Component for Timeline
@@ -23,6 +23,8 @@ export const EventFilters = ({
     setSelectedCameraFilter,
     selectedTypeFilter,
     setSelectedTypeFilter,
+    selectedObjectFilter,
+    setSelectedObjectFilter,
     selectedDate,
     setSelectedDate,
     onReset,
@@ -78,6 +80,26 @@ export const EventFilters = ({
                 </div>
             </div>
 
+            {/* Object Type Filter */}
+            <div className="relative">
+                <select
+                    className="appearance-none pl-3 pr-8 py-2 bg-card border border-border rounded-xl text-sm min-w-[130px] focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50 text-foreground"
+                    value={selectedObjectFilter}
+                    onChange={(e) => {
+                        setSelectedObjectFilter(e.target.value);
+                    }}
+                >
+                    <option value="all">All Objects</option>
+                    <option value="person">Person</option>
+                    <option value="vehicle">Vehicle</option>
+                    <option value="dog">Dog</option>
+                    <option value="cat">Cat</option>
+                </select>
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                    <Brain className="w-3.5 h-3.5" />
+                </div>
+            </div>
+
             {/* Date Picker */}
             <div className="relative flex items-center">
                 <input
@@ -98,7 +120,7 @@ export const EventFilters = ({
             <button
                 onClick={onReset}
                 className={`flex items-center space-x-1.5 px-3 py-2 border rounded-xl text-sm transition-all
-                ${selectedDate === new Date().toLocaleDateString('en-CA') && selectedCameraFilter === 'all' && selectedTypeFilter === 'all'
+                ${selectedDate === new Date().toLocaleDateString('en-CA') && selectedCameraFilter === 'all' && selectedTypeFilter === 'all' && selectedObjectFilter === 'all'
                         ? 'bg-primary/10 border-primary/20 text-primary font-medium'
                         : 'bg-card border-border hover:bg-accent text-muted-foreground'
                     }`}

@@ -53,7 +53,8 @@ class MotionDetector:
                     if vid_mode != 'Off':
                         snap_path = save_snapshot_cb(frame, is_temp=True)
                     if event_callback:
-                        payload = {'file_path': snap_path} if snap_path else {}
+                        payload = {'file_path': snap_path, 'source': self.last_trigger_source} if snap_path else {'source': self.last_trigger_source}
+
                         event_callback(self.camera_id, 'motion_start', payload)
             else:
                 motion_gap = self.config.get('motion_gap', 10)
@@ -114,7 +115,8 @@ class MotionDetector:
                     elif vid_mode != 'Off':
                         snap_path = save_snapshot_cb(frame, is_temp=True)
                     if event_callback:
-                        payload = {'file_path': snap_path} if snap_path else {}
+                        payload = {'file_path': snap_path, 'source': 'Standard'} if snap_path else {'source': 'Standard'}
+
                         event_callback(self.camera_id, 'motion_start', payload)
         else:
             self.consecutive_still_frames += 1

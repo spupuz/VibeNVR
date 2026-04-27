@@ -83,7 +83,7 @@ class PollingSamplingFilter(logging.Filter):
             status = record.args[4]
             
             # Only sample successful GET requests to specific polling endpoints
-            if method == "GET" and status == 200 and any(p in path for p in ["/health", "/stats"]):
+            if method == "GET" and status == 200 and any(p in path for p in ["/health", "/stats", "/frame", "/events/status"]):
                 count = self.counters.get(path, 0)
                 self.counters[path] = (count + 1) % self.sample_rate
                 return count == 0 # Log every N-th request
@@ -113,6 +113,9 @@ def apply_security_logging():
                 handler.addFilter(redact_filter)
             if name == "uvicorn.access" and not any(isinstance(f, PollingSamplingFilter) for f in handler.filters):
                 handler.addFilter(sampling_filter)
+                
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # Initial application on import
 apply_security_logging()

@@ -149,6 +149,13 @@ def migrate():
         add_column_if_not_exists(engine, "cameras", f"schedule_{day}_start", "VARCHAR", "00:00")
         add_column_if_not_exists(engine, "cameras", f"schedule_{day}_end", "VARCHAR", "23:59")
 
+    # AI & Tracking
+    add_column_if_not_exists(engine, "cameras", "ai_enabled", "BOOLEAN", False)
+    add_column_if_not_exists(engine, "cameras", "ai_object_types", "VARCHAR", '["person", "vehicle"]')
+    add_column_if_not_exists(engine, "cameras", "ai_threshold", "FLOAT", 0.5)
+    add_column_if_not_exists(engine, "cameras", "ai_hardware", "VARCHAR", "auto")
+    add_column_if_not_exists(engine, "cameras", "ai_tracking_enabled", "BOOLEAN", False)
+    add_column_if_not_exists(engine, "cameras", "created_at", "TIMESTAMP WITH TIME ZONE", "CURRENT_TIMESTAMP")
 
     # Events Table Improvements
     add_column_if_not_exists(engine, "events", "event_type", "VARCHAR")
@@ -157,6 +164,7 @@ def migrate():
     add_column_if_not_exists(engine, "events", "height", "INTEGER")
     add_column_if_not_exists(engine, "events", "motion_score", "FLOAT")
     add_column_if_not_exists(engine, "events", "thumbnail_path", "VARCHAR")
+    add_column_if_not_exists(engine, "events", "ai_metadata", "TEXT")
 
     # Users
     add_column_if_not_exists(engine, "users", "avatar_path", "VARCHAR")

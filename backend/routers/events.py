@@ -126,7 +126,9 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
             should_notify_tg = False
             if event_type == "event_start":
                 should_notify_tg = camera.notify_start_telegram
-                caption = f"🚨 *Motion Detected!*\n📷 Camera: {camera.name}\n⏰ Time: {ts_formatted}"
+                source = details.get("source", "Standard")
+                prefix = "🤖 AI " if source == "AI Engine" else ("📷 Edge " if source == "ONVIF Edge" else "🚨 ")
+                caption = f"{prefix}*Motion Detected!*\n📷 Camera: {camera.name}\n⏰ Time: {ts_formatted}"
             elif event_type == "camera_health":
                 should_notify_tg = camera.notify_health_telegram
                 caption = f"{details.get('title', 'Camera Alert')}\n{details.get('message', '')}"
@@ -175,6 +177,7 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                     html_body = f"""
                     <h2>{body_title}</h2>
                     <p><b>Camera:</b> {camera.name}</p>
+                    <p><b>Source:</b> {details.get('source', 'Standard')}</p>
                     <p>{details.get('message', f"Event: {event_type}")}</p>
                     <p><b>Time:</b> {details.get('timestamp', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))}</p>
                     <p><i>VibeNVR Alert System</i></p>
@@ -218,7 +221,8 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                         "title": details.get("title"),
                         "message": details.get("message"),
                         "timestamp": details.get("timestamp"),
-                        "file_path": details.get("file_path")
+                        "file_path": details.get("file_path"),
+                        "source": details.get("source", "Standard")
                     }, timeout=5)
                 except Exception as e:
                     logger.error(f"[NOTIFY] Webhook failed: {e}")
@@ -325,7 +329,7 @@ def get_motion_status(auth_info: tuple[models.User, bool] = Depends(auth_service
     from health_service import HEALTH_CACHE
     return {
         "active_ids": list(ACTIVE_CAMERAS.keys()),
-        "live_motion_ids": list(LIVE_MOTION.keys()),
+        "live_motion": LIVE_MOTION, # Full dict with sources
         "camera_health": HEALTH_CACHE
     }
 
@@ -433,7 +437,10 @@ async def webhook_event(
 
     elif event_type == "motion_on":
         # Purely for UI reactive feedback
-        LIVE_MOTION[camera_id] = payload.get("timestamp")
+        LIVE_MOTION[camera_id] = {
+            "timestamp": payload.get("timestamp"),
+            "source": payload.get("source", "standard")
+        }
         return {"status": "motion_on_captured"}
 
     elif event_type == "motion_off":
@@ -486,7 +493,8 @@ def process_webhook_file_event(camera_id: int, event_type: str, payload: dict, i
             file_size=file_size,
             width=payload.get("width"),
             height=payload.get("height"),
-            motion_score=0.0
+            motion_score=0.0,
+            ai_metadata=payload.get("ai_metadata")
         )
 
         if event_type == "movie_end":

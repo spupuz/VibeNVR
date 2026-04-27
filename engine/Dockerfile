@@ -1,10 +1,10 @@
-# Use Debian Bookworm Slim for access to system python3-opencv with VAAPI support
-FROM debian:bookworm-slim
+# Use Debian Bullseye Slim (Python 3.9) for full compatibility with Coral EdgeTPU
+FROM debian:bullseye-slim
 
 # Enable contrib/non-free for drivers (Intel non-free, Nvidia, etc)
-RUN echo "deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list && \
-    echo "deb http://deb.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list && \
-    echo "deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list
+RUN echo "deb http://deb.debian.org/debian bullseye main contrib non-free" > /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian-security bullseye-security main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian bullseye-updates main contrib non-free" >> /etc/apt/sources.list
 
 # Install system dependencies including Python and OpenCV
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
@@ -21,15 +21,21 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     ca-certificates \
     tzdata \
     procps \
-    && rm -rf /var/lib/apt/lists/*
+    gnupg
+
+RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/coral-edgetpu.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/coral-edgetpu.gpg] https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends libedgetpu1-std && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Install Python dependencies
 # We use --break-system-packages because we are in a container and want to use the system python
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir --break-system-packages --upgrade pip wheel && \
-    pip3 install --no-cache-dir --break-system-packages -r requirements.txt
+RUN pip3 install --no-cache-dir --upgrade pip wheel && \
+    pip3 install --no-cache-dir --extra-index-url https://google-coral.github.io/py-repo/ -r requirements.txt
 
 # Suppress annoying FFmpeg/OpenCV logs
 ENV OPENCV_LOG_LEVEL=ERROR
@@ -41,6 +47,10 @@ ENV PYTHONUNBUFFERED=1
 
 # Copy source code
 COPY . .
+
+# Download AI Models
+COPY scripts/download_models.py scripts/
+RUN python3 scripts/download_models.py
 
 # Expose API port
 EXPOSE 8000

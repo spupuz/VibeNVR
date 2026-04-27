@@ -19,8 +19,9 @@ class RecordingManager:
         self.recording_start_time = 0.0
         self.passthrough_active = False
         self.passthrough_error_count = 0
+        self.current_ai_detections = [] # Track unique labels found during this event
 
-    def handle_recording(self, frame, motion_detected, last_motion_time, stop_recording_cb, trigger_source=None):
+    def handle_recording(self, frame, motion_detected, last_motion_time, stop_recording_cb, trigger_source=None, ai_results=None):
         mode = self.config.get('recording_mode', 'Off')
         should_record = False
         reason = "Continuous" if mode in ['Always', 'Continuous'] else ("Motion" if mode == 'Motion Triggered' and motion_detected else None)
@@ -32,6 +33,13 @@ class RecordingManager:
             if time.time() - self.recording_start_time > max_len:
                 logger.info(f"Camera {self.camera_name} (ID: {self.camera_id}): Max movie length reached, splitting file")
                 stop_recording_cb()
+        
+        # Accumulate AI results if recording
+        if self.is_recording and ai_results:
+            for res in ai_results:
+                label = res.get('label')
+                if label and label not in self.current_ai_detections:
+                    self.current_ai_detections.append(label)
 
         if should_record and not self.is_recording:
             self.start_recording(frame.shape[1], frame.shape[0], None, reason=reason, trigger_source=trigger_source) # pre_buffer handled by CameraThread
@@ -69,6 +77,7 @@ class RecordingManager:
             pass
 
     def start_recording(self, width, height, pre_buffer_frames, event_callback=None, reason="Manual", trigger_source=None):
+        self.current_ai_detections = [] # Reset for new event
         format_str = self.config.get('movie_file_name', '%Y-%m-%d/%H-%M-%S').replace('%q', '00')
         timestamp_path = datetime.now().strftime(format_str)
         output_dir = f"/var/lib/vibe/recordings/{self.camera_id}"
@@ -197,5 +206,8 @@ class RecordingManager:
 
         if valid_recording and event_callback:
              event_callback(self.camera_id, 'recording_end', {
-                 "file_path": self.recording_filename, "width": width, "height": height
+                 "file_path": self.recording_filename, 
+                 "width": width, 
+                 "height": height,
+                 "ai_metadata": ",".join(self.current_ai_detections) if self.current_ai_detections else None
              })

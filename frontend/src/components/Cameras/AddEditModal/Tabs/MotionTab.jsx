@@ -4,7 +4,7 @@ import { Toggle, SelectField, Slider, InputField, SectionHeader } from '../../..
 import { Button } from '../../../ui/Button';
 import { useToast } from '../../../../contexts/ToastContext';
 
-export const MotionTab = ({ newCamera, setNewCamera }) => {
+export const MotionTab = ({ newCamera, setNewCamera, setActiveTab }) => {
     const { showToast } = useToast();
 
     return (
@@ -16,9 +16,24 @@ export const MotionTab = ({ newCamera, setNewCamera }) => {
                 onChange={(val) => setNewCamera({ ...newCamera, detect_engine: val })}
                 options={[
                     { value: 'OpenCV', label: 'OpenCV (Server Image Analysis)' },
+                    { value: 'AI', label: 'AI (Object Detection - TPU/CPU)' },
                     ...(newCamera.onvif_host && newCamera.onvif_can_events ? [{ value: 'ONVIF Edge', label: 'ONVIF Edge (Camera-side Hardware)' }] : [])
                 ]}
             />
+            {newCamera.detect_engine === 'AI' && (
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-[11px] text-blue-600 dark:text-blue-400 flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+                    <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                    <div>
+                        <p className="font-bold">AI-Only Detection Active</p>
+                        <p className="mt-1">
+                            The system will only trigger recordings when specific objects are identified. 
+                            <strong> Configure which objects (Person, Vehicle, Dog, etc.) trigger the motion in the <span className="text-blue-700 dark:text-blue-300 underline cursor-pointer" onClick={() => setActiveTab('ai')}>AI & Tracking</span> tab.</strong>
+                        </p>
+                        <p className="mt-1 opacity-70 italic">Standard motion filters (threshold/sensitivity) are ignored in this mode.</p>
+                    </div>
+                </div>
+            )}
+
             {newCamera.detect_engine === 'ONVIF Edge' && (
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
                     <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
@@ -112,7 +127,7 @@ export const MotionTab = ({ newCamera, setNewCamera }) => {
                 </div>
             )}
 
-            {newCamera.detect_engine !== 'ONVIF Edge' && (
+            {newCamera.detect_engine === 'OpenCV' && (
                 <>
                     <SectionHeader title="Automatic Detection" description="Motion detection tuning options" />
                     <div className="space-y-1">
@@ -172,7 +187,7 @@ export const MotionTab = ({ newCamera, setNewCamera }) => {
                     unit="seconds"
                 />
             </div>
-            {newCamera.detect_engine !== 'ONVIF Edge' && (
+            {newCamera.detect_engine === 'OpenCV' && (
                 <InputField
                     label="Minimum Motion Frames"
                     type="number"

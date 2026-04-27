@@ -18,6 +18,7 @@ const VideoPlayer = ({
     onToggleRecording, 
     isRecording, 
     isLiveMotion, 
+    liveMotionData,
     healthStatus, 
     isAuditing, 
     onToggleAudio 
@@ -194,7 +195,9 @@ const VideoPlayer = ({
                     <div className="flex items-center space-x-2 bg-red-600 px-2 py-1 rounded shadow-2xl animate-pulse ring-1 ring-white/40 w-fit">
                         <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_white]" />
                         <span className="text-[10px] font-black text-white tracking-widest uppercase">
-                            {camera.detect_engine === 'ONVIF Edge' ? 'EDGE MOTION' : 'MOTION'}
+                            {camera.detect_engine === 'ONVIF Edge' 
+                                ? 'EDGE MOTION' 
+                                : (liveMotionData?.source?.includes('AI Engine') ? 'AI MOTION' : 'MOTION')}
                         </span>
                     </div>
                 ) : null}
@@ -351,7 +354,7 @@ export const LiveView = () => {
     const navigate = useNavigate();
     const [cameras, setCameras] = useState([]);
     const [activeMotionIds, setActiveMotionIds] = useState([]);
-    const [liveMotionIds, setLiveMotionIds] = useState([]);
+    const [liveMotion, setLiveMotion] = useState({}); // Stores full motion objects {id: {timestamp, source}}
     const [cameraHealth, setCameraHealth] = useState({});
     const [focusCameraId, setFocusCameraId] = useState(null);
     const [auditingCameraId, setAuditingCameraId] = useState(null);
@@ -375,7 +378,7 @@ export const LiveView = () => {
             .then(res => res.json())
             .then(data => {
                 setActiveMotionIds(data.active_ids || []);
-                setLiveMotionIds(data.live_motion_ids || []);
+                setLiveMotion(data.live_motion || {});
                 setCameraHealth(data.camera_health || {});
             })
             .catch(err => console.error("Failed to fetch motion status", err));
@@ -583,7 +586,9 @@ export const LiveView = () => {
                                                         onToggleActive={handleToggleActive}
                                                         onToggleRecording={handleToggleRecording}
                                                         isRecording={activeMotionIds.includes(cam.id)}
-                                                        isLiveMotion={liveMotionIds.includes(cam.id)}
+                                                        isLiveMotion={!!liveMotion[cam.id]}
+                                                        liveMotionData={liveMotion[cam.id]}
+
                                                         healthStatus={cameraHealth[String(cam.id)]}
                                                         isAuditing={auditingCameraId === cam.id}
                                                         onToggleAudio={handleToggleAudio}
@@ -619,7 +624,9 @@ export const LiveView = () => {
                                                         onToggleActive={handleToggleActive}
                                                         onToggleRecording={handleToggleRecording}
                                                         isRecording={activeMotionIds.includes(cam.id)}
-                                                        isLiveMotion={liveMotionIds.includes(cam.id)}
+                                                        isLiveMotion={!!liveMotion[cam.id]}
+                                                        liveMotionData={liveMotion[cam.id]}
+
                                                         healthStatus={cameraHealth[String(cam.id)]}
                                                         isAuditing={auditingCameraId === cam.id}
                                                         onToggleAudio={handleToggleAudio}
@@ -655,7 +662,8 @@ export const LiveView = () => {
                                 onToggleActive={handleToggleActive}
                                 onToggleRecording={handleToggleRecording}
                                 isRecording={activeMotionIds.includes(cam.id)}
-                                isLiveMotion={liveMotionIds.includes(cam.id)}
+                                isLiveMotion={!!liveMotion[cam.id]}
+                                liveMotionData={liveMotion[cam.id]}
                                 healthStatus={cameraHealth[String(cam.id)]}
                                 isAuditing={auditingCameraId === cam.id}
                                 onToggleAudio={handleToggleAudio}

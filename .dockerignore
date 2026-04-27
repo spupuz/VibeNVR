@@ -18,3 +18,4 @@ backend/error_trace.txt
 sanity_snapshot.json
 latest_system_auto.json
 sanity_backup.json
+scripts/local_tests/

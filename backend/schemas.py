@@ -225,6 +225,45 @@ class CameraBase(BaseModel):
     schedule_sunday_start: Optional[str] = "00:00"
     schedule_sunday_end: Optional[str] = "23:59"
 
+    # AI & Tracking
+    ai_enabled: bool = False
+    ai_object_types: List[str] = ["person", "vehicle"]
+    ai_threshold: float = 0.5
+    ai_hardware: str = "auto" # auto | cpu | tpu
+    ai_tracking_enabled: bool = False
+
+    @field_validator('ai_object_types', mode='before')
+    @classmethod
+    def validate_ai_object_types(cls, v: Any) -> List[str]:
+        if not v:
+            # If it's truly empty (null or empty string from DB), return defaults
+            # but if it's an empty list [], it should stay an empty list
+            if isinstance(v, list): return []
+            return ["person", "vehicle"]
+            
+        if isinstance(v, str):
+            import json
+            v_sanitized = v.strip()
+            if not v_sanitized or v_sanitized == "[]":
+                return []
+            
+            # Try standard JSON first
+            try:
+                data = json.loads(v_sanitized)
+                if isinstance(data, list):
+                    return [str(item) for item in data]
+            except:
+                # Try replacing single quotes with double quotes for common malformed JSON
+                try:
+                    data = json.loads(v_sanitized.replace("'", '"'))
+                    if isinstance(data, list):
+                        return [str(item) for item in data]
+                except:
+                    pass
+        if isinstance(v, list):
+            return [str(item) for item in v]
+        return ["person", "vehicle"]
+
     @field_validator('max_movie_length')
     @classmethod
     def validate_max_movie_length(cls, v: Optional[int]) -> Optional[int]:
@@ -329,6 +368,7 @@ class EventBase(BaseModel):
     width: Optional[int] = None
     height: Optional[int] = None
     motion_score: Optional[float] = None
+    ai_metadata: Optional[str] = None
 
 class EventCreate(EventBase):
     pass
@@ -437,7 +477,15 @@ class CameraSummary(BaseModel):
     ptz_can_zoom: bool = True
     ptz_can_home: bool = True
     detect_engine: str = "OpenCV"
-    created_at: datetime
+    
+    # AI & Tracking
+    ai_enabled: bool
+    ai_object_types: List[str]
+    ai_threshold: float
+    ai_hardware: str
+    ai_tracking_enabled: bool
+    
+    created_at: Optional[datetime] = None
     
     model_config = ConfigDict(from_attributes=True)
 
