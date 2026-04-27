@@ -518,11 +518,19 @@ class OnvifDeepScanRequest(BaseModel):
     @field_validator('ip')
     @classmethod
     def validate_ip(cls, v: str) -> str:
+        if not v:
+            raise ValueError('IP address is required')
+        v = v.strip()
         import ipaddress
+        import socket
         try:
             ipaddress.ip_address(v)
         except ValueError:
-            raise ValueError('Invalid IP address')
+            # Check if it's a valid hostname
+            try:
+                socket.gethostbyname(v)
+            except socket.gaierror:
+                raise ValueError('Invalid IP address or unreachable hostname')
         return v
 
 class OnvifProbeRequest(BaseModel):
@@ -541,11 +549,19 @@ class OnvifProbeRequest(BaseModel):
     @field_validator('ip')
     @classmethod
     def validate_ip(cls, v: str) -> str:
+        if not v:
+            raise ValueError('IP address is required')
+        v = v.strip()
         import ipaddress
+        import socket
         try:
             ipaddress.ip_address(v)
         except ValueError:
-            raise ValueError('Invalid IP address')
+            # Check if it's a valid hostname
+            try:
+                socket.gethostbyname(v)
+            except socket.gaierror:
+                raise ValueError('Invalid IP address or unreachable hostname')
         return v
 
 class OnvifProfile(BaseModel):

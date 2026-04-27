@@ -72,7 +72,21 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                     showToast('No ONVIF services detected at this IP.', 'error');
                 }
             } else {
-                showToast('Port probe failed', 'error');
+                let errorMsg = 'Port probe failed';
+                try {
+                    const errData = await res.json();
+                    if (errData.detail) {
+                        if (Array.isArray(errData.detail)) {
+                            // Pydantic validation error array
+                            errorMsg = errData.detail.map(d => `${d.loc.join('.')}: ${d.msg}`).join(', ');
+                        } else {
+                            errorMsg = errData.detail;
+                        }
+                    }
+                } catch (e) {
+                    // Fallback to default
+                }
+                showToast(errorMsg, 'error');
             }
         } catch (err) {
             showToast('Network error during port probe', 'error');
@@ -97,8 +111,8 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                     Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    ip: newCamera.onvif_host,
-                    port: newCamera.onvif_port || 80,
+                    ip: newCamera.onvif_host?.trim() || '',
+                    port: parseInt(newCamera.onvif_port) || 80,
                     user: newCamera.onvif_username || '',
                     password: newCamera.onvif_password || ''
                 })
@@ -128,8 +142,21 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                 }
             } else {
                 setProbeStatus('error');
-                const err = await res.json();
-                showToast(err.detail || 'Connection failed', 'error');
+                let errorMsg = 'Connection failed';
+                try {
+                    const errData = await res.json();
+                    if (errData.detail) {
+                        if (Array.isArray(errData.detail)) {
+                            // Pydantic validation error array
+                            errorMsg = errData.detail.map(d => `${d.loc.join('.')}: ${d.msg}`).join(', ');
+                        } else {
+                            errorMsg = errData.detail;
+                        }
+                    }
+                } catch (e) {
+                    // Fallback to default
+                }
+                showToast(errorMsg, 'error');
             }
         } catch (err) {
             setProbeStatus('error');
