@@ -127,8 +127,15 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
             if event_type == "event_start":
                 should_notify_tg = camera.notify_start_telegram
                 source = details.get("source", "Standard")
-                prefix = "🤖 AI " if source == "AI Engine" else ("📷 Edge " if source == "ONVIF Edge" else "🚨 ")
+                prefix = "🤖 AI " if "AI Engine" in source else ("📷 Edge " if source == "ONVIF Edge" else "🚨 ")
                 caption = f"{prefix}*Motion Detected!*\n📷 Camera: {camera.name}\n⏰ Time: {ts_formatted}"
+                
+                # Add AI metadata if available
+                ai_meta = details.get("ai_metadata")
+                if ai_meta and isinstance(ai_meta, list):
+                    labels = sorted(list(set([str(r.get("label")).capitalize() for r in ai_meta if r.get("label")])))
+                    if labels:
+                        caption += f"\n🔍 Objects: {', '.join(labels)}"
             elif event_type == "camera_health":
                 should_notify_tg = camera.notify_health_telegram
                 caption = f"{details.get('title', 'Camera Alert')}\n{details.get('message', '')}"
@@ -439,7 +446,8 @@ async def webhook_event(
         # Purely for UI reactive feedback
         LIVE_MOTION[camera_id] = {
             "timestamp": payload.get("timestamp"),
-            "source": payload.get("source", "standard")
+            "source": payload.get("source", "standard"),
+            "ai_metadata": payload.get("ai_metadata")
         }
         return {"status": "motion_on_captured"}
 

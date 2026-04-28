@@ -235,10 +235,7 @@ class CameraBase(BaseModel):
     @field_validator('ai_object_types', mode='before')
     @classmethod
     def validate_ai_object_types(cls, v: Any) -> List[str]:
-        if not v:
-            # If it's truly empty (null or empty string from DB), return defaults
-            # but if it's an empty list [], it should stay an empty list
-            if isinstance(v, list): return []
+        if v is None:
             return ["person", "vehicle"]
             
         if isinstance(v, str):
@@ -260,9 +257,13 @@ class CameraBase(BaseModel):
                         return [str(item) for item in data]
                 except:
                     pass
+        
         if isinstance(v, list):
             return [str(item) for item in v]
-        return ["person", "vehicle"]
+            
+        # If it's something else but truthy, try to make it a list or return as is if possible
+        # but avoid resetting to defaults if we have something else than None/Empty
+        return ["person", "vehicle"] if not v else [str(v)]
 
     @field_validator('max_movie_length')
     @classmethod

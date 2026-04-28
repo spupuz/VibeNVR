@@ -195,9 +195,18 @@ const VideoPlayer = ({
                     <div className="flex items-center space-x-2 bg-red-600 px-2 py-1 rounded shadow-2xl animate-pulse ring-1 ring-white/40 w-fit">
                         <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_white]" />
                         <span className="text-[10px] font-black text-white tracking-widest uppercase">
-                            {camera.detect_engine === 'ONVIF Edge' 
-                                ? 'EDGE MOTION' 
-                                : (liveMotionData?.source?.includes('AI Engine') ? 'AI MOTION' : 'MOTION')}
+                            {(() => {
+                                if (camera.detect_engine === 'ONVIF Edge') return 'EDGE MOTION';
+                                if (liveMotionData?.source?.includes('AI Engine')) {
+                                    const aiMeta = liveMotionData?.ai_metadata;
+                                    if (aiMeta && Array.isArray(aiMeta) && aiMeta.length > 0) {
+                                        const labels = [...new Set(aiMeta.map(r => String(r.label).toUpperCase()))];
+                                        return `AI: ${labels.join(', ')}`;
+                                    }
+                                    return 'AI MOTION';
+                                }
+                                return 'MOTION';
+                            })()}
                         </span>
                     </div>
                 ) : null}

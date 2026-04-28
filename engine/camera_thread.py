@@ -170,7 +170,11 @@ class CameraThread(threading.Thread):
                                 
                                 snap_path = self.save_snapshot(frame, is_temp=True)
                                 if self.event_callback:
-                                    self.event_callback(self.camera_id, 'motion_start', {'source': f'AI Engine [{hw_label}]', 'file_path': snap_path})
+                                    self.event_callback(self.camera_id, 'motion_start', {
+                                        'source': f'AI Engine [{hw_label}]', 
+                                        'file_path': snap_path,
+                                        'ai_metadata': ai_results
+                                    })
                             
                             self.motion_detector.last_motion_time = self.last_external_motion_time
                         else:

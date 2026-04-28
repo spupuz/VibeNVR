@@ -107,6 +107,7 @@ class CameraManager:
                 if isinstance(payload, dict):
                     data["file_path"] = payload.get("file_path")
                     data["source"] = payload.get("source")
+                    data["ai_metadata"] = payload.get("ai_metadata")
                 else:
                     data["file_path"] = payload
             # Compatibility: Also trigger the legacy event_start for notifications
@@ -118,6 +119,7 @@ class CameraManager:
                 if isinstance(payload, dict):
                     data["file_path"] = payload.get("file_path")
                     data["source"] = payload.get("source")
+                    data["ai_metadata"] = payload.get("ai_metadata")
                 else:
                     data["file_path"] = payload
 

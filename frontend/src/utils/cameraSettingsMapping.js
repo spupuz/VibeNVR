@@ -5,7 +5,8 @@ export const CAMERA_SETTINGS_CATEGORIES = [
     { id: 'masks', label: 'Privacy & Masks' },
     { id: 'overlay', label: 'Text Overlay' },
     { id: 'alerts', label: 'Notifications' },
-    { id: 'schedule', label: 'Schedule' }
+    { id: 'schedule', label: 'Schedule' },
+    { id: 'ai', label: 'AI & Tracking' }
 ];
 
 export const CATEGORY_FIELD_MAP = {
@@ -34,7 +35,8 @@ export const CATEGORY_FIELD_MAP = {
         'schedule_friday', 'schedule_friday_start', 'schedule_friday_end',
         'schedule_saturday', 'schedule_saturday_start', 'schedule_saturday_end',
         'schedule_sunday', 'schedule_sunday_start', 'schedule_sunday_end'
-    ]
+    ],
+    ai: ['ai_enabled', 'ai_object_types', 'ai_threshold', 'ai_hardware', 'ai_tracking_enabled']
 };
 
 export const EXCLUDED_FIELDS = [

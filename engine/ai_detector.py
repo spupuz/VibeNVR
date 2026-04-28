@@ -150,8 +150,14 @@ class AIDetector:
                 if isinstance(allowed_objects, str):
                     try:
                         import json
-                        allowed_objects = json.loads(allowed_objects.replace("'", '"'))
-                    except:
+                        # Try parsing as JSON list
+                        parsed = json.loads(allowed_objects.replace("'", '"'))
+                        if isinstance(parsed, list):
+                            allowed_objects = parsed
+                        else:
+                            logger.warning(f"Camera {camera_id}: ai_object_types is a string but not a list: {allowed_objects}")
+                    except Exception as e:
+                        logger.error(f"Camera {camera_id}: Failed to parse ai_object_types string '{allowed_objects}': {e}")
                         allowed_objects = ["person", "vehicle"]
                 
                 vehicle_classes = ["car", "truck", "bus", "motorcycle"]
