@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Camera, HardDrive, ShieldAlert, Film, Image, CalendarClock, Cpu, MemoryStick, Settings, GripVertical, GripHorizontal, Network, Database } from 'lucide-react';
+import { Activity, Camera, HardDrive, ShieldAlert, Film, Image, CalendarClock, Cpu, MemoryStick, Settings, GripVertical, GripHorizontal, Network, Database, Zap, Share2, Bot, Brain } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -107,6 +107,7 @@ export const Dashboard = () => {
         'storage_movies', 'storage_pictures', 'storage_retention',
         'active_cameras', 'total_events', 'network_stats', 'db_stats',
         'storage_used', 'cpu_usage', 'memory_usage', 'system_status',
+        'mqtt_status', 'ai_processor',
         'resource_graph', 'network_graph', 'activity_graph', 'media_graph', 'recent_events'
     ];
 
@@ -404,30 +405,75 @@ export const Dashboard = () => {
                     <p className="text-3xl font-bold">{stats.system_status}</p>
                     <div className="flex flex-col gap-1 mt-1">
                         <p className="text-xs text-green-500">Uptime: {stats.uptime}</p>
-                        {stats.hw_accel && (
+                        {stats.hw_accel?.enabled && (
                             <div className="flex items-center gap-2 mt-2">
-                                <span className={`text-[10px] px-2 py-0.5 rounded font-medium border ${stats.hw_accel.status === 'disabled'
-                                        ? 'bg-muted text-muted-foreground border-border'
-                                        : stats.hw_accel.status === 'active'
-                                            ? 'bg-green-500/10 text-green-500 border-green-500/20'
-                                            : stats.hw_accel.status === 'ready'
-                                                ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-                                                : 'bg-red-500/10 text-red-500 border-red-500/20'
-                                    }`}>
-                                    HW Accel: {
-                                        stats.hw_accel.status === 'disabled'
-                                            ? 'OFF'
-                                            : `${stats.hw_accel.type.toUpperCase()} ${stats.hw_accel.status === 'active' ? '✓' :
-                                                stats.hw_accel.status === 'ready' ? 'READY' :
-                                                    'ERROR'
-                                            }`
-                                    }
+                                <span className="text-[10px] px-2 py-0.5 rounded font-medium border bg-orange-500/10 text-orange-500 border-orange-500/20 flex items-center gap-1">
+                                    <Zap className="w-2.5 h-2.5 fill-current" />
+                                    VIDEO ACCEL: {stats.hw_accel.type.toUpperCase()}
                                 </span>
                             </div>
                         )}
                     </div>
                 </div>
             )
+        },
+        mqtt_status: {
+            group: 'system',
+            span: 'col-span-12 md:col-span-6 lg:col-span-3',
+            render: () => {
+                const mqtt = stats.engine?.mqtt;
+                const isConnected = mqtt?.enabled && mqtt?.connected;
+                return (
+                    <div className="p-4 md:p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group h-full relative flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-medium text-muted-foreground">MQTT Service</h3>
+                            <div className="rounded-full bg-primary/10 p-2 text-primary group-hover:scale-110 transition-transform">
+                                <Share2 className="w-5 h-5" />
+                            </div>
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                                <p className="text-2xl font-bold">{isConnected ? 'Connected' : mqtt?.enabled ? 'Disconnected' : 'Disabled'}</p>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1 truncate">{mqtt?.host || '---'}</p>
+                        </div>
+                    </div>
+                );
+            }
+        },
+        ai_processor: {
+            group: 'system',
+            span: 'col-span-12 md:col-span-6 lg:col-span-3',
+            render: () => {
+                const ai = stats.engine?.ai;
+                const isTpu = ai?.hardware === 'tpu';
+                const isInitialized = ai?.initialized;
+                return (
+                    <div className="p-4 md:p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group h-full relative flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-medium text-muted-foreground">AI Processor</h3>
+                            <div className="rounded-full bg-primary/10 p-2 text-primary group-hover:scale-110 transition-transform">
+                                <Bot className="w-5 h-5" />
+                            </div>
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <p className="text-2xl font-bold uppercase">{ai?.hardware || 'None'}</p>
+                                {isTpu && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500 text-black font-bold flex items-center gap-0.5">
+                                        <Zap className="w-2.5 h-2.5 fill-current" />
+                                        TPU
+                                    </span>
+                                )}
+                            </div>
+                            <p className={`text-xs mt-1 ${isInitialized ? 'text-green-500' : 'text-red-500'}`}>
+                                {isInitialized ? 'Engine Initialized' : 'Not Ready'}
+                            </p>
+                        </div>
+                    </div>
+                );
+            }
         },
 
         resource_graph: {
@@ -549,28 +595,55 @@ export const Dashboard = () => {
                         {recentEvents.length === 0 ? (
                             <p className="text-sm text-muted-foreground text-center py-4">No recent events</p>
                         ) : (
-                            recentEvents.map((evt) => (
-                                <div
-                                    key={evt.id}
-                                    onClick={() => {
-                                        const eventDate = new Date(evt.timestamp_start).toLocaleDateString('en-CA');
-                                        navigate(`/timeline?event_id=${evt.id}&date=${eventDate}`);
-                                    }}
-                                    className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
-                                >
-                                    <div className={`w-2 h-2 rounded-full ${evt.type === 'video' ? 'bg-blue-500' : 'bg-green-500'}`} />
-                                    <div className="overflow-hidden flex-1">
-                                        <div className="flex justify-between">
-                                            <p className="text-sm font-semibold truncate">{getCameraName(evt.camera_id)}</p>
-                                            <span className="text-xs text-muted-foreground">{new Date(evt.timestamp_start).toLocaleTimeString()}</span>
+                            recentEvents.map((evt) => {
+                                let aiLabels = [];
+                                try {
+                                    if (evt.ai_metadata) {
+                                        // VibeNVR stores labels as a comma-separated string
+                                        const rawLabels = evt.ai_metadata.split(',').map(l => l.trim().toLowerCase()).filter(l => l);
+                                        aiLabels = [...new Set(rawLabels)];
+                                    }
+                                } catch (e) { console.error("AI parse error", e); }
+
+                                return (
+                                    <div
+                                        key={evt.id}
+                                        onClick={() => {
+                                            const eventDate = new Date(evt.timestamp_start).toLocaleDateString('en-CA');
+                                            navigate(`/timeline?event_id=${evt.id}&date=${eventDate}`);
+                                        }}
+                                        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
+                                    >
+                                        <div className={`w-2 h-2 rounded-full ${evt.type === 'video' ? 'bg-blue-500' : 'bg-green-500'}`} />
+                                        <div className="overflow-hidden flex-1">
+                                            <div className="flex justify-between">
+                                                <p className="text-sm font-semibold truncate">{getCameraName(evt.camera_id)}</p>
+                                                <span className="text-xs text-muted-foreground">{new Date(evt.timestamp_start).toLocaleTimeString()}</span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-1 mt-0.5">
+                                                {aiLabels.length > 0 ? (
+                                                    aiLabels.map((label, idx) => (
+                                                        <div 
+                                                            key={idx} 
+                                                            className="flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-[9px] font-bold uppercase border border-blue-500/20 shadow-sm"
+                                                        >
+                                                            <Brain className="w-2 h-2" />
+                                                            {label}
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <p className="text-xs text-muted-foreground capitalize truncate">
+                                                        {evt.type} Event
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
-                                        <p className="text-xs text-muted-foreground capitalize">{evt.type} Event</p>
+                                        <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${evt.type === 'video' ? 'bg-blue-500/10 text-blue-500' : 'bg-green-500/10 text-green-500'}`}>
+                                            {evt.type === 'video' ? 'VID' : 'IMG'}
+                                        </span>
                                     </div>
-                                    <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${evt.type === 'video' ? 'bg-blue-500/10 text-blue-500' : 'bg-green-500/10 text-green-500'}`}>
-                                        {evt.type === 'video' ? 'VID' : 'IMG'}
-                                    </span>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 </div>

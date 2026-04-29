@@ -130,10 +130,10 @@ export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected,
                     </p>
                     {event.ai_metadata && (
                         <div className="flex flex-wrap gap-1 mt-1">
-                            {event.ai_metadata.split(',').map((label, idx) => (
+                            {[...new Set(event.ai_metadata.split(',').map(l => l.trim().toLowerCase()).filter(l => l))].map((label, idx) => (
                                 <div 
                                     key={idx} 
-                                    className="flex items-center gap-0.5 px-1 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-md text-[9px] font-bold uppercase border border-blue-500/20 shadow-sm"
+                                    className="flex items-center gap-0.5 px-1 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-[9px] font-bold uppercase border border-blue-500/20 shadow-sm"
                                 >
                                     <Brain className="w-2 h-2" />
                                     {label}

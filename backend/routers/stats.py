@@ -1,11 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 import shutil
-import time
-import os
-import psutil
-import requests
-import threading
+import requests, time, psutil, os, logging, threading
+from settings_service import get_setting
 from datetime import datetime, timedelta
 from collections import deque
 from sqlalchemy import func
@@ -324,35 +321,30 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
     backend_mem_mb = backend_process.memory_info().rss / (1024 * 1024)
     
     # Engine stats (from its /stats endpoint)
+    engine_stats = None
     engine_cpu = 0
     engine_mem_mb = 0
     try:
         engine_resp = requests.get("http://engine:8000/stats", timeout=2)
         if engine_resp.status_code == 200:
-            engine_data = engine_resp.json()
-            engine_cpu = engine_data.get("cpu_percent", 0)
-            engine_mem_mb = engine_data.get("memory_mb", 0)
-            engine_hw_accel = engine_data.get("hw_accel", False)
-            engine_hw_accel_type = engine_data.get("hw_accel_type", "none")
-            engine_hw_accel_status = engine_data.get("hw_accel_status", "disabled")
+            engine_stats = engine_resp.json()
+            engine_cpu = engine_stats.get("cpu_percent", 0)
+            engine_mem_mb = engine_stats.get("memory_mb", 0)
     except:
-        pass  # Engine unreachable, use 0
-        engine_hw_accel = False
-        engine_hw_accel_type = "unknown"
-        engine_hw_accel_status = "disabled"
-    
+        pass  # Engine unreachable
+
     # Total app resources
     total_cpu = round(backend_cpu + engine_cpu, 1)
     total_mem_mb = round(backend_mem_mb + engine_mem_mb, 1)
 
-    # NEW: Network Rate Calculation (Read from background thread)
+    # Network Rate Calculation (Read from background thread)
     recv_mbps = 0.0
     sent_mbps = 0.0
     with _realtime_net_lock:
         recv_mbps = CURRENT_NET_SPEED["recv_mbps"]
         sent_mbps = CURRENT_NET_SPEED["sent_mbps"]
 
-    # NEW: Database Size
+    # Database Size
     db_size_mb = 0
     try:
         # Postgres specific
@@ -367,6 +359,17 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
     system_status = "Healthy" if total_errors == 0 else "Issues Detected"
     if active_cameras_count == 0 and len(cameras) > 0:
         system_status = "Standby"
+
+    # MQTT Status
+    mqtt_enabled = get_setting(db, "mqtt_enabled") == "true"
+    mqtt_host = get_setting(db, "mqtt_host") or "Not configured"
+    
+    mqtt_connected = False
+    ai_status = {"hardware": "unknown", "initialized": False}
+
+    if engine_stats:
+        mqtt_connected = engine_stats.get("mqtt_connected", False)
+        ai_status = engine_stats.get("ai_status", ai_status)
 
     return {
         "active_cameras": active_cameras_count,
@@ -400,6 +403,17 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
             "recv_mbps": recv_mbps,
             "sent_mbps": sent_mbps
         },
+        "engine": {
+            "status": "ONLINE" if engine_stats else "OFFLINE",
+            "hw_accel": engine_stats.get("hw_accel", False) if engine_stats else False,
+            "hw_accel_type": engine_stats.get("hw_accel_type", "N/A") if engine_stats else "N/A",
+            "mqtt": {
+                "enabled": mqtt_enabled,
+                "host": mqtt_host,
+                "connected": mqtt_connected
+            },
+            "ai": ai_status
+        },
         "database": {
             "size_mb": db_size_mb,
             "event_count": (global_movies[0] or 0) + (global_pics[0] or 0)
@@ -411,9 +425,9 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
         "system_status": system_status,
         "uptime": uptime_str,
         "hw_accel": {
-            "enabled": engine_hw_accel,
-            "type": engine_hw_accel_type,
-            "status": engine_hw_accel_status
+            "enabled": engine_stats.get("hw_accel", False) if engine_stats else False,
+            "type": engine_stats.get("hw_accel_type", "N/A") if engine_stats else "N/A",
+            "status": "ACTIVE" if (engine_stats and engine_stats.get("hw_accel")) else "INACTIVE"
         }
     }
 

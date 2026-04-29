@@ -59,9 +59,18 @@ VibeNVR automatically publishes Discovery payloads to the `homeassistant/` topic
 
 ---
 
+## 📊 Observability
+ 
+VibeNVR v1.28.0+ provides real-time visibility into the MQTT service status directly on the **Dashboard**. 
+ 
+- **MQTT Service Widget**: Shows the current connection state, the configured broker host, and the active port.
+- **Connection Diagnostics**: The widget status indicator turns green only when a successful handshake with the broker is maintained.
+ 
+---
+
 ## 🛠️ Troubleshooting
 
-- **Service Inactive**: Verify the "Service Active" badge in Settings. If it's red, check your broker address and credentials.
+- **Service Inactive**: Verify the **MQTT Service** widget on the Dashboard. If it's red, check your broker address and credentials.
 - **No Discovery**: Ensure your Home Assistant MQTT prefix is the default (`homeassistant`). VibeNVR currently uses this standard prefix for discovery.
 - **Connection Refused**: Check your broker logs. Ensure that VibeNVR's IP is allowed to connect and that anonymous access is enabled if no credentials are provided.
 

@@ -184,7 +184,8 @@ List motion events and recordings.
     "type": "video",
     "file_size": 10485760,
     "width": 1920,
-    "height": 1080
+    "height": 1080,
+    "ai_metadata": "person, motorcycle"
   }
 ]
 ```
@@ -242,7 +243,21 @@ Get comprehensive system health, storage, and resource usage.
   },
   "resources": {
     "cpu_percent": 12.5,
-    "memory_mb": 450.2
+    "memory_mb": 450.2,
+    "engine_cpu": 8.1,
+    "engine_mem_mb": 120.5
+  },
+  "engine": {
+    "status": "ONLINE",
+    "mqtt": {
+      "enabled": true,
+      "host": "192.168.1.50",
+      "connected": true
+    },
+    "ai": {
+      "initialized": true,
+      "hardware": "TPU"
+    }
   },
   "uptime": "5d 12h 30m"
 }

@@ -232,6 +232,10 @@ def get_stats():
     # Network stats (Global for container)
     net_io = psutil.net_io_counters()
 
+    # AI status
+    from ai_detector import AIDetector
+    ai = AIDetector()
+
     return {
         "cpu_percent": round(cpu_percent, 1),
         "memory_mb": round(mem_mb, 1),
@@ -240,7 +244,12 @@ def get_stats():
         "network_sent": net_io.bytes_sent,
         "hw_accel": os.environ.get("HW_ACCEL", "false").lower() == "true",
         "hw_accel_type": os.environ.get("HW_ACCEL_TYPE", "unknown"),
-        "hw_accel_status": _get_hw_accel_status(os.environ.get("HW_ACCEL_TYPE", "unknown"))
+        "hw_accel_status": _get_hw_accel_status(os.environ.get("HW_ACCEL_TYPE", "unknown")),
+        "mqtt_connected": mqtt_service.connected,
+        "ai_status": {
+            "initialized": ai._initialized,
+            "hardware": ai.hardware
+        }
     }
 
 _VAAPI_CACHE = None

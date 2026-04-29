@@ -234,13 +234,24 @@ When a detection fires:
 
 ---
 
-## 📊 AI Metadata & Timeline Filtering
+## 📊 Dashboard Observability
 
-Every event created by the AI engine has its detected objects stored in the database. In the **Timeline** view, you can use the **"Objects" filter** dropdown to show only events where a specific object was detected:
+VibeNVR v1.28.0+ introduces real-time visibility for the AI engine status:
 
-- **All Objects** — show everything
-- **Person** — only events with `person` in the AI metadata
-- **Vehicle** — only events with `car`, `truck`, `bus`, `motorcycle`
+- **AI Processor Widget**: Located on the Dashboard, this widget indicates if the AI engine is initialized and which hardware (TPU or CPU) is currently being used for inference.
+- **Service Status**: Instant feedback on the health of the AI inference pipeline.
+
+---
+
+## 📅 AI Metadata & Timeline Filtering
+
+Every event created by the AI engine has its detected objects stored in the database as `ai_metadata`.
+
+- **AI Labels (Badges)**: Surfaced directly on event cards in the **Recent Events** list and the **Timeline**. Detected objects are displayed as stylized "pill" badges with a `Brain` icon.
+- **Unified Filtering**: In the **Timeline** view, you can use the **"Objects" filter** dropdown to show only events where a specific object was detected:
+    - **All Objects** — show everything.
+    - **Person** — only events with `person` in the AI metadata.
+    - **Vehicle** — events with `car`, `truck`, `bus`, or `motorcycle`.
 
 > [!NOTE]
 > Events recorded before the AI engine was enabled will not have object metadata and will not appear under object-specific filters.
