@@ -246,6 +246,25 @@ def delete_event_files(event: models.Event) -> int:
     # 2. MANDATORY: Verify os.path.abspath(path).startswith("/data/")
     # 3. Securely remove file and return bytes deleted
 ```
+
+### MQTT Service & Home Assistant Discovery Pattern
+
+The MQTT service provides real-time event reporting and integration with Home Assistant.
+
+- **Rule**: Use **Paho MQTT v2.x** callback signatures (5 parameters: `client, userdata, flags, reason_code, properties`).
+- **Rule**: **Discovery on Connect**: Always trigger `publish_discovery` for all active cameras immediately upon a successful connection to the broker.
+- **Rule**: **Async Logic**: Use `client.connect_async` and `client.loop_start` to prevent blocking the Engine's main lifecycle.
+- **Rule**: **Discovery Logic**: Discovery payloads must be sent as `retain=True` to the `homeassistant/binary_sensor/` topic.
+
+```python
+# engine/mqtt_service.py (Pattern)
+def _on_connect(self, client, userdata, flags, reason_code, properties=None):
+    if reason_code == 0:
+        self.connected = True
+        # Send discovery for all cameras immediately on connection
+        for camera_id, thread in manager.cameras.items():
+            self.publish_discovery(camera_id, thread.config.get("name"))
+```
 ```
 
 ## Anti-Patterns to Avoid

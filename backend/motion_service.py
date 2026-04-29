@@ -184,10 +184,32 @@ def generate_motion_config(db: Session):
              stop_camera(cam.id)
 
 def sync_global_config(db: Session):
-    """Sync global optimization settings to VibeEngine config endpoint"""
+    """Sync global optimization and MQTT settings to VibeEngine config endpoint"""
     opt_settings = get_optimization_settings(db)
+    
+    # Fetch MQTT Settings
+    mqtt_keys = ["mqtt_enabled", "mqtt_host", "mqtt_port", "mqtt_username", "mqtt_password", "mqtt_topic_prefix"]
+    mqtt_config = {}
+    for key in mqtt_keys:
+        setting = db.query(SystemSettings).filter(SystemSettings.key == key).first()
+        if setting:
+            if key == "mqtt_enabled":
+                mqtt_config[key] = setting.value.lower() == "true"
+            elif key == "mqtt_port":
+                try: mqtt_config[key] = int(setting.value)
+                except: mqtt_config[key] = 1883
+            else:
+                mqtt_config[key] = setting.value
+        else:
+            # Fallback to defaults
+            if key == "mqtt_enabled": mqtt_config[key] = False
+            elif key == "mqtt_port": mqtt_config[key] = 1883
+            elif key == "mqtt_topic_prefix": mqtt_config[key] = "vibenvr"
+            else: mqtt_config[key] = ""
+
     payload = {
-        "opt_verbose_engine_logs": opt_settings.get("opt_verbose_engine_logs", False)
+        "opt_verbose_engine_logs": opt_settings.get("opt_verbose_engine_logs", False),
+        "mqtt": mqtt_config
     }
     try:
         resp = requests.post(f"{ENGINE_BASE_URL}/config", json=payload, timeout=5)

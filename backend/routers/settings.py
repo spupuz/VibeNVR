@@ -66,7 +66,7 @@ def get_setting_by_key(key: str, db: Session = Depends(database.get_db), current
 def update_setting(key: str, value: str, description: str = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Update or create a setting"""
     setting = set_setting(db, key, value, description)
-    if key.startswith("opt_"):
+    if key.startswith("opt_") or key.startswith("mqtt_"):
         motion_service.sync_global_config(db)
     return {"key": setting.key, "value": setting.value, "description": setting.description}
 
@@ -93,8 +93,8 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
 
         set_setting(db, key, str(value))
     
-    # Sync global config if any opt_ setting was updated
-    if any(k.startswith("opt_") for k in settings.keys()):
+    # Sync global config if any opt_ or mqtt_ setting was updated
+    if any(k.startswith("opt_") or k.startswith("mqtt_") for k in settings.keys()):
         motion_service.sync_global_config(db)
         
     return {"message": "Settings updated successfully", "count": len(settings)}
@@ -136,6 +136,14 @@ DEFAULT_SETTINGS = {
     "notify_webhook_url": {"value": "", "description": "Global Webhook URL for notifications"},
     "default_landing_page": {"value": "live", "description": "Default page when opening the app (dashboard, timeline, live)"},
     
+    # MQTT Settings
+    "mqtt_enabled": {"value": "false", "description": "Enable MQTT Service"},
+    "mqtt_host": {"value": "", "description": "MQTT Broker Host"},
+    "mqtt_port": {"value": "1883", "description": "MQTT Broker Port"},
+    "mqtt_username": {"value": "", "description": "MQTT Broker Username"},
+    "mqtt_password": {"value": "", "description": "MQTT Broker Password"},
+    "mqtt_topic_prefix": {"value": "vibenvr", "description": "MQTT Topic Prefix"},
+    
     # Log Settings
     "log_max_size_mb": {"value": "50", "description": "Maximum size of a log file before rotation (MB)"},
     "log_backup_count": {"value": "5", "description": "Number of rotated log files to keep"},
@@ -158,6 +166,14 @@ DEFAULT_SETTINGS = {
     "backup_auto_enabled": {"value": "false", "description": "Enable automatic configuration backups to /data/backups/"},
     "backup_auto_frequency_hours": {"value": "24", "description": "Frequency in hours for automatic backups"},
     "backup_auto_retention": {"value": "7", "description": "Number of backup files to retain in the folder"},
+
+    # MQTT Settings
+    "mqtt_enabled": {"value": "false", "description": "Enable internal MQTT Service for Home Assistant integration"},
+    "mqtt_host": {"value": "", "description": "MQTT Broker Host (e.g. 192.168.1.50)"},
+    "mqtt_port": {"value": "1883", "description": "MQTT Broker Port (default 1883)"},
+    "mqtt_username": {"value": "", "description": "MQTT Username (optional)"},
+    "mqtt_password": {"value": "", "description": "MQTT Password (optional)"},
+    "mqtt_topic_prefix": {"value": "vibenvr", "description": "MQTT Topic Prefix (default: vibenvr)"},
 }
 
 @router.post("/init-defaults")
@@ -244,7 +260,7 @@ async def perform_restore(data: dict, db: Session):
         for s in data["settings"]:
             existing = db.query(models.SystemSettings).filter(models.SystemSettings.key == s["key"]).first()
             
-            if s["key"].startswith("opt_"):
+            if s["key"].startswith("opt_") or s["key"].startswith("mqtt_"):
                 try:
                     validate_setting(s["key"], str(s["value"]))
                 except HTTPException as e:

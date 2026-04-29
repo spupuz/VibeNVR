@@ -40,6 +40,14 @@ class CameraManager:
         thread = CameraThread(camera_id, config, event_callback=self.handle_event)
         thread.start()
         self.cameras[camera_id] = thread
+        
+        # Trigger MQTT Discovery
+        try:
+            from mqtt_service import mqtt_service
+            mqtt_service.publish_discovery(camera_id, name)
+            mqtt_service.publish_status(camera_id, "connected")
+        except:
+            pass
 
     def stop_camera(self, camera_id: int):
         if camera_id in self.cameras:
@@ -177,6 +185,18 @@ class CameraManager:
         # Send in background to avoid blocking camera thread
         import threading
         threading.Thread(target=send_webhook, daemon=True).start()
+        
+        # 2. Also publish to MQTT
+        try:
+            from mqtt_service import mqtt_service
+            # Handle discovery if not already done for this camera session
+            if camera_id not in mqtt_service.cameras_discovered:
+                mqtt_service.publish_discovery(camera_id, name)
+            
+            # Publish the specific event
+            mqtt_service.publish_event(camera_id, webhook_type, payload)
+        except Exception as e:
+            logger.error(f"MQTT publish failed: {e}")
 
     def get_status(self):
         """Debug status of all cameras"""

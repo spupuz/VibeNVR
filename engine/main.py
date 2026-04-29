@@ -98,6 +98,7 @@ def set_engine_log_level(verbose: bool):
 set_engine_log_level(False)
 
 from core import manager
+from mqtt_service import mqtt_service
 
 app = FastAPI(title="VibeEngine")
 
@@ -206,6 +207,10 @@ def update_config(config: dict):
             # Actionable settings
             if key == "opt_verbose_engine_logs":
                 set_engine_log_level(value)
+        
+        # Handle specialized config keys
+        if "mqtt" in config:
+            mqtt_service.update_config(config["mqtt"])
                 
     return {"status": "success", "config": GLOBAL_CONFIG}
 

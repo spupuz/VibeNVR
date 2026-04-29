@@ -251,6 +251,9 @@ async def lifespan(app: FastAPI):
         try:
             # Sync to engine directly using motion_service
             motion_service.generate_motion_config(db)
+            
+            # Initialize default settings (adds new keys like MQTT if missing)
+            settings.init_default_settings(db, current_user=None) # Bypass admin check during startup
         except Exception as e:
             print(f"Startup warning: {e}")
     

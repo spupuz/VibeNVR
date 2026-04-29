@@ -41,9 +41,14 @@ def validate_setting(key: str, value: str):
             if value not in ["auto", "webcodecs", "mjpeg"]:
                 raise ValueError("Invalid mode. Must be 'auto', 'webcodecs', or 'mjpeg'")
         
-        elif key in ["opt_verbose_engine_logs", "telemetry_enabled"]:
+        elif key in ["opt_verbose_engine_logs", "telemetry_enabled", "mqtt_enabled"]:
             if value.lower() not in ["true", "false"]:
                 raise ValueError("Must be 'true' or 'false'")
+        
+        elif key == "mqtt_port":
+            v = int(value)
+            if v < 1 or v > 65535:
+                raise ValueError("Port must be between 1 and 65535")
         
         elif key == "notify_webhook_url" and value:
             import socket

@@ -22,6 +22,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **[UniFi Protect Integration](UniFi-Protect.md)** - Native support for RSTSPS and UniFi ports.
 - **[ONVIF Management](ONVIF-Management.md)** - Pan-Tilt-Zoom (PTZ) controls and hardware probing.
 - **[2FA & Trusted Devices](MFA-Trusted-Devices.md)** - Two-Factor Authentication, recovery codes, and security tokens.
+- **[MQTT Integration](MQTT-Integration.md)** - Home Assistant Discovery, real-time reporting, and AI metadata publishing.
 
 ## 🚀 Featured Capabilities
 
@@ -31,6 +32,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **WebCodecs Performance**: Ultra low-latency streaming with hardware acceleration and intelligent keyframe caching.
 - **Dual-Stream Optimization**: Dedicated sub-streams for lightweight dashboard grids, saving CPU and bandwidth.
 - **Advanced PTZ**: Native ONVIF support for low-latency Pan, Tilt, Zoom, and **Home Positions** with resident hardware fallbacks.
+- **MQTT & Home Automation**: Native integration with Home Assistant via **MQTT Discovery**. Instant motion sensors and AI object metadata reporting.
 - **System Integrity Assurance**: Integrated security, RBAC, and path-sanitization audits running on every release.
 
 ## ⚠️ Important Notes

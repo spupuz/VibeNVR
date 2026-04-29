@@ -12,6 +12,7 @@ import { PrivacySettings } from './Settings/sections/PrivacySettings';
 import { LiveViewLayoutSettings } from './Settings/sections/LiveViewLayoutSettings';
 import { GeneralSettings } from './Settings/sections/GeneralSettings';
 import { NotificationSettings } from './Settings/sections/NotificationSettings';
+import { MqttSettings } from './Settings/sections/MqttSettings';
 import { AdvancedSettings } from './Settings/sections/AdvancedSettings';
 import { BackupSettings } from './Settings/sections/BackupSettings';
 
@@ -59,7 +60,13 @@ export const Settings = () => {
         default_live_view_mode: 'auto',
         backup_auto_enabled: false,
         backup_auto_frequency_hours: 24,
-        backup_auto_retention: 10
+        backup_auto_retention: 10,
+        mqtt_enabled: 'false',
+        mqtt_host: '',
+        mqtt_port: '1883',
+        mqtt_username: '',
+        mqtt_password: '',
+        mqtt_topic_prefix: 'vibenvr'
     });
 
     const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0 });
@@ -144,7 +151,13 @@ export const Settings = () => {
                     default_live_view_mode: data.default_live_view_mode?.value || 'auto',
                     backup_auto_enabled: data.backup_auto_enabled?.value === 'true',
                     backup_auto_frequency_hours: parseInt(data.backup_auto_frequency_hours?.value) || 24,
-                    backup_auto_retention: parseInt(data.backup_auto_retention?.value) || 7
+                    backup_auto_retention: parseInt(data.backup_auto_retention?.value) || 7,
+                    mqtt_enabled: data.mqtt_enabled?.value || 'false',
+                    mqtt_host: data.mqtt_host?.value || '',
+                    mqtt_port: data.mqtt_port?.value || '1883',
+                    mqtt_username: data.mqtt_username?.value || '',
+                    mqtt_password: data.mqtt_password?.value || '',
+                    mqtt_topic_prefix: data.mqtt_topic_prefix?.value || 'vibenvr'
                 });
             }
         } catch (err) {
@@ -207,7 +220,13 @@ export const Settings = () => {
                     default_live_view_mode: globalSettings.default_live_view_mode,
                     backup_auto_enabled: globalSettings.backup_auto_enabled.toString(),
                     backup_auto_frequency_hours: globalSettings.backup_auto_frequency_hours.toString(),
-                    backup_auto_retention: globalSettings.backup_auto_retention.toString()
+                    backup_auto_retention: globalSettings.backup_auto_retention.toString(),
+                    mqtt_enabled: globalSettings.mqtt_enabled.toString(),
+                    mqtt_host: globalSettings.mqtt_host,
+                    mqtt_port: globalSettings.mqtt_port,
+                    mqtt_username: globalSettings.mqtt_username,
+                    mqtt_password: globalSettings.mqtt_password,
+                    mqtt_topic_prefix: globalSettings.mqtt_topic_prefix
                 })
             });
             showToast('Settings saved successfully!', 'success');
@@ -501,6 +520,15 @@ export const Settings = () => {
                         setGlobalSettings={setGlobalSettings}
                         handleTestNotify={handleTestNotify}
                         isOpen={openSection === 'notifications'}
+                        onToggle={toggleSection}
+                    />
+                )}
+
+                {user?.role === 'admin' && (
+                    <MqttSettings
+                        globalSettings={globalSettings}
+                        setGlobalSettings={setGlobalSettings}
+                        isOpen={openSection === 'mqtt'}
                         onToggle={toggleSection}
                     />
                 )}

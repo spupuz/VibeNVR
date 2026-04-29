@@ -338,6 +338,17 @@ Retrieve the real-time runtime status of the video engine (Admin only).
 - **Usage**: Diagnostic tool to verify mask synchronization and thread health.
 - **Response**: Map of camera IDs to their engine state.
 
+#### **Global Settings Keys (`/settings`)**
+Commonly used keys for `/settings/{key}`:
+- `mqtt_enabled`: (`true`/`false`)
+- `mqtt_host`: Broker IP/Hostname
+- `mqtt_port`: Broker Port (Default: 1883)
+- `mqtt_username`: Auth Username
+- `mqtt_password`: Auth Password
+- `mqtt_topic_prefix`: Root topic (Default: `vibenvr`)
+- `telemetry_enabled`: (`true`/`false`)
+- `notify_webhook_url`: Global endpoint for notifications
+
 ---
 
 ### 🎮 ONVIF & PTZ (`/onvif`)
