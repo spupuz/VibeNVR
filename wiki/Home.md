@@ -23,6 +23,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **[ONVIF Management](ONVIF-Management.md)** - Pan-Tilt-Zoom (PTZ) controls and hardware probing.
 - **[2FA & Trusted Devices](MFA-Trusted-Devices.md)** - Two-Factor Authentication, recovery codes, and security tokens.
 - **[MQTT Integration](MQTT-Integration.md)** - Home Assistant Discovery, real-time reporting, and AI metadata publishing.
+- **[External Integrations](Integrations.md)** - Detailed guide for Homepage, Home Assistant, and API widgets.
 
 ## 🚀 Featured Capabilities
 
