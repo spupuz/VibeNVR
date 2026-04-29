@@ -75,9 +75,16 @@ class AIDetector:
         if pref_hw in ['auto', 'tpu']:
             try:
                 logger.info("AI: Attempting to load EdgeTPU delegate...")
+                # NOTE: ARM is not currently supported. x86_64 only.
+                _lib_path = '/usr/lib/x86_64-linux-gnu/libedgetpu.so.1'
+                if not os.path.exists(_lib_path):
+                    raise FileNotFoundError(
+                        f"libedgetpu.so.1 not found at {_lib_path} — "
+                        "Coral TPU not available on this host. Falling back to CPU."
+                    )
                 self.interpreter = tflite.Interpreter(
                     model_path=tpu_model,
-                    experimental_delegates=[tflite.load_delegate('/usr/lib/x86_64-linux-gnu/libedgetpu.so.1')]
+                    experimental_delegates=[tflite.load_delegate(_lib_path)]
                 )
                 self.hardware = "tpu"
                 logger.info("AI: EdgeTPU delegate loaded successfully.")
@@ -86,6 +93,7 @@ class AIDetector:
                     logger.error(f"AI: Failed to load EdgeTPU: {e}")
                 else:
                     logger.info(f"AI: EdgeTPU not found or failed ({e}). Falling back to CPU.")
+
 
         # Fallback to CPU
         if self.interpreter is None:

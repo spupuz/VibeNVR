@@ -265,6 +265,26 @@ class CameraBase(BaseModel):
         # but avoid resetting to defaults if we have something else than None/Empty
         return ["person", "vehicle"] if not v else [str(v)]
 
+    @field_validator('ai_hardware', mode='before')
+    @classmethod
+    def validate_ai_hardware(cls, v: Any) -> str:
+        allowed = {"auto", "cpu", "tpu"}
+        if v is None or str(v).strip().lower() not in allowed:
+            return "auto"
+        return str(v).strip().lower()
+
+    @field_validator('ai_threshold', mode='before')
+    @classmethod
+    def validate_ai_threshold(cls, v: Any) -> float:
+        try:
+            val = float(v)
+        except (TypeError, ValueError):
+            return 0.5
+        # Clamp to a sane range: 0.1 to 0.99
+        return max(0.1, min(0.99, val))
+
+
+
     @field_validator('max_movie_length')
     @classmethod
     def validate_max_movie_length(cls, v: Optional[int]) -> Optional[int]:
