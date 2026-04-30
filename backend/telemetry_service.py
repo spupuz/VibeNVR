@@ -86,16 +86,40 @@ def gather_metrics(db: Session):
             (models.Camera.notify_webhook_url != None)
         ).count() > 0
 
+        # New metrics
+        mqtt_enabled_setting = db.query(models.SystemSettings).filter_by(key="mqtt_enabled").first()
+        mqtt_active = mqtt_enabled_setting.value.lower() == "true" if mqtt_enabled_setting and mqtt_enabled_setting.value else False
+
+        motion_opencv = db.query(models.Camera).filter(models.Camera.detect_engine == "OpenCV").count()
+        motion_onvif = db.query(models.Camera).filter(models.Camera.detect_engine == "ONVIF Edge").count()
+        # More robust match for AI engine (handles "AI", "ai", or full descriptive strings)
+        motion_ai_engine = db.query(models.Camera).filter(models.Camera.detect_engine.ilike("%AI%")).count()
+        motion_ai = db.query(models.Camera).filter(models.Camera.ai_enabled == True).count()
+        
+        onvif_count = db.query(models.Camera).filter(models.Camera.onvif_host != None).count()
+        substream_count = db.query(models.Camera).filter(models.Camera.sub_rtsp_url != None).count()
+
         return {
             "cameras": camera_count,
             "users": user_count,
             "groups": group_count,
             "events": event_count,
-            "notifications": notifications_enabled
+            "notifications": notifications_enabled,
+            "mqtt_active": mqtt_active,
+            "motion_opencv": motion_opencv,
+            "motion_onvif": motion_onvif,
+            "motion_ai_engine": motion_ai_engine,
+            "motion_ai": motion_ai,
+            "onvif_count": onvif_count,
+            "substream_count": substream_count
         }
     except Exception as e:
         logger.error(f"Error gathering telemetry metrics: {e}")
-        return {"cameras": 0, "users": 0, "groups": 0, "events": 0, "notifications": False}
+        return {
+            "cameras": 0, "users": 0, "groups": 0, "events": 0, "notifications": False,
+            "mqtt_active": False, "motion_opencv": 0, "motion_onvif": 0, "motion_ai_engine": 0, "motion_ai": 0,
+            "onvif_count": 0, "substream_count": 0
+        }
 
 def send_telemetry():
     with database.get_db_ctx() as db:
@@ -148,7 +172,14 @@ def send_telemetry():
                 "cameras": metrics["cameras"],
                 "groups": metrics["groups"],
                 "events": metrics["events"],
-                "notifications": metrics["notifications"]
+                "notifications": metrics["notifications"],
+                "mqtt_active": metrics["mqtt_active"],
+                "motion_opencv": metrics.get("motion_opencv", 0),
+                "motion_onvif": metrics.get("motion_onvif", 0),
+                "motion_ai_engine": metrics.get("motion_ai_engine", 0),
+                "motion_ai": metrics.get("motion_ai", 0),
+                "onvif_count": metrics["onvif_count"],
+                "substream_count": metrics["substream_count"]
             }
             
             logger.info(f"Reporting telemetry: {payload}")

@@ -25,6 +25,13 @@ export const PrivacySettings = ({
         { field: 'groups', example: '2', note: 'Total camera groups' },
         { field: 'events', example: '1400', note: 'Recorded events in DB' },
         { field: 'notifications', example: 'True/False', note: 'Notification status' },
+        { field: 'mqtt_active', example: 'True/False', note: 'MQTT integration status' },
+        { field: 'motion_opencv', example: '1', note: 'Cameras using OpenCV engine' },
+        { field: 'motion_onvif', example: '0', note: 'Cameras using ONVIF Edge engine' },
+        { field: 'motion_ai_engine', example: '1', note: 'Cameras using AI Native engine' },
+        { field: 'motion_ai', example: '1', note: 'Cameras with AI layer enabled' },
+        { field: 'onvif_count', example: '2', note: 'ONVIF-capable cameras count' },
+        { field: 'substream_count', example: '1', note: 'Cameras with sub-streams' },
         { field: 'country', example: 'IT', note: 'Added by Cloudflare' },
     ];
 

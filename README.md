@@ -72,9 +72,10 @@ We only collect **non-sensitive, anonymous** technical data:
 - **Application Version**: To see how many users are on the latest release.
 - **Hardware Profile**: CPU count, total RAM (rounded to GB), and GPU acceleration status.
 - **Usage Metrics**: Total number of cameras, camera groups, and events in the database.
+- **Detection Engines**: Distribution of motion detection modes (OpenCV, ONVIF Edge, AI Native).
 - **System Info**: Operating System and hardware architecture (e.g., Linux x86_64).
 - **Anonymous ID**: A randomly generated UUID that uniquely identifies the installation without linking it to any personal identity or IP address.
-- **Feature Flags**: A simple indicator if notifications are configured (no addresses or tokens).
+- **Feature Flags**: Indicators for active features like Notifications, MQTT, and Sub-stream usage (no addresses, credentials, or tokens are collected).
 
 ### How often?
 The report is sent once **30 seconds after startup** and then **once every 24 hours**.
