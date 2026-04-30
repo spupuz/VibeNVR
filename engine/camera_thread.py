@@ -55,6 +55,8 @@ class CameraThread(threading.Thread):
         self.last_frame_update_time = 0.0
         self.last_external_motion_time = 0.0
         self.last_external_motion_source = "none"
+        self.latest_ai_results = []
+        self.last_ai_update_time = 0.0
         self.lock = threading.Lock()
         
         # Shared processing state
@@ -157,7 +159,9 @@ class CameraThread(threading.Thread):
                         ai_results = self._filter_ai_results_by_zones(raw_ai_results)
                         
                         if ai_results:
-                            self.last_external_motion_time = time.time()
+                            self.latest_ai_results = ai_results
+                            self.last_ai_update_time = time.time()
+                            self.last_external_motion_time = self.last_ai_update_time
                             hw_label = self.ai_detector.hardware.upper()
                             self.last_external_motion_source = f"AI Engine [{hw_label}]"
                             # Sync with motion detector so handle_recording knows it's active
@@ -177,9 +181,11 @@ class CameraThread(threading.Thread):
                                     })
                             
                             self.motion_detector.last_motion_time = self.last_external_motion_time
-                        else:
-                            # If we had results but they were filtered, treat as no motion for this frame
-                            pass
+                    
+                    # Persistence: If ai_results is empty (throttled frame or no detections in this frame), 
+                    # use latest results if they are fresh (< 1.0s) to avoid UI flashing
+                    if not ai_results and (time.time() - self.last_ai_update_time < 1.0):
+                        ai_results = self.latest_ai_results
                     
                     # Handle Motion End for AI
                     motion_gap = self.config.get('motion_gap', 10)
@@ -342,7 +348,7 @@ class CameraThread(threading.Thread):
                 conf = res.get('confidence', 0.0)
                 box = res.get('box', [0, 0, 0, 0]) # [x1, y1, x2, y2]
                 
-                # Colors for different classes
+                # Colors for different classes (BGR)
                 color = (0, 255, 0) # Default Green
                 if label in ['person']: color = (0, 255, 0) # Green for people
                 elif label in ['vehicle', 'car', 'bus', 'truck']: color = (255, 0, 0) # Blue for vehicles
@@ -360,9 +366,33 @@ class CameraThread(threading.Thread):
                 
                 # Draw Label
                 text = f"{label.capitalize()} {int(conf * 100)}%"
-                (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-                cv2.rectangle(frame, (x1, y1 - 20), (x1 + tw, y1), color, -1)
-                cv2.putText(frame, text, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                font_scale = 0.6
+                thickness = 2
+                
+                (tw, th), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
+                
+                # Background rectangle for the text (with padding)
+                padding = 5
+                rect_x1 = x1
+                rect_y1 = y1 - th - (padding * 2)
+                rect_x2 = x1 + tw + (padding * 2)
+                rect_y2 = y1
+                
+                # Ensure label box doesn't go off-screen at the top
+                if rect_y1 < 0:
+                    rect_y1 = y1
+                    rect_y2 = y1 + th + (padding * 2)
+                
+                cv2.rectangle(frame, (rect_x1, rect_y1), (rect_x2, rect_y2), color, -1)
+                
+                # Text Color: Black (0,0,0) for better contrast on bright colors
+                text_color = (0, 0, 0)
+                
+                # Draw text
+                text_x = rect_x1 + padding
+                text_y = rect_y1 + th + padding if rect_y1 == y1 else y1 - padding
+                
+                cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, text_color, thickness)
             except Exception as e:
                 logger.error(f"Error drawing AI box: {e}")
 
