@@ -56,9 +56,9 @@ If you expose VibeNVR to the internet or your LAN via an **external reverse prox
 
 ---
 
-## 🔒 Browser Security Headers (v1.25.4+)
+## 🔒 Browser Security Headers
 
-Starting from version **v1.25.4**, VibeNVR includes standard browser security headers served by the internal Nginx frontend. These provide an extra layer of defense against common web vulnerabilities.
+VibeNVR includes standard browser security headers served by the internal Nginx frontend. These provide an extra layer of defense against common web vulnerabilities.
 
 | Header | Value | Purpose |
 |--------|-------|---------|

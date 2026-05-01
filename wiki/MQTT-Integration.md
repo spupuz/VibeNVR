@@ -61,7 +61,7 @@ VibeNVR automatically publishes Discovery payloads to the `homeassistant/` topic
 
 ## 📊 Observability
  
-VibeNVR v1.28.0+ provides real-time visibility into the MQTT service status directly on the **Dashboard**. 
+VibeNVR provides real-time visibility into the MQTT service status directly on the **Dashboard**. 
  
 - **MQTT Service Widget**: Shows the current connection state, the configured broker host, and the active port.
 - **Connection Diagnostics**: The widget status indicator turns green only when a successful handshake with the broker is maintained.

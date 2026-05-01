@@ -129,7 +129,7 @@ Create a new camera configuration.
 > **Optional Sub-Streaming**: The `sub_rtsp_url` is completely optional. If left empty, the NVR will simply use the main `rtsp_url` for live previews and grid views. Configuring a sub-stream is recommended only for high-resolution cameras to optimize dashboard performance.
 
 > [!NOTE]
-> **GUI Security**: Starting from **v1.25.3**, the frontend automatically redacts passwords in the `rtsp_url` and `sub_rtsp_url` fields (displayed as `********`). Full URLs pasted into these fields are automatically parsed and their credentials moved to the separate Username/Password fields.
+> **GUI Security**: The frontend automatically redacts passwords in the `rtsp_url` and `sub_rtsp_url` fields (displayed as `********`). Full URLs pasted into these fields are automatically parsed and their credentials moved to the separate Username/Password fields.
 
 #### **PUT** `/cameras/{camera_id}`
 Update an existing camera configuration. Fields are optional (only provided fields are updated).
@@ -156,7 +156,7 @@ VibeNVR supports two primary motion detection engines, configurable per-camera:
 ---
  
 ### ⚙️ Engine Synchronization
-VibeNVR v1.26.0+ features advanced, real-time configuration synchronization between the Backend and the Video Engine. This ensures that critical streaming parameters are applied without restarting processing threads.
+VibeNVR features advanced, real-time configuration synchronization between the Backend and the Video Engine. This ensures that critical streaming parameters are applied without restarting processing threads.
  
 #### **Synchronized Fields**
 The following fields are transmitted to the engine in real-time upon camera update:
@@ -449,7 +449,7 @@ curl -X GET "http://localhost:8080/stats" \
 <img src="http://localhost:8080/media/Camera1/2026-02-21/snap.jpg" />
 ```
 
-*(Current Version: v1.27.0)*
+*(Documentation version: Current)*
 
 ---
 

@@ -37,7 +37,7 @@ Verify the RTSP URL is reachable from inside the Docker container. The `localhos
 If you see an "AUTH ERROR" overlay, it might be a race condition during token load.
 
 **Solution:**
-1. Update to **v1.20.4 or later**.
+1. Ensure you are running the latest version of VibeNVR.
 2. Check camera credentials in **Settings → Cameras**.
 3. VibeNVR automatically enters a **5-minute backoff period** on persistent 401 errors to prevent IP bans.
 

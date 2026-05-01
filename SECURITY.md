@@ -71,8 +71,10 @@ VibeNVR's code includes specific mitigations against common attack vectors:
 3. **Robust PTZ Home Fallbacks**:
     - PTZ Home positioning utilizes a **3-stage fallback** (Native -> Existing Preset -> Create Preset) to ensure functionality on hardware with non-standard ONVIF implementations. This prevents sensitive 400-series errors from leaking directly to the UI and provides a consistent security boundary for device interactions.
 4. **Event File Deletion & Path Traversal**:
-    - All file deletion operations (Single, Bulk, and "Delete All") go through a mandatory **Path Sanitization** check before any `os.remove` call.
     - The final resolved path MUST start with the `/data/` internal storage directory. Any attempt to delete files outside this boundary results in a security alert in the logs and the deletion is blocked.
+5. **Storage Resilience & Disk Safety**:
+    - **Reactive Monitoring**: VibeNVR implements a reactive 10-minute monitoring loop for storage quotas. This ensures that disk usage remains within limits even under high-volume recording conditions.
+    - **Emergency Disk Safety**: If absolute disk space falls below **5%**, an emergency cleanup is automatically triggered to prevent filesystem exhaustion and system instability.
 4. **Secure RTSP (RSTSPS) & TLS Verification**:
     - To ensure seamless compatibility with modern NVR systems like **UniFi Protect**, VibeNVR supports the `rstsps://` and `rtsps://` protocols.
     - For these specific protocols, VibeNVR intentionally disables TLS certificate verification (`tls_verify=0`) to handle self-signed certificates common in camera hardware.
@@ -84,22 +86,24 @@ VibeNVR's code includes specific mitigations against common attack vectors:
           - **RTSP & ONVIF Credentials**: Redacts passwords in both URLs (`rtsp://user:***@host`) and JSON/KV strings (`"password": "***"`, `password=***`).
           - **Authorization Tokens**: Redacts `X-API-Key`, `Bearer` tokens, `totp_secret`, and `media_token`.
         - **ONVIF Credential Fallback**: To simplify setup, VibeNVR can automatically extract ONVIF management credentials from a camera's RTSP URL if not explicitly provided. These extracted credentials are treated with the same masking and redaction policies as manual entries.
-        - **Robust ONVIF Event Parsing**: v1.25.5 introduces a multi-vendor robust parser for ONVIF event notifications. It employs fuzzy matching for boolean payload states (e.g., `IsMotion`, `State`, `Active`) and topic-payload correlation to ensure reliable triggers across Hikvision, Dahua, Reolink, and Axis devices without compromising XML parsing safety.
+        - **Robust ONVIF Event Parsing**: A multi-vendor robust parser for ONVIF event notifications is used. It employs fuzzy matching for boolean payload states (e.g., `IsMotion`, `State`, `Active`) and topic-payload correlation to ensure reliable triggers across Hikvision, Dahua, Reolink, and Axis devices without compromising XML parsing safety.
         - **Perpetual Security Audit**: Mandatory runtime and static scans are performed during the security audit workflow to ensure that sensitive strings never leak into the application's stdout.
-   - **RTSP URL Redaction (GUI Level)**: Starting from **v1.25.3**, the frontend configuration interface implements dynamic URL masking. RTSP and Sub-Stream URLs are displayed without plain-text passwords (redacted as `********`). If a user pastes a full URL containing a password, it is automatically extracted to the secure separate fields and redacted in real-time.
+    - **RTSP URL Redaction (GUI Level)**: The frontend configuration interface implements dynamic URL masking. RTSP and Sub-Stream URLs are displayed without plain-text passwords (redacted as `********`). If a user pastes a full URL containing a password, it is automatically extracted to the secure separate fields and redacted in real-time.
 5. **Privacy Masking & Motion Zones**: 
     - **Privacy Masks** are applied at the Engine level immediately after frame decoding. They are "burned" into the video frames *before* they reach the recording or motion analysis modules, ensuring that sensitive data is never persisted or processed if masked.
     - **Motion Zones** (Exclusion Zones) are used for motion detection optimization (e.g., ignoring moving trees). Unlike Privacy Masks, they do NOT obscure the video. **MANDATORY**: When **ONVIF Edge** detection is active, NVR-side Motion Zones are bypassed and hidden in the UI to prevent configuration confusion, as the camera's hardware sensor handles all detection logic.
     - An unmasked "raw" frame (for the masking editor) is only accessible via a specialized internal bridge reserved for Admin credentials.
-6. **Schema-Aware De-duplication**:
+6. **Robust AI Config Validation**:
+   - To prevent configuration loss during restarts, VibeNVR implements a robust multi-format parser for AI object filters. It supports standard JSON lists, comma-separated strings, and malformed inputs, ensuring that user preferences are preserved across system updates and cold boots.
+7. **Schema-Aware De-duplication**:
    - The backup import logic (`routers/settings.py`) prevents resource exhaustion and data fragmentation by de-duplicating cameras based on their RTSP Host/IP, ensuring duplicate configurations aren't accidentally or maliciously created.
-7. **Database Cascading**:
+8. **Database Cascading**:
    - SQLAlchemy relationships are strictly configured. Deleting a user or a camera automatically triggers `cascade="all, delete-orphan"`, ensuring no orphaned auth tokens, recovery codes, or media records remain in the system.
-8. **Log Masking & Privacy**:
+9. **Log Masking & Privacy**:
    - The centralized log router (`backend/routers/logs.py`) and the custom `TokenRedactingFilter` in `main.py` automatically mask stdout logs.
    - **Nginx Access Logs**: The frontend Nginx configuration (`nginx.conf`) uses a custom `log_format` and `map` logic to automatically redact `?token=` values from access logs before they are written to disk. This ensures that even if the token fallback is used for media streaming, the JWT is not persisted in the proxy logs.
 9. **Hardened Engine Synchronization**:
-    - Starting from **v1.26.0**, critical streaming parameters (`rtsp_transport`, `sub_rtsp_transport`, `live_view_mode`) are synchronized with the recording engine via Admin-only authenticated routes.
+    - Critical streaming parameters (`rtsp_transport`, `sub_rtsp_transport`, `live_view_mode`) are synchronized with the recording engine via Admin-only authenticated routes.
     - Every synchronized field is validated through Pydantic schemas on the engine side to prevent injection or invalid configuration states.
 10. **SECRET_KEY Security Enforcement**:
    - In development or non-standard environments, using a weak or default `SECRET_KEY` triggers a **loud warning** in the logs but allows the application to proceed for troubleshooting.
@@ -107,7 +111,7 @@ VibeNVR's code includes specific mitigations against common attack vectors:
    - **Bypass**: If strictly necessary, set `ALLOW_WEAK_SECRET=true` in your `.env` to override the production exit (NOT RECOMMENDED).
 
 10. **Browser Security Headers**: 
-    - Starting from **v1.25.4**, VibeNVR implements standard security headers via the Nginx frontend:
+    - VibeNVR implements standard security headers via the Nginx frontend:
       - **X-Frame-Options: SAMEORIGIN**: Prevents clickjacking by restricting embedding to the same origin.
       - **X-Content-Type-Options: nosniff**: Prevents MIME-type sniffing.
       - **Referrer-Policy: strict-origin-when-cross-origin**: Protects referrer privacy.
@@ -135,7 +139,7 @@ These are documented security trade-offs made intentionally for compatibility or
 - **WebSocket live stream uses `?token=` query parameter**: The Browser WebSocket API cannot send custom headers during the HTTP upgrade handshake. The JWT is therefore passed as `?token=` for the `/cameras/{id}/ws` live stream endpoint. This is mitigated by: (1) the Nginx `map` directive which redacts `?token=` from all access logs before they are written to disk, (2) TLS encryption in production which prevents interception in transit, and (3) an HttpOnly `media_token` cookie which serves as an automatic fallback when available. The engine's raw WebSocket endpoint (port 8000) is internal-only and not exposed externally.
 - **WebCodecs & Multi-Stream Resilience**: 
     - To ensure instant startup in high-latency environments, the engine caches the most recent H.264 keyframe (SPS/PPS/IDR) and pushes it immediately to new WebSocket clients. 
-    - **Hybrid Packetization**: Starting from **v1.26.0**, the WebSocket stream uses a 10-byte binary header to multiplex video and audio packets.
+    - **Hybrid Packetization**: The WebSocket stream uses a 10-byte binary header to multiplex video and audio packets.
     - **Audio Sync Optimization**: Now, the player implements active drift detection. If audio lag exceeds **300ms**, the buffer is automatically reset to resync with the video stream.
     - **Resilience**: The frontend employs a micro-jitter buffer (2 frames) to absorb network fluctuations and handles decoder re-initialization automatically if a resolution switch is detected.
 - **ONVIF Polling Stability**:

@@ -1,6 +1,6 @@
 # Live View — WebCodecs H.264 Streaming
 
-From **v1.21.0**, the Live View page uses the browser's native **WebCodecs API** to display a direct H.264 stream via WebSockets.
+The Live View page uses the browser's native **WebCodecs API** to display a direct H.264 stream via WebSockets.
 
 ---
 

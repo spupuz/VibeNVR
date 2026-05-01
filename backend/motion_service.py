@@ -14,8 +14,7 @@ ENGINE_BASE_URL = "http://engine:8000"
 sync_lock = threading.Lock()
 
 def _parse_ai_object_types(v: Any) -> list[str]:
-    if not v:
-        if isinstance(v, list): return []
+    if v is None:
         return ["person", "vehicle"]
     
     if isinstance(v, list):
@@ -37,6 +36,11 @@ def _parse_ai_object_types(v: Any) -> list[str]:
                     return [str(item) for item in data]
             except:
                 pass
+        
+        if "," in v_sanitized:
+            return [item.strip() for item in v_sanitized.split(",") if item.strip()]
+        return [v_sanitized]
+
     return ["person", "vehicle"]
 
 def get_optimization_settings(db: Session) -> dict:

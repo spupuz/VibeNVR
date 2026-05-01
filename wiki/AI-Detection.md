@@ -40,6 +40,9 @@ Navigate to **Cameras → Edit → Motion Tab → AI Detection** to configure:
 | **Allowed Objects** | Comma-separated list: `person`, `vehicle`, `dog`, etc. | `person, vehicle` |
 | **AI Hardware** | `auto` (TPU preferred, CPU fallback), `cpu`, `tpu` | `auto` |
 
+> [!TIP]
+> **Robust Configuration**: VibeNVR implements a high-resilience parser for `Allowed Objects`. It supports both JSON (e.g. `["person", "vehicle"]`) and simple comma-separated lists (e.g. `person, vehicle`). This prevents configuration loss if the database is manually edited or during complex system migrations.
+
 > [!NOTE]
 > Setting confidence too low (e.g., 33%) can cause false positives from spinning objects, reflections, or camera noise. **70%+ is recommended** for stable production use.
 
@@ -236,7 +239,7 @@ When a detection fires:
 
 ## 📊 Dashboard Observability
 
-VibeNVR v1.28.0+ introduces real-time visibility for the AI engine status:
+VibeNVR introduces real-time visibility for the AI engine status:
 
 - **AI Processor Widget**: Located on the Dashboard, this widget indicates if the AI engine is initialized and which hardware (TPU or CPU) is currently being used for inference.
 - **Service Status**: Instant feedback on the health of the AI inference pipeline.

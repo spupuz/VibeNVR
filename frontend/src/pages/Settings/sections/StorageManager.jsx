@@ -75,9 +75,10 @@ export const StorageManager = ({
                     <label className="block text-sm font-medium mb-2">Cleanup Interval (Hours)</label>
                     <select
                         value={globalSettings.cleanup_interval_hours}
-                        onChange={(e) => setGlobalSettings({ ...globalSettings, cleanup_interval_hours: parseInt(e.target.value) })}
+                        onChange={(e) => setGlobalSettings({ ...globalSettings, cleanup_interval_hours: parseFloat(e.target.value) })}
                         className="w-full max-w-full sm:max-w-xs bg-background border border-input rounded-lg px-3 py-2"
                     >
+                        <option value="0.5">Every 30 Minutes</option>
                         <option value="1">Every Hour</option>
                         <option value="6">Every 6 Hours</option>
                         <option value="12">Every 12 Hours</option>

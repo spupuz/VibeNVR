@@ -1,6 +1,7 @@
 from pydantic import BaseModel, field_validator, model_validator, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+import json
 
 class TestNotificationConfig(BaseModel):
     channel: str # 'email', 'telegram', 'webhook'
@@ -236,15 +237,15 @@ class CameraBase(BaseModel):
     @classmethod
     def validate_ai_object_types(cls, v: Any) -> List[str]:
         if v is None:
+            # If explicit None, return default
             return ["person", "vehicle"]
             
         if isinstance(v, str):
-            import json
             v_sanitized = v.strip()
             if not v_sanitized or v_sanitized == "[]":
                 return []
             
-            # Try standard JSON first
+            # Try standard JSON
             try:
                 data = json.loads(v_sanitized)
                 if isinstance(data, list):
@@ -257,13 +258,18 @@ class CameraBase(BaseModel):
                         return [str(item) for item in data]
                 except:
                     pass
+            
+            # If it's a string but not JSON (e.g. "person,vehicle"), split it
+            if "," in v_sanitized:
+                return [item.strip() for item in v_sanitized.split(",") if item.strip()]
+            
+            # Last resort: single item
+            return [v_sanitized]
         
         if isinstance(v, list):
             return [str(item) for item in v]
             
-        # If it's something else but truthy, try to make it a list or return as is if possible
-        # but avoid resetting to defaults if we have something else than None/Empty
-        return ["person", "vehicle"] if not v else [str(v)]
+        return ["person", "vehicle"]
 
     @field_validator('ai_hardware', mode='before')
     @classmethod

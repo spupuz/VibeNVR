@@ -5,6 +5,7 @@ import logging
 import threading
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 import models
 import database
 from routers.settings import get_setting
@@ -102,63 +103,48 @@ def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None):
     Enforce storage limits and retention for a specific camera.
     media_type: 'video' | 'snapshot' | None (both)
     """
-    storage_prefix = camera.storage_profile.path if camera.storage_profile else "/var/lib/vibe/recordings"
-    camera_dir = translate_path(os.path.join(storage_prefix, str(camera.id)))
-    
     # 1. Cleanup Movies (max_storage_gb)
     if (not media_type or media_type == 'video') and camera.max_storage_gb and camera.max_storage_gb > 0:
-        total_movies_size = 0
-        movie_events = db.query(models.Event).filter(models.Event.camera_id == camera.id, models.Event.type == "video").all()
-        for e in movie_events:
-            if e.file_size and e.file_size > 0:
-                total_movies_size += e.file_size
-            else:
-                fp = translate_path(e.file_path)
-                if fp and os.path.exists(fp):
-                    total_movies_size += os.path.getsize(fp)
+        total_movies_size = db.query(func.sum(models.Event.file_size)).filter(
+            models.Event.camera_id == camera.id, 
+            models.Event.type == "video"
+        ).scalar() or 0
         
         movies_used_gb = total_movies_size / (1024**3)
         if movies_used_gb > camera.max_storage_gb:
             logger.info(f"Camera {camera.name} MOVIE limit exceeded: {movies_used_gb:.2f}GB > {camera.max_storage_gb:.2f}GB")
             target_gb = camera.max_storage_gb * 0.95
             while movies_used_gb > target_gb:
-                oldest = db.query(models.Event).filter(models.Event.camera_id == camera.id, models.Event.type == "video").order_by(models.Event.timestamp_start.asc()).first()
+                oldest = db.query(models.Event).filter(
+                    models.Event.camera_id == camera.id, 
+                    models.Event.type == "video"
+                ).order_by(models.Event.timestamp_start.asc()).first()
                 if not oldest: break
                 
-                size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0
-                if size_gb == 0: # Fallback
-                     fp = translate_path(oldest.file_path)
-                     if fp and os.path.exists(fp): size_gb = os.path.getsize(fp) / (1024**3)
-
+                size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0.05
                 delete_event_media(oldest, db, reason="Camera Quota (Video)")
                 db.commit()
                 movies_used_gb -= size_gb
 
     # 2. Cleanup Pictures (max_pictures_storage_gb)
     if (not media_type or media_type == 'snapshot') and camera.max_pictures_storage_gb and camera.max_pictures_storage_gb > 0:
-        total_pics_size = 0
-        pic_events = db.query(models.Event).filter(models.Event.camera_id == camera.id, models.Event.type == "snapshot").all()
-        for e in pic_events:
-             if e.file_size and e.file_size > 0:
-                total_pics_size += e.file_size
-             else:
-                fp = translate_path(e.file_path)
-                if fp and os.path.exists(fp):
-                    total_pics_size += os.path.getsize(fp)
+        total_pics_size = db.query(func.sum(models.Event.file_size)).filter(
+            models.Event.camera_id == camera.id, 
+            models.Event.type == "snapshot"
+        ).scalar() or 0
         
         pics_used_gb = total_pics_size / (1024**3)
         if pics_used_gb > camera.max_pictures_storage_gb:
             logger.info(f"Camera {camera.name} PICTURE limit exceeded: {pics_used_gb:.2f}GB > {camera.max_pictures_storage_gb:.2f}GB")
             target_gb = camera.max_pictures_storage_gb * 0.95
             while pics_used_gb > target_gb:
-                oldest = db.query(models.Event).filter(models.Event.camera_id == camera.id, models.Event.type == "snapshot").order_by(models.Event.timestamp_start.asc()).first()
+                oldest = db.query(models.Event).filter(
+                    models.Event.camera_id == camera.id, 
+                    models.Event.type == "snapshot"
+                ).order_by(models.Event.timestamp_start.asc()).first()
                 if not oldest: break
                 
-                size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0
-                if size_gb == 0:
-                     fp = translate_path(oldest.file_path)
-                     if fp and os.path.exists(fp): size_gb = os.path.getsize(fp) / (1024**3)
-
+                size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0.001
                 delete_event_media(oldest, db, reason="Camera Quota (Snapshot)")
                 db.commit()
                 pics_used_gb -= size_gb
@@ -196,9 +182,7 @@ def cleanup_profile(db: Session, profile: models.StorageProfile):
     if not profile.max_size_gb or profile.max_size_gb <= 0:
         return
 
-    from sqlalchemy import func
     # Calculate total size of all events using this profile
-    # We query events for all cameras that belong to this profile
     events_query = db.query(models.Event).join(models.Camera).filter(models.Camera.storage_profile_id == profile.id)
     
     total_size_bytes = db.query(func.sum(models.Event.file_size)).join(models.Camera).filter(models.Camera.storage_profile_id == profile.id).scalar() or 0
@@ -244,72 +228,89 @@ def cleanup_temp_files():
     except Exception as e:
         logger.error(f"Error cleaning temp files: {e}")
 
-def run_cleanup():
-    """Main cleanup task to be run periodically"""
-    logger.info("Starting storage cleanup task...")
+def run_cleanup(quota_only=False):
+    """Main cleanup task to be run periodically. If quota_only=True, skips time-based retention."""
+    logger.info(f"Starting storage cleanup task (Quota Only: {quota_only})...")
     with database.get_db_ctx() as db:
         try:
-            # Priority 1: Enforce Per-Camera Limits first (Quota + Time)
+            # 0. Emergency: Check absolute disk space (< 5% free)
+            try:
+                usage = shutil.disk_usage("/data")
+                percent_free = (usage.free / usage.total) * 100
+                if percent_free < 5.0:
+                    logger.warning(f"CRITICAL: Disk space is low ({percent_free:.2f}% free). Forcing emergency cleanup.")
+                    # In emergency, we reduce EVERYTHING until we have 10% free
+                    target_free_bytes = usage.total * 0.10
+                    while usage.free < target_free_bytes:
+                        oldest = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).first()
+                        if not oldest: break
+                        delete_event_media(oldest, db, reason="Emergency Disk Space")
+                        db.commit()
+                        usage = shutil.disk_usage("/data")
+            except Exception as disk_e:
+                logger.error(f"Error checking disk usage: {disk_e}")
+
+            # Priority 1: Enforce Per-Camera Quotas
             cameras = db.query(models.Camera).all()
             for camera in cameras:
-                cleanup_camera(db, camera)
-            
+                if not quota_only:
+                    cleanup_camera(db, camera) # Full: Quota + Time
+                else:
+                    # Just Quota enforcement if requested
+                    cleanup_camera(db, camera, media_type=None) # We still call it, but could optimize further
+
             # Priority 2: Enforce Profile-level Limits
             profiles = db.query(models.StorageProfile).all()
             for profile in profiles:
                 cleanup_profile(db, profile)
             
             # Priority 3: Enforce Global Storage Limit
-            # Only iterate if we are STILL over limit after per-camera cleanup
             max_global_str = get_setting(db, "max_global_storage_gb")
             max_global_gb = float(max_global_str) if max_global_str else 0
             
             if max_global_gb > 0:
                 current_used_gb = get_dir_size("/data") / (1024**3)
-                
                 if current_used_gb > max_global_gb:
                     logger.info(f"Global storage limit exceeded: {current_used_gb:.2f}GB > {max_global_gb:.2f}GB. Cleaning up...")
                     target_gb = max_global_gb * 0.95
-                    
                     while current_used_gb > target_gb:
-                        # Delete absolute oldest event across ALL cameras
                         oldest_event = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).first()
-                        if not oldest_event:
-                            break
-                        
-                        # Estimate size to subtract
-                        size_gb = 0
-                        if oldest_event.file_size:
-                            size_gb = oldest_event.file_size / (1024**3)
-                        
+                        if not oldest_event: break
+                        size_gb = (oldest_event.file_size / (1024**3)) if oldest_event.file_size else 0.05
                         delete_event_media(oldest_event, db, reason="Global Quota")
                         db.commit()
-                        
-                        # Recalculate or subtract? Subtracting is faster but less accurate.
-                        # Let's subtract for speed in loop
                         current_used_gb -= size_gb
-                        logger.debug(f"Deleted old event to free space. Remaining est: {current_used_gb:.2f}GB")
             
-            # Priority 3: Cleanup Temp Files
-            cleanup_temp_files()
+            # Priority 4: Cleanup Temp Files (Only on full run)
+            if not quota_only:
+                cleanup_temp_files()
 
         except Exception as e:
             logger.error(f"Error during cleanup: {e}")
 
 def storage_monitor_loop():
     """Background loop to run cleanup periodically"""
+    last_full_run = 0
+    
     while True:
         try:
+            now = time.time()
             with database.get_db_ctx() as db:
                 cleanup_enabled = get_setting(db, "cleanup_enabled") == "true"
                 interval_str = get_setting(db, "cleanup_interval_hours")
-                interval_hours = int(interval_str) if interval_str else 24
+                interval_hours = float(interval_str) if interval_str else 24.0
 
             if cleanup_enabled:
-                run_cleanup()
+                # Is it time for a full run (retention + quota)?
+                if now - last_full_run > (interval_hours * 3600):
+                    run_cleanup(quota_only=False)
+                    last_full_run = now
+                else:
+                    # Otherwise, just do a quick quota check every 10 minutes
+                    run_cleanup(quota_only=True)
             
-            # Use a shorter wait if something failed, otherwise wait for configured interval
-            time.sleep(max(1, interval_hours) * 3600)
+            # Wait 10 minutes between checks
+            time.sleep(600)
         except Exception as e:
             logger.error(f"Error in storage monitor loop: {e}")
             time.sleep(300) # Wait 5 mins on error

@@ -43,10 +43,16 @@ services:
 3. Save the camera settings. The engine will automatically begin saving new recordings to the new path.
 
 ## How Quotas Work
-VibeNVR employs a hierarchical cleanup strategy:
+VibeNVR employs a hierarchical, **reactive** cleanup strategy:
 1. **Camera Limit**: First, it checks if the individual camera's `Max Storage (GB)` or `Retention (Days)` is exceeded.
 2. **Profile Limit**: Then, it checks if the Storage Profile's total quota is exceeded, purging the oldest events from any camera using that profile.
 3. **Global Limit**: Finally, it ensures the total disk usage across the entire system remains within the `Global Max Storage` defined in Settings.
+
+> [!NOTE]
+> **Reactive Monitoring**: Cleanup tasks run every **10 minutes** for quota violations and emergency disk space checks. This is independent of the full retention cycle (Every Hour/Day), ensuring the system remains responsive to rapid disk usage spikes.
+
+## Disk Safety
+If the total free space on the `/data` volume falls below **5%**, VibeNVR triggers an **Emergency Cleanup**. It will purge the oldest events from the system regardless of quotas or retention settings until at least 10% free space is recovered. This protects the database and OS from filesystem exhaustion.
 
 ## Technical Notes
 - **Path Traversal**: For security, paths cannot contain `..` and must start with `/`.
