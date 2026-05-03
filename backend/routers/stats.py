@@ -242,10 +242,10 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
     now = datetime.now()
     one_day_ago = now - timedelta(days=1)
     
-    # Calculate Daily "Burn Rate" (GB/day) based on last 24h of recordings
+    # Calculate Daily "Burn Rate" (GB/day) based on last 24h of recordings (Video + Snapshots)
     # Group by camera to be precise
     daily_stats_query = db.query(models.Event.camera_id, func.sum(models.Event.file_size))\
-        .filter(models.Event.timestamp_start >= one_day_ago, models.Event.type == 'video')\
+        .filter(models.Event.timestamp_start >= one_day_ago)\
         .group_by(models.Event.camera_id).all()
     
     daily_usage_map = {cam_id: (float(size) if size is not None else 0.0) for cam_id, size in daily_stats_query}

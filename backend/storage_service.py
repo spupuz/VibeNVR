@@ -98,10 +98,11 @@ def delete_event_media(event, db: Session, reason="Unknown"):
         logger.error(f"Error deleting event {event.id}: {e}")
         return False
 
-def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None):
+def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None, skip_time_retention: bool = False):
     """
     Enforce storage limits and retention for a specific camera.
     media_type: 'video' | 'snapshot' | None (both)
+    skip_time_retention: If True, only enforces size-based quotas
     """
     # 1. Cleanup Movies (max_storage_gb)
     if (not media_type or media_type == 'video') and camera.max_storage_gb and camera.max_storage_gb > 0:
@@ -150,6 +151,9 @@ def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None):
                 pics_used_gb -= size_gb
 
     # 3. Time-based cleanup
+    if skip_time_retention:
+        return
+
     # Use timezone-aware cutoff to match DB timestamps
     now_aware = datetime.now().astimezone()
     
@@ -253,11 +257,8 @@ def run_cleanup(quota_only=False):
             # Priority 1: Enforce Per-Camera Quotas
             cameras = db.query(models.Camera).all()
             for camera in cameras:
-                if not quota_only:
-                    cleanup_camera(db, camera) # Full: Quota + Time
-                else:
-                    # Just Quota enforcement if requested
-                    cleanup_camera(db, camera, media_type=None) # We still call it, but could optimize further
+                # Quota enforcement (always runs)
+                cleanup_camera(db, camera, media_type=None, skip_time_retention=quota_only)
 
             # Priority 2: Enforce Profile-level Limits
             profiles = db.query(models.StorageProfile).all()
@@ -269,17 +270,32 @@ def run_cleanup(quota_only=False):
             max_global_gb = float(max_global_str) if max_global_str else 0
             
             if max_global_gb > 0:
-                current_used_gb = get_dir_size("/data") / (1024**3)
+                # Use DB-based metric to match UI "App Quota"
+                vibe_used_bytes = db.query(func.sum(models.Event.file_size)).scalar() or 0
+                current_used_gb = vibe_used_bytes / (1024**3)
+                
                 if current_used_gb > max_global_gb:
-                    logger.info(f"Global storage limit exceeded: {current_used_gb:.2f}GB > {max_global_gb:.2f}GB. Cleaning up...")
+                    logger.info(f"Global storage limit exceeded (App Quota): {current_used_gb:.2f}GB > {max_global_gb:.2f}GB. Cleaning up...")
                     target_gb = max_global_gb * 0.95
-                    while current_used_gb > target_gb:
+                    
+                    max_iterations = 500 # Safety break
+                    iterations = 0
+                    while current_used_gb > target_gb and iterations < max_iterations:
+                        iterations += 1
                         oldest_event = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).first()
                         if not oldest_event: break
+                        
                         size_gb = (oldest_event.file_size / (1024**3)) if oldest_event.file_size else 0.05
-                        delete_event_media(oldest_event, db, reason="Global Quota")
+                        success = delete_event_media(oldest_event, db, reason="Global Quota")
                         db.commit()
-                        current_used_gb -= size_gb
+                        
+                        if success:
+                            current_used_gb -= size_gb
+                        else:
+                            # If deletion fails, we skip this event to avoid infinite loop
+                            # (The event remains in DB and on disk, which is bad, but we can't do much)
+                            logger.error(f"Failed to delete event {oldest_event.id} during global cleanup. Skipping.")
+                            # We don't decrement current_used_gb, so iterations will eventually hit max_iterations
             
             # Priority 4: Cleanup Temp Files (Only on full run)
             if not quota_only:
