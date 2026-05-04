@@ -1,6 +1,6 @@
 # Engine Build Context Exclusions
 __pycache__/
-scripts/
+scripts/*
 !scripts/download_models.py
 *.log
 venv/
