@@ -363,9 +363,11 @@ Commonly used keys for `/settings/{key}`:
 - `mqtt_topic_prefix`: Root topic (Default: `vibenvr`)
 - `telemetry_enabled`: (`true`/`false`)
 - `notify_webhook_url`: Global endpoint for notifications
-- `ai_model`: (`YOLOv8`/`MobileNet SSD v2`) Global detection model
-- `ai_hardware`: (`auto`/`cpu`/`tpu`) Global hardware preference
-- `ai_nms_iou_threshold`: (`0.45`) IoU threshold for YOLOv8 NMS
+- `ai_enabled`: (`true`/`false`) Master AI activation switch.
+- `ai_model`: (`YOLOv8`/`MobileNet SSD v2`) Global detection model.
+- `ai_hardware`: (`auto`/`cpu`/`tpu`) Global hardware preference.
+- `ai_nms_iou_threshold`: (`0.45`) IoU threshold for YOLOv8 NMS (Float).
+- `ai_confidence_default`: (`0.5`) Default threshold for new cameras (Float).
 
 ---
 

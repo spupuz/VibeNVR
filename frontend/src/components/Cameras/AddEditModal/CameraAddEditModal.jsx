@@ -36,7 +36,8 @@ export const CameraAddEditModal = ({
     handleCreate,
     handleCleanup,
     handleTestNotification,
-    setShowCopyModal
+    setShowCopyModal,
+    globalSettings
 }) => {
     const [cloneSourceId, setCloneSourceId] = React.useState('');
     const [selectedCloneCategories, setSelectedCloneCategories] = React.useState(CAMERA_SETTINGS_CATEGORIES.map(c => c.id));
@@ -215,6 +216,7 @@ export const CameraAddEditModal = ({
                                     newCamera={newCamera} 
                                     setNewCamera={setNewCamera} 
                                     setActiveTab={setActiveTab}
+                                    globalSettings={globalSettings}
                                 />
                             )}
                             {activeTab === 'privacy' && (
@@ -274,6 +276,7 @@ export const CameraAddEditModal = ({
                                 <AITab 
                                     newCamera={newCamera} 
                                     setNewCamera={setNewCamera} 
+                                    globalSettings={globalSettings}
                                 />
                             )}
                         </div>

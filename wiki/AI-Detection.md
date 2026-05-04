@@ -18,13 +18,19 @@ All detected labels are saved per-event as `ai_metadata` (e.g., `person,car`) an
 ---
 
 ## 🏗️ Global AI Configuration
-
-Starting from v1.30.0, core AI parameters like **Model Selection** and **Hardware Acceleration** are managed **globally** in **System Settings → AI Detection Engine**. This ensures that the AI engine runs as a shared singleton, optimizing memory usage and ensuring consistency across all cameras.
+Core AI parameters like **Global Activation**, **Model Selection**, and **Hardware Acceleration** are managed **globally** in **System Settings → AI Detection Engine**. This ensures that the AI engine runs as a shared singleton, optimizing memory usage and ensuring consistency across all cameras.
 
 | Setting | Description | Recommended |
 |---------|-------------|-------------|
+| **AI Enabled** | Master switch for the entire AI engine. If **OFF**, no AI models are loaded. | `ON` (if TPU present) |
 | **AI Model** | Choose between `YOLOv8` (Superior accuracy) or `MobileNet SSD v2` (Faster/Legacy) | `YOLOv8` |
 | **AI Hardware** | `auto` (TPU preferred, CPU fallback), `cpu`, `tpu` | `auto` |
+
+> [!IMPORTANT]
+> **Resource Efficiency**: If the Global AI switch is **OFF**, the system skips loading the TFLite runtime and models entirely. This is the recommended state for users who do not have a Coral TPU and wish to use standard OpenCV motion detection to save CPU resources.
+
+> [!NOTE]
+> **Automatic Fallback**: If a camera is configured to use the "AI" engine but the Global Switch is **OFF**, the system automatically falls back to standard **OpenCV** detection. The UI will display an informative warning in the camera's Motion settings tab when this occurs.
 
 ---
 
@@ -304,7 +310,7 @@ python3 engine/scripts/download_models.py
 
 VibeNVR implements **Non-Maximum Suppression (NMS)** for YOLOv8 models. This technique prevents the system from reporting the same object multiple times (e.g., three "person" boxes for one human). 
 
-- **IoU Threshold**: `0.45` (standard balanced filtering).
+- **IoU Threshold**: `0.45` (Default). This can be adjusted globally in **System Settings → AI Detection Engine** to fine-tune how aggressively overlapping boxes are merged.
 - **Result Limit**: Capped at **10 objects** per frame to ensure real-time stability on EdgeTPU and low-power CPUs.
 
 ---

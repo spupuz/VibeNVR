@@ -27,6 +27,7 @@ def mask_config(config):
 class CameraManager:
     def __init__(self):
         self.cameras = {} # id -> CameraThread
+        self.global_config = {}
 
     def start_camera(self, camera_id: int, config: dict):
         if camera_id in self.cameras:
@@ -37,7 +38,7 @@ class CameraManager:
 
         name = config.get('name', 'Unknown')
         logger.info(f"Starting camera {name} (ID: {camera_id}) with config: {mask_config(config)}")
-        thread = CameraThread(camera_id, config, event_callback=self.handle_event)
+        thread = CameraThread(camera_id, config, manager=self, event_callback=self.handle_event)
         thread.start()
         self.cameras[camera_id] = thread
         

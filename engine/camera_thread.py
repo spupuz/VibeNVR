@@ -18,10 +18,11 @@ from ai_detector import AIDetector
 logger = logging.getLogger(__name__)
 
 class CameraThread(threading.Thread):
-    def __init__(self, camera_id, config, event_callback=None):
-        super().__init__()
+    def __init__(self, camera_id, config, manager=None, event_callback=None):
+        super().__init__(name=f"CameraThread-{camera_id}")
         self.camera_id = camera_id
         self.config = config
+        self.manager = manager
         self.event_callback = event_callback
         self.running = False
         
@@ -146,6 +147,10 @@ class CameraThread(threading.Thread):
                 
                 detect_engine = self.config.get('detect_engine', 'OpenCV')
                 
+                # Fallback to OpenCV if AI is disabled globally but camera is set to AI
+                if detect_engine == 'AI' and not self.manager.global_config.get('ai_enabled', False):
+                    detect_engine = 'OpenCV'
+                    
                 # AI Inference Logic
                 ai_results = []
                 motion_active = False

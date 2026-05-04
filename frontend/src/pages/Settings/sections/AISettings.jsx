@@ -1,7 +1,7 @@
 import React from 'react';
 import { Brain } from 'lucide-react';
 import { CollapsibleSection } from '../../../components/ui/CollapsibleSection';
-import { SelectField } from '../../../components/ui/FormControls';
+import { SelectField, Toggle } from '../../../components/ui/FormControls';
 
 export const AISettings = ({
     globalSettings,
@@ -19,7 +19,16 @@ export const AISettings = ({
             onToggle={onToggle}
         >
             <div className="space-y-6">
-                <div>
+                <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
+                    <Toggle
+                        label="Global AI Activation"
+                        help="When disabled, the AI engine is completely turned off to save system resources. Individual camera AI settings will be ignored."
+                        checked={globalSettings.ai_enabled === true || globalSettings.ai_enabled === "true"}
+                        onChange={(val) => setGlobalSettings({ ...globalSettings, ai_enabled: val })}
+                    />
+                </div>
+
+                <div className={!(globalSettings.ai_enabled === true || globalSettings.ai_enabled === "true") ? 'opacity-50 pointer-events-none' : ''}>
                     <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">Model Architecture</h4>
                     <p className="text-xs text-muted-foreground mb-4 bg-muted/30 p-3 rounded-xl border border-border/50 leading-relaxed">
                         Choose the AI model architecture used for object detection. <strong>YOLOv8</strong> provides higher precision but requires more processing power.
@@ -52,8 +61,11 @@ export const AISettings = ({
 
                 <div className="bg-primary/10 border border-primary/20 text-primary p-4 rounded-lg text-sm">
                     <strong className="flex items-center gap-2">TIP:</strong>
-                    The selected model will be used by all cameras that have the "AI Engine" enabled.
-                    Specific camera settings (labels, confidence) can still be tuned individually.
+                    {!(globalSettings.ai_enabled === true || globalSettings.ai_enabled === "true") ? (
+                        <span>AI is currently <strong>disabled</strong> globally. Enable it above to start using AI features.</span>
+                    ) : (
+                        <span>The selected model will be used by all cameras that have the "AI Engine" enabled. Specific camera settings can still be tuned individually.</span>
+                    )}
                 </div>
             </div>
         </CollapsibleSection>

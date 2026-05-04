@@ -239,12 +239,31 @@ def migrate():
     # Add storage_profile_id to cameras
     add_column_if_not_exists(engine, "cameras", "storage_profile_id", "INTEGER")
 
-    # [v1.27.1] Cleanup: Ensure detect_motion_mode is not 'Off' (which was disabled in new UI)
-    # This prevents cameras from being stuck in a non-detecting state after upgrade.
+    # [v1.28.0] Global AI Activation
+    # Ensure ai_enabled setting exists in system_settings if any camera has it enabled
     with engine.connect() as conn:
-        print("Ensuring detect_motion_mode is not 'Off' (v1.27.1 upgrade)...")
-        conn.execute(text("UPDATE cameras SET detect_motion_mode = 'Always' WHERE detect_motion_mode = 'Off' OR detect_motion_mode IS NULL"))
-        conn.commit()
+        print("Checking for existing AI usage to set global default (v1.28.0)...")
+        try:
+            # 1. Check if global setting already exists
+            exists = conn.execute(text("SELECT 1 FROM system_settings WHERE key = 'ai_enabled'")).fetchone()
+            if not exists:
+                # 2. If any camera has ai_enabled = True, we should enable global AI by default to not break setups
+                res = conn.execute(text("SELECT COUNT(*) FROM cameras WHERE ai_enabled = TRUE")).fetchone()
+                if res and res[0] > 0:
+                    print(f"Found {res[0]} active AI cameras. Enabling global AI setting by default.")
+                    conn.execute(text("INSERT INTO system_settings (key, value, description) VALUES ('ai_enabled', 'true', 'Enable Global AI Detection Engine')"))
+                    conn.commit()
+                else:
+                    print("No active AI cameras found. Global AI will default to OFF.")
+                    # We don't necessarily need to insert 'false' here as init_default_settings will handle it,
+                    # but being explicit in migration is cleaner.
+                    conn.execute(text("INSERT INTO system_settings (key, value, description) VALUES ('ai_enabled', 'false', 'Enable Global AI Detection Engine')"))
+                    conn.commit()
+            else:
+                print("Global AI setting 'ai_enabled' already exists. Skipping.")
+        except Exception as e:
+            print(f"Migration v1.28.0 warning: {e}")
+            conn.rollback()
 
 if __name__ == "__main__":
     print("Starting migration...")

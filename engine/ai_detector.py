@@ -41,8 +41,34 @@ class AIDetector:
             
         # Initial model type from config (camera or global)
         self.model_type = self.config.get('ai_model', 'mobilenet_ssd_v2')
-        self._load_model()
+        self._enabled = self.config.get('ai_enabled', False)
+        
+        if self._enabled:
+            self._load_model()
+        else:
+            logger.info("AI: Engine initialized in DISABLED state (Global Switch is OFF)")
+            
         self._initialized = True
+
+    @property
+    def enabled(self):
+        return self._enabled
+
+    def set_enabled(self, enabled: bool):
+        """Enable or disable the AI detector dynamically"""
+        with self.inference_lock:
+            if enabled == self._enabled:
+                return
+            
+            self._enabled = enabled
+            if enabled:
+                logger.info("AI: GLOBAL ACTIVATION - Loading models...")
+                self._load_model()
+            else:
+                logger.info("AI: GLOBAL DEACTIVATION - Releasing resources...")
+                self.interpreter = None
+                self.labels = {}
+                self.hardware = "disabled"
 
     def update_model(self, model_type: str):
         """Reload model if type has changed"""
@@ -155,7 +181,7 @@ class AIDetector:
             self.output_details = self.interpreter.get_output_details()
 
     def detect(self, frame, camera_id: int = 0, config: Dict[str, Any] = None) -> List[Dict[str, Any]]:
-        if not self.interpreter:
+        if not self._enabled or not self.interpreter:
             return []
 
         # Use provided config or fallback to instance config

@@ -33,6 +33,7 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | ⚡ **Passthrough Recording** | Direct Stream Copy support for near-zero CPU usage recording (experimental, with auto-fallback). |
 | 🎯 **Smart Motion Detection** | Three detection engines: **OpenCV** (classic), **ONVIF Edge** (hardware offload), and **AI** (TFLite object recognition). |
 | 🤖 **AI Object Detection** | High-performance inference with **YOLOv8** or MobileNet SSD v2. Support for **Google Coral Edge TPU** or CPU. Detects people, vehicles, animals, and filters by confidence. **NMS (Non-Maximum Suppression)** ensures clean detections. |
+| 🛡️ **Universal AI Activation** | A global master switch allows for instant system-wide AI enabling/disabling. If OFF, AI models are not loaded, saving significant resources. Cameras automatically fallback to **OpenCV** detection with clear UI indicators. |
 | 🔍 **Descriptive AI Alerts** | Dynamic notifications including detected object labels (e.g., 🔍 Objects: Person, Vehicle) and confidence scores. |
 | 📅 **Event Timeline** | Unified browser for movie recordings and high-res snapshots with instant filters. |
 | 🛡️ **Privacy Masking** | Permanent black-out zones burned into recordings. **Motion Zones** for exclusion masking. |

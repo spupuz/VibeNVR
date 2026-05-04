@@ -66,7 +66,7 @@ def get_setting_by_key(key: str, db: Session = Depends(database.get_db), current
 def update_setting(key: str, value: str, description: str = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Update or create a setting"""
     setting = set_setting(db, key, value, description)
-    if key.startswith("opt_") or key.startswith("mqtt_"):
+    if key.startswith("opt_") or key.startswith("mqtt_") or key.startswith("ai_"):
         motion_service.sync_global_config(db)
     return {"key": setting.key, "value": setting.value, "description": setting.description}
 
@@ -93,8 +93,8 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
 
         set_setting(db, key, str(value))
     
-    # Sync global config if any opt_, mqtt_, or ai_ model/hardware setting was updated
-    if any(k.startswith("opt_") or k.startswith("mqtt_") or k in ["ai_model", "ai_hardware"] for k in settings.keys()):
+    # Sync global config if any opt_, mqtt_, or ai_ settings were updated
+    if any(k.startswith("opt_") or k.startswith("mqtt_") or k.startswith("ai_") for k in settings.keys()):
         motion_service.sync_global_config(db)
         
     return {"message": "Settings updated successfully", "count": len(settings)}
@@ -137,6 +137,7 @@ DEFAULT_SETTINGS = {
     "default_landing_page": {"value": "live", "description": "Default page when opening the app (dashboard, timeline, live)"},
     
     # AI Detection Settings
+    "ai_enabled": {"value": "false", "description": "Enable Global AI Detection Engine"},
     "ai_model": {"value": "mobilenet_ssd_v2", "description": "Global AI Model architecture (mobilenet_ssd_v2, yolo_v8)"},
     "ai_hardware": {"value": "auto", "description": "Global AI Hardware Accelerator (auto, cpu, tpu)"},
     

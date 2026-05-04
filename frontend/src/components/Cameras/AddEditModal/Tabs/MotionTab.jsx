@@ -4,8 +4,10 @@ import { Toggle, SelectField, Slider, InputField, SectionHeader } from '../../..
 import { Button } from '../../../ui/Button';
 import { useToast } from '../../../../contexts/ToastContext';
 
-export const MotionTab = ({ newCamera, setNewCamera, setActiveTab }) => {
+export const MotionTab = ({ newCamera, setNewCamera, setActiveTab, globalSettings }) => {
     const { showToast } = useToast();
+    const isAiEnabledGlobally = globalSettings?.ai_enabled?.value === 'true' || globalSettings?.ai_enabled === true || globalSettings?.ai_enabled === "true";
+    const isAiDisabledGlobally = !isAiEnabledGlobally;
 
     return (
         <div className="space-y-6">
@@ -16,10 +18,26 @@ export const MotionTab = ({ newCamera, setNewCamera, setActiveTab }) => {
                 onChange={(val) => setNewCamera({ ...newCamera, detect_engine: val })}
                 options={[
                     { value: 'OpenCV', label: 'OpenCV (Server Image Analysis)' },
-                    { value: 'AI', label: 'AI (Object Detection - TPU/CPU)' },
+                    { 
+                        value: 'AI', 
+                        label: `AI (Object Detection - TPU/CPU) ${isAiDisabledGlobally ? '(DISABLED GLOBALLY)' : ''}`,
+                        disabled: isAiDisabledGlobally 
+                    },
                     ...(newCamera.onvif_host && newCamera.onvif_can_events ? [{ value: 'ONVIF Edge', label: 'ONVIF Edge (Camera-side Hardware)' }] : [])
                 ]}
             />
+            {isAiDisabledGlobally && newCamera.detect_engine === 'AI' && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+                    <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                    <div>
+                        <p className="font-bold">AI Detection Unavailable</p>
+                        <p className="mt-1">
+                            AI is currently <strong>disabled globally</strong> in system settings. 
+                            This camera will use <strong>OpenCV</strong> as a fallback until AI is re-enabled.
+                        </p>
+                    </div>
+                </div>
+            )}
             {newCamera.detect_engine === 'AI' && (
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-[11px] text-blue-600 dark:text-blue-400 flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
                     <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
@@ -127,7 +145,7 @@ export const MotionTab = ({ newCamera, setNewCamera, setActiveTab }) => {
                 </div>
             )}
 
-            {newCamera.detect_engine === 'OpenCV' && (
+            {(newCamera.detect_engine === 'OpenCV' || (newCamera.detect_engine === 'AI' && isAiDisabledGlobally)) && (
                 <>
                     <SectionHeader title="Automatic Detection" description="Motion detection tuning options" />
                     <div className="space-y-1">
@@ -187,7 +205,7 @@ export const MotionTab = ({ newCamera, setNewCamera, setActiveTab }) => {
                     unit="seconds"
                 />
             </div>
-            {newCamera.detect_engine === 'OpenCV' && (
+            {(newCamera.detect_engine === 'OpenCV' || (newCamera.detect_engine === 'AI' && isAiDisabledGlobally)) && (
                 <InputField
                     label="Minimum Motion Frames"
                     type="number"

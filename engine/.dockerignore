@@ -1,14 +1,10 @@
 # Engine Build Context Exclusions
 __pycache__/
-scripts/*
-!scripts/download_models.py
+scripts/
 *.log
 venv/
 Dockerfile
 .dockerignore
 local_tests/
-scripts/verify_ai_engine.py
-scripts/test_zone_logic.py
-scripts/test_coral.py
 core.[0-9]*
 .agents/

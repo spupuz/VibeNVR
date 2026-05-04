@@ -69,7 +69,8 @@ export const Settings = () => {
         mqtt_password: '',
         mqtt_topic_prefix: 'vibenvr',
         ai_model: 'mobilenet_ssd_v2',
-        ai_hardware: 'auto'
+        ai_hardware: 'auto',
+        ai_enabled: false
     });
 
     const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0 });
@@ -162,7 +163,8 @@ export const Settings = () => {
                     mqtt_password: data.mqtt_password?.value || '',
                     mqtt_topic_prefix: data.mqtt_topic_prefix?.value || 'vibenvr',
                     ai_model: data.ai_model?.value || 'mobilenet_ssd_v2',
-                    ai_hardware: data.ai_hardware?.value || 'auto'
+                    ai_hardware: data.ai_hardware?.value || 'auto',
+                    ai_enabled: data.ai_enabled?.value === 'true'
                 });
             }
         } catch (err) {
@@ -233,7 +235,8 @@ export const Settings = () => {
                     mqtt_password: globalSettings.mqtt_password,
                     mqtt_topic_prefix: globalSettings.mqtt_topic_prefix,
                     ai_model: globalSettings.ai_model,
-                    ai_hardware: globalSettings.ai_hardware
+                    ai_hardware: globalSettings.ai_hardware,
+                    ai_enabled: globalSettings.ai_enabled.toString()
                 })
             });
             showToast('Settings saved successfully!', 'success');

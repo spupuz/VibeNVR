@@ -67,6 +67,7 @@ logger = logging.getLogger("VibeEngine")
 # Global Engine Config (Synced from Backend)
 GLOBAL_CONFIG = {
     "opt_verbose_engine_logs": False,
+    "ai_enabled": False,
     "ai_model": "mobilenet_ssd_v2",
     "ai_hardware": "auto"
 }
@@ -100,6 +101,9 @@ def set_engine_log_level(verbose: bool):
 set_engine_log_level(False)
 
 from core import manager
+manager.global_config = GLOBAL_CONFIG
+from ai_detector import AIDetector
+AIDetector(config=GLOBAL_CONFIG)
 from mqtt_service import mqtt_service
 
 app = FastAPI(title="VibeEngine")
@@ -204,10 +208,17 @@ def update_config(config: dict):
     for key, value in config.items():
         if key in GLOBAL_CONFIG:
             GLOBAL_CONFIG[key] = value
+            manager.global_config[key] = value
             
             # Actionable settings
             if key == "opt_verbose_engine_logs":
                 set_engine_log_level(value)
+            
+            if key == "ai_enabled":
+                from ai_detector import AIDetector
+                ai = AIDetector()
+                if hasattr(ai, 'set_enabled'):
+                    ai.set_enabled(value)
             
             if key == "ai_model":
                 from ai_detector import AIDetector

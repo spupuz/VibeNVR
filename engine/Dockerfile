@@ -50,7 +50,7 @@ COPY . .
 
 # AI Models are now partially included in the repo. 
 # This script only downloads missing fallback models.
-RUN python3 scripts/download_models.py
+RUN python3 download_models.py && rm download_models.py
 
 # Expose API port
 EXPOSE 8000

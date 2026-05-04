@@ -37,6 +37,7 @@ export const Cameras = () => {
     const [isGroupView, setIsGroupView] = useState(() => {
         return localStorage.getItem('camerasGroupBy') === 'true';
     });
+    const [globalSettings, setGlobalSettings] = useState(null);
 
     const handleGroupViewToggle = (val) => {
         setIsGroupView(val);
@@ -58,6 +59,7 @@ export const Cameras = () => {
         fetchCameras();
         fetchStats();
         fetchStorageProfiles();
+        fetchGlobalSettings();
 
         // Polling loop for live status (15s)
         const pollInterval = setInterval(() => {
@@ -89,6 +91,20 @@ export const Cameras = () => {
             if (res.ok) setStats(await res.json());
         } catch (err) {
             console.error("Failed to fetch stats", err);
+        }
+    };
+
+    const fetchGlobalSettings = async () => {
+        try {
+            const res = await fetch('/api/settings', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setGlobalSettings(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch global settings", err);
         }
     };
 
@@ -808,6 +824,9 @@ export const Cameras = () => {
                                         onToggleActive={handleToggleActive}
                                         isSelected={selectedCameraIds.includes(cam.id)}
                                         onSelect={handleSelectCamera}
+                                        handleCleanup={handleCleanup}
+                                        setShowCopyModal={setShowCopyModal}
+                                        globalSettings={globalSettings}
                                     />
                                 ))}
                             </div>
@@ -840,6 +859,7 @@ export const Cameras = () => {
                 handleCleanup={handleCleanup}
                 handleTestNotification={handleTestNotification}
                 setShowCopyModal={setShowCopyModal}
+                globalSettings={globalSettings}
             />
 
             <CopySettingsModal
