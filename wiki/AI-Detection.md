@@ -7,12 +7,24 @@ VibeNVR supports hardware-accelerated AI object detection via **Google Coral Edg
 ## 🧠 How It Works
 
 When a camera's detection engine is set to **AI**, each video frame is:
-1. Resized and fed to a **MobileNet SSD v2 (COCO)** TFLite model.
+1. Resized and fed to a TFLite object detection model (e.g., **YOLOv8** or **MobileNet SSD v2**).
 2. Filtered by **confidence threshold** and **allowed object types**.
-3. **Motion zones** (exclusion polygons) are applied to the bounding boxes.
-4. If any objects pass all filters → motion is triggered, a recording starts, and detected labels are stored in the event database.
+3. **Non-Maximum Suppression (NMS)** is applied to eliminate overlapping detections (especially relevant for YOLOv8).
+4. **Motion zones** (exclusion polygons) are applied to the bounding boxes.
+5. If any objects pass all filters → motion is triggered, a recording starts, and detected labels are stored in the event database.
 
 All detected labels are saved per-event as `ai_metadata` (e.g., `person,car`) and are used by the **Timeline** object filter.
+
+---
+
+## 🏗️ Global AI Configuration
+
+Starting from v1.30.0, core AI parameters like **Model Selection** and **Hardware Acceleration** are managed **globally** in **System Settings → AI Detection Engine**. This ensures that the AI engine runs as a shared singleton, optimizing memory usage and ensuring consistency across all cameras.
+
+| Setting | Description | Recommended |
+|---------|-------------|-------------|
+| **AI Model** | Choose between `YOLOv8` (Superior accuracy) or `MobileNet SSD v2` (Faster/Legacy) | `YOLOv8` |
+| **AI Hardware** | `auto` (TPU preferred, CPU fallback), `cpu`, `tpu` | `auto` |
 
 ---
 
@@ -31,14 +43,14 @@ All detected labels are saved per-event as `ai_metadata` (e.g., `person,car`) an
 
 ## ⚙️ Camera Configuration
 
-Navigate to **Cameras → Edit → Motion Tab → AI Detection** to configure:
+Navigate to **Cameras → Edit → AI & Tracking Tab** to configure per-camera detection behavior:
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Detection Engine** | Select `AI` to enable ML-based detection | `OpenCV` |
+| **AI Detection** | Toggle to enable ML-based detection for this camera | `Disabled` |
 | **Confidence Threshold** | Minimum score (0–100%) for a detection to count | `50%` |
 | **Allowed Objects** | Comma-separated list: `person`, `vehicle`, `dog`, etc. | `person, vehicle` |
-| **AI Hardware** | `auto` (TPU preferred, CPU fallback), `cpu`, `tpu` | `auto` |
+| **Tracking Enabled** | Enable persistent object tracking across frames | `Disabled` |
 
 > [!TIP]
 > **Robust Configuration**: VibeNVR implements a high-resilience parser for `Allowed Objects`. It supports both JSON (e.g. `["person", "vehicle"]`) and simple comma-separated lists (e.g. `person, vehicle`). This prevents configuration loss if the database is manually edited or during complex system migrations.
@@ -276,6 +288,24 @@ To manually download them (e.g., for offline builds), run:
 ```bash
 python3 engine/scripts/download_models.py
 ```
+
+### Supported Models (Quantized TFLite)
+
+| Model | Hardware | File |
+|-------|----------|------|
+| **YOLOv8n** | Coral TPU | `yolov8n_quant_edgetpu.tflite` |
+| **YOLOv8n** | CPU | `yolov8n_quant.tflite` |
+| **SSD MobileNet v2** | Coral TPU | `mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite` |
+| **SSD MobileNet v2** | CPU | `mobilenet_ssd_v2_coco_quant_postprocess.tflite` |
+
+---
+
+## ⚡ Performance Optimization: NMS
+
+VibeNVR implements **Non-Maximum Suppression (NMS)** for YOLOv8 models. This technique prevents the system from reporting the same object multiple times (e.g., three "person" boxes for one human). 
+
+- **IoU Threshold**: `0.45` (standard balanced filtering).
+- **Result Limit**: Capped at **10 objects** per frame to ensure real-time stability on EdgeTPU and low-power CPUs.
 
 ---
 

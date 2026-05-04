@@ -66,7 +66,9 @@ logger = logging.getLogger("VibeEngine")
 
 # Global Engine Config (Synced from Backend)
 GLOBAL_CONFIG = {
-    "opt_verbose_engine_logs": False
+    "opt_verbose_engine_logs": False,
+    "ai_model": "mobilenet_ssd_v2",
+    "ai_hardware": "auto"
 }
 
 def set_engine_log_level(verbose: bool):
@@ -167,7 +169,6 @@ class CameraConfig(BaseModel):
     ai_enabled: bool = False
     ai_object_types: List[str] = ["person", "vehicle"]
     ai_threshold: float = 0.5
-    ai_hardware: str = "auto"
     ai_tracking_enabled: bool = False
     
     @field_validator('ai_object_types', mode='before')
@@ -207,6 +208,19 @@ def update_config(config: dict):
             # Actionable settings
             if key == "opt_verbose_engine_logs":
                 set_engine_log_level(value)
+            
+            if key == "ai_model":
+                from ai_detector import AIDetector
+                # Notify the singleton to reload if model changed
+                ai = AIDetector()
+                if hasattr(ai, 'update_model'):
+                    ai.update_model(value)
+            
+            if key == "ai_hardware":
+                from ai_detector import AIDetector
+                ai = AIDetector()
+                if hasattr(ai, 'update_hardware'):
+                    ai.update_hardware(value)
         
         # Handle specialized config keys
         if "mqtt" in config:
@@ -248,7 +262,8 @@ def get_stats():
         "mqtt_connected": mqtt_service.connected,
         "ai_status": {
             "initialized": ai._initialized,
-            "hardware": ai.hardware
+            "hardware": ai.hardware,
+            "model_type": ai.model_type
         }
     }
 

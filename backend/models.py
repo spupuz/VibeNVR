@@ -156,7 +156,6 @@ class Camera(Base):
     ai_enabled = Column(Boolean, default=False)
     ai_object_types = Column(String, default='["person", "vehicle"]') # JSON list
     ai_threshold = Column(Float, default=0.5)
-    ai_hardware = Column(String, default="auto") # auto, cpu, tpu
     ai_tracking_enabled = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

@@ -22,8 +22,10 @@
 - **Dual-Stream Optimization**: Dedicated sub-streams for grid views, while main streams handle recording/analysis.
 - Video files are stored in `/media/recordings` mapped in docker-compose.
 - **Privacy Masking & Motion Zones**: Privacy masks are burned into the video stream at the engine level before recording/motion analysis. Motion Zones are used to exclude areas from motion triggers. Unmasked frames for the editor are Admin-only.
+- **AI Integration**: Supports **YOLOv8** and MobileNet SSD v2 via TFLite. Implements **NMS (Non-Maximum Suppression)** to filter duplicate detections.
+- **Global Settings Sync**: Core parameters (AI Model, AI Hardware, MQTT, FPS Throttles) are managed as **Global System Settings** and synchronized to the engine singleton in real-time, ensuring architecture-wide consistency and stability.
 - **Configuration Backup & Restore**: Full system configuration (cameras, settings, users) can be exported, imported, and restored from automated/manual snapshots stored in `/data/backups/`.
-- **System Integrity Audit**: Integrated security, RBAC, and synchronization audits (e.g., Audio/PTZ) are performed on every release to ensure system-wide consistency and safety.
+- **System Integrity Audit**: Integrated security, RBAC, and synchronization audits (e.g., Audio/PTZ/AI) are performed on every release to ensure system-wide consistency and safety.
 - **Build Hygiene**: Every component context enforces strict build isolation via `.dockerignore` files, ensuring lean and secure production images.
 - **Frontend Modularity**: Large page views (e.g., `Cameras.jsx`) are decomposed into component directories to maintain code size limits and improve reusability.
 - **Telemetry Worker**: A Cloudflare edge service (`vibenvr-telemetry-worker`) handles telemetry, static assets, and proxying. It is cleanly modularized (`api.js`, `dashboard.js`, `ingest.js`, `security.js`, `assets.js`) to enforce strict security at the edge level and maintain short file lengths.

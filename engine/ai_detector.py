@@ -27,8 +27,6 @@ class AIDetector:
 
     def __init__(self, camera_id: int = 0, config: Dict[str, Any] = None):
         if self._initialized:
-            # Update config if provided, but don't reload model
-            if config: self.config = config
             return
             
         self.config = config or {}
@@ -39,34 +37,72 @@ class AIDetector:
         
         if not HAS_TFLITE:
             logger.error("AI: tflite-runtime not installed. AI disabled.")
-            self._initialized = True
             return
-
+            
+        # Initial model type from config (camera or global)
+        self.model_type = self.config.get('ai_model', 'mobilenet_ssd_v2')
         self._load_model()
         self._initialized = True
 
+    def update_model(self, model_type: str):
+        """Reload model if type has changed"""
+        with self.inference_lock:
+            if model_type == self.model_type and self.interpreter is not None:
+                return
+            
+            logger.info(f"AI: Switching global model from {self.model_type} to {model_type}...")
+            self.model_type = model_type
+            # Update config so next reload uses this type
+            self.config['ai_model'] = model_type
+            self._load_model()
+
+    def update_hardware(self, hardware: str):
+        """Reload model if hardware preference has changed"""
+        with self.inference_lock:
+            current_pref = self.config.get('ai_hardware', 'auto')
+            if hardware == current_pref and self.interpreter is not None:
+                return
+            
+            logger.info(f"AI: Switching global hardware from {current_pref} to {hardware}...")
+            # Update config
+            self.config['ai_hardware'] = hardware
+            self._load_model()
+
     def _load_model(self, force_cpu=False):
         model_dir = "models"
-        labels_path = os.path.join(model_dir, "coco_labels.txt")
-        tpu_model = os.path.join(model_dir, "mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite")
-        cpu_model = os.path.join(model_dir, "mobilenet_ssd_v2_coco_quant_postprocess.tflite")
+        self.interpreter = None
+        self.model_type = self.config.get('ai_model', 'mobilenet_ssd_v2')
+        
+        if self.model_type == 'yolo_v8':
+            tpu_model = os.path.join(model_dir, "yolov8n_quant_edgetpu.tflite")
+            cpu_model = os.path.join(model_dir, "yolov8n_quant.tflite")
+            labels_path = os.path.join(model_dir, "yolo_labels.txt")
+        else:
+            tpu_model = os.path.join(model_dir, "mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite")
+            cpu_model = os.path.join(model_dir, "mobilenet_ssd_v2_coco_quant_postprocess.tflite")
+            labels_path = os.path.join(model_dir, "coco_labels.txt")
 
         # Load labels
+        self.labels = {}
         if os.path.exists(labels_path):
             with open(labels_path, 'r') as f:
                 for line in f:
                     line = line.strip()
                     if not line: continue
-                    # Handle "0 person" or just "person"
                     pair = line.split(maxsplit=1)
                     try:
                         if len(pair) == 2 and pair[0].isdigit():
                             self.labels[int(pair[0])] = pair[1]
                         else:
-                            # If no ID, use the line index as ID
                             self.labels[len(self.labels)] = line
                     except Exception as e:
                         logger.warning(f"AI: Skipping malformed label line '{line}': {e}")
+        else:
+            # Fallback labels if file missing
+            if self.model_type == 'yolo_v8':
+                self.labels = {0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck', 16: 'dog', 15: 'cat'}
+            else:
+                self.labels = {1: 'person', 2: 'bicycle', 3: 'car', 4: 'motorcycle', 6: 'bus', 8: 'truck', 18: 'dog', 17: 'cat'}
 
         pref_hw = self.config.get('ai_hardware', 'auto').lower()
         if force_cpu: pref_hw = "cpu"
@@ -74,35 +110,44 @@ class AIDetector:
         # Try TPU first
         if pref_hw in ['auto', 'tpu']:
             try:
-                logger.info("AI: Attempting to load EdgeTPU delegate...")
-                # NOTE: ARM is not currently supported. x86_64 only.
+                # Check if model exists
+                if not os.path.exists(tpu_model):
+                    raise FileNotFoundError(f"Model file {tpu_model} not found.")
+
+                logger.info(f"AI: Attempting to load EdgeTPU delegate for {self.model_type}...")
                 _lib_path = '/usr/lib/x86_64-linux-gnu/libedgetpu.so.1'
                 if not os.path.exists(_lib_path):
-                    raise FileNotFoundError(
-                        f"libedgetpu.so.1 not found at {_lib_path} — "
-                        "Coral TPU not available on this host. Falling back to CPU."
-                    )
+                    raise FileNotFoundError(f"libedgetpu.so.1 not found at {_lib_path}")
+                
                 self.interpreter = tflite.Interpreter(
                     model_path=tpu_model,
                     experimental_delegates=[tflite.load_delegate(_lib_path)]
                 )
                 self.hardware = "tpu"
-                logger.info("AI: EdgeTPU delegate loaded successfully.")
+                logger.info(f"AI: SUCCESS - Loaded EdgeTPU model {self.model_type} from {tpu_model}")
             except Exception as e:
                 if pref_hw == 'tpu':
-                    logger.error(f"AI: Failed to load EdgeTPU: {e}")
+                    logger.error(f"AI: Failed to load EdgeTPU ({self.model_type}): {e}")
                 else:
-                    logger.info(f"AI: EdgeTPU not found or failed ({e}). Falling back to CPU.")
-
+                    logger.info(f"AI: EdgeTPU not available for {self.model_type} ({e}). Falling back to CPU.")
 
         # Fallback to CPU
         if self.interpreter is None:
             try:
+                if not os.path.exists(cpu_model):
+                    # If specific model missing, try to fallback to SSD if we were trying YOLO
+                    if self.model_type == 'yolo_v8':
+                        logger.warning(f"AI: YOLOv8 model not found at {cpu_model}. Falling back to SSD.")
+                        self.model_type = 'mobilenet_ssd_v2'
+                        return self._load_model(force_cpu=force_cpu)
+                    raise FileNotFoundError(f"Model file {cpu_model} not found.")
+
+                logger.info(f"AI: Loading CPU interpreter for {self.model_type} from {cpu_model}...")
                 self.interpreter = tflite.Interpreter(model_path=cpu_model)
                 self.hardware = "cpu"
-                logger.info("AI: CPU interpreter loaded.")
+                logger.info(f"AI: SUCCESS - Loaded CPU model {self.model_type} from {cpu_model}")
             except Exception as e:
-                logger.error(f"AI: Failed to load CPU model: {e}")
+                logger.error(f"AI: Failed to load CPU model {self.model_type} from {cpu_model}: {e}")
 
         if self.interpreter:
             self.interpreter.allocate_tensors()
@@ -130,7 +175,21 @@ class AIDetector:
                     logger.error(f"Camera {camera_id}: AI received empty frame!")
                     return []
 
-                self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
+                # Convert to INT8 if required by the model
+                expected_dtype = self.input_details[0]['dtype']
+                if expected_dtype == np.int8 or expected_dtype == np.uint8:
+                    if expected_dtype == np.int8 and input_data.dtype == np.uint8:
+                        # UINT8 (0..255) -> INT8 (-128..127)
+                        input_data = (input_data.astype(np.int16) - 128).astype(np.int8)
+                    elif expected_dtype == np.uint8 and input_data.dtype == np.int8:
+                        # INT8 (-128..127) -> UINT8 (0..255)
+                        input_data = (input_data.astype(np.int16) + 128).astype(np.uint8)
+
+                try:
+                    self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
+                except Exception as e:
+                    logger.error(f"AI: Tensor mismatch - Expected {expected_dtype}, Got {input_data.dtype}. Error: {e}")
+                    return []
                 t0 = time.time()
                 try:
                     self.interpreter.invoke()
@@ -143,61 +202,140 @@ class AIDetector:
                     
                 inference_time = time.time() - t0
 
-                # 3. Post-process
-                boxes = self.interpreter.get_tensor(self.output_details[0]['index'])[0]
-                classes = self.interpreter.get_tensor(self.output_details[1]['index'])[0]
-                scores = self.interpreter.get_tensor(self.output_details[2]['index'])[0]
-                count = int(self.interpreter.get_tensor(self.output_details[3]['index'])[0])
-
                 results = []
-                # FORCE LOWER THRESHOLD FOR DEBUG
-                # Default to 0.5 (50%) instead of 0.1 to avoid PTZ motion blur hallucinations
-                threshold = current_config.get('ai_threshold', 0.5) 
-                
+                threshold = current_config.get('ai_threshold', 0.5)
                 allowed_objects = current_config.get('ai_object_types', ["person", "vehicle"])
-                if isinstance(allowed_objects, str):
-                    try:
-                        import json
-                        # Try parsing as JSON list
-                        parsed = json.loads(allowed_objects.replace("'", '"'))
-                        if isinstance(parsed, list):
-                            allowed_objects = parsed
-                        else:
-                            logger.warning(f"Camera {camera_id}: ai_object_types is a string but not a list: {allowed_objects}")
-                    except Exception as e:
-                        logger.error(f"Camera {camera_id}: Failed to parse ai_object_types string '{allowed_objects}': {e}")
-                        allowed_objects = ["person", "vehicle"]
-                
                 vehicle_classes = ["car", "truck", "bus", "motorcycle"]
-                
-                # Debug log for top scores
-                if count > 0:
-                    top_score = float(scores[0])
-                    top_label = self.labels.get(int(classes[0]), "unknown")
-                    # logger.debug(f"Camera {camera_id}: Top AI result: {top_label} ({top_score:.2f})")
 
-                for i in range(count):
-                    score = float(scores[i])
-                    if score >= threshold:
-                        class_id = int(classes[i])
-                        label = self.labels.get(class_id, "unknown")
+                if self.model_type == 'yolo_v8':
+                    # YOLOv8 Post-processing
+                    # Typical output shape (1, 84, 8400) or (1, 8400, 84)
+                    raw_outputs = [self.interpreter.get_tensor(d['index']) for d in self.output_details]
+                    output = raw_outputs[0][0]
+                    
+                    # If we have multiple outputs, it might be SSD-style (Boxes, Classes, Scores, Count)
+                    # even if labeled as YOLOv8 (common in some hardware-specific exports)
+                    if len(raw_outputs) >= 3 and output.shape[-1] == 4:
+                        # SSD-style fallback for "YOLO" labeled models
+                        boxes = raw_outputs[0][0]
+                        classes = raw_outputs[1][0]
+                        scores = raw_outputs[2][0]
+                        count = len(scores) if len(raw_outputs) < 4 else int(raw_outputs[3][0])
                         
-                        is_allowed = False
-                        if label in allowed_objects:
-                            is_allowed = True
-                        elif "vehicle" in allowed_objects and label in vehicle_classes:
-                            is_allowed = True
+                        for i in range(min(count, len(boxes))):
+                            score = float(scores[i])
+                            if score >= threshold:
+                                class_id = int(classes[i])
+                                label = self.labels.get(class_id, "unknown")
+                                is_allowed = label in allowed_objects or ("vehicle" in allowed_objects and label in vehicle_classes)
+                                if is_allowed:
+                                    results.append({
+                                        "label": label,
+                                        "score": score,
+                                        "confidence": score,
+                                        "box": [float(boxes[i][0]), float(boxes[i][1]), float(boxes[i][2]), float(boxes[i][3])]
+                                    })
+                    else:
+                        # Standard YOLOv8 format: [x, y, w, h, class0, class1, ...]
+                        # If shape is (84, 8400), transpose to (8400, 84)
+                        if output.ndim == 2 and output.shape[0] < output.shape[1]:
+                            output = output.T
                         
-                        if is_allowed:
-                            results.append({
-                                "label": label,
-                                "score": score,
-                                "confidence": score, # Compatibility for camera_thread renderer
-                                "box": [float(boxes[i][0]), float(boxes[i][1]), float(boxes[i][2]), float(boxes[i][3])]
-                            })
+                        # Get quantization parameters for the output
+                        o_detail = self.output_details[0]
+                        o_scale, o_zero = 1.0, 0
+                        if 'quantization' in o_detail:
+                            o_scale, o_zero = o_detail['quantization']
+
+                        if output.shape[-1] <= 4:
+                            shapes = [d['shape'].tolist() for d in self.output_details]
+                            logger.error(f"Camera {camera_id}: YOLOv8 model has unexpected output shape. Found {len(shapes)} outputs: {shapes}. Expected (1, classes+4, boxes) or (1, boxes, classes+4)")
+                            return []
+
+                        candidate_boxes = []
+                        candidate_scores = []
+                        candidate_labels = []
+
+                        for row in output:
+                            # De-quantize the entire row if scale is not 1.0
+                            if o_scale != 1.0 or o_zero != 0:
+                                f_row = (row.astype(np.float32) - o_zero) * o_scale
+                            else:
+                                f_row = row.astype(np.float32)
+
+                            scores = f_row[4:]
+                            if len(scores) == 0: continue
+                            
+                            class_id = np.argmax(scores)
+                            score = float(scores[class_id])
+                            
+                            if score >= threshold:
+                                label = self.labels.get(class_id, "unknown")
+                                is_allowed = label in allowed_objects or ("vehicle" in allowed_objects and label in vehicle_classes)
+                                
+                                if is_allowed:
+                                    xc, yc, w, h = f_row[0], f_row[1], f_row[2], f_row[3]
+                                    # NMSBoxes expects [x, y, w, h] (top-left coordinates)
+                                    candidate_boxes.append([float(xc - w/2), float(yc - h/2), float(w), float(h)])
+                                    candidate_scores.append(float(score))
+                                    candidate_labels.append(label)
+
+                        if candidate_boxes:
+                            # Apply Non-Maximum Suppression
+                            # nms_threshold (IoU) set to 0.45
+                            nms_indices = cv2.dnn.NMSBoxes(candidate_boxes, candidate_scores, threshold, 0.45)
+                            
+                            if len(nms_indices) > 0:
+                                # Flatten indices for compatibility with different OpenCV versions
+                                if isinstance(nms_indices, np.ndarray):
+                                    nms_indices = nms_indices.flatten()
+                                
+                                input_h, input_w = input_frame.shape[0], input_frame.shape[1]
+                                for i in nms_indices:
+                                    label = candidate_labels[i]
+                                    score = candidate_scores[i]
+                                    x, y, w, h = candidate_boxes[i]
+                                    
+                                    # Convert to [ymin, xmin, ymax, xmax] normalized
+                                    # Check if coordinates are already normalized (typical for some TFLite exports)
+                                    if x + w/2 <= 1.1 and y + h/2 <= 1.1:
+                                        ymin, xmin, ymax, xmax = y, x, y + h, x + w
+                                    else:
+                                        ymin, xmin, ymax, xmax = y / input_h, x / input_w, (y + h) / input_h, (x + w) / input_w
+                                    
+                                    results.append({
+                                        "label": label,
+                                        "score": score,
+                                        "confidence": score,
+                                        "box": [float(ymin), float(xmin), float(ymax), float(xmax)]
+                                    })
+                                
+                                # Final sort by score for consistency
+                                results = sorted(results, key=lambda x: x['score'], reverse=True)[:10]
+                else:
+                    # SSD Post-processing
+                    boxes = self.interpreter.get_tensor(self.output_details[0]['index'])[0]
+                    classes = self.interpreter.get_tensor(self.output_details[1]['index'])[0]
+                    scores = self.interpreter.get_tensor(self.output_details[2]['index'])[0]
+                    count = int(self.interpreter.get_tensor(self.output_details[3]['index'])[0])
+
+                    for i in range(count):
+                        score = float(scores[i])
+                        if score >= threshold:
+                            class_id = int(classes[i])
+                            label = self.labels.get(class_id, "unknown")
+                            is_allowed = label in allowed_objects or ("vehicle" in allowed_objects and label in vehicle_classes)
+                            
+                            if is_allowed:
+                                results.append({
+                                    "label": label,
+                                    "score": score,
+                                    "confidence": score,
+                                    "box": [float(boxes[i][0]), float(boxes[i][1]), float(boxes[i][2]), float(boxes[i][3])]
+                                })
                 
                 if results:
-                    logger.debug(f"Camera {camera_id}: AI Detected {len(results)} objects in {inference_time:.3f}s ({self.hardware})")
+                    logger.debug(f"Camera {camera_id}: AI Detected {len(results)} objects in {inference_time:.3f}s ({self.hardware} - {self.model_type})")
                 
                 return results
             except Exception as e:

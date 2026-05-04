@@ -15,6 +15,7 @@ import { NotificationSettings } from './Settings/sections/NotificationSettings';
 import { MqttSettings } from './Settings/sections/MqttSettings';
 import { AdvancedSettings } from './Settings/sections/AdvancedSettings';
 import { BackupSettings } from './Settings/sections/BackupSettings';
+import { AISettings } from './Settings/sections/AISettings';
 
 // Modularized Modals
 import { PasswordChangeModal } from './Settings/PasswordChangeModal';
@@ -32,7 +33,7 @@ export const Settings = () => {
 
     // Global settings from backend
     const [globalSettings, setGlobalSettings] = useState({
-        max_global_storage_gb: 0,
+        max_global_storage_gb: '',
         cleanup_enabled: true,
         cleanup_interval_hours: 24,
         smtp_server: '',
@@ -66,7 +67,9 @@ export const Settings = () => {
         mqtt_port: '1883',
         mqtt_username: '',
         mqtt_password: '',
-        mqtt_topic_prefix: 'vibenvr'
+        mqtt_topic_prefix: 'vibenvr',
+        ai_model: 'mobilenet_ssd_v2',
+        ai_hardware: 'auto'
     });
 
     const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0 });
@@ -122,7 +125,7 @@ export const Settings = () => {
             if (res.ok) {
                 const data = await res.json();
                 setGlobalSettings({
-                    max_global_storage_gb: parseFloat(data.max_global_storage_gb?.value) || 0,
+                    max_global_storage_gb: data.max_global_storage_gb?.value !== undefined ? (parseFloat(data.max_global_storage_gb.value) || 0) : 0,
                     cleanup_enabled: data.cleanup_enabled?.value === 'true',
                     cleanup_interval_hours: parseInt(data.cleanup_interval_hours?.value) || 24,
                     smtp_server: data.smtp_server?.value || '',
@@ -157,7 +160,9 @@ export const Settings = () => {
                     mqtt_port: data.mqtt_port?.value || '1883',
                     mqtt_username: data.mqtt_username?.value || '',
                     mqtt_password: data.mqtt_password?.value || '',
-                    mqtt_topic_prefix: data.mqtt_topic_prefix?.value || 'vibenvr'
+                    mqtt_topic_prefix: data.mqtt_topic_prefix?.value || 'vibenvr',
+                    ai_model: data.ai_model?.value || 'mobilenet_ssd_v2',
+                    ai_hardware: data.ai_hardware?.value || 'auto'
                 });
             }
         } catch (err) {
@@ -190,7 +195,7 @@ export const Settings = () => {
                     Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    max_global_storage_gb: globalSettings.max_global_storage_gb.toString(),
+                    max_global_storage_gb: (globalSettings.max_global_storage_gb || 0).toString(),
                     cleanup_enabled: globalSettings.cleanup_enabled.toString(),
                     cleanup_interval_hours: globalSettings.cleanup_interval_hours.toString(),
                     smtp_server: globalSettings.smtp_server,
@@ -226,7 +231,9 @@ export const Settings = () => {
                     mqtt_port: globalSettings.mqtt_port,
                     mqtt_username: globalSettings.mqtt_username,
                     mqtt_password: globalSettings.mqtt_password,
-                    mqtt_topic_prefix: globalSettings.mqtt_topic_prefix
+                    mqtt_topic_prefix: globalSettings.mqtt_topic_prefix,
+                    ai_model: globalSettings.ai_model,
+                    ai_hardware: globalSettings.ai_hardware
                 })
             });
             showToast('Settings saved successfully!', 'success');
@@ -529,6 +536,15 @@ export const Settings = () => {
                         globalSettings={globalSettings}
                         setGlobalSettings={setGlobalSettings}
                         isOpen={openSection === 'mqtt'}
+                        onToggle={toggleSection}
+                    />
+                )}
+
+                {user?.role === 'admin' && (
+                    <AISettings
+                        globalSettings={globalSettings}
+                        setGlobalSettings={setGlobalSettings}
+                        isOpen={openSection === 'ai-settings'}
                         onToggle={toggleSection}
                     />
                 )}

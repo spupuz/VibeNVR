@@ -75,7 +75,7 @@ VibeNVR supports three detection engines, each with dedicated Live View feedback
 |--------|-------------|-------------|
 | **OpenCV** | `MOTION` | Classical background subtraction (MOG2). Fast, no hardware required. |
 | **ONVIF Edge** | `EDGE MOTION` | Motion events triggered by the camera hardware via ONVIF protocol. |
-| **AI** | `AI MOTION` | TFLite object recognition (MobileNet SSD COCO) on CPU or Coral TPU. |
+| **AI** | `AI MOTION` | TFLite object recognition (YOLOv8 or MobileNet SSD) on CPU or Coral TPU. Core model and hardware are managed globally in System Settings. |
 
 - **Dynamic Labeling**: The red pulsing badge in Live View automatically reflects the active engine.
 - **Noise Reduction**: The static indigo `EDGE` indicator is suppressed in Live View to provide a cleaner monitoring experience when ONVIF edge detection is active.

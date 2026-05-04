@@ -32,9 +32,9 @@ RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -
 WORKDIR /app
 
 # Install Python dependencies
-# We use --break-system-packages because we are in a container and want to use the system python
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir --upgrade pip wheel && \
+    pip3 install --no-cache-dir "numpy<2.0.0" && \
     pip3 install --no-cache-dir --extra-index-url https://google-coral.github.io/py-repo/ -r requirements.txt
 
 # Suppress annoying FFmpeg/OpenCV logs
@@ -48,8 +48,8 @@ ENV PYTHONUNBUFFERED=1
 # Copy source code
 COPY . .
 
-# Download AI Models
-COPY scripts/download_models.py scripts/
+# AI Models are now partially included in the repo. 
+# This script only downloads missing fallback models.
 RUN python3 scripts/download_models.py
 
 # Expose API port

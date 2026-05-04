@@ -230,7 +230,6 @@ class CameraBase(BaseModel):
     ai_enabled: bool = False
     ai_object_types: List[str] = ["person", "vehicle"]
     ai_threshold: float = 0.5
-    ai_hardware: str = "auto" # auto | cpu | tpu
     ai_tracking_enabled: bool = False
 
     @field_validator('ai_object_types', mode='before')
@@ -271,13 +270,7 @@ class CameraBase(BaseModel):
             
         return ["person", "vehicle"]
 
-    @field_validator('ai_hardware', mode='before')
-    @classmethod
-    def validate_ai_hardware(cls, v: Any) -> str:
-        allowed = {"auto", "cpu", "tpu"}
-        if v is None or str(v).strip().lower() not in allowed:
-            return "auto"
-        return str(v).strip().lower()
+
 
     @field_validator('ai_threshold', mode='before')
     @classmethod
@@ -509,7 +502,8 @@ class CameraSummary(BaseModel):
     ai_enabled: bool
     ai_object_types: List[str]
     ai_threshold: float
-    ai_hardware: str
+    ai_hardware: Optional[str] = None
+    ai_model: Optional[str] = None
     ai_tracking_enabled: bool
     
     created_at: Optional[datetime] = None

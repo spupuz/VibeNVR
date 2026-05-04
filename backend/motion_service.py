@@ -55,7 +55,9 @@ def get_optimization_settings(db: Session) -> dict:
         "opt_snapshot_quality": 90,
         "opt_ffmpeg_preset": "ultrafast",
         "opt_pre_capture_fps_throttle": 1,
-        "opt_verbose_engine_logs": False
+        "opt_verbose_engine_logs": False,
+        "ai_model": "mobilenet_ssd_v2",
+        "ai_hardware": "auto"
     }
     
     try:
@@ -71,6 +73,12 @@ def get_optimization_settings(db: Session) -> dict:
                     defaults[s.key] = int(s.value)
                 except:
                     pass # Keep default if invalid
+        
+        # Also fetch ai_model and ai_hardware separately (not opt_ keys)
+        for key in ["ai_model", "ai_hardware"]:
+            setting = db.query(SystemSettings).filter(SystemSettings.key == key).first()
+            if setting:
+                defaults[key] = setting.value
     except Exception as e:
         print(f"Error reading optimization settings: {e}")
         
@@ -124,7 +132,6 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
         "ai_enabled": cam.ai_enabled if cam.ai_enabled is not None else False,
         "ai_object_types": _parse_ai_object_types(cam.ai_object_types),
         "ai_threshold": cam.ai_threshold if cam.ai_threshold is not None else 0.5,
-        "ai_hardware": cam.ai_hardware or "auto",
         "ai_tracking_enabled": cam.ai_tracking_enabled if cam.ai_tracking_enabled is not None else False
     }
     
@@ -213,6 +220,8 @@ def sync_global_config(db: Session):
 
     payload = {
         "opt_verbose_engine_logs": opt_settings.get("opt_verbose_engine_logs", False),
+        "ai_model": opt_settings.get("ai_model", "mobilenet_ssd_v2"),
+        "ai_hardware": opt_settings.get("ai_hardware", "auto"),
         "mqtt": mqtt_config
     }
     try:

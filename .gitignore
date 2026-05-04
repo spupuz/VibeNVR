@@ -68,6 +68,7 @@ engine/scripts/test_zone_logic.py
 backend/scripts/mock_ai_notification.py
 engine/scripts/test_coral.py
 
-# AI Models (binary files, downloaded at Docker build time via download_models.py)
-engine/models/
-**/*.tflite
+# AI Models
+# We allow committing the final optimized models to the repo
+!engine/models/*.tflite
+!engine/models/*.txt

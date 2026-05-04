@@ -27,12 +27,12 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | Feature | Description |
 |---------|-------------|
 | 🖥️ **Modern Web Interface** | Ultra-premium UI built with React, Vite, and Lucide icons. |
-| 🎨 **Customizable Dashboard** | Toggle widgets and graphs to suit your monitoring needs. **New**: Real-time MQTT and AI Processor status indicators. |
+| 🎨 **Customizable Dashboard** | Toggle widgets and graphs to suit your monitoring needs. **New**: Real-time MQTT and **AI Processor** status indicators. |
 | 🛡️ **Secure by Design** | Full JWT authentication, **2FA with Trusted Devices**, Rate Limiting, and HttpOnly Media Cookies. |
 | 📷 **Advanced Video Engine** | Custom Python engine using PyAV & FFmpeg for RTSP streaming, with OpenCV for motion detection and image processing. |
 | ⚡ **Passthrough Recording** | Direct Stream Copy support for near-zero CPU usage recording (experimental, with auto-fallback). |
 | 🎯 **Smart Motion Detection** | Three detection engines: **OpenCV** (classic), **ONVIF Edge** (hardware offload), and **AI** (TFLite object recognition). |
-| 🤖 **AI Object Detection** | Hardware-accelerated ML inference with **Google Coral Edge TPU** or CPU. Detects people, vehicles, animals, and filters by confidence. Detected objects are stored per-event for Timeline filtering. |
+| 🤖 **AI Object Detection** | High-performance inference with **YOLOv8** or MobileNet SSD v2. Support for **Google Coral Edge TPU** or CPU. Detects people, vehicles, animals, and filters by confidence. **NMS (Non-Maximum Suppression)** ensures clean detections. |
 | 🔍 **Descriptive AI Alerts** | Dynamic notifications including detected object labels (e.g., 🔍 Objects: Person, Vehicle) and confidence scores. |
 | 📅 **Event Timeline** | Unified browser for movie recordings and high-res snapshots with instant filters. |
 | 🛡️ **Privacy Masking** | Permanent black-out zones burned into recordings. **Motion Zones** for exclusion masking. |

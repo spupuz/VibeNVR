@@ -93,8 +93,8 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
 
         set_setting(db, key, str(value))
     
-    # Sync global config if any opt_ or mqtt_ setting was updated
-    if any(k.startswith("opt_") or k.startswith("mqtt_") for k in settings.keys()):
+    # Sync global config if any opt_, mqtt_, or ai_ model/hardware setting was updated
+    if any(k.startswith("opt_") or k.startswith("mqtt_") or k in ["ai_model", "ai_hardware"] for k in settings.keys()):
         motion_service.sync_global_config(db)
         
     return {"message": "Settings updated successfully", "count": len(settings)}
@@ -136,13 +136,9 @@ DEFAULT_SETTINGS = {
     "notify_webhook_url": {"value": "", "description": "Global Webhook URL for notifications"},
     "default_landing_page": {"value": "live", "description": "Default page when opening the app (dashboard, timeline, live)"},
     
-    # MQTT Settings
-    "mqtt_enabled": {"value": "false", "description": "Enable MQTT Service"},
-    "mqtt_host": {"value": "", "description": "MQTT Broker Host"},
-    "mqtt_port": {"value": "1883", "description": "MQTT Broker Port"},
-    "mqtt_username": {"value": "", "description": "MQTT Broker Username"},
-    "mqtt_password": {"value": "", "description": "MQTT Broker Password"},
-    "mqtt_topic_prefix": {"value": "vibenvr", "description": "MQTT Topic Prefix"},
+    # AI Detection Settings
+    "ai_model": {"value": "mobilenet_ssd_v2", "description": "Global AI Model architecture (mobilenet_ssd_v2, yolo_v8)"},
+    "ai_hardware": {"value": "auto", "description": "Global AI Hardware Accelerator (auto, cpu, tpu)"},
     
     # Log Settings
     "log_max_size_mb": {"value": "50", "description": "Maximum size of a log file before rotation (MB)"},
@@ -638,19 +634,6 @@ def sync_orphan_recordings(
 
     background_tasks.add_task(run_sync_task)
     return {"message": "Orphan recording recovery started in background."}
-
-@router.post("/init-defaults")
-def init_default_settings(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
-    """Initialize default settings if they don't exist"""
-    count = 0
-    for key, data in DEFAULT_SETTINGS.items():
-        existing = db.query(models.SystemSettings).filter(models.SystemSettings.key == key).first()
-        if not existing:
-            setting = models.SystemSettings(key=key, value=data["value"], description=data["description"])
-            db.add(setting)
-            count += 1
-    db.commit()
-    return {"message": "Defaults initialized", "created_count": count}
 
 @router.post("/test-notify")
 def test_notification(config: schemas.TestNotificationConfig, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):

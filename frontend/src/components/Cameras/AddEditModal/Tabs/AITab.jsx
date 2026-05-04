@@ -74,18 +74,7 @@ export const AITab = ({ newCamera, setNewCamera }) => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <SelectField
-                            label="Hardware Accelerator"
-                            value={newCamera.ai_hardware || 'auto'}
-                            onChange={(val) => setNewCamera({ ...newCamera, ai_hardware: val })}
-                            options={[
-                                { value: 'auto', label: 'Auto (TPU > CPU)' },
-                                { value: 'tpu', label: 'Google Coral TPU' },
-                                { value: 'cpu', label: 'CPU (Standard)' },
-                            ]}
-                            help="Hardware used for AI processing. Coral TPU is recommended."
-                        />
+                    <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
                         <div className="space-y-1">
                             <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                                 Confidence Threshold

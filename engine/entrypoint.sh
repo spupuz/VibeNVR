@@ -17,6 +17,10 @@ if [ -f "$LOG_FILE" ]; then
     fi
 fi
 
+# 1c. Ensure AI Models are downloaded (useful if volume is fresh)
+echo "Checking AI models..."
+python3 scripts/download_models.py
+
 # 2. Start the engine in the background and pipe to tee
 # We use a trap to ensure SIGTERM/SIGINT are passed to the python process
 python3 -u main.py 2>&1 | grep --line-buffered -v 'SEI type 764' | tee -a /var/lib/vibe/recordings/logs/engine.log &

@@ -26,6 +26,18 @@ def add_column_if_not_exists(engine, table_name, column_name, column_type, defau
         else:
             print(f"Column {column_name} already exists.")
 
+def drop_column_if_exists(engine, table_name, column_name):
+    with engine.connect() as conn:
+        # Check if column exists
+        query = text(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table_name}' AND column_name='{column_name}'")  # nosec
+        result = conn.execute(query).fetchone()
+        
+        if result:
+            print(f"Dropping obsolete column {column_name} from {table_name}...")
+            conn.execute(text(f"ALTER TABLE {table_name} DROP COLUMN {column_name}"))
+            conn.commit()
+            print(f"Dropped {column_name}.")
+
 def migrate():
     # Video Device
     add_column_if_not_exists(engine, "cameras", "resolution_width", "INTEGER", 800)
@@ -153,8 +165,11 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "ai_enabled", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "ai_object_types", "VARCHAR", '["person", "vehicle"]')
     add_column_if_not_exists(engine, "cameras", "ai_threshold", "FLOAT", 0.5)
-    add_column_if_not_exists(engine, "cameras", "ai_hardware", "VARCHAR", "auto")
     add_column_if_not_exists(engine, "cameras", "ai_tracking_enabled", "BOOLEAN", False)
+    
+    # Cleanup moved AI settings (Moved to global)
+    drop_column_if_exists(engine, "cameras", "ai_hardware")
+    drop_column_if_exists(engine, "cameras", "ai_model")
     add_column_if_not_exists(engine, "cameras", "created_at", "TIMESTAMP WITH TIME ZONE", "CURRENT_TIMESTAMP")
 
     # Events Table Improvements
