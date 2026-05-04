@@ -11,3 +11,4 @@ scripts/verify_ai_engine.py
 scripts/test_zone_logic.py
 scripts/test_coral.py
 core.[0-9]*
+.agents/
