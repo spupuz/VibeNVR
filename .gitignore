@@ -41,7 +41,7 @@ frontend/.env
 **/docker-compose.local.yml
 
 # VibeNVR Specific
-scripts/
+/scripts/
 .agents/
 .agents/workflows/
 .roo/
@@ -72,3 +72,4 @@ engine/scripts/test_coral.py
 # We allow committing the final optimized models to the repo
 !engine/models/*.tflite
 !engine/models/*.txt
+!engine/scripts/download_models.py
