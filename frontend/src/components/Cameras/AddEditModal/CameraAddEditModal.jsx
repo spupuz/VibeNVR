@@ -242,6 +242,7 @@ export const CameraAddEditModal = ({
                                     setNewCamera={setNewCamera} 
                                     stats={stats} 
                                     handleCleanup={handleCleanup} 
+                                    globalSettings={globalSettings}
                                 />
                             )}
                             {activeTab === 'still_images' && (
@@ -251,6 +252,7 @@ export const CameraAddEditModal = ({
                                     setNewCamera={setNewCamera} 
                                     stats={stats} 
                                     handleCleanup={handleCleanup} 
+                                    globalSettings={globalSettings}
                                 />
                             )}
                             {activeTab === 'notifications' && (

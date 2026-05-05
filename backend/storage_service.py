@@ -319,11 +319,14 @@ def storage_monitor_loop():
             if cleanup_enabled:
                 # Is it time for a full run (retention + quota)?
                 if now - last_full_run > (interval_hours * 3600):
+                    logger.info(f"Triggering scheduled FULL storage cleanup (Interval: {interval_hours}h)")
                     run_cleanup(quota_only=False)
                     last_full_run = now
                 else:
                     # Otherwise, just do a quick quota check every 10 minutes
                     run_cleanup(quota_only=True)
+            else:
+                logger.debug("Automatic storage cleanup is DISABLED. Skipping periodic check.")
             
             # Wait 10 minutes between checks
             time.sleep(600)

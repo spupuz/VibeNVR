@@ -43,10 +43,21 @@ services:
 3. Save the camera settings. The engine will automatically begin saving new recordings to the new path.
 
 ## How Quotas Work
-VibeNVR employs a hierarchical, **reactive** cleanup strategy:
-1. **Camera Limit**: First, it checks if the individual camera's `Max Storage (GB)` or `Retention (Days)` is exceeded.
-2. **Profile Limit**: Then, it checks if the Storage Profile's total quota is exceeded, purging the oldest events from any camera using that profile.
-3. **Global Limit**: Finally, it ensures the total disk usage across the entire system remains within the `Global Max Storage` defined in Settings.
+VibeNVR employs a hierarchical, **reactive** cleanup strategy. The system automatically calculates the **Effective Limit** for each camera to ensure compliance with both local and global policies:
+
+1. **Effective Limit Calculation**: The UI and Backend prioritize the most restrictive value between the individual camera setting and the global quota. 
+   - *Example*: If a Camera is set to 10GB but the Global Quota is 5GB, the Effective Limit is **5GB**.
+2. **Camera-Level Controls**: Users can define specific `Max Storage (GB)` and `Retention (Days)` per camera.
+3. **Profile/Global Limit**: The system ensures the total disk usage across all cameras remains within the defined profile or global quota, purging the oldest events from any camera as needed.
+
+## Storage Maintenance & Breakdown
+The **Storage Management** section in Settings provides a detailed breakdown of space usage:
+- **Real-time Metrics**: See exactly how many GBs of Video and Snapshots each camera is consuming.
+- **Granular Cleanup**: Use the dedicated **Cleanup** buttons (Trash icons) in the breakdown table to manually purge only videos or only snapshots for a specific camera.
+- **Action Targets**: Maintenance buttons are optimized with large (44x44px) hit targets for high precision on both Desktop and Mobile.
+
+> [!TIP]
+> Use the **Breakdown Table** to identify "storage-hungry" cameras and adjust their individual retention settings or assign them to a dedicated Storage Profile.
 
 > [!NOTE]
 > **Reactive Monitoring**: Cleanup tasks run every **10 minutes** for quota violations and emergency disk space checks. This is independent of the full retention cycle (Every Hour/Day), ensuring the system remains responsive to rapid disk usage spikes.

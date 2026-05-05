@@ -38,7 +38,7 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | 📅 **Event Timeline** | Unified browser for movie recordings and high-res snapshots with instant filters. |
 | 🛡️ **Privacy Masking** | Permanent black-out zones burned into recordings. **Motion Zones** for exclusion masking. |
 | 🔑 **API Access Tokens** | Secure, read-only API tokens with **TTL (Expiration)** and hashed storage for 3rd party integrations. |
-| 💾 **Storage Management** | Automated background cleanup (FIFO), **Reactive 10-min Quota Monitoring**, **Multiple Storage Profiles**, and **Bulk Deletion** tools. |
+| 💾 **Storage Management** | Automated cleanup (FIFO), **Reactive 10-min Quota Monitoring**, **Granular Per-Camera Cleanup**, **Effective Limit Logic**, and Multiple Storage Profiles. |
 | 📁 **Camera Groups** | Organize cameras into custom groups for logical multi-view management. |
 | 💾 **System Backups** | Automated & Manual configuration snapshots with server-side management and restoration. |
 | 🕙 **Timezone Synchronization** | Full ISO 8601 support ensures perfect timing between engine, backend, and UI. |

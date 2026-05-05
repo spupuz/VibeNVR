@@ -100,11 +100,19 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
     return {"message": "Settings updated successfully", "count": len(settings)}
 
 @router.post("/cleanup")
-def trigger_cleanup(current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def trigger_cleanup(camera_id: int = None, media_type: str = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Manually trigger storage cleanup"""
-    from storage_service import run_cleanup
+    from storage_service import run_cleanup, cleanup_camera
+    
+    if camera_id:
+        camera = db.query(models.Camera).filter(models.Camera.id == camera_id).first()
+        if not camera:
+            return {"error": "Camera not found"}, 404
+        cleanup_camera(db, camera, media_type=media_type)
+        return {"message": f"Cleanup for camera {camera.name} triggered successfully"}
+    
     run_cleanup()
-    return {"message": "Storage cleanup triggered successfully"}
+    return {"message": "Global storage cleanup triggered successfully"}
 
 @router.get("/engine/debug-status")
 def get_engine_debug_status(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
@@ -177,11 +185,16 @@ DEFAULT_SETTINGS = {
 def init_default_settings(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Initialize default settings if they don't exist"""
     created = 0
+    logger.info("Checking system settings initialization...")
     for key, data in DEFAULT_SETTINGS.items():
         existing = db.query(models.SystemSettings).filter(models.SystemSettings.key == key).first()
         if not existing:
+            logger.info(f"Initializing missing setting: {key} = {data['value']}")
             set_setting(db, key, data["value"], data["description"])
             created += 1
+    
+    if created > 0:
+        logger.info(f"Successfully initialized {created} default settings.")
     return {"message": f"Initialized {created} default settings"}
 
 # -----------------------------------------------------------------------------

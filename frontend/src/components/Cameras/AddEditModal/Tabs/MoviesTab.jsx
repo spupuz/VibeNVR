@@ -3,7 +3,7 @@ import { Film, Trash2 } from 'lucide-react';
 import { Toggle, SelectField, Slider, InputField, SectionHeader } from '../../../ui/FormControls';
 import { Button } from '../../../ui/Button';
 
-export const MoviesTab = ({ editingId, newCamera, setNewCamera, stats, handleCleanup }) => {
+export const MoviesTab = ({ editingId, newCamera, setNewCamera, stats, handleCleanup, globalSettings }) => {
     const hasPrivacyMasks = (() => {
         try {
             const masks = typeof newCamera.privacy_masks === 'string'
@@ -152,6 +152,12 @@ export const MoviesTab = ({ editingId, newCamera, setNewCamera, stats, handleCle
                             />
                         </div>
                     </div>
+                    {globalSettings?.max_global_storage_gb > 0 && (
+                        <div className="mt-2 p-2 bg-amber-500/10 border border-amber-500/20 rounded text-[10px] text-amber-600 dark:text-amber-400">
+                            <strong>Effective Limit:</strong> This camera is currently limited to <strong>{Math.min(newCamera.max_storage_gb || Infinity, globalSettings.max_global_storage_gb)} GB</strong>. 
+                            (The more restrictive value between its {newCamera.max_storage_gb} GB limit and the {globalSettings.max_global_storage_gb} GB Global Quota is applied).
+                        </div>
+                    )}
                 </div>
             )}
             <InputField

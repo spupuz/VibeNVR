@@ -39,6 +39,12 @@ By default, backups are saved in:
 ./data/backups/
 ```
 *(Path may vary depending on your `docker-compose.yml` bind mounts).*
+
+## 🛡️ Zero-Trace Test Fallback
+When running automated security or integration tests (e.g., `refactoring_sanity.py`), VibeNVR takes a temporary snapshot of the system state before executing intrusive checks. If a test crashes and fails to restore the state from memory, the system employs an emergency fallback to the most recent automatic backup in `/data/backups/`. 
+
+> [!IMPORTANT]
+> **Anti-Time Travel Protection:** To prevent the system from accidentally reverting to a stale configuration (e.g., a backup from weeks ago), the fallback mechanism includes a strict **1-hour expiration limit**. If the most recent automatic backup is older than 60 minutes, the fallback is aborted and the system must be restored manually.
  
 ## 🛡️ Security Note
 Backups contain sensitive data, including **hashed user passwords** and **RTSP URLs with credentials**. 

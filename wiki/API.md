@@ -353,6 +353,32 @@ Retrieve the real-time runtime status of the video engine (Admin only).
 - **Usage**: Diagnostic tool to verify mask synchronization and thread health.
 - **Response**: Map of camera IDs to their engine state.
 
+#### **POST** `/settings/cleanup`
+Trigger a manual storage cleanup. This endpoint allows for granular purging of media based on camera and type.
+- **Auth Required**: Admin privileges.
+- **Payload Example (Granular)**:
+  ```json
+  {
+    "camera_id": 5,
+    "media_type": "video"
+  }
+  ```
+- **Payload Example (Global)**:
+  ```json
+  {}
+  ```
+- **Fields**:
+  - `camera_id`: (Optional) Integer. If provided, only events for this camera are purged.
+  - `media_type`: (Optional) String (`video` or `snapshot`). If provided, only this type of media is purged.
+- **Response Example**:
+  ```json
+  {
+    "message": "Manual cleanup completed successfully",
+    "deleted_count": 42,
+    "deleted_size_mb": 120.5
+  }
+  ```
+
 #### **Global Settings Keys (`/settings`)**
 Commonly used keys for `/settings/{key}`:
 - `mqtt_enabled`: (`true`/`false`)

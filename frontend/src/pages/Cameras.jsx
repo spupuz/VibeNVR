@@ -101,7 +101,11 @@ export const Cameras = () => {
             });
             if (res.ok) {
                 const data = await res.json();
-                setGlobalSettings(data);
+                setGlobalSettings({
+                    max_global_storage_gb: data.max_global_storage_gb?.value !== undefined ? parseFloat(data.max_global_storage_gb.value) : 0,
+                    cleanup_enabled: data.cleanup_enabled?.value === 'true',
+                    ai_enabled: data.ai_enabled?.value === 'true' || data.ai_enabled?.value === true
+                });
             }
         } catch (err) {
             console.error("Failed to fetch global settings", err);

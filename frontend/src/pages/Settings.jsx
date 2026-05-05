@@ -79,6 +79,7 @@ export const Settings = () => {
 
     // User management state
     const [users, setUsers] = useState([]);
+    const [cameras, setCameras] = useState([]);
     const [newUser, setNewUser] = useState({ username: '', password: '', role: 'viewer', email: '' });
     const [isCreatingUser, setIsCreatingUser] = useState(false);
 
@@ -104,6 +105,19 @@ export const Settings = () => {
         }
     }, [token]);
 
+    const fetchCameras = useCallback(async () => {
+        try {
+            const res = await fetch('/api/cameras', {
+                headers: { Authorization: 'Bearer ' + token }
+            });
+            if (res.ok) {
+                setCameras(await res.json());
+            }
+        } catch (err) {
+            console.error("Failed to fetch cameras", err);
+        }
+    }, [token]);
+
     const fetchStats = useCallback(async () => {
         try {
             const res = await fetch('/api/stats', {
@@ -111,7 +125,7 @@ export const Settings = () => {
             });
             if (res.ok) {
                 const data = await res.json();
-                setStorageStats(data.storage);
+                setStorageStats(data);
             }
         } catch (err) {
             console.error('Failed to fetch stats', err);
@@ -125,47 +139,48 @@ export const Settings = () => {
             });
             if (res.ok) {
                 const data = await res.json();
-                setGlobalSettings({
-                    max_global_storage_gb: data.max_global_storage_gb?.value !== undefined ? (parseFloat(data.max_global_storage_gb.value) || 0) : 0,
-                    cleanup_enabled: data.cleanup_enabled?.value === 'true',
-                    cleanup_interval_hours: parseInt(data.cleanup_interval_hours?.value) || 24,
-                    smtp_server: data.smtp_server?.value || '',
-                    smtp_port: data.smtp_port?.value || '587',
-                    smtp_username: data.smtp_username?.value || '',
-                    smtp_password: data.smtp_password?.value || '',
-                    smtp_from_email: data.smtp_from_email?.value || '',
-                    telegram_bot_token: data.telegram_bot_token?.value || '',
-                    telegram_chat_id: data.telegram_chat_id?.value || '',
-                    notify_email_recipient: data.notify_email_recipient?.value || '',
-                    notify_webhook_url: data.notify_webhook_url?.value || '',
-                    default_landing_page: data.default_landing_page?.value || 'live',
-                    global_attach_image_email: data.global_attach_image_email?.value !== 'false',
-                    global_attach_image_telegram: data.global_attach_image_telegram?.value !== 'false',
+                setGlobalSettings(prev => ({
+                    ...prev,
+                    max_global_storage_gb: data.max_global_storage_gb?.value !== undefined ? (parseFloat(data.max_global_storage_gb.value) || 0) : prev.max_global_storage_gb,
+                    cleanup_enabled: data.cleanup_enabled?.value !== undefined ? data.cleanup_enabled.value === 'true' : prev.cleanup_enabled,
+                    cleanup_interval_hours: data.cleanup_interval_hours?.value !== undefined ? (parseFloat(data.cleanup_interval_hours.value) || 24) : prev.cleanup_interval_hours,
+                    smtp_server: data.smtp_server?.value || prev.smtp_server,
+                    smtp_port: data.smtp_port?.value || prev.smtp_port,
+                    smtp_username: data.smtp_username?.value || prev.smtp_username,
+                    smtp_password: data.smtp_password?.value || prev.smtp_password,
+                    smtp_from_email: data.smtp_from_email?.value || prev.smtp_from_email,
+                    telegram_bot_token: data.telegram_bot_token?.value || prev.telegram_bot_token,
+                    telegram_chat_id: data.telegram_chat_id?.value || prev.telegram_chat_id,
+                    notify_email_recipient: data.notify_email_recipient?.value || prev.notify_email_recipient,
+                    notify_webhook_url: data.notify_webhook_url?.value || prev.notify_webhook_url,
+                    default_landing_page: data.default_landing_page?.value || prev.default_landing_page,
+                    global_attach_image_email: data.global_attach_image_email?.value !== undefined ? data.global_attach_image_email.value !== 'false' : prev.global_attach_image_email,
+                    global_attach_image_telegram: data.global_attach_image_telegram?.value !== undefined ? data.global_attach_image_telegram.value !== 'false' : prev.global_attach_image_telegram,
 
-                    opt_live_view_fps_throttle: parseInt(data.opt_live_view_fps_throttle?.value) || 2,
-                    opt_motion_fps_throttle: parseInt(data.opt_motion_fps_throttle?.value) || 3,
-                    opt_live_view_height_limit: parseInt(data.opt_live_view_height_limit?.value) || 720,
-                    opt_motion_analysis_height: parseInt(data.opt_motion_analysis_height?.value) || 180,
-                    opt_live_view_quality: parseInt(data.opt_live_view_quality?.value) || 60,
-                    opt_snapshot_quality: parseInt(data.opt_snapshot_quality?.value) || 90,
-                    opt_ffmpeg_preset: data.opt_ffmpeg_preset?.value || 'ultrafast',
-                    opt_pre_capture_fps_throttle: parseInt(data.opt_pre_capture_fps_throttle?.value) || 1,
-                    opt_verbose_engine_logs: data.opt_verbose_engine_logs?.value === 'true',
-                    telemetry_enabled: data.telemetry_enabled?.value !== 'false',
-                    default_live_view_mode: data.default_live_view_mode?.value || 'auto',
-                    backup_auto_enabled: data.backup_auto_enabled?.value === 'true',
-                    backup_auto_frequency_hours: parseInt(data.backup_auto_frequency_hours?.value) || 24,
-                    backup_auto_retention: parseInt(data.backup_auto_retention?.value) || 7,
-                    mqtt_enabled: data.mqtt_enabled?.value || 'false',
-                    mqtt_host: data.mqtt_host?.value || '',
-                    mqtt_port: data.mqtt_port?.value || '1883',
-                    mqtt_username: data.mqtt_username?.value || '',
-                    mqtt_password: data.mqtt_password?.value || '',
-                    mqtt_topic_prefix: data.mqtt_topic_prefix?.value || 'vibenvr',
-                    ai_model: data.ai_model?.value || 'mobilenet_ssd_v2',
-                    ai_hardware: data.ai_hardware?.value || 'auto',
-                    ai_enabled: data.ai_enabled?.value === 'true'
-                });
+                    opt_live_view_fps_throttle: data.opt_live_view_fps_throttle?.value !== undefined ? parseInt(data.opt_live_view_fps_throttle.value) : prev.opt_live_view_fps_throttle,
+                    opt_motion_fps_throttle: data.opt_motion_fps_throttle?.value !== undefined ? parseInt(data.opt_motion_fps_throttle.value) : prev.opt_motion_fps_throttle,
+                    opt_live_view_height_limit: data.opt_live_view_height_limit?.value !== undefined ? parseInt(data.opt_live_view_height_limit.value) : prev.opt_live_view_height_limit,
+                    opt_motion_analysis_height: data.opt_motion_analysis_height?.value !== undefined ? parseInt(data.opt_motion_analysis_height.value) : prev.opt_motion_analysis_height,
+                    opt_live_view_quality: data.opt_live_view_quality?.value !== undefined ? parseInt(data.opt_live_view_quality.value) : prev.opt_live_view_quality,
+                    opt_snapshot_quality: data.opt_snapshot_quality?.value !== undefined ? parseInt(data.opt_snapshot_quality.value) : prev.opt_snapshot_quality,
+                    opt_ffmpeg_preset: data.opt_ffmpeg_preset?.value || prev.opt_ffmpeg_preset,
+                    opt_pre_capture_fps_throttle: data.opt_pre_capture_fps_throttle?.value !== undefined ? parseInt(data.opt_pre_capture_fps_throttle.value) : prev.opt_pre_capture_fps_throttle,
+                    opt_verbose_engine_logs: data.opt_verbose_engine_logs?.value !== undefined ? data.opt_verbose_engine_logs.value === 'true' : prev.opt_verbose_engine_logs,
+                    telemetry_enabled: data.telemetry_enabled?.value !== undefined ? data.telemetry_enabled.value !== 'false' : prev.telemetry_enabled,
+                    default_live_view_mode: data.default_live_view_mode?.value || prev.default_live_view_mode,
+                    backup_auto_enabled: data.backup_auto_enabled?.value !== undefined ? data.backup_auto_enabled.value === 'true' : prev.backup_auto_enabled,
+                    backup_auto_frequency_hours: data.backup_auto_frequency_hours?.value !== undefined ? parseInt(data.backup_auto_frequency_hours.value) : prev.backup_auto_frequency_hours,
+                    backup_auto_retention: data.backup_auto_retention?.value !== undefined ? parseInt(data.backup_auto_retention.value) : prev.backup_auto_retention,
+                    mqtt_enabled: data.mqtt_enabled?.value || prev.mqtt_enabled,
+                    mqtt_host: data.mqtt_host?.value || prev.mqtt_host,
+                    mqtt_port: data.mqtt_port?.value || prev.mqtt_port,
+                    mqtt_username: data.mqtt_username?.value || prev.mqtt_username,
+                    mqtt_password: data.mqtt_password?.value || prev.mqtt_password,
+                    mqtt_topic_prefix: data.mqtt_topic_prefix?.value || prev.mqtt_topic_prefix,
+                    ai_model: data.ai_model?.value || prev.ai_model,
+                    ai_hardware: data.ai_hardware?.value || prev.ai_hardware,
+                    ai_enabled: data.ai_enabled?.value !== undefined ? data.ai_enabled.value === 'true' : prev.ai_enabled
+                }));
             }
         } catch (err) {
             console.error('Failed to fetch settings', err);
@@ -179,7 +194,8 @@ export const Settings = () => {
         fetchSettings();
         fetchStats();
         fetchUsers();
-    }, [token, fetchSettings, fetchStats, fetchUsers]);
+        fetchCameras();
+    }, [token, fetchSettings, fetchStats, fetchUsers, fetchCameras]);
 
     const handleSave = async () => {
         if (user?.role !== 'admin') {
@@ -440,7 +456,7 @@ export const Settings = () => {
     }
 
     const occupationPercent = globalSettings.max_global_storage_gb > 0
-        ? (storageStats.used_gb / globalSettings.max_global_storage_gb) * 100
+        ? (storageStats.storage?.used_gb / globalSettings.max_global_storage_gb) * 100
         : 0;
 
     return (
@@ -483,6 +499,7 @@ export const Settings = () => {
                         fetchStats={fetchStats}
                         token={token}
                         currentUser={user}
+                        cameras={cameras}
                         isOpen={openSection === 'storage'}
                         onToggle={toggleSection}
                     />

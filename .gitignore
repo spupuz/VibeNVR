@@ -74,4 +74,4 @@ engine/scripts/test_coral.py
 # We allow committing the final optimized models to the repo
 !engine/models/*.tflite
 !engine/models/*.txt
-engine/download_models.py
+# engine/download_models.py (Removed from ignore to fix build)
