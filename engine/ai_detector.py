@@ -90,6 +90,8 @@ class AIDetector:
             logger.info("AI: Engine initialized in DISABLED state (Global Switch is OFF)")
             
         self._initialized = True
+        self._tpu_fail_count = 0
+        self._last_tpu_fail = 0
 
     @property
     def enabled(self):
@@ -136,93 +138,127 @@ class AIDetector:
             self._load_model()
 
     def _load_model(self, force_cpu=False):
+        """
+        Load TFLite model with iterative fallback strategy:
+        1. Requested Model (YOLO/SSD) + Requested Hardware (TPU/CPU)
+        2. If YOLO failed, try YOLO + CPU
+        3. If still failed, try SSD + TPU
+        4. If still failed, try SSD + CPU
+        """
         model_dir = "models"
         self.interpreter = None
-        self.model_type = self.config.get('ai_model', 'mobilenet_ssd_v2')
         
-        if self.model_type == 'yolo_v8':
-            tpu_model = os.path.join(model_dir, "yolov8n_quant_edgetpu.tflite")
-            cpu_model = os.path.join(model_dir, "yolov8n_quant.tflite")
-            labels_path = os.path.join(model_dir, "yolo_labels.txt")
-        else:
-            tpu_model = os.path.join(model_dir, "mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite")
-            cpu_model = os.path.join(model_dir, "mobilenet_ssd_v2_coco_quant_postprocess.tflite")
-            labels_path = os.path.join(model_dir, "coco_labels.txt")
+        # Initial target from config
+        target_model = self.config.get('ai_model', 'mobilenet_ssd_v2')
+        pref_hw = self.config.get('ai_hardware', 'auto').lower()
+        if force_cpu: pref_hw = "cpu"
 
-        # Load labels
+        # Define fallback chain: (model_type, hardware)
+        fallback_chain = []
+        if target_model == 'yolo_v8':
+            if pref_hw != 'cpu':
+                fallback_chain.append(('yolo_v8', 'tpu'))
+            fallback_chain.append(('yolo_v8', 'cpu'))
+            if pref_hw != 'cpu':
+                fallback_chain.append(('mobilenet_ssd_v2', 'tpu'))
+            fallback_chain.append(('mobilenet_ssd_v2', 'cpu'))
+        else:
+            if pref_hw != 'cpu':
+                fallback_chain.append(('mobilenet_ssd_v2', 'tpu'))
+            fallback_chain.append(('mobilenet_ssd_v2', 'cpu'))
+
+        # TPU Cooldown check: if TPU failed recently, skip TPU in chain
+        tpu_cooldown = time.time() - self._last_tpu_fail < 300 # 5 minute cooldown
+        
+        for model_type, hardware in fallback_chain:
+            if hardware == 'tpu' and (tpu_cooldown or self._tpu_fail_count > 3):
+                logger.debug(f"AI: Skipping EdgeTPU for {model_type} due to recent failures/cooldown.")
+                continue
+
+            if model_type == 'yolo_v8':
+                tpu_path = os.path.join(model_dir, "yolov8n_quant_edgetpu.tflite")
+                cpu_path = os.path.join(model_dir, "yolov8n_quant.tflite")
+                labels_path = os.path.join(model_dir, "yolo_labels.txt")
+            else:
+                tpu_path = os.path.join(model_dir, "mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite")
+                cpu_path = os.path.join(model_dir, "mobilenet_ssd_v2_coco_quant_postprocess.tflite")
+                labels_path = os.path.join(model_dir, "coco_labels.txt")
+
+            model_path = tpu_path if hardware == 'tpu' else cpu_path
+            
+            if not os.path.exists(model_path):
+                logger.debug(f"AI: Model file {model_path} not found. Trying next fallback.")
+                continue
+
+            try:
+                if hardware == 'tpu':
+                    logger.info(f"AI: Attempting to load EdgeTPU delegate for {model_type}...")
+                    _lib_path = '/usr/lib/x86_64-linux-gnu/libedgetpu.so.1'
+                    if not os.path.exists(_lib_path):
+                        raise FileNotFoundError(f"libedgetpu.so.1 not found at {_lib_path}")
+                    
+                    with _suppress_native_output():
+                        self.interpreter = tflite.Interpreter(
+                            model_path=model_path,
+                            experimental_delegates=[tflite.load_delegate(_lib_path)]
+                        )
+                else:
+                    logger.info(f"AI: Loading CPU interpreter for {model_type} from {model_path}...")
+                    with _suppress_native_output():
+                        self.interpreter = tflite.Interpreter(model_path=model_path)
+                
+                # Success!
+                self.hardware = hardware
+                self.model_type = model_type
+                logger.info(f"AI: SUCCESS - Loaded {hardware.upper()} model {model_type} from {model_path}")
+                
+                # Load labels
+                self._load_labels(labels_path)
+                
+                # Initialize tensors
+                with _suppress_native_output():
+                    self.interpreter.allocate_tensors()
+                    self.input_details = self.interpreter.get_input_details()
+                    self.output_details = self.interpreter.get_output_details()
+                
+                # Reset failure tracking on success
+                if hardware == 'tpu':
+                    self._tpu_fail_count = 0
+                return
+                
+            except Exception as e:
+                logger.warning(f"AI: Failed to load {hardware} model {model_type}: {e}")
+                if hardware == 'tpu':
+                    self._tpu_fail_count += 1
+                    self._last_tpu_fail = time.time()
+                continue
+
+        logger.error("AI: All models in fallback chain failed to load. AI disabled.")
+        self.interpreter = None
+        self.hardware = "failed"
+
+    def _load_labels(self, labels_path):
         self.labels = {}
         if os.path.exists(labels_path):
-            with open(labels_path, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if not line: continue
-                    pair = line.split(maxsplit=1)
-                    try:
+            try:
+                with open(labels_path, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line: continue
+                        pair = line.split(maxsplit=1)
                         if len(pair) == 2 and pair[0].isdigit():
                             self.labels[int(pair[0])] = pair[1]
                         else:
                             self.labels[len(self.labels)] = line
-                    except Exception as e:
-                        logger.warning(f"AI: Skipping malformed label line '{line}': {e}")
-        else:
-            # Fallback labels if file missing
+            except Exception as e:
+                logger.warning(f"AI: Error reading labels {labels_path}: {e}")
+        
+        if not self.labels:
+            # Hardcoded fallbacks if file missing or empty
             if self.model_type == 'yolo_v8':
                 self.labels = {0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck', 16: 'dog', 15: 'cat'}
             else:
                 self.labels = {1: 'person', 2: 'bicycle', 3: 'car', 4: 'motorcycle', 6: 'bus', 8: 'truck', 18: 'dog', 17: 'cat'}
-
-        pref_hw = self.config.get('ai_hardware', 'auto').lower()
-        if force_cpu: pref_hw = "cpu"
-        
-        # Try TPU first
-        if pref_hw in ['auto', 'tpu']:
-            try:
-                # Check if model exists
-                if not os.path.exists(tpu_model):
-                    raise FileNotFoundError(f"Model file {tpu_model} not found.")
-
-                logger.info(f"AI: Attempting to load EdgeTPU delegate for {self.model_type}...")
-                _lib_path = '/usr/lib/x86_64-linux-gnu/libedgetpu.so.1'
-                if not os.path.exists(_lib_path):
-                    raise FileNotFoundError(f"libedgetpu.so.1 not found at {_lib_path}")
-                
-                with _suppress_native_output():
-                    self.interpreter = tflite.Interpreter(
-                        model_path=tpu_model,
-                        experimental_delegates=[tflite.load_delegate(_lib_path)]
-                    )
-                self.hardware = "tpu"
-                logger.info(f"AI: SUCCESS - Loaded EdgeTPU model {self.model_type} from {tpu_model}")
-            except Exception as e:
-                if pref_hw == 'tpu':
-                    logger.error(f"AI: Failed to load EdgeTPU ({self.model_type}): {e}")
-                else:
-                    logger.info(f"AI: EdgeTPU not available for {self.model_type} ({e}). Falling back to CPU.")
-
-        # Fallback to CPU
-        if self.interpreter is None:
-            try:
-                if not os.path.exists(cpu_model):
-                    # If specific model missing, try to fallback to SSD if we were trying YOLO
-                    if self.model_type == 'yolo_v8':
-                        logger.warning(f"AI: YOLOv8 model not found at {cpu_model}. Falling back to SSD.")
-                        self.model_type = 'mobilenet_ssd_v2'
-                        return self._load_model(force_cpu=force_cpu)
-                    raise FileNotFoundError(f"Model file {cpu_model} not found.")
-
-                logger.info(f"AI: Loading CPU interpreter for {self.model_type} from {cpu_model}...")
-                with _suppress_native_output():
-                    self.interpreter = tflite.Interpreter(model_path=cpu_model)
-                self.hardware = "cpu"
-                logger.info(f"AI: SUCCESS - Loaded CPU model {self.model_type} from {cpu_model}")
-            except Exception as e:
-                logger.error(f"AI: Failed to load CPU model {self.model_type} from {cpu_model}: {e}")
-
-        if self.interpreter:
-            with _suppress_native_output():
-                self.interpreter.allocate_tensors()
-                self.input_details = self.interpreter.get_input_details()
-                self.output_details = self.interpreter.get_output_details()
 
     def detect(self, frame, camera_id: int = 0, config: Dict[str, Any] = None) -> List[Dict[str, Any]]:
         if not self._enabled or not self.interpreter:

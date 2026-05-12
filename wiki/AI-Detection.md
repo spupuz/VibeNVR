@@ -59,7 +59,7 @@ Navigate to **Cameras → Edit → AI & Tracking Tab** to configure per-camera d
 | **Tracking Enabled** | Enable persistent object tracking across frames | `Disabled` |
 
 > [!TIP]
-> **Robust Configuration**: VibeNVR implements a high-resilience parser for `Allowed Objects`. It supports both JSON (e.g. `["person", "vehicle"]`) and simple comma-separated lists (e.g. `person, vehicle`). This prevents configuration loss if the database is manually edited or during complex system migrations.
+> **Robust Configuration**: To prevent database corruption and UI lag, the system now enforces a **2000-character limit** on AI object filters and automatically sanitizes inputs.
 
 > [!NOTE]
 > Setting confidence too low (e.g., 33%) can cause false positives from spinning objects, reflections, or camera noise. **70%+ is recommended** for stable production use.
@@ -325,3 +325,5 @@ VibeNVR implements **Non-Maximum Suppression (NMS)** for YOLOv8 models. This tec
 | Many false positives | Confidence threshold too low | Raise to 60–75% in camera AI settings |
 | Recordings without object tags | Threshold raised after engine started | New events will have tags; old ones won't |
 | `Permission denied` on USB | LXC apparmor/cgroup2 not configured | Follow the LXC config steps above |
+| **Severe UI Lag / API Timeout** | Database Corruption (Data Bloat) | The system now auto-truncates oversized AI settings. Ensure v1.28.3+ is installed to prevent recurrence. |
+| `Model 404 Error` on startup | Outdated model URLs | The system now skips non-existent models. Rebuild with `--build` to clean the cache. |

@@ -236,10 +236,14 @@ class CameraBase(BaseModel):
     @classmethod
     def validate_ai_object_types(cls, v: Any) -> List[str]:
         if v is None:
-            # If explicit None, return default
             return ["person", "vehicle"]
             
         if isinstance(v, str):
+            # Security: Prevent massive strings from crashing the validator or DB
+            if len(v) > 2000:
+                logging.warning(f"AI: ai_object_types string too long ({len(v)} chars). Truncating for safety.")
+                v = v[:2000]
+
             v_sanitized = v.strip()
             if not v_sanitized or v_sanitized == "[]":
                 return []
@@ -248,25 +252,22 @@ class CameraBase(BaseModel):
             try:
                 data = json.loads(v_sanitized)
                 if isinstance(data, list):
-                    return [str(item) for item in data]
+                    return [str(item) for item in data[:50]] # Limit to 50 object types
             except:
-                # Try replacing single quotes with double quotes for common malformed JSON
                 try:
                     data = json.loads(v_sanitized.replace("'", '"'))
                     if isinstance(data, list):
-                        return [str(item) for item in data]
+                        return [str(item) for item in data[:50]]
                 except:
                     pass
             
-            # If it's a string but not JSON (e.g. "person,vehicle"), split it
             if "," in v_sanitized:
-                return [item.strip() for item in v_sanitized.split(",") if item.strip()]
+                return [item.strip() for item in v_sanitized.split(",") if item.strip()][:50]
             
-            # Last resort: single item
-            return [v_sanitized]
+            return [v_sanitized[:50]]
         
         if isinstance(v, list):
-            return [str(item) for item in v]
+            return [str(item) for item in v[:50]]
             
         return ["person", "vehicle"]
 

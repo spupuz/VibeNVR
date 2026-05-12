@@ -184,7 +184,7 @@ def generate_motion_config(db: Session):
         active_ids.append(cam.id)
         config = camera_to_config(cam, opt_settings)
         try:
-            resp = requests.post(f"{ENGINE_BASE_URL}/cameras/{cam.id}/start", json=config, timeout=5)
+            resp = requests.post(f"{ENGINE_BASE_URL}/cameras/{cam.id}/start", json=config, timeout=20)
             if resp.status_code == 200:
                 logger.info(f"Synced camera {cam.id}")
             else:
@@ -234,7 +234,7 @@ def sync_global_config(db: Session):
         "mqtt": mqtt_config
     }
     try:
-        resp = requests.post(f"{ENGINE_BASE_URL}/config", json=payload, timeout=5)
+        resp = requests.post(f"{ENGINE_BASE_URL}/config", json=payload, timeout=20)
         if resp.status_code == 200:
             logger.info("Successfully synced global config to VibeEngine")
             return True
@@ -248,7 +248,7 @@ def sync_global_config(db: Session):
 def stop_all_engines():
     """Stop all running camera threads in the engine"""
     try:
-        requests.post(f"{ENGINE_BASE_URL}/cameras/stop-all", timeout=5)
+        requests.post(f"{ENGINE_BASE_URL}/cameras/stop-all", timeout=20)
         return True
     except Exception as e:
         logger.error(f"Failed to stop all cameras: {e}")
@@ -269,7 +269,7 @@ def update_camera_runtime(camera: Camera):
         
     config = camera_to_config(camera, opt_settings)
     try:
-        resp = requests.post(f"{ENGINE_BASE_URL}/cameras/{camera.id}/start", json=config, timeout=5)
+        resp = requests.post(f"{ENGINE_BASE_URL}/cameras/{camera.id}/start", json=config, timeout=20)
         if resp.status_code == 200:
             logger.info(f"Updated camera {camera.id} config")
             return True
@@ -290,7 +290,7 @@ def trigger_snapshot(camera_id: int):
     """Trigger a snapshot in VibeEngine"""
     try:
         url = f"{ENGINE_BASE_URL}/cameras/{camera_id}/snapshot"
-        resp = requests.post(url, timeout=5)
+        resp = requests.post(url, timeout=20)
         if resp.status_code == 200:
             return True
         return False
@@ -302,7 +302,7 @@ def stop_camera(camera_id: int):
     """Stop a camera in VibeEngine"""
     try:
         url = f"{ENGINE_BASE_URL}/cameras/{camera_id}/stop"
-        requests.post(url, timeout=5)
+        requests.post(url, timeout=20)
         logger.info(f"Stopped camera {camera_id}")
         return True
     except Exception as e:

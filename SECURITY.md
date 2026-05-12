@@ -93,46 +93,30 @@ VibeNVR's code includes specific mitigations against common attack vectors:
     - **Privacy Masks** are applied at the Engine level immediately after frame decoding. They are "burned" into the video frames *before* they reach the recording or motion analysis modules, ensuring that sensitive data is never persisted or processed if masked.
     - **Motion Zones** (Exclusion Zones) are used for motion detection optimization (e.g., ignoring moving trees). Unlike Privacy Masks, they do NOT obscure the video. **MANDATORY**: When **ONVIF Edge** detection is active, NVR-side Motion Zones are bypassed and hidden in the UI to prevent configuration confusion, as the camera's hardware sensor handles all detection logic.
     - An unmasked "raw" frame (for the masking editor) is only accessible via a specialized internal bridge reserved for Admin credentials.
-6. **Centralized AI Activation**:
+
+7. **Centralized AI Activation**:
    - VibeNVR features a **Global AI Master Switch** (Admin-only). When disabled, the AI engine singleton completely releases its memory and stops processing frames. All cameras automatically fallback to standard OpenCV detection, ensuring that a single administrative action can reliably disable all AI-related activity across the entire surveillance network.
-7. **Robust AI Config Validation**:
-   - To prevent configuration loss during restarts, VibeNVR implements a robust multi-format parser for AI object filters. It supports standard JSON lists, comma-separated strings, and malformed inputs, ensuring that user preferences are preserved across system updates and cold boots.
-7. **Schema-Aware De-duplication**:
+8. **Resource Exhaustion Prevention (Data Bloat)**:
+   - **Strict Length Limits**: All configuration fields (notably `ai_object_types`) enforce strict length validation at the schema level (max 2000 characters). This prevents a critical vulnerability where corrupted or malicious data could grow to megabytes, freezing the backend during serialization or logging.
+   - **Array Sanitization**: Frontend inputs are normalized to ensure list-based data is never processed as raw strings, preventing exponential character-spread growth.
+9. **Backup Integrity & De-duplication**:
    - The backup import logic (`routers/settings.py`) prevents resource exhaustion and data fragmentation by de-duplicating cameras based on their RTSP Host/IP, ensuring duplicate configurations aren't accidentally or maliciously created.
-8. **Database Cascading**:
+10. **Database Security & Cascading**:
    - SQLAlchemy relationships are strictly configured. Deleting a user or a camera automatically triggers `cascade="all, delete-orphan"`, ensuring no orphaned auth tokens, recovery codes, or media records remain in the system.
-- **Log Redaction & Auditability**:
-    - Every log entry across all containers (Backend, Engine, Frontend) now includes a consistent timestamp (`%Y-%m-%d %H:%M:%S`).
-    - The **TokenRedactingFilter** is strictly enforced at the root logger level, ensuring that sensitive data like RTSP credentials and API tokens are never written to stdout or persisted in log files.
-    - Binary noise and high-volume diagnostic data are automatically filtered to maintain a clear and actionable audit trail.
-9. **Log Masking & Privacy**:
-   - The centralized log router (`backend/routers/logs.py`) and the custom `TokenRedactingFilter` in `main.py` automatically mask stdout logs.
-   - **Nginx Access Logs**: The frontend Nginx configuration (`nginx.conf`) uses a custom `log_format` and `map` logic to automatically redact `?token=` values from access logs before they are written to disk. This ensures that even if the token fallback is used for media streaming, the JWT is not persisted in the proxy logs.
-9. **Hardened Engine Synchronization**:
-    - Critical streaming parameters (`rtsp_transport`, `sub_rtsp_transport`, `live_view_mode`) are synchronized with the recording engine via Admin-only authenticated routes.
-    - Every synchronized field is validated through Pydantic schemas on the engine side to prevent injection or invalid configuration states.
-10. **SECRET_KEY Security Enforcement**:
-   - In development or non-standard environments, using a weak or default `SECRET_KEY` triggers a **loud warning** in the logs but allows the application to proceed for troubleshooting.
-   - If `ENVIRONMENT=production` (default), the application **refuses to start** with a weak key (shorter than 32 chars or a known default) to ensure critical security.
-   - **Bypass**: If strictly necessary, set `ALLOW_WEAK_SECRET=true` in your `.env` to override the production exit (NOT RECOMMENDED).
-
-10. **Browser Security Headers**: 
-    - VibeNVR implements standard security headers via the Nginx frontend:
-      - **X-Frame-Options: SAMEORIGIN**: Prevents clickjacking by restricting embedding to the same origin.
-      - **X-Content-Type-Options: nosniff**: Prevents MIME-type sniffing.
-      - **Referrer-Policy: strict-origin-when-cross-origin**: Protects referrer privacy.
-      - **Content-Security-Policy (CSP)**: Implements a strict policy to mitigate XSS and injection attacks. It is currently deployed in **Report-Only** mode to allow for safe, monitored adoption in diverse network environments.
-
-11. **Live Audio Privacy & Control**:
-    - **Disabled by Default**: Audio listening is explicitly disabled by default for all cameras. Users must manually enable it in the camera settings (`enable_audio`).
-    - **Backend-Only Proxying**: Audio streams are NOT bridged directly between the camera and the client. The VibeEngine decodes the audio and re-transmits it via an authenticated WebSocket proxy (port 5005), ensuring that all listeners are processed through the RBAC system.
-    - **Backend-Engine Sync**: Audio capability flags (`audio_enabled`, `enable_audio`) are synchronized between the backend and engine via authenticated Admin-only routes, ensuring that hardware audio support is correctly reported and enforced at the edge.
-    - **Encrypted in Transit**: All audio data transmitted via the web interface is protected by TLS encryption when accessed via HTTPS/WSS.
-    - **Log Suppression**: Audio-related metadata is treated as privacy-sensitive and is suppressed from high-verbosity logs unless specifically requested via debug flags.
-
-12. **PTZ Mobile Integrity**:
-    - The mobile-optimized PTZ UI follows the same RBAC rules as the desktop interface. Every movement request (Pan, Tilt, Zoom, Preset, Home) is validated against the user's role on the backend.
-    - Compact preset selection is implemented via secure tokens that do not expose external ONVIF profile details.
+11. **Log Redaction & Auditability**:
+    - Every log entry across all containers (Backend, Engine, Frontend) includes a consistent timestamp (`%Y-%m-%d %H:%M:%S`).
+    - **High-Performance Redaction**: The `TokenRedactingFilter` in `main.py` implements a **fast-fail keyword check**. It only applies complex regex-based redaction if a sensitive keyword (e.g., `rtsp`, `token`, `password`) is present. This ensures the filter remains efficient and prevents CPU exhaustion when handling large, non-sensitive payloads.
+    - **Nginx Access Logs**: The frontend Nginx configuration automatically redacts `?token=` values from access logs before they are written to disk, ensuring JWTs are not persisted in proxy logs.
+12. **Hardened Engine Synchronization**:
+    - Critical streaming parameters are synchronized via Admin-only authenticated routes and validated through Pydantic schemas to prevent injection or invalid configuration states.
+13. **SECRET_KEY Security Enforcement**:
+    - In production, the application **refuses to start** with a weak `SECRET_KEY` (shorter than 32 chars) to ensure session integrity. This can be overridden via `ALLOW_WEAK_SECRET=true` for troubleshooting only.
+14. **Browser Security Headers**: 
+    - VibeNVR implements standard security headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy) and a strict **Content-Security-Policy (CSP)** in Report-Only mode.
+15. **Live Audio Privacy & Control**:
+    - Audio is disabled by default and proxied via an authenticated WebSocket. Capability flags are synchronized between backend and engine via Admin-only routes.
+16. **PTZ Mobile Integrity**:
+    - Mobile PTZ controls follow identical RBAC rules as the desktop UI, with all movement requests validated against the user's role on the backend.
 
 ## ⚠️ Known Accepted Trade-offs
 

@@ -8,7 +8,17 @@ export const AITab = ({ newCamera, setNewCamera, globalSettings }) => {
 
     const handleObjectToggle = (label) => {
         if (isAiDisabledGlobally) return;
-        const current = newCamera.ai_object_types || [];
+        // Ensure we always work with an array, even if corrupted data exists
+        let current = newCamera.ai_object_types;
+        if (typeof current === 'string') {
+            try {
+                current = JSON.parse(current);
+            } catch (e) {
+                current = [];
+            }
+        }
+        if (!Array.isArray(current)) current = [];
+
         const next = current.includes(label)
             ? current.filter(l => l !== label)
             : [...current, label];

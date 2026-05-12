@@ -17,6 +17,7 @@ MODEL_URLS = {
     "mobilenet_ssd_v2_coco_quant_postprocess.tflite": "https://raw.githubusercontent.com/google-coral/test_data/master/ssd_mobilenet_v2_coco_quant_postprocess.tflite",
     "mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite": "https://raw.githubusercontent.com/google-coral/test_data/master/ssd_mobilenet_v2_coco_quant_postprocess_edgetpu.tflite",
     "coco_labels.txt": "https://raw.githubusercontent.com/google-coral/test_data/master/coco_labels.txt",
+    "yolov8n_quant_edgetpu.tflite": "https://github.com/spupuz/VibeNVR-models/raw/main/yolov8n_quant_edgetpu.tflite",
 }
 
 def download_file(url, filename):
