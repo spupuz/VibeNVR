@@ -37,11 +37,11 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-vibenvrpass}
       - POSTGRES_DB=${POSTGRES_DB:-vibenvr}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-vibenvr}:${POSTGRES_PASSWORD:-vibenvrpass}@db:5432/${POSTGRES_DB:-vibenvr}
-      - TZ=Europe/Rome
+      - TZ=${TZ:-Europe/Rome}
       - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
       - WEBHOOK_SECRET=${WEBHOOK_SECRET:-vibe_secure_key_9823748923748923_change_in_prod}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
-      - COOKIE_SECURE=${COOKIE_SECURE:-true}
+      - COOKIE_SECURE=${COOKIE_SECURE:-auto}
     depends_on:
       db:
         condition: service_healthy
@@ -95,7 +95,7 @@ services:
 
     environment:
       - BACKEND_URL=http://vibenvr-backend:5000
-      - TZ=Europe/Rome
+      - TZ=${TZ:-Europe/Rome}
       # Hardware Acceleration Settings
       - HW_ACCEL=true # Enabled for local GPU usage
       - HW_ACCEL_TYPE=${HW_ACCEL_TYPE:-auto} # auto, nvidia, intel, amd
