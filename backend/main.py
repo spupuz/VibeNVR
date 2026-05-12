@@ -29,6 +29,38 @@ import storage_service
 import motion_service
 from models import Camera 
 
+# 1. IMMEDIATE LOGGING CONFIGURATION
+# We do this at the very top to catch Uvicorn's earliest messages
+def setup_initial_logging():
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    
+    # Configure Root Logger
+    root_logger = logging.getLogger()
+    if not root_logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
+        root_logger.addHandler(handler)
+    else:
+        for handler in root_logger.handlers:
+            handler.setFormatter(formatter)
+    root_logger.setLevel(logging.INFO)
+
+    # Configure Uvicorn Loggers
+    for logger_name in ["uvicorn", "uvicorn.error", "uvicorn.access"]:
+        u_logger = logging.getLogger(logger_name)
+        u_logger.propagate = False # Prevent double logging if root also has handlers
+        if not u_logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(formatter)
+            u_logger.addHandler(handler)
+        else:
+            for handler in u_logger.handlers:
+                handler.setFormatter(formatter)
+
+setup_initial_logging()
+
+logger = logging.getLogger("VibeBackend")
+
 class TokenRedactingFilter(logging.Filter):
     def filter(self, record):
         # Redact token from the message itself
@@ -100,15 +132,15 @@ def apply_security_logging():
     target_loggers = ["", "uvicorn", "uvicorn.access", "uvicorn.error", "websockets", "fastapi"]
     
     for name in target_loggers:
-        logger = logging.getLogger(name)
+        logger_obj = logging.getLogger(name)
         # 1. Add Filters to logger
-        if not any(isinstance(f, TokenRedactingFilter) for f in logger.filters):
-            logger.addFilter(redact_filter)
-        if name == "uvicorn.access" and not any(isinstance(f, PollingSamplingFilter) for f in logger.filters):
-            logger.addFilter(sampling_filter)
+        if not any(isinstance(f, TokenRedactingFilter) for f in logger_obj.filters):
+            logger_obj.addFilter(redact_filter)
+        if name == "uvicorn.access" and not any(isinstance(f, PollingSamplingFilter) for f in logger_obj.filters):
+            logger_obj.addFilter(sampling_filter)
         
         # 2. Add to all existing handlers
-        for handler in logger.handlers:
+        for handler in logger_obj.handlers:
             if not any(isinstance(f, TokenRedactingFilter) for f in handler.filters):
                 handler.addFilter(redact_filter)
             if name == "uvicorn.access" and not any(isinstance(f, PollingSamplingFilter) for f in handler.filters):
@@ -120,27 +152,7 @@ def apply_security_logging():
 # Initial application on import
 apply_security_logging()
 
-# Configure timestamp for uvicorn access logs
-# Uvicorn's default formatter doesn't include time
-console_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-
-# Apply formatter to all handlers of uvicorn.access
-# Apply formatter to all handlers of uvicorn.access (Initial best effort)
-access_logger = logging.getLogger("uvicorn.access")
-if access_logger.hasHandlers():
-    for handler in access_logger.handlers:
-        handler.setFormatter(console_formatter)
-else:
-    # If no handlers yet (likely), add one or rely on uvicorn's default being added later?
-    # Uvicorn usually configures logging *before* importing app or *during* run.
-    # If we are running via 'uvicorn main:app', this code runs on import.
-    # We might need to handle this in lifespan or ensure we don't duplicate.
-    # But usually setting it here works if handlers exist or we add one.
-    # Note: Uvicorn overwrites config unless --log-config is used.
-    # safer strategy: Re-configure in lifespan? Or just let's try assuming standard uvicorn init.
-    pass
-
-# Also apply filter to the root logger just in case
+# Apply filter to the root uvicorn logger
 logging.getLogger("uvicorn").addFilter(TokenRedactingFilter())
 
 from contextlib import asynccontextmanager
@@ -159,23 +171,23 @@ async def lifespan(app: FastAPI):
     auth_service.IS_WEAK_KEY = is_weak_key
     
     if is_weak_key:
-        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        print("!! WARNING: You are using a default or a weak SECRET_KEY.                     !!")
-        print("!! This is a security risk. Please set a secure SECRET_KEY in your .env file. !!")
-        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        logger.warning("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        logger.warning("!! WARNING: You are using a default or a weak SECRET_KEY.                     !!")
+        logger.warning("!! This is a security risk. Please set a secure SECRET_KEY in your .env file. !!")
+        logger.warning("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         
         # Only exit if in production and not explicitly bypassed
         if os.getenv("ENVIRONMENT", "production").lower() == "production":
              if os.getenv("ALLOW_WEAK_SECRET", "false").lower() != "true":
-                 print("!! CRITICAL: Strict security is enabled (ENVIRONMENT=production).       !!")
-                 print("!! The application will not start with a weak key.                      !!")
-                 print("!! To bypass this (NOT RECOMMENDED), set ALLOW_WEAK_SECRET=true.         !!")
-                 print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                 logger.error("!! CRITICAL: Strict security is enabled (ENVIRONMENT=production).       !!")
+                 logger.error("!! The application will not start with a weak key.                      !!")
+                 logger.error("!! To bypass this (NOT RECOMMENDED), set ALLOW_WEAK_SECRET=true.         !!")
+                 logger.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                  # We no longer exit, but persist the warning in the UI
                  # sys.exit(1) 
              else:
-                 print("!! WARNING: Bypassing weak SECRET_KEY check in production.              !!")
-                 print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                 logger.warning("!! WARNING: Bypassing weak SECRET_KEY check in production.              !!")
+                 logger.warning("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
     # Wait for DB to be ready
     import time
@@ -203,7 +215,7 @@ async def lifespan(app: FastAPI):
                 handler.setFormatter(formatter)
                 
     except Exception as e:
-        print(f"Log setup warning: {e}")
+        logger.error(f"Log setup warning: {e}")
 
     # Re-apply security logging inside lifespan to catch process-level resets/reloads
     apply_security_logging()
@@ -212,24 +224,24 @@ async def lifespan(app: FastAPI):
     while True:
         try:
             Base.metadata.create_all(bind=engine)
-            print("Database connection established.")
+            logger.info("Database connection established.")
             
             # Auto-migrate schema updates
             try:
                 import migrate_db
-                print("Checking for schema migrations...")
+                logger.info("Checking for schema migrations...")
                 migrate_db.migrate()
                 
                 # Auto-migrate captured_before (Frames -> Seconds)
                 import migrate_captured_before
                 migrate_captured_before.migrate_frames_to_seconds()
             except Exception as e:
-                print(f"Migration warning: {e}")
+                logger.warning(f"Migration warning: {e}")
                 
             break
         except Exception as e:
             retry_count += 1
-            print(f"Waiting for Database (Attempt {retry_count})...")
+            logger.info(f"Waiting for Database (Attempt {retry_count})...")
             time.sleep(2)
 
     # Start background tasks
@@ -255,18 +267,18 @@ async def lifespan(app: FastAPI):
             # Initialize default settings (adds new keys like MQTT if missing)
             settings.init_default_settings(db, current_user=None) # Bypass admin check during startup
         except Exception as e:
-            print(f"Startup warning: {e}")
+            logger.warning(f"Startup warning: {e}")
     
     # Background orphan recovery (delayed to not overload startup)
     def run_orphan_recovery():
         import time
         time.sleep(60)  # Wait 60 seconds after startup to ensure system stability
-        print("[Startup] Running automatic orphan recording recovery...")
+        logger.info("[Startup] Running automatic orphan recording recovery...")
         try:
             import sync_recordings
             sync_recordings.sync_recordings(dry_run=False)
         except Exception as e:
-            print(f"[Startup] Orphan recovery warning: {e}")
+            logger.warning(f"[Startup] Orphan recovery warning: {e}")
     
     orphan_thread = threading.Thread(target=run_orphan_recovery, daemon=True, name="OrphanRecovery")
     orphan_thread.start()
@@ -310,10 +322,10 @@ else:
     allowed_origins = allowed_origins_raw.split(",")
 
 if "*" in allowed_origins:
-    print("--------------------------------------------------------------------------------")
-    print("!! WARNING: CORS ALLOWED_ORIGINS is set to '*'.                               !!")
-    print("!! For production, set this to your specific domain (e.g., https://vibe.io).  !!")
-    print("--------------------------------------------------------------------------------")
+    logger.warning("--------------------------------------------------------------------------------")
+    logger.warning("!! WARNING: CORS ALLOWED_ORIGINS is set to '*'.                               !!")
+    logger.warning("!! For production, set this to your specific domain (e.g., https://vibe.io).  !!")
+    logger.warning("--------------------------------------------------------------------------------")
 
 app.add_middleware(
     CORSMiddleware,
@@ -386,7 +398,7 @@ async def get_secure_media(file_path: str, request: Request, token: Optional[str
     full_path = os.path.normpath(f"/data/{file_path}")
     
     if not full_path.startswith("/data/"):
-         print(f"Security Alert (Media): Attempted access to {full_path}")
+         logger.warning(f"Security Alert (Media): Attempted access to {full_path}")
          raise HTTPException(status_code=403, detail="Access denied")
 
     # RBAC for backups folder: Only allow admins to access anything in /data/backups/

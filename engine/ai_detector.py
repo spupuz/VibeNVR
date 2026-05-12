@@ -1,10 +1,22 @@
 import os
+import sys
 import time
 import logging
 import threading
+import contextlib
 import numpy as np
 import cv2
 from typing import List, Dict, Any
+
+# Suppress TFLite / TensorFlow C++ internal logging BEFORE importing tflite_runtime.
+# These control the underlying C++ logging framework (ABSL / glog) used by TFLite.
+# Level 3 = FATAL only (0=INFO, 1=WARNING, 2=ERROR, 3=FATAL).
+# This prevents model metadata, COCO labels, and delegate info from being
+# dumped to stdout/stderr on every model load, which pollutes docker compose logs.
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
+os.environ.setdefault("TF_CPP_MIN_VLOG_LEVEL", "0")
+os.environ.setdefault("GLOG_minloglevel", "3")
+os.environ.setdefault("TFLITE_EXTERNAL_DELEGATE_VERBOSE", "0")
 
 try:
     import tflite_runtime.interpreter as tflite
@@ -13,6 +25,35 @@ except ImportError:
     HAS_TFLITE = False
 
 logger = logging.getLogger(__name__)
+
+@contextlib.contextmanager
+def _suppress_native_output():
+    """
+    Suppress C-level stdout and stderr during TFLite/EdgeTPU model loading.
+    TFLite native libraries print binary data directly to file descriptors 1 & 2,
+    bypassing Python's logging system. This redirects those FDs to /dev/null
+    for the duration of the block, keeping docker compose logs clean.
+    Python logger calls within this block are unaffected because the logging
+    handlers write to the restored FDs after the block exits.
+    """
+    # Flush Python-level buffers BEFORE redirecting FDs so buffered Python
+    # output is not accidentally swallowed.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    devnull_fd = os.open(os.devnull, os.O_WRONLY)
+    saved_stdout = os.dup(1)
+    saved_stderr = os.dup(2)
+    try:
+        os.dup2(devnull_fd, 1)
+        os.dup2(devnull_fd, 2)
+        yield
+    finally:
+        # Restore FDs and close temporaries
+        os.dup2(saved_stdout, 1)
+        os.dup2(saved_stderr, 2)
+        os.close(devnull_fd)
+        os.close(saved_stdout)
+        os.close(saved_stderr)
 
 class AIDetector:
     _instance = None
@@ -145,10 +186,11 @@ class AIDetector:
                 if not os.path.exists(_lib_path):
                     raise FileNotFoundError(f"libedgetpu.so.1 not found at {_lib_path}")
                 
-                self.interpreter = tflite.Interpreter(
-                    model_path=tpu_model,
-                    experimental_delegates=[tflite.load_delegate(_lib_path)]
-                )
+                with _suppress_native_output():
+                    self.interpreter = tflite.Interpreter(
+                        model_path=tpu_model,
+                        experimental_delegates=[tflite.load_delegate(_lib_path)]
+                    )
                 self.hardware = "tpu"
                 logger.info(f"AI: SUCCESS - Loaded EdgeTPU model {self.model_type} from {tpu_model}")
             except Exception as e:
@@ -169,16 +211,18 @@ class AIDetector:
                     raise FileNotFoundError(f"Model file {cpu_model} not found.")
 
                 logger.info(f"AI: Loading CPU interpreter for {self.model_type} from {cpu_model}...")
-                self.interpreter = tflite.Interpreter(model_path=cpu_model)
+                with _suppress_native_output():
+                    self.interpreter = tflite.Interpreter(model_path=cpu_model)
                 self.hardware = "cpu"
                 logger.info(f"AI: SUCCESS - Loaded CPU model {self.model_type} from {cpu_model}")
             except Exception as e:
                 logger.error(f"AI: Failed to load CPU model {self.model_type} from {cpu_model}: {e}")
 
         if self.interpreter:
-            self.interpreter.allocate_tensors()
-            self.input_details = self.interpreter.get_input_details()
-            self.output_details = self.interpreter.get_output_details()
+            with _suppress_native_output():
+                self.interpreter.allocate_tensors()
+                self.input_details = self.interpreter.get_input_details()
+                self.output_details = self.interpreter.get_output_details()
 
     def detect(self, frame, camera_id: int = 0, config: Dict[str, Any] = None) -> List[Dict[str, Any]]:
         if not self._enabled or not self.interpreter:

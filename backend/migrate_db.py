@@ -1,6 +1,17 @@
 from database import engine, Base
 from sqlalchemy import text
 import models
+import logging
+
+# Configure logging explicitly
+logger = logging.getLogger("VibeMigrate")
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+logger.propagate = False
 
 def add_column_if_not_exists(engine, table_name, column_name, column_type, default_val=None):
     with engine.connect() as conn:
@@ -9,7 +20,7 @@ def add_column_if_not_exists(engine, table_name, column_name, column_type, defau
         result = conn.execute(query).fetchone()
         
         if not result:
-            print(f"Adding column {column_name} to {table_name}...")
+            logger.info(f"Adding column {column_name} to {table_name}...")
             alter_query = f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"
             if default_val is not None:
                 # Handle string defaults with quotes
@@ -22,9 +33,9 @@ def add_column_if_not_exists(engine, table_name, column_name, column_type, defau
             
             conn.execute(text(alter_query))
             conn.commit()
-            print(f"Added {column_name}.")
+            logger.info(f"Added {column_name}.")
         else:
-            print(f"Column {column_name} already exists.")
+            logger.info(f"Column {column_name} already exists.")
 
 def drop_column_if_exists(engine, table_name, column_name):
     with engine.connect() as conn:
@@ -33,10 +44,10 @@ def drop_column_if_exists(engine, table_name, column_name):
         result = conn.execute(query).fetchone()
         
         if result:
-            print(f"Dropping obsolete column {column_name} from {table_name}...")
+            logger.info(f"Dropping obsolete column {column_name} from {table_name}...")
             conn.execute(text(f"ALTER TABLE {table_name} DROP COLUMN {column_name}"))
             conn.commit()
-            print(f"Dropped {column_name}.")
+            logger.info(f"Dropped {column_name}.")
 
 def migrate():
     # Video Device
@@ -198,30 +209,30 @@ def migrate():
             # Simple check if table exists
             conn.execute(text("SELECT 1 FROM api_tokens LIMIT 1"))
         except:
-            print("Creating api_tokens table via migration...")
+            logger.info("Creating api_tokens table via migration...")
             models.ApiToken.__table__.create(engine)
             conn.commit()
-            print("api_tokens table created.")
+            logger.info("api_tokens table created.")
 
     # Trusted Devices (Fallback creation)
     with engine.connect() as conn:
         try:
             conn.execute(text("SELECT 1 FROM trusted_devices LIMIT 1"))
         except:
-            print("Creating trusted_devices table via migration...")
+            logger.info("Creating trusted_devices table via migration...")
             models.TrustedDevice.__table__.create(engine)
             conn.commit()
-            print("trusted_devices table created.")
+            logger.info("trusted_devices table created.")
 
     # Recovery Codes (Fallback creation)
     with engine.connect() as conn:
         try:
             conn.execute(text("SELECT 1 FROM recovery_codes LIMIT 1"))
         except:
-            print("Creating recovery_codes table via migration...")
+            logger.info("Creating recovery_codes table via migration...")
             models.RecoveryCode.__table__.create(engine)
             conn.commit()
-            print("recovery_codes table created.")
+            logger.info("recovery_codes table created.")
 
     # Camera Group Improvements
     add_column_if_not_exists(engine, "camera_groups", "description", "VARCHAR")
@@ -231,10 +242,10 @@ def migrate():
         try:
             conn.execute(text("SELECT 1 FROM storage_profiles LIMIT 1"))
         except:
-            print("Creating storage_profiles table via migration...")
+            logger.info("Creating storage_profiles table via migration...")
             models.StorageProfile.__table__.create(engine)
             conn.commit()
-            print("storage_profiles table created.")
+            logger.info("storage_profiles table created.")
             
     # Add storage_profile_id to cameras
     add_column_if_not_exists(engine, "cameras", "storage_profile_id", "INTEGER")
@@ -242,7 +253,7 @@ def migrate():
     # [v1.28.0] Global AI Activation
     # Ensure ai_enabled setting exists in system_settings if any camera has it enabled
     with engine.connect() as conn:
-        print("Checking for existing AI usage to set global default (v1.28.0)...")
+        logger.info("Checking for existing AI usage to set global default (v1.28.0)...")
         try:
             # 1. Check if global setting already exists
             exists = conn.execute(text("SELECT 1 FROM system_settings WHERE key = 'ai_enabled'")).fetchone()
@@ -250,22 +261,22 @@ def migrate():
                 # 2. If any camera has ai_enabled = True, we should enable global AI by default to not break setups
                 res = conn.execute(text("SELECT COUNT(*) FROM cameras WHERE ai_enabled = TRUE")).fetchone()
                 if res and res[0] > 0:
-                    print(f"Found {res[0]} active AI cameras. Enabling global AI setting by default.")
+                    logger.info(f"Found {res[0]} active AI cameras. Enabling global AI setting by default.")
                     conn.execute(text("INSERT INTO system_settings (key, value, description) VALUES ('ai_enabled', 'true', 'Enable Global AI Detection Engine')"))
                     conn.commit()
                 else:
-                    print("No active AI cameras found. Global AI will default to OFF.")
+                    logger.info("No active AI cameras found. Global AI will default to OFF.")
                     # We don't necessarily need to insert 'false' here as init_default_settings will handle it,
                     # but being explicit in migration is cleaner.
                     conn.execute(text("INSERT INTO system_settings (key, value, description) VALUES ('ai_enabled', 'false', 'Enable Global AI Detection Engine')"))
                     conn.commit()
             else:
-                print("Global AI setting 'ai_enabled' already exists. Skipping.")
+                logger.info("Global AI setting 'ai_enabled' already exists. Skipping.")
         except Exception as e:
-            print(f"Migration v1.28.0 warning: {e}")
+            logger.warning(f"Migration v1.28.0 warning: {e}")
             conn.rollback()
 
 if __name__ == "__main__":
-    print("Starting migration...")
+    logger.info("Starting migration...")
     migrate()
-    print("Migration complete!")
+    logger.info("Migration complete!")

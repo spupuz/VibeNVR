@@ -101,6 +101,10 @@ VibeNVR's code includes specific mitigations against common attack vectors:
    - The backup import logic (`routers/settings.py`) prevents resource exhaustion and data fragmentation by de-duplicating cameras based on their RTSP Host/IP, ensuring duplicate configurations aren't accidentally or maliciously created.
 8. **Database Cascading**:
    - SQLAlchemy relationships are strictly configured. Deleting a user or a camera automatically triggers `cascade="all, delete-orphan"`, ensuring no orphaned auth tokens, recovery codes, or media records remain in the system.
+- **Log Redaction & Auditability**:
+    - Every log entry across all containers (Backend, Engine, Frontend) now includes a consistent timestamp (`%Y-%m-%d %H:%M:%S`).
+    - The **TokenRedactingFilter** is strictly enforced at the root logger level, ensuring that sensitive data like RTSP credentials and API tokens are never written to stdout or persisted in log files.
+    - Binary noise and high-volume diagnostic data are automatically filtered to maintain a clear and actionable audit trail.
 9. **Log Masking & Privacy**:
    - The centralized log router (`backend/routers/logs.py`) and the custom `TokenRedactingFilter` in `main.py` automatically mask stdout logs.
    - **Nginx Access Logs**: The frontend Nginx configuration (`nginx.conf`) uses a custom `log_format` and `map` logic to automatically redact `?token=` values from access logs before they are written to disk. This ensures that even if the token fallback is used for media streaming, the JWT is not persisted in the proxy logs.

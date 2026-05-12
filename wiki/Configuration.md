@@ -108,6 +108,21 @@ HW_ACCEL_TYPE=nvidia
 
 ---
 
+---
+
+### 🌍 Timezone & Localization
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TZ` | `Europe/Rome` | Sets the timezone for all containers. This ensures that logs, schedules, and recording timestamps are consistent. Use standard TZ database names (e.g., `America/New_York`). |
+
+```env
+# Example: Set to New York time
+TZ=America/New_York
+```
+
+---
+
 ## 🔒 Production Security Checklist
 
 Before exposing VibeNVR to the internet, verify the following:

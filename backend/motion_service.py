@@ -7,8 +7,12 @@ from typing import Any
 from sqlalchemy.orm import Session, object_session
 from models import Camera, SystemSettings
 
+import logging
+
 # VibeEngine Control URL
 ENGINE_BASE_URL = "http://engine:8000"
+
+logger = logging.getLogger(__name__)
 
 # Global lock for camera synchronization
 sync_lock = threading.Lock()
@@ -84,7 +88,7 @@ def get_optimization_settings(db: Session) -> dict:
                 else:
                     defaults[key] = setting.value
     except Exception as e:
-        print(f"Error reading optimization settings: {e}")
+        logger.error(f"Error reading optimization settings: {e}")
         
     return defaults
 
@@ -151,7 +155,7 @@ def generate_motion_config(db: Session):
     Renamed from 'generate' to keep compatibility with existing calls.
     Should be called on startup or global changes.
     """
-    print("Syncing cameras to VibeEngine...", flush=True)
+    logger.info("Syncing cameras to VibeEngine...")
     cameras = db.query(Camera).filter(Camera.is_active == True).all()
     
     # Check for engine availability
@@ -164,7 +168,7 @@ def generate_motion_config(db: Session):
             break
         except:
             retry_count += 1
-            print(f"Waiting for VibeEngine... (Attempt {retry_count})", flush=True)
+            logger.info(f"Waiting for VibeEngine... (Attempt {retry_count})")
             time.sleep(5)
 
     # Sync global config first
@@ -172,7 +176,7 @@ def generate_motion_config(db: Session):
 
     # Fetch global optimizations once
     opt_settings = get_optimization_settings(db)
-    print(f"Applying optimizations: {opt_settings}", flush=True)
+    logger.info(f"Applying optimizations: {opt_settings}")
 
     # 1. Start/Update all active cameras
     active_ids = []
@@ -182,18 +186,18 @@ def generate_motion_config(db: Session):
         try:
             resp = requests.post(f"{ENGINE_BASE_URL}/cameras/{cam.id}/start", json=config, timeout=5)
             if resp.status_code == 200:
-                print(f"Synced camera {cam.id}", flush=True)
+                logger.info(f"Synced camera {cam.id}")
             else:
-                print(f"Failed to sync camera {cam.id}: {resp.text}", flush=True)
+                logger.error(f"Failed to sync camera {cam.id}: {resp.text}")
         except Exception as e:
-            print(f"Error syncing camera {cam.id}: {e}", flush=True)
+            logger.error(f"Error syncing camera {cam.id}: {e}")
 
     # 2. Stop inactive cameras that might still be running in the engine
     # Fetch ALL cameras to find those that are i-active
     all_cams = db.query(Camera).all()
-    print(f"Sync check: Found {len(all_cams)} total cameras in DB", flush=True)
+    logger.debug(f"Sync check: Found {len(all_cams)} total cameras in DB")
     for cam in all_cams:
-        print(f"Sync check: Camera {cam.id} ({cam.name}) is_active={cam.is_active}", flush=True)
+        logger.debug(f"Sync check: Camera {cam.id} ({cam.name}) is_active={cam.is_active}")
         if not cam.is_active:
              # Try to stop it just in case
              stop_camera(cam.id)
@@ -232,13 +236,13 @@ def sync_global_config(db: Session):
     try:
         resp = requests.post(f"{ENGINE_BASE_URL}/config", json=payload, timeout=5)
         if resp.status_code == 200:
-            print("Successfully synced global config to VibeEngine", flush=True)
+            logger.info("Successfully synced global config to VibeEngine")
             return True
         else:
-            print(f"Failed to sync global config: {resp.text}", flush=True)
+            logger.error(f"Failed to sync global config: {resp.text}")
             return False
     except Exception as e:
-        print(f"Error syncing global config: {e}", flush=True)
+        logger.error(f"Error syncing global config: {e}")
         return False
 
 def stop_all_engines():
@@ -247,7 +251,7 @@ def stop_all_engines():
         requests.post(f"{ENGINE_BASE_URL}/cameras/stop-all", timeout=5)
         return True
     except Exception as e:
-        print(f"Failed to stop all cameras: {e}")
+        logger.error(f"Failed to stop all cameras: {e}")
         return False
 
 def update_camera_runtime(camera: Camera):
@@ -267,13 +271,13 @@ def update_camera_runtime(camera: Camera):
     try:
         resp = requests.post(f"{ENGINE_BASE_URL}/cameras/{camera.id}/start", json=config, timeout=5)
         if resp.status_code == 200:
-            print(f"Updated camera {camera.id} config", flush=True)
+            logger.info(f"Updated camera {camera.id} config")
             return True
         else:
-            print(f"Failed to update camera {camera.id}: {resp.text}", flush=True)
+            logger.error(f"Failed to update camera {camera.id}: {resp.text}")
             return False
     except Exception as e:
-        print(f"Error updating camera {camera.id}: {e}", flush=True)
+        logger.error(f"Error updating camera {camera.id}: {e}")
         return False
 
 def toggle_recording_mode(camera_id: int, camera: Camera):
@@ -291,7 +295,7 @@ def trigger_snapshot(camera_id: int):
             return True
         return False
     except Exception as e:
-        print(f"Failed to trigger snapshot for camera {camera_id}: {e}")
+        logger.error(f"Failed to trigger snapshot for camera {camera_id}: {e}")
         return False
 
 def stop_camera(camera_id: int):
@@ -299,10 +303,10 @@ def stop_camera(camera_id: int):
     try:
         url = f"{ENGINE_BASE_URL}/cameras/{camera_id}/stop"
         requests.post(url, timeout=5)
-        print(f"Stopped camera {camera_id}", flush=True)
+        logger.info(f"Stopped camera {camera_id}")
         return True
     except Exception as e:
-        print(f"Error stopping camera {camera_id}: {e}", flush=True)
+        logger.error(f"Error stopping camera {camera_id}: {e}")
         return False
 
 def start_check_loop():

@@ -11,6 +11,8 @@ services:
       - ${VIBENVR_DATA:-vibenvr_data}:/data
     networks:
       - vibe-network
+    environment:
+      - TZ=${TZ:-Europe/Rome}
     depends_on:
       - backend
     restart: always
@@ -163,6 +165,7 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-vibenvr}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-vibenvrpass}
       - POSTGRES_DB=${POSTGRES_DB:-vibenvr}
+      - TZ=${TZ:-Europe/Rome}
     volumes:
       - ${VIBENVR_DB_DATA:-vibenvr_db_data}:/var/lib/postgresql/data
     healthcheck:

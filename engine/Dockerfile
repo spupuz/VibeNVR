@@ -44,6 +44,11 @@ ENV OPENCV_FFMPEG_DEBUG=0
 ENV OPENCV_FFMPEG_CAPTURE_OPTIONS="rtsp_transport;tcp"
 # Force Python 3 unbuffered output
 ENV PYTHONUNBUFFERED=1
+# Suppress TFLite / TensorFlow C++ internal logging (0=DEBUG,1=INFO,2=WARN,3=FATAL)
+ENV TF_CPP_MIN_LOG_LEVEL=3
+ENV TF_CPP_MIN_VLOG_LEVEL=0
+ENV GLOG_minloglevel=3
+ENV TFLITE_EXTERNAL_DELEGATE_VERBOSE=0
 
 # Copy source code
 COPY . .

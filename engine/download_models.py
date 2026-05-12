@@ -1,5 +1,16 @@
 import os
 import requests
+import logging
+
+# Configure logging explicitly
+logger = logging.getLogger("ModelDownloader")
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+logger.propagate = False
 
 MODELS_DIR = "models"
 MODEL_URLS = {
@@ -11,17 +22,17 @@ MODEL_URLS = {
 def download_file(url, filename):
     path = os.path.join(MODELS_DIR, filename)
     if os.path.exists(path):
-        print(f"Skipping {filename}, already exists.")
+        logger.info(f"Skipping {filename}, already exists.")
         return
     
-    print(f"Downloading {filename} from {url}...")
+    logger.info(f"Downloading {filename} from {url}...")
     response = requests.get(url, stream=True, timeout=30)
     response.raise_for_status()
     
     with open(path, "wb") as f:
         for chunk in response.iter_content(chunk_size=8192):
             f.write(chunk)
-    print(f"Done.")
+    logger.info(f"Done.")
 
 if __name__ == "__main__":
     os.makedirs(MODELS_DIR, exist_ok=True)
@@ -29,12 +40,12 @@ if __name__ == "__main__":
         try:
             download_file(url, filename)
         except Exception as e:
-            print(f"Error downloading {filename}: {e}")
+            logger.error(f"Error downloading {filename}: {e}")
 
     # YOLO Labels (Standard COCO 80 classes)
     yolo_labels_path = os.path.join(MODELS_DIR, "yolo_labels.txt")
     if not os.path.exists(yolo_labels_path):
-        print("Creating yolo_labels.txt...")
+        logger.info("Creating yolo_labels.txt...")
         coco_classes = [
             "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
             "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
@@ -50,6 +61,6 @@ if __name__ == "__main__":
         with open(yolo_labels_path, "w") as f:
             for i, cls in enumerate(coco_classes):
                 f.write(f"{i} {cls}\n")
-        print("Done.")
+        logger.info("Done.")
 
-    print("\nAll models verified.")
+    logger.info("All models verified.")

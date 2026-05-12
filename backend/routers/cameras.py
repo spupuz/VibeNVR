@@ -8,9 +8,9 @@ from utils import mask_url
 import logging
 from urllib.parse import urlparse
 from typing import Optional, List, Any
-import datetime
-import datetime
 import typing as t
+
+logger = logging.getLogger(__name__)
 
 MAX_IMPORT_SIZE = 10 * 1024 * 1024        # 10 MB  — JSON camera import
 MAX_MOTIONEYE_IMPORT_SIZE = 200 * 1024 * 1024  # 200 MB — MotionEye .tar.gz backup
@@ -75,7 +75,7 @@ def sanitize_rtsp_url(url: str) -> str:
             
         return url
     except Exception as e:
-        print(f"Error sanitizing URL: {mask_url(str(e))}")
+        logger.error(f"Error sanitizing URL: {mask_url(str(e))}")
         return url
 
 @router.post("", response_model=schemas.Camera)
@@ -99,14 +99,14 @@ def create_camera(
     # Auto-detect resolution if passthrough is enabled
     # Auto-detect resolution if enabled
     if camera.auto_resolution and camera.rtsp_url:
-        print(f"Probing stream for camera {camera.name}...", flush=True)
+        logger.info(f"Probing stream for camera {camera.name}...")
         dims = probe_service.probe_stream(camera.rtsp_url, rtsp_transport=camera.rtsp_transport)
         if dims:
-            print(f"Detected resolution: {dims['width']}x{dims['height']}", flush=True)
+            logger.info(f"Detected resolution: {dims['width']}x{dims['height']}")
             camera.resolution_width = dims['width']
             camera.resolution_height = dims['height']
         else:
-            print("Probe failed, using provided resolution.", flush=True)
+            logger.info("Probe failed, using provided resolution.")
 
     new_camera = crud.create_camera(db=db, camera=camera)
     if new_camera.onvif_host:
@@ -148,7 +148,7 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks
         camera.rtsp_url = sanitize_rtsp_url(camera.rtsp_url)
         # Log the sanitized URL (masked for safety)
         masked_url = mask_url(camera.rtsp_url)
-        print(f"[UPDATE] Camera {camera_id} sanitized URL: {masked_url}", flush=True)
+        logger.info(f"[UPDATE] Camera {camera_id} sanitized URL: {masked_url}")
 
     # Get existing camera to check if RTSP URL changed
     existing_camera = crud.get_camera(db, camera_id=camera_id)
@@ -162,14 +162,14 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks
     is_res_default = existing_camera.resolution_width in (0, 1920) and existing_camera.resolution_height in (0, 1080)
     
     if camera.auto_resolution and camera.rtsp_url and (rtsp_changed or auto_res_just_enabled or is_res_default):
-        print(f"Probing stream for camera {camera.name} (Trigger: {'URL Change' if rtsp_changed else 'Auto-Res Enabled/Default'})...", flush=True)
+        logger.info(f"Probing stream for camera {camera.name} (Trigger: {'URL Change' if rtsp_changed else 'Auto-Res Enabled/Default'})...")
         dims = probe_service.probe_stream(camera.rtsp_url, rtsp_transport=camera.rtsp_transport)
         if dims:
-            print(f"Detected resolution: {dims['width']}x{dims['height']}", flush=True)
+            logger.info(f"Detected resolution: {dims['width']}x{dims['height']}")
             camera.resolution_width = dims['width']
             camera.resolution_height = dims['height']
         else:
-            print("Probe failed, using provided resolution.", flush=True)
+            logger.info("Probe failed, using provided resolution.")
 
     # Store old active status to decide on start vs update
     was_active = existing_camera.is_active
@@ -191,7 +191,7 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks
     # If it was active and now inactive -> Stop? (Sync handles it?)
     # For now, let's just Sync All if active status changes, simpler.
     if was_active != db_camera.is_active:
-        print(f"Camera {camera.name} active status changed ({was_active} -> {db_camera.is_active}). Syncing Engine...", flush=True)
+        logger.info(f"Camera {camera.name} active status changed ({was_active} -> {db_camera.is_active}). Syncing Engine...")
         if db_camera.is_active:
             motion_service.update_camera_runtime(db_camera)
         else:
@@ -199,7 +199,7 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks
     else:
         # Just update runtime config if active
         if db_camera.is_active:
-            print(f"Camera {camera.name} updated. Applying runtime config...", flush=True)
+            logger.info(f"Camera {camera.name} updated. Applying runtime config...")
             motion_service.update_camera_runtime(db_camera)
             # Update ONVIF Event subscription if needed
             from onvif_event_service import event_manager
@@ -207,7 +207,7 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks
             # Immediate health refresh
             background_tasks.add_task(health_service.refresh_camera_health, camera_id)
         else:
-            print(f"Camera {camera.name} updated (inactive). Ensuring it is stopped...", flush=True)
+            logger.info(f"Camera {camera.name} updated (inactive). Ensuring it is stopped...")
             motion_service.stop_camera(db_camera.id)
 
     return db_camera
@@ -247,7 +247,7 @@ def toggle_camera_recording(camera_id: int, db: Session = Depends(database.get_d
     
     if not success:
         # Fallback: regenerate config and restart (slower but reliable)
-        print("Per-camera toggle failed, falling back to full restart", flush=True)
+        logger.warning("Per-camera toggle failed, falling back to full restart")
         motion_service.generate_motion_config(db)
     
     return db_camera
@@ -383,7 +383,7 @@ async def get_camera_frame(camera_id: int, request: Request, token: Optional[str
                 headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
             )
     except Exception as e:
-        print(f"[FRAME] Error getting frame for camera {camera_id}: {e}", flush=True)
+        logger.error(f"[FRAME] Error getting frame for camera {camera_id}: {e}")
         # Return error status so frontend can show "Connection Error" overlay
         # instead of loading a black placeholder frame
         raise HTTPException(status_code=503, detail=f"Frame unavailable: {e}")
@@ -416,7 +416,7 @@ async def stream_camera(camera_id: int, request: Request, token: Optional[str] =
     motion_stream_url = f"http://engine:8000/cameras/{camera_id}/stream"
     
     async def generate():
-        print(f"[STREAM] Starting proxy for camera {camera_id} from {motion_stream_url}", flush=True)
+        logger.info(f"[STREAM] Starting proxy for camera {camera_id} from {motion_stream_url}")
         try:
             # Connection timeout 5s, Read timeout None (infinite stream)
             timeout = httpx.Timeout(None, connect=5.0)
@@ -424,7 +424,7 @@ async def stream_camera(camera_id: int, request: Request, token: Optional[str] =
                 try:
                     async with client.stream("GET", motion_stream_url) as response:
                         if response.status_code != 200:
-                            print(f"[STREAM] Motion returned status {response.status_code}, aborting.", flush=True)
+                            logger.error(f"[STREAM] Motion returned status {response.status_code}, aborting.")
                             return
                         
                         count: int = 0
@@ -432,13 +432,13 @@ async def stream_camera(camera_id: int, request: Request, token: Optional[str] =
                             yield chunk
                             count += 1
                             if count % 100 == 0:
-                                print(f"[STREAM] Camera {camera_id} proxy active, chunk {count}", flush=True)
+                                logger.debug(f"[STREAM] Camera {camera_id} proxy active, chunk {count}")
                 except Exception as e:
-                    print(f"[STREAM] Proxy error loop for {camera_id}: {e}", flush=True)
+                    logger.error(f"[STREAM] Proxy error loop for {camera_id}: {e}")
         except Exception as e:
-            print(f"[STREAM] Proxy error for camera {camera_id}: {type(e).__name__}: {e}", flush=True)
+            logger.error(f"[STREAM] Proxy error for camera {camera_id}: {type(e).__name__}: {e}")
         finally:
-            print(f"[STREAM] Proxy finished for camera {camera_id}", flush=True)
+            logger.info(f"[STREAM] Proxy finished for camera {camera_id}")
     
     return StreamingResponse(
         generate(),
@@ -578,7 +578,7 @@ async def import_cameras(file: UploadFile = File(...), db: Session = Depends(dat
     except Exception as e:
         import traceback
         traceback.print_exc()
-        print(f"[IMPORT] Unexpected Error: {e}", flush=True)
+        logger.error(f"[IMPORT] Unexpected Error: {e}")
         raise HTTPException(status_code=400, detail=f"Import failed: {str(e)}")
 
 @router.post("/import/motioneye")
@@ -699,7 +699,7 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
         return {"message": msg, "count": final_imported, "skipped": final_skipped}
 
     except Exception as e:
-        print(f"MotionEye Import Error: {e}", flush=True)
+        logger.error(f"MotionEye Import Error: {e}")
         raise HTTPException(status_code=400, detail=f"Failed to parse MotionEye backup: {str(e)}")
 
 @router.post("/{camera_id}/cleanup")

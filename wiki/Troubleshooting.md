@@ -65,3 +65,5 @@ Include a **Diagnostic Bundle**:
 2. Go to **System Logs**.
 3. Click **"Download Report"**.
 4. Attach the `.zip` file to your GitHub issue.
+
+> 💡 **Tip**: VibeNVR logs are now standardized with consistent timestamps across all components. When reviewing `docker compose logs`, you can easily correlate events between the Backend, Engine, and Frontend.

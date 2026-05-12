@@ -90,7 +90,29 @@ def generate_debug_report():
                 report.append(f"    Storage Limit: {cam.max_storage_gb}GB")
                 report.append(f"    Movie Passthrough: {cam.movie_passthrough}")
                 report.append(f"    URL Structure: {safe_url}")
+                
+                safe_sub_url = "N/A"
+                if cam.sub_rtsp_url:
+                    safe_sub_url = re.sub(r'(rtsp://[^:]+):([^@]+)@', r'\1:***@', cam.sub_rtsp_url) 
+                    safe_sub_url = re.sub(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', 'XXX.XXX.XXX.XXX', safe_sub_url)
+                report.append(f"    Sub-stream URL: {safe_sub_url}")
+                
+                report.append(f"    Audio: Detect={cam.audio_enabled}, Enable={cam.enable_audio}")
+                report.append(f"    AI Engine: {cam.detect_engine}, Enabled={cam.ai_enabled}, Tracking={cam.ai_tracking_enabled}")
+                
+                has_privacy = bool(cam.privacy_masks and cam.privacy_masks != "[]")
+                has_motion_masks = bool(cam.motion_masks and cam.motion_masks != "[]")
+                report.append(f"    Masks: Privacy={has_privacy}, MotionExclusion={has_motion_masks}")
+                
                 report.append(f"    Enabled: {cam.is_active}")
+
+            # Storage Profiles Summary
+            report.append("\n--- Storage Profiles ---")
+            profiles = db.query(models.StorageProfile).all()
+            if not profiles:
+                report.append("  No Storage Profiles defined.")
+            for p in profiles:
+                report.append(f"  - Profile ID {p.id} ({p.name}): Path={p.path}, Max Size={p.max_size_gb}GB")
 
             # Global Settings
             settings = db.query(models.SystemSettings).all()
@@ -157,6 +179,26 @@ FILES_MAP = {
     "frontend_access": "frontend.access.log",
     "frontend_error": "frontend.error.log",
 }
+
+def is_readable_log_line(line: str) -> bool:
+    """
+    Return False for lines that are clearly binary/non-printable garbage.
+    This filters out TFLite/EdgeTPU model initialization binary dumps
+    that can flood the engine log with thousands of lines of '////' noise.
+    """
+    stripped = line.strip()
+    if not stripped:
+        return False
+    # Count non-printable (control) characters, excluding common ones like \t
+    non_printable = sum(1 for c in stripped if ord(c) < 32 and c not in ('\t',))
+    if non_printable > 5:
+        return False
+    # Reject lines composed almost entirely of repeated non-alphanumeric chars
+    # (e.g. long runs of '/', '\', '|' from binary data escaped as text)
+    alphanum = sum(1 for c in stripped if c.isalnum() or c in (' ', '-', '_', '.', ':', '[', ']'))
+    if len(stripped) > 20 and (alphanum / len(stripped)) < 0.15:
+        return False
+    return True
 
 def redact_line(line: str) -> str:
     # 1. Redact credentials in URLs (rtsp://user:pass@host)
@@ -231,7 +273,13 @@ async def get_logs(
                 clean_line = line.strip()
                 if not clean_line:
                     continue
-                
+
+                # Filter binary/non-printable lines from the engine log
+                # (e.g. TFLite/EdgeTPU model init output).
+                # Readable outcome lines like "AI: SUCCESS..." pass through naturally.
+                if svc_name == 'engine' and not is_readable_log_line(clean_line):
+                    continue
+
                 # Prefix if displaying all
                 display_line = f"[{svc_name.upper()}] {clean_line}" if service == 'all' else clean_line
                 redacted = redact_line(display_line)
@@ -304,11 +352,22 @@ async def download_all_logs(user: dict = Depends(get_current_user)):
             if os.path.exists(filepath):
                 # We need to read, redact, and write to zip
                 sanitized_content = []
+                skipped_lines = 0
                 try:
                     with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
                         for line in f:
+                            # For the engine log, filter out binary/non-printable lines
+                            # produced by TFLite/EdgeTPU model initialization
+                            if service == 'engine' and not is_readable_log_line(line):
+                                skipped_lines += 1
+                                continue
                             sanitized_content.append(redact_line(line))
-                    
+
+                    if skipped_lines > 0:
+                        sanitized_content.append(
+                            f"\n[NOTE: {skipped_lines} binary/non-printable line(s) were filtered from this log "
+                            f"(likely TFLite/EdgeTPU model init output).]\n"
+                        )
                     zip_file.writestr(f"sanitized_{filename}", "".join(sanitized_content))
                 except Exception as e:
                     zip_file.writestr(f"error_{service}.txt", str(e))

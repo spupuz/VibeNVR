@@ -54,6 +54,7 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | 🏠 **Native MQTT Service** | Built-in MQTT service for real-time motion reporting and **Home Assistant Discovery**. Publishes AI metadata and camera status. |
 | 🔍 **Network Discovery** | Securely scan network ranges for ONVIF/RTSP devices via authenticated **SSE (Server-Sent Events)** streams. |
 | 🛡️ **System Integrity Audit** | Integrated security and consistency audits verify RBAC isolation, path sanitization, and **Backend-Engine synchronization** (e.g., Audio capabilities) on every release. |
+| 📊 **Standardized Logging** | Unified timestamping and formatting across all containers. Includes **Automatic Redaction** of sensitive credentials (RTSP, tokens) and binary noise filtering. |
 | 🐳 **Docker-Native** | Zero-dependency deployment with **Tag-Driven CI/CD**. Images are ultra-lean (~1GB) and protected by recursive `.dockerignore` policies to prevent artifact leakage. |
 
 ---

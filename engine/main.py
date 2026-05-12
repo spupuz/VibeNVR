@@ -7,15 +7,36 @@ import logging
 import psutil
 import os
 import sys
+import re
 
-import logging
-import psutil
+# 1. IMMEDIATE LOGGING CONFIGURATION
+def setup_initial_logging():
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    
+    # Configure Root Logger
+    root_logger = logging.getLogger()
+    if not root_logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
+        root_logger.addHandler(handler)
+    else:
+        for handler in root_logger.handlers:
+            handler.setFormatter(formatter)
+    root_logger.setLevel(logging.INFO)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    force=True
-)
+    # Configure Uvicorn Loggers
+    for logger_name in ["uvicorn", "uvicorn.error", "uvicorn.access"]:
+        u_logger = logging.getLogger(logger_name)
+        u_logger.propagate = False
+        if not u_logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(formatter)
+            u_logger.addHandler(handler)
+        else:
+            for handler in u_logger.handlers:
+                handler.setFormatter(formatter)
+
+setup_initial_logging()
 
 # Setup Logger custom level
 VERBOSE_LEVEL = 5
@@ -44,20 +65,10 @@ class PollingSamplingFilter(logging.Filter):
 
 def apply_logging_filters():
     sampling_filter = PollingSamplingFilter()
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-    
-    # Target access logs for sampling
     access_logger = logging.getLogger("uvicorn.access")
     access_logger.addFilter(sampling_filter)
     for handler in access_logger.handlers:
         handler.addFilter(sampling_filter)
-        handler.setFormatter(formatter)
-    
-    # Force generic uvicorn log formatting
-    for name in ["uvicorn", "uvicorn.error"]:
-        l = logging.getLogger(name)
-        for handler in l.handlers:
-            handler.setFormatter(formatter)
 
 # Initial application
 apply_logging_filters()
@@ -534,5 +545,14 @@ def get_stream(camera_id: int):
 
 if __name__ == "__main__":
     import uvicorn
+    
+    # Custom log config to ensure uvicorn uses our date format
+    log_config = uvicorn.config.LOGGING_CONFIG
+    log_format = "%(asctime)s - %(levelname)s - %(message)s"
+    log_config["formatters"]["access"]["fmt"] = log_format
+    log_config["formatters"]["default"]["fmt"] = log_format
+    log_config["formatters"]["access"]["datefmt"] = "%Y-%m-%d %H:%M:%S"
+    log_config["formatters"]["default"]["datefmt"] = "%Y-%m-%d %H:%M:%S"
+
     # Listen on all interfaces
-    uvicorn.run(app, host="0.0.0.0", port=8000)  # nosec
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_config=log_config)  # nosec

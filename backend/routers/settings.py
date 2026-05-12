@@ -15,6 +15,8 @@ import requests, os
 import telemetry_service
 import settings_service
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/settings", tags=["settings"])
 limiter = Limiter(key_func=get_remote_address)
 
