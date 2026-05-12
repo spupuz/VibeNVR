@@ -26,6 +26,8 @@
 - **Global Settings Sync**: Core parameters (AI Model, AI Hardware, MQTT, FPS Throttles) are managed as **Global System Settings** and synchronized to the engine singleton in real-time, ensuring architecture-wide consistency and stability.
 - **Configuration Backup & Restore**: Full system configuration (cameras, settings, users) can be exported, imported, and restored from automated/manual snapshots stored in `/data/backups/`.
 - **System Integrity Audit**: Integrated security, RBAC, and synchronization audits (e.g., Audio/PTZ/AI) are performed on every release to ensure system-wide consistency and safety.
+- **Standardized Logging & Audit**: Unified timestamp format (`YYYY-MM-DD HH:MM:SS`) is enforced across all containers. Native log redaction (`TokenRedactingFilter`) masks sensitive data, and binary noise filtering ensures readable audit trails.
+- **Dynamic Cookie Security**: Implements an 'auto-detect' protocol policy (`COOKIE_SECURE=auto`). The system dynamically toggles the `Secure` flag based on the connection type (HTTP vs HTTPS), providing zero-config local access while maintaining high security on public networks.
 - **Build Hygiene**: Every component context enforces strict build isolation via `.dockerignore` files, ensuring lean and secure production images.
 - **Frontend Modularity**: Large page views (e.g., `Cameras.jsx`) are decomposed into component directories to maintain code size limits and improve reusability.
 - **Telemetry Worker**: A Cloudflare edge service (`vibenvr-telemetry-worker`) handles telemetry, static assets, and proxying. It is cleanly modularized (`api.js`, `dashboard.js`, `ingest.js`, `security.js`, `assets.js`) to enforce strict security at the edge level and maintain short file lengths.

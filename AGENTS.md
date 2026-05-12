@@ -144,6 +144,14 @@ export const AuthProvider = ({ children }) => {
     };
 };
 
+/**
+ * NOTE: Cookie Security Policy
+ * The backend uses 'COOKIE_SECURE=auto' by default. 
+ * - If access is via HTTP (local IP), the 'Secure' flag is removed to allow sessions.
+ * - If access is via HTTPS (remote proxy), the 'Secure' flag is automatically enabled.
+ * This ensures zero-config local usability without compromising public security.
+ */
+
 // Correct pattern for media fetch (frame polling):
 const response = await fetch(`/api/cameras/${id}/frame?t=${Date.now()}`, {
     credentials: 'include',
@@ -318,6 +326,8 @@ logger.info(f"Connecting to {rtsp_url}") # BAD! Exposes credentials in stdout.
 safe_url = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', rtsp_url)
 logger.info(f"Connecting to {safe_url}")
 ```
+
+**Note**: VibeNVR uses a centralized `TokenRedactingFilter` (defined in `backend/main.py`) that automatically masks credentials, Bearer tokens, and API keys at the root logger level. Always ensure new loggers inherit from this filter to maintain auditability without leaking secrets.
 
 ## Security & Data Privacy
 
