@@ -27,7 +27,7 @@ WEBHOOK_SECRET=another_64_char_random_hex_here
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `COOKIE_SECURE` | `true` | Controls the `Secure` flag on auth cookies. Set to `false` for local HTTP access (`http://localhost`). Must be `true` when serving via HTTPS. |
+| `COOKIE_SECURE` | `auto` | Controls the `Secure` flag on auth cookies. Set to `auto` (default) to automatically detect HTTPS vs HTTP based on request headers. Set to `false` for local HTTP access if auto-detection fails. |
 
 ```env
 # Local HTTP testing only:

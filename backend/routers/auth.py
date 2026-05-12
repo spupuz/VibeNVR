@@ -125,8 +125,16 @@ async def login_for_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     
-    # Secure by default — set COOKIE_SECURE=false in .env for local HTTP testing
-    is_secure = os.getenv("COOKIE_SECURE", "true").lower() == "true"
+    # Dynamic Cookie Security Logic
+    # 1. Respect manual override if set to 'true' or 'false'
+    # 2. Use 'auto' (default) to detect based on request protocol
+    cookie_secure_env = os.getenv("COOKIE_SECURE", "auto").lower()
+    if cookie_secure_env == "auto":
+        # Detect if the request is over HTTPS via headers or scheme
+        # X-Forwarded-Proto is set by our Nginx (frontend) based on $scheme
+        is_secure = request.headers.get("x-forwarded-proto") == "https" or request.url.scheme == "https"
+    else:
+        is_secure = cookie_secure_env == "true"
 
     # Set HttpOnly media_token cookie for secure media streaming/fetching
     response.set_cookie(
@@ -150,7 +158,7 @@ async def login_for_access_token(
         max_age=auth_service.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         secure=is_secure
     )
-    logger.debug("auth_token + media_token cookies set for user: %s (secure=%s)", user.username, is_secure)
+    logger.debug("auth_token + media_token cookies set for user: %s (secure=%s, mode=%s)", user.username, is_secure, cookie_secure_env)
     
     response_data = {"access_token": access_token, "token_type": "bearer"}
     if output_device_token:
@@ -294,7 +302,12 @@ async def me_from_cookie(request: Request, response: Response, db: Session = Dep
 
     # Always re-set media_token so it is present regardless of how the session
     # was originally established (e.g. previous HTTPS login, or expired cookie).
-    is_secure = os.getenv("COOKIE_SECURE", "true").lower() == "true"
+    cookie_secure_env = os.getenv("COOKIE_SECURE", "auto").lower()
+    if cookie_secure_env == "auto":
+        is_secure = request.headers.get("x-forwarded-proto") == "https" or request.url.scheme == "https"
+    else:
+        is_secure = cookie_secure_env == "true"
+
     response.set_cookie(
         key="media_token",
         value=token,

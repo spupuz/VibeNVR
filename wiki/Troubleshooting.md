@@ -66,4 +66,13 @@ Include a **Diagnostic Bundle**:
 3. Click **"Download Report"**.
 4. Attach the `.zip` file to your GitHub issue.
 
-> 💡 **Tip**: VibeNVR logs are now standardized with consistent timestamps across all components. When reviewing `docker compose logs`, you can easily correlate events between the Backend, Engine, and Frontend.
+> 💡 **Tip**: VibeNVR logs are now standardized with consistent timestamps across all components. When reviewing `docker compose logs`, you can easily correlate events between the Backend, Engine, and Frontend. Sensitive data (passwords, tokens) is automatically redacted.
+
+---
+
+### 🔑 Session & Cookie Issues
+If you encounter "No session cookie" errors or are repeatedly logged out:
+1. **Check `COOKIE_SECURE`**: By default, it is set to `auto`. The system detects if you are on HTTP or HTTPS.
+2. **Local Access**: If accessing via IP (e.g., `http://192.168.1.50:8080`), ensure you are using a modern browser.
+3. **Reverse Proxy**: If you are behind a proxy (like Nginx Proxy Manager), ensure it correctly passes the `X-Forwarded-Proto` header.
+4. **Manual Override**: If `auto` fails in your specific network setup, explicitly set `COOKIE_SECURE=false` in your `.env` file for local-only use.

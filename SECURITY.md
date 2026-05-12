@@ -28,7 +28,7 @@ Static media files (historical recordings, snapshots, and live proxy streams) ar
 - **HttpOnly Cookie Authentication**: VibeNVR uses **secure HttpOnly cookies** for all authenticated sessions:
   - `auth_token` — protects the main session (replaces `localStorage` storage, eliminating XSS token theft).
   - `media_token` — authenticates access to static media files (recordings, snapshots, live frames).
-  - Both cookies have the `Secure` flag enabled by default (`COOKIE_SECURE=true`). Set `COOKIE_SECURE=false` **only** for local HTTP testing. Never in production.
+  - Both cookies have the `Secure` flag managed automatically (`COOKIE_SECURE=auto`). The backend detects if the request is over HTTPS (via `X-Forwarded-Proto`) and enables protection only when possible. This allows for seamless transitions between local HTTP and remote HTTPS access.
 - **Backup Protection**: Automated configuration backups containing sensitive data (TOTP secrets, hashed passwords) are stored in `/data/backups/`. Access to these files via the media API (`/media/backups/*`) is strictly restricted to users with the `admin` role. Unauthorized access attempts are logged and blocked with a 403 Forbidden response.
 - **API Tokens with TTL**: Machine-to-machine integrations use API Tokens verified via the `X-API-Key` header.
     - **TTL (Time-To-Live)**: Tokens support optional expiration dates.
