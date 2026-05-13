@@ -234,8 +234,12 @@ class CameraThread(threading.Thread):
                     ai_results=ai_results
                 )
                 
-                # Pre-capture buffer
-                self._update_pre_buffer(frame)
+                # Pre-capture buffer (Only if passthrough is disabled, as passthrough doesn't support pre-capture)
+                if not self.config.get('movie_passthrough', False):
+                    self._update_pre_buffer(frame)
+                else:
+                    if len(self.pre_buffer) > 0:
+                        self.pre_buffer.clear()
 
                 # Update Processed frames for UI Live View
                 if self.live_view_counter % lv_throttle == 0:
@@ -300,6 +304,7 @@ class CameraThread(threading.Thread):
             
             self.pre_buffer_counter += 1
             if self.pre_buffer_counter % throttle == 0:
+                # Store a copy to avoid issues if the original is modified in-place by overlays
                 self.pre_buffer.append(frame.copy())
 
     def _update_metrics(self, loop_start_time):

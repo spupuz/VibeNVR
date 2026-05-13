@@ -126,29 +126,42 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
             should_notify_tg = False
             if event_type == "event_start":
                 should_notify_tg = camera.notify_start_telegram
-                source = details.get("source", "Standard")
-                prefix = "🤖 AI " if "AI Engine" in source else ("📷 Edge " if source == "ONVIF Edge" else "🚨 ")
-                caption = f"{prefix}*Motion Detected!*\n📷 Camera: {camera.name}\n⏰ Time: {ts_formatted}"
-                
-                # Add AI metadata if available
-                ai_meta = details.get("ai_metadata")
-                if ai_meta and isinstance(ai_meta, list):
-                    labels = sorted(list(set([str(r.get("label")).capitalize() for r in ai_meta if r.get("label")])))
-                    if labels:
-                        caption += f"\n🔍 Objects: {', '.join(labels)}"
             elif event_type == "camera_health":
                 should_notify_tg = camera.notify_health_telegram
-                caption = f"{details.get('title', 'Camera Alert')}\n{details.get('message', '')}"
 
             if should_notify_tg and tg_token and tg_chat:
                 try:
+                    import html
+                    # Use HTML parse mode as it's more robust than Markdown for automated content
+                    safe_name = html.escape(camera.name)
+                    safe_ts = html.escape(ts_formatted or "")
+                    
+                    if event_type == "event_start":
+                        source = details.get("source", "Standard")
+                        prefix = "🤖 <b>AI</b> " if "AI Engine" in source else ("📷 <b>Edge</b> " if source == "ONVIF Edge" else "🚨 ")
+                        caption = f"{prefix}<b>Motion Detected!</b>\n📷 Camera: {safe_name}\n⏰ Time: {safe_ts}"
+                        
+                        # Add AI metadata if available
+                        ai_meta = details.get("ai_metadata")
+                        if ai_meta and isinstance(ai_meta, list):
+                            labels = sorted(list(set([str(r.get("label")).capitalize() for r in ai_meta if r.get("label")])))
+                            if labels:
+                                safe_labels = html.escape(', '.join(labels))
+                                caption += f"\n🔍 Objects: {safe_labels}"
+                    elif event_type == "camera_health":
+                        safe_title = html.escape(details.get('title', 'Camera Alert'))
+                        safe_msg = html.escape(details.get('message', ''))
+                        caption = f"<b>{safe_title}</b>\n{safe_msg}"
+                    else:
+                        caption = html.escape(caption)
+
                     # Check both Camera setting AND Global setting (Master switch logic)
                     if image_path and camera.notify_attach_image_telegram and global_attach_telegram:
                         # Send Photo
                         url = f"https://api.telegram.org/bot{tg_token}/sendPhoto"
                         with open(image_path, 'rb') as f:
                             files = {'photo': f}
-                            data = {'chat_id': tg_chat, 'caption': caption, 'parse_mode': 'Markdown'}
+                            data = {'chat_id': tg_chat, 'caption': caption, 'parse_mode': 'HTML'}
                             requests.post(url, data=data, files=files, timeout=10)
                     else:
                         # Send Text
@@ -156,7 +169,7 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                         requests.post(url, json={
                             "chat_id": tg_chat,
                             "text": caption,
-                            "parse_mode": "Markdown"
+                            "parse_mode": "HTML"
                         }, timeout=5)
                 except Exception as e:
                     logger.error(f"[NOTIFY] Telegram failed: {e}")

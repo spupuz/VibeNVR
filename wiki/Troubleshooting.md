@@ -29,6 +29,18 @@ In production (`ENVIRONMENT=production`), the app will strictly enforce this. To
 Verify the RTSP URL is reachable from inside the Docker container. The `localhost` addresses are blocked for security reasons — use the camera's actual LAN IP.
 
 > 💡 **Note on URL format**: VibeNVR supports raw RTSP paths including double slashes (e.g., `rtsp://ip:port//stream2`).
++
++---
++
++### 🔋 Battery / Wyze Camera Stability
++Wyze V3 and some battery-powered cameras (Eufy, Reolink) can be sensitive to rapid RTSP connections.
++
++**Recommended Settings:**
++1. **RTSP Transport**: Set to **TCP** in Camera Settings (Main & Sub stream).
++2. **Detection Mode**: Use **ONVIF Edge** if supported, or ensure **AI Master Switch** is ON to allow the engine to use its adaptive sleep patterns.
++3. **NAL Parsing**: VibeNVR automatically uses optimized NAL-unit parsing to handle the non-standard H.264 streams typical of these devices.
++
++---
 
 ---
 

@@ -30,8 +30,8 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | 🎨 **Customizable Dashboard** | Toggle widgets and graphs to suit your monitoring needs. **New**: Real-time MQTT and **AI Processor** status indicators. |
 | 🛡️ **Secure by Design** | Full JWT authentication, **2FA with Trusted Devices**, Rate Limiting, and HttpOnly Media Cookies. |
 | 📷 **Advanced Video Engine** | Custom Python engine using PyAV & FFmpeg for RTSP streaming, with OpenCV for motion detection and image processing. |
-| ⚡ **Passthrough Recording** | Direct Stream Copy support for near-zero CPU usage recording (experimental, with auto-fallback). |
-| 🎯 **Smart Motion Detection** | Three detection engines: **OpenCV** (classic), **ONVIF Edge** (hardware offload), and **AI** (TFLite object recognition). |
+| ⚡ **Passthrough Recording** | Direct Stream Copy support for near-zero CPU usage. **NEW**: Dynamic Memory Optimization (Zero-Buffer mode) for ultra-low RAM usage. |
+| 🎯 **Smart Motion Detection** | Three detection engines: **OpenCV** (classic), **ONVIF Edge** (hardware offload), and **AI** (TFLite object recognition). **Stability+**: Adaptive RTSP retry logic and high-performance NAL parsing for Wyze/Battery cameras. |
 | 🤖 **AI Object Detection** | High-performance inference with **YOLOv8** or MobileNet SSD v2. Support for **Google Coral Edge TPU** or CPU. Detects people, vehicles, animals, and filters by confidence. **NMS (Non-Maximum Suppression)** ensures clean detections. **New**: Real-time **AI Tracking Boxes** for WebCodecs streams. |
 | 🛡️ **Universal AI Activation** | A global master switch allows for instant system-wide AI enabling/disabling. If OFF, AI models are not loaded, saving significant resources. Cameras automatically fallback to **OpenCV** detection with clear UI indicators. |
 | 🔍 **Descriptive AI Alerts** | Dynamic notifications including detected object labels (e.g., 🔍 Objects: Person, Vehicle) and confidence scores. |

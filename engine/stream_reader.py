@@ -68,14 +68,21 @@ class StreamReader(threading.Thread):
     def _build_av_options(self):
         opts = {
             'rtsp_transport': self.rtsp_transport,
-            'stimeout': '5000000',
+            'stimeout': '8000000', # Increased to 8s for flaky cameras like Wyze
             'flags': 'low_delay',
+            'allowed_media_types': 'video', # We mostly care about video for motion/UI
+            'buffer_size': '1024000', # 1MB buffer to handle I-frame spikes
         }
+
+        # Only prefer TCP if not explicitly using UDP
+        if self.rtsp_transport != 'udp':
+            opts['rtsp_flags'] = 'prefer_tcp'
         
-        # Secure RTSP (RSTSPS/RTSPS) - Skip TLS certificate verification (common for self-signed NVRs)
+        # Secure RTSP (RSTSPS/RTSPS) - Skip TLS certificate verification
         if self.url.lower().startswith(('rstsps://', 'rtsps://')):
             opts['tls_verify'] = '0'
             logger.info(f"StreamReader ({self.camera_name}): Secure RTSP detected, skipping TLS verification")
+            
         hw_accel_enabled = os.environ.get('HW_ACCEL', 'false').lower() == 'true'
         hw_accel_type = os.environ.get('HW_ACCEL_TYPE', 'auto').lower()
         if hw_accel_enabled:
@@ -110,7 +117,7 @@ class StreamReader(threading.Thread):
                     container = av.open(
                         target_url,
                         options=self._build_av_options(),
-                        timeout=8.0
+                        timeout=10.0 # Increased timeout
                     )
                     if container.streams.video is None or len(container.streams.video) == 0:
                         raise Exception("No video stream found in container")
@@ -128,7 +135,7 @@ class StreamReader(threading.Thread):
                     auth_keywords = ['401', '403', 'unauthorized', 'forbidden', 'permission denied',
                                      'authentication', 'wrong username']
                     refused_keywords = ['connection refused', 'connection reset', 'timed out',
-                                        'no route to host', 'network unreachable']
+                                        'no route to host', 'network unreachable', 'i/o error']
 
                     if any(k in err_str for k in auth_keywords):
                         with self.lock:
@@ -156,14 +163,13 @@ class StreamReader(threading.Thread):
                             self.health_status = "UNREACHABLE"
                             self.latest_frame = None
                         logger.warning(
-                            f"StreamReader ({self.camera_name}): Connection refused/reset. "
-                            f"If Tapo/TP-Link, the host IP may be temporarily banned."
+                            f"StreamReader ({self.camera_name}): Connection refused/reset/timeout ({e}). "
+                            f"Retrying shortly..."
                         )
                         self._maybe_send_health_callback(
                             "UNREACHABLE",
-                            "📡 Camera Offline (Possible IP Ban)",
-                            "Camera connection refused. If this is a Tapo/TP-Link camera, "
-                            "the server IP may be temporarily banned. Power-cycle the camera and correct the credentials."
+                            "📡 Camera Offline",
+                            f"Camera connection failed: {e}. Check network, power, or RTSP firmware status."
                         )
                         retry_delay = min(60, 10 * self.consecutive_failures)
                         for _ in range(retry_delay):
@@ -179,7 +185,7 @@ class StreamReader(threading.Thread):
                     self._maybe_send_health_callback(
                         "UNREACHABLE",
                         "📡 Camera Offline",
-                        "Camera is unreachable. Check network or power."
+                        f"Camera is unreachable: {e}"
                     )
                     retry_delay = min(60, 5 * (2 ** max(0, self.consecutive_failures - 1)))
                     for _ in range(retry_delay):
@@ -220,24 +226,33 @@ class StreamReader(threading.Thread):
                     raw_data = bytes(packet)
                     
                     # Video specific NAL parsing for keyframe headers (SPS/PPS)
+                    # OPTIMIZED: Use find() instead of byte-by-byte scan
                     if stream_type == 'video' and len(raw_data) > 4:
-                        pos = 0
-                        while pos < len(raw_data) - 4:
-                            if raw_data.startswith(b'\x00\x00\x01', pos):
+                        # Only scan if it's a keyframe or if we haven't found headers yet
+                        is_kf = getattr(packet, 'is_keyframe', False)
+                        if is_kf or not self.last_headers:
+                            pos = 0
+                            while True:
+                                pos = raw_data.find(b'\x00\x00\x01', pos)
+                                if pos == -1 or pos > len(raw_data) - 4:
+                                    break
+                                
                                 nal_header = raw_data[pos + 3]
                                 nal_type = nal_header & 0x1F
-                                next_pos = raw_data.find(b'\x00\x00\x01', pos + 3)
-                                if next_pos == -1: next_pos = len(raw_data)
+                                
+                                # SPS (7) or PPS (8)
                                 if nal_type == 7 or nal_type == 8:
+                                    next_pos = raw_data.find(b'\x00\x00\x01', pos + 3)
+                                    if next_pos == -1: next_pos = len(raw_data)
                                     nalu: bytes = raw_data[pos:next_pos]
                                     with self.lock:
                                         if nalu not in self.last_headers:
-                                            self.last_headers += nalu
-                                next_pos = raw_data.find(b'\x00\x00\x01', pos + 3)
-                                if next_pos == -1: next_pos = len(raw_data)
-                                pos = next_pos
-                            else:
-                                pos += 1
+                                            # Limit header size to prevent memory leaks from malformed streams
+                                            if len(self.last_headers) < 1024:
+                                                self.last_headers += nalu
+                                    pos = next_pos
+                                else:
+                                    pos += 3
 
                     if clients and len(raw_data) > 0:
                         try:
@@ -301,7 +316,8 @@ class StreamReader(threading.Thread):
                         pass
                     container = None
                 if self.running:
-                    time.sleep(2)
+                    # Adaptive sleep to prevent spinning on errors
+                    time.sleep(2 if self.consecutive_failures < 5 else 5)
 
         logger.info(f"StreamReader ({self.camera_name}): Stopped")
 
@@ -338,14 +354,12 @@ class StreamReader(threading.Thread):
                 logger.info(f"StreamReader ({self.camera_name}): URL changed, resetting health status and forcing reconnect")
                 self.url = new_url
                 self.health_status = "STARTING"
-                self.last_status_check = 0
                 self.latest_frame = None
                 self.connected = False
             else:
                 if self.health_status in ["UNAUTHORIZED", "UNREACHABLE"]:
                     logger.info(f"StreamReader ({self.camera_name}): URL unchanged but in error state, forcing retry")
                     self.health_status = "STARTING"
-                    self.last_status_check = 0
 
     def force_reconnect(self):
         with self.lock:

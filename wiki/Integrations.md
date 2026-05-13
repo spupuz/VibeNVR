@@ -52,6 +52,25 @@ VibeNVR supports **MQTT Discovery**, meaning it will automatically appear in Hom
 - **Attributes**: JSON metadata containing AI detection results (labels, confidence).
 
 For more details, see the **[MQTT Integration Guide](MQTT-Integration.md)**.
++
++---
++
++## 📱 Telegram Notifications
++
++VibeNVR supports real-time alerts with snapshot attachments via Telegram Bots.
++
++### 🛠️ Hardened Security
++The notification pipeline is hardened to ensure that special characters in camera names or object labels do not cause API failures.
++- **HTML Escaping**: All data sent to Telegram is automatically HTML-escaped.
++- **Snapshot Cleanup**: Temporary snapshots used for notifications are automatically cleaned up after 1 hour.
++
++### ⚙️ Setup
++1. Create a bot using [@BotFather](https://t.me/botfather).
++2. Obtain your **Bot Token**.
++3. Get your **Chat ID** (using bots like `@userinfobot`).
++4. Configure these in **Settings -> Notifications**.
++
++---
 
 ---
 
