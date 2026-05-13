@@ -32,7 +32,7 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | 📷 **Advanced Video Engine** | Custom Python engine using PyAV & FFmpeg for RTSP streaming, with OpenCV for motion detection and image processing. |
 | ⚡ **Passthrough Recording** | Direct Stream Copy support for near-zero CPU usage recording (experimental, with auto-fallback). |
 | 🎯 **Smart Motion Detection** | Three detection engines: **OpenCV** (classic), **ONVIF Edge** (hardware offload), and **AI** (TFLite object recognition). |
-| 🤖 **AI Object Detection** | High-performance inference with **YOLOv8** or MobileNet SSD v2. Support for **Google Coral Edge TPU** or CPU. Detects people, vehicles, animals, and filters by confidence. **NMS (Non-Maximum Suppression)** ensures clean detections. |
+| 🤖 **AI Object Detection** | High-performance inference with **YOLOv8** or MobileNet SSD v2. Support for **Google Coral Edge TPU** or CPU. Detects people, vehicles, animals, and filters by confidence. **NMS (Non-Maximum Suppression)** ensures clean detections. **New**: Real-time **AI Tracking Boxes** for WebCodecs streams. |
 | 🛡️ **Universal AI Activation** | A global master switch allows for instant system-wide AI enabling/disabling. If OFF, AI models are not loaded, saving significant resources. Cameras automatically fallback to **OpenCV** detection with clear UI indicators. |
 | 🔍 **Descriptive AI Alerts** | Dynamic notifications including detected object labels (e.g., 🔍 Objects: Person, Vehicle) and confidence scores. |
 | 📅 **Event Timeline** | Unified browser for movie recordings and high-res snapshots with instant filters. |
@@ -53,7 +53,7 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | 🎮 **Advanced ONVIF PTZ** | Real-time Pan, Tilt, Zoom, **Home Positions**, and **Presets Navigation** via an intuitive overlay. Supports intelligent 3-stage hardware fallbacks for restrictive cameras. |
 | 🏠 **Native MQTT Service** | Built-in MQTT service for real-time motion reporting and **Home Assistant Discovery**. Publishes AI metadata and camera status. |
 | 🔍 **Network Discovery** | Securely scan network ranges for ONVIF/RTSP devices via authenticated **SSE (Server-Sent Events)** streams. |
-| 🛡️ **System Integrity Audit** | Integrated security and consistency audits verify RBAC isolation, path sanitization, and **Backend-Engine synchronization** (e.g., Audio capabilities) on every release. |
+| 🛡️ **System Integrity Audit** | Integrated security and consistency audits verify RBAC isolation, path sanitization, and **Self-Healing Configuration Synchronization** (e.g., recursive JSON recovery). |
 | 📊 **Standardized Logging** | Unified timestamping and formatting across all containers. Includes **Automatic Redaction** of sensitive credentials (RTSP, tokens) and binary noise filtering. |
 | 🐳 **Docker-Native** | Zero-dependency deployment with **Tag-Driven CI/CD**. Images are ultra-lean (~1GB) and protected by recursive `.dockerignore` policies to prevent artifact leakage. |
 

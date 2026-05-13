@@ -2,6 +2,7 @@ from pydantic import BaseModel, field_validator, model_validator, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import json
+import logging
 
 class TestNotificationConfig(BaseModel):
     channel: str # 'email', 'telegram', 'webhook'
@@ -237,37 +238,86 @@ class CameraBase(BaseModel):
     def validate_ai_object_types(cls, v: Any) -> List[str]:
         if v is None:
             return ["person", "vehicle"]
-            
-        if isinstance(v, str):
-            # Security: Prevent massive strings from crashing the validator or DB
-            if len(v) > 2000:
-                logging.warning(f"AI: ai_object_types string too long ({len(v)} chars). Truncating for safety.")
-                v = v[:2000]
-
-            v_sanitized = v.strip()
-            if not v_sanitized or v_sanitized == "[]":
-                return []
-            
-            # Try standard JSON
-            try:
-                data = json.loads(v_sanitized)
-                if isinstance(data, list):
-                    return [str(item) for item in data[:50]] # Limit to 50 object types
-            except:
-                try:
-                    data = json.loads(v_sanitized.replace("'", '"'))
-                    if isinstance(data, list):
-                        return [str(item) for item in data[:50]]
-                except:
-                    pass
-            
-            if "," in v_sanitized:
-                return [item.strip() for item in v_sanitized.split(",") if item.strip()][:50]
-            
-            return [v_sanitized[:50]]
         
+        def unwrap_item(item: Any) -> str:
+            """Recursively unwrap a single item if it's a JSON-encoded string."""
+            if not isinstance(item, str):
+                return str(item)
+            
+            curr = item.strip()
+            # If it's not a JSON-looking string, return as is (but sanitized)
+            if not curr.startswith(('[', '"', '{')):
+                return curr
+                
+            for _ in range(5):
+                try:
+                    import json
+                    decoded = json.loads(curr)
+                    if isinstance(decoded, str):
+                        curr = decoded.strip()
+                        if not curr.startswith(('[', '"', '{')):
+                            return curr
+                    elif isinstance(decoded, list) and len(decoded) > 0:
+                        # If it decoded into a list, take the first valid-looking item
+                        # or just return the first string
+                        for sub in decoded:
+                            res = unwrap_item(sub)
+                            if res and not res.startswith(('[', '"', '{')):
+                                return res
+                        return str(decoded[0])
+                    else:
+                        break
+                except:
+                    break
+            return curr
+
+        # 1. Handle if the whole value is a string (double-encoded list)
+        if isinstance(v, str):
+            import json
+            curr_v = v.strip()            # Loop up to 5 times to unwrap nested JSON strings
+            for _ in range(5):
+                if not curr_v.startswith(('[', '"', '{')):
+                    break
+                
+                # Special case: PostgreSQL native array format {val1,val2}
+                if curr_v.startswith('{') and not curr_v.startswith('{"'):
+                    # Convert {a,b,c} to [a,b,c] for easier handling or just parse it
+                    items = curr_v.strip('{}').split(',')
+                    v = [i.strip().strip('"\'') for i in items if i.strip()]
+                    break
+
+                try:
+                    import json
+                    data = json.loads(curr_v)
+                    if isinstance(data, list):
+                        v = data # Move to list handling below
+                        break
+                    if isinstance(data, str):
+                        curr_v = data.strip()
+                        continue
+                    break
+                except:
+                    break
+            else:
+                # If it didn't decode to a list, try comma separated
+                if "," in curr_v:
+                    v = [i.strip().strip('{}\"\'') for i in curr_v.split(",") if i.strip()]
+                else:
+                    v = [curr_v.strip('{}\"\'')]
+
+        # 2. Clean the list items
         if isinstance(v, list):
-            return [str(item) for item in v[:50]]
+            clean_list = []
+            for item in v:
+                cleaned = unwrap_item(item)
+                # Final check: skip empty or obviously corrupted remaining strings
+                if cleaned and not cleaned.startswith(('[', '{', '\\')):
+                    if cleaned not in clean_list:
+                        clean_list.append(cleaned)
+            
+            if not clean_list:
+                return ["person", "vehicle"]
+            return clean_list[:50]
             
         return ["person", "vehicle"]
 

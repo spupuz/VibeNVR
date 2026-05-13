@@ -186,6 +186,9 @@ class CameraThread(threading.Thread):
                                     })
                             
                             self.motion_detector.last_motion_time = self.last_external_motion_time
+                            
+                            # Broadcast AI metadata to WebCodecs clients
+                            self.stream_reader.broadcast_metadata(ai_results)
                     
                     # Persistence: If ai_results is empty (throttled frame or no detections in this frame), 
                     # use latest results if they are fresh (< 1.0s) to avoid UI flashing

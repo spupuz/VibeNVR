@@ -227,6 +227,23 @@ Delete all events in the system, with optional filtering by type.
 
 ---
 
+## 🛠 WebSocket Binary Protocol
+The `/api/cameras/{id}/ws` endpoint provides a high-performance multiplexed stream using a custom **10-byte binary header**.
+
+### Header Format (Little Endian)
+| Offset | Type | Name | Description |
+|---|---|---|---|
+| 0 | `uint8` | `pType` | Packet Type: `0` (Video), `1` (Audio), `2` (Metadata/JSON) |
+| 1 | `uint8` | `isKey` | Keyframe flag: `1` for I-frames, `0` otherwise |
+| 2 | `double` | `pts` | Timestamp (seconds) |
+
+### Payload Types
+- **Video (pType 0)**: Raw H.264 NALUs (Annex-B).
+- **Audio (pType 1)**: Opus or G.711 A-law packets.
+- **Metadata (pType 2)**: JSON string containing detection results (labels, confidence, boxes).
+
+---
+
 ### 📊 System & Stats (`/stats`)
 
 #### **GET** `/stats`

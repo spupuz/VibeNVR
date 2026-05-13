@@ -74,6 +74,8 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
     const animFrameRef = useRef(null);
     const watchdogTimerRef = useRef(null);
     const isMountedRef = useRef(true);
+    const latestMetadataRef = useRef([]);
+    const metadataTimeRef = useRef(0);
 
     // Audio Refs
     const audioCtxRef = useRef(null);
@@ -154,6 +156,65 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
         }
     }, [camera]);
 
+    const drawAIBoxes = useCallback((ctx, w, h) => {
+        const metadata = latestMetadataRef.current;
+        const now = Date.now();
+        
+        // Only draw if metadata is fresh (< 1.5s) to avoid ghosts on stream freeze
+        if (!metadata || metadata.length === 0 || (now - metadataTimeRef.current > 1500)) {
+            return;
+        }
+
+        metadata.forEach(res => {
+            try {
+                const label = res.label || 'unknown';
+                const conf = res.confidence || 0.0;
+                const box = res.box || [0, 0, 0, 0]; // [ymin, xmin, ymax, xmax]
+                
+                // Colors (match Engine's CameraThread colors)
+                let color = '#00FF00'; // Default Green
+                if (label === 'person') color = '#00FF00';
+                else if (['vehicle', 'car', 'bus', 'truck'].includes(label)) color = '#0000FF';
+                else if (['dog', 'cat', 'bird'].includes(label)) color = '#FFA500';
+                
+                const [ymin, xmin, ymax, xmax] = box;
+                const x1 = xmin * w;
+                const y1 = ymin * h;
+                const x2 = xmax * w;
+                const y2 = ymax * h;
+                const bw = x2 - x1;
+                const bh = y2 - y1;
+
+                ctx.strokeStyle = color;
+                ctx.lineWidth = Math.max(2, w / 400);
+                ctx.strokeRect(x1, y1, bw, bh);
+
+                // Label
+                const text = `${label.charAt(0).toUpperCase() + label.slice(1)} ${Math.round(conf * 100)}%`;
+                const fontScale = Math.max(0.4, w / 1200);
+                const fontSize = Math.floor(20 * fontScale);
+                ctx.font = `bold ${fontSize}px sans-serif`;
+                
+                const metrics = ctx.measureText(text);
+                const tw = metrics.width;
+                const th = fontSize;
+                const padding = 4;
+
+                ctx.fillStyle = color;
+                let labelY = y1 - th - (padding * 2);
+                if (labelY < 0) labelY = y1;
+
+                ctx.fillRect(x1, labelY, tw + (padding * 2), th + (padding * 2));
+                
+                ctx.fillStyle = 'black';
+                ctx.textBaseline = 'top';
+                ctx.fillText(text, x1 + padding, labelY + padding);
+            } catch (e) {
+                console.warn('[WebCodecs] Error drawing box:', e);
+            }
+        });
+    }, []);
+
     // ── Render loop ───────────────────────────────────────────────────────────
     const scheduleRender = useCallback(() => {
         if (animFrameRef.current) return;
@@ -218,6 +279,9 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
 
             ctx.drawImage(frame, 0, 0, drawW, drawH);
             ctx.restore();
+
+            // Draw AI Bounding Boxes from metadata
+            drawAIBoxes(ctx, canvas.width, canvas.height);
 
             // Draw Client-side Overlay on top of the final rotated canvas
             drawOverlay(ctx, canvas.width, canvas.height);
@@ -377,8 +441,12 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
         if (!isMountedRef.current) return;
         if (!cameraId) return;
 
-        if (!('VideoDecoder' in window) && videoEnabled) {
-            console.warn('[WebCodecs] VideoDecoder API not available.');
+        if (videoEnabled && !('VideoDecoder' in window)) {
+            if (!window.isSecureContext) {
+                console.warn('[WebCodecs] VideoDecoder is not available in insecure contexts (HTTP). Please use HTTPS or localhost for WebCodecs support.');
+            } else {
+                console.warn('[WebCodecs] VideoDecoder API not available.');
+            }
             setStatus('unsupported');
             return;
         }
@@ -468,6 +536,16 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
                     } catch (audioErr) {
                         console.warn('[WebCodecs] Audio playback skipped to protect video stream:', audioErr);
                     }
+                } else if (pType === 2) { // METADATA (JSON)
+                    const jsonBytes = new Uint8Array(buffer, 10);
+                    const jsonStr = new TextDecoder().decode(jsonBytes);
+                    try {
+                        const metadata = JSON.parse(jsonStr);
+                        latestMetadataRef.current = metadata;
+                        metadataTimeRef.current = Date.now();
+                    } catch (jsonErr) {
+                        console.warn('[WebCodecs] Failed to parse metadata:', jsonErr);
+                    }
                 }
 
             } catch (err) {
@@ -504,7 +582,7 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
             }
         };
 
-    }, [cameraId, token, closeWS, closeDecoder, ensureDecoderConfigured]);
+    }, [cameraId, token, videoEnabled, closeWS, closeDecoder, ensureDecoderConfigured]);
 
     // ── Mount / unmount ───────────────────────────────────────────────────────
     useEffect(() => {
@@ -520,7 +598,7 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
             closeWS();
             closeDecoder();
         };
-    }, [cameraId, token, connect, closeWS, closeDecoder]);
+    }, [cameraId, token, videoEnabled, connect, closeWS, closeDecoder]);
 
     useEffect(() => {
         if (onStateChange) onStateChange(status);

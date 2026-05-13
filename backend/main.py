@@ -10,7 +10,7 @@ from typing import Optional
 from urllib.parse import urlparse
 
 import requests
-from fastapi import FastAPI, BackgroundTasks, Depends, HTTPException, Request
+from fastapi import FastAPI, BackgroundTasks, Depends, HTTPException, Request, WebSocket
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -305,6 +305,14 @@ app = FastAPI(
     docs_url="/docs" if _is_dev else None,
     redoc_url="/redoc" if _is_dev else None,
 )
+
+# --- WebSocket Debugging & Proxy Fix ---
+@app.middleware("http")
+async def log_websocket_attempts(request: Request, call_next):
+    if "upgrade" in request.headers.get("connection", "").lower() and "websocket" in request.headers.get("upgrade", "").lower():
+        logger.info(f"[WS-UPGRADE] Attempt for path: {request.url.path} from {request.client.host if request.client else 'unknown'}")
+        logger.debug(f"[WS-HEADERS] {dict(request.headers)}")
+    return await call_next(request)
 
 # Rate Limiter setup
 limiter = Limiter(key_func=get_remote_address)

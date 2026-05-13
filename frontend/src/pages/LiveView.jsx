@@ -122,11 +122,17 @@ const VideoPlayer = ({
         if (status === 'unsupported') {
             // Hard fail: VideoDecoder not supported in this browser — switch permanently
             console.warn(`[LiveView] VideoDecoder unsupported for Camera ${camera.id}. Switching to JPEG polling.`);
+            if (!window.isSecureContext) {
+                showToast(`${camera.name}: WebCodecs requires HTTPS/localhost. Falling back to MJPEG.`, 'warning');
+            } else {
+                showToast(`${camera.name}: WebCodecs unsupported. Falling back to MJPEG.`, 'info');
+            }
             setStreamMode('fallback');
             setLoadState('loading');
         } else if (status === 'error') {
             // WebCodecsPlayer exhausted all retries — fall back to JPEG polling
             console.warn(`[LiveView] WebCodecs exhausted retries for Camera ${camera.id}. Switching to JPEG polling.`);
+            showToast(`${camera.name}: Stream error. Falling back to MJPEG.`, 'error');
             setStreamMode('fallback');
             setLoadState('loading');
         } else {

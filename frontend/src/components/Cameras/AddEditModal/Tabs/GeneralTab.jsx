@@ -190,6 +190,12 @@ export const GeneralTab = ({ newCamera, setNewCamera, storageProfiles }) => {
                     value={newCamera.live_view_mode || 'auto'}
                     onChange={(val) => setNewCamera({ ...newCamera, live_view_mode: val })}
                 />
+                {newCamera.live_view_mode === 'webcodecs' && !window.isSecureContext && (
+                    <div className="flex items-center gap-2 text-[10px] bg-amber-500/10 text-amber-500 p-2 rounded border border-amber-500/20 mt-[-10px] mb-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                        <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                        <span>WebCodecs is typically blocked by browsers on HTTP. Access via HTTPS or localhost to enable it.</span>
+                    </div>
+                )}
             </div>
         </div>
     );

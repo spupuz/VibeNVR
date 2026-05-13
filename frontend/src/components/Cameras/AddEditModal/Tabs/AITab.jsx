@@ -3,8 +3,36 @@ import { Zap, Brain } from 'lucide-react';
 import { Toggle, SelectField } from '../../../ui/FormControls';
 
 export const AITab = ({ newCamera, setNewCamera, globalSettings }) => {
+    const objects = [
+        { id: 'person', label: 'Person' },
+        { id: 'vehicle', label: 'Vehicle' },
+        { id: 'bicycle', label: 'Bicycle' },
+        { id: 'motorcycle', label: 'Motorcycle' },
+        { id: 'bus', label: 'Bus' },
+        { id: 'truck', label: 'Truck' },
+        { id: 'dog', label: 'Dog' },
+        { id: 'cat', label: 'Cat' },
+    ];
+
+    const validObjectIds = objects.map(o => o.id);
+
+    // Global AI status check
     const isAiEnabledGlobally = globalSettings?.ai_enabled?.value === 'true' || globalSettings?.ai_enabled === true || globalSettings?.ai_enabled === "true";
     const isAiDisabledGlobally = !isAiEnabledGlobally;
+
+    // Proactive sanitization on mount to clear legacy "garbage" strings
+    React.useEffect(() => {
+        let current = newCamera.ai_object_types;
+        if (typeof current === 'string') {
+            try { current = JSON.parse(current); } catch (e) { current = []; }
+        }
+        if (Array.isArray(current)) {
+            const sanitized = current.filter(l => validObjectIds.includes(l));
+            if (sanitized.length !== (current?.length || 0)) {
+                setNewCamera(prev => ({ ...prev, ai_object_types: sanitized }));
+            }
+        }
+    }, [validObjectIds]); // Added validObjectIds to dependencies for safety
 
     const handleObjectToggle = (label) => {
         if (isAiDisabledGlobally) return;
@@ -19,22 +47,14 @@ export const AITab = ({ newCamera, setNewCamera, globalSettings }) => {
         }
         if (!Array.isArray(current)) current = [];
 
-        const next = current.includes(label)
-            ? current.filter(l => l !== label)
-            : [...current, label];
+        // SANITIZATION: Filter out any garbage strings that are not in our validObjectIds list
+        const sanitizedCurrent = current.filter(l => validObjectIds.includes(l));
+
+        const next = sanitizedCurrent.includes(label)
+            ? sanitizedCurrent.filter(l => l !== label)
+            : [...sanitizedCurrent, label];
         setNewCamera({ ...newCamera, ai_object_types: next });
     };
-
-    const objects = [
-        { id: 'person', label: 'Person' },
-        { id: 'vehicle', label: 'Vehicle' },
-        { id: 'bicycle', label: 'Bicycle' },
-        { id: 'motorcycle', label: 'Motorcycle' },
-        { id: 'bus', label: 'Bus' },
-        { id: 'truck', label: 'Truck' },
-        { id: 'dog', label: 'Dog' },
-        { id: 'cat', label: 'Cat' },
-    ];
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">

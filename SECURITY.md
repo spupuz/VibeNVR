@@ -96,8 +96,11 @@ VibeNVR's code includes specific mitigations against common attack vectors:
 
 7. **Centralized AI Activation**:
    - VibeNVR features a **Global AI Master Switch** (Admin-only). When disabled, the AI engine singleton completely releases its memory and stops processing frames. All cameras automatically fallback to standard OpenCV detection, ensuring that a single administrative action can reliably disable all AI-related activity across the entire surveillance network.
-8. **Resource Exhaustion Prevention (Data Bloat)**:
+8. **Resource Exhaustion Prevention & Data Integrity (Self-Healing)**:
    - **Strict Length Limits**: All configuration fields (notably `ai_object_types`) enforce strict length validation at the schema level (max 2000 characters). This prevents a critical vulnerability where corrupted or malicious data could grow to megabytes, freezing the backend during serialization or logging.
+   - **Self-Healing Pipeline**: VibeNVR implements a defensive **Recursive Unwrapper** for JSON configuration fields. This architecture automatically detects and repairs "recursive encoding" (where data is accidentally wrapped in multiple layers of JSON strings) up to 5 levels deep.
+   - **PostgreSQL Compatibility**: The validation layer natively supports both standard JSON lists and PostgreSQL array formats (`{val1,val2}`). This ensures that even if the database driver returns non-standard formats, the system correctly sanitizes and recovers the user's settings without triggering accidental resets.
+   - **Proactive Frontend Sanitization**: The UI performs a real-time whitelist scan of critical configuration tags before submission, ensuring that only valid, safe identifiers are sent to the backend.
    - **Array Sanitization**: Frontend inputs are normalized to ensure list-based data is never processed as raw strings, preventing exponential character-spread growth.
 9. **Backup Integrity & De-duplication**:
    - The backup import logic (`routers/settings.py`) prevents resource exhaustion and data fragmentation by de-duplicating cameras based on their RTSP Host/IP, ensuring duplicate configurations aren't accidentally or maliciously created.
@@ -129,9 +132,14 @@ These are documented security trade-offs made intentionally for compatibility or
 - **WebSocket live stream uses `?token=` query parameter**: The Browser WebSocket API cannot send custom headers during the HTTP upgrade handshake. The JWT is therefore passed as `?token=` for the `/cameras/{id}/ws` live stream endpoint. This is mitigated by: (1) the Nginx `map` directive which redacts `?token=` from all access logs before they are written to disk, (2) TLS encryption in production which prevents interception in transit, and (3) an HttpOnly `media_token` cookie which serves as an automatic fallback when available. The engine's raw WebSocket endpoint (port 8000) is internal-only and not exposed externally.
 - **WebCodecs & Multi-Stream Resilience**: 
     - To ensure instant startup in high-latency environments, the engine caches the most recent H.264 keyframe (SPS/PPS/IDR) and pushes it immediately to new WebSocket clients. 
-    - **Hybrid Packetization**: The WebSocket stream uses a 10-byte binary header to multiplex video and audio packets.
-    - **Audio Sync Optimization**: Now, the player implements active drift detection. If audio lag exceeds **300ms**, the buffer is automatically reset to resync with the video stream.
-    - **Resilience**: The frontend employs a micro-jitter buffer (2 frames) to absorb network fluctuations and handles decoder re-initialization automatically if a resolution switch is detected.
+    - **Hybrid Packetization**: The WebSocket stream uses a **10-byte binary header** to multiplex video, audio, and metadata packets (pType, isKeyframe, Timestamp).
+    - **Audio Sync Optimization**: The player implements active drift detection. If audio lag exceeds **300ms**, the buffer is automatically reset to resync with the video stream.
+    - **AI Metadata Sync**: Detections are transmitted as JSON objects (pType 2) and rendered client-side on a canvas overlay. This eliminates server-side OSD overhead while maintaining secure context enforcement.
+    - **Resilience**: The frontend employs a micro-jitter buffer (2 frames) and handles decoder re-initialization automatically if a resolution switch is detected.
+- **Proxy Buffering & WebSocket Stability**:
+    - **Nginx Proxying**: To prevent connection resets and MJPEG flickering, VibeNVR enforces `proxy_buffering off` and standardized WebSocket `Upgrade` headers. This ensures stable delivery through Nginx Proxy Manager and DuckDNS environments.
+- **Secure Context Enforcement**:
+    - High-performance APIs (WebCodecs, VideoDecoder) are strictly limited to **Secure Contexts** (HTTPS or localhost). In insecure HTTP environments (e.g., local LAN IP), the system provides visual feedback and automatically falls back to MJPEG polling to maintain service availability.
 - **ONVIF Polling Stability**:
     - Configuration updates (e.g., Audio toggle) automatically trigger a clean subscription restart. The system explicitly awaits the cancellation of the previous background task before initializing a new SOAP session, preventing session lease conflicts on the camera hardware.
 

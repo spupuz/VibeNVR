@@ -305,6 +305,26 @@ class StreamReader(threading.Thread):
 
         logger.info(f"StreamReader ({self.camera_name}): Stopped")
 
+    def broadcast_metadata(self, data: t.Union[dict, list]):
+        """Send JSON metadata to all connected WebSocket clients (p_type=2)"""
+        try:
+            import json
+            with self.lock:
+                clients = list(self.ws_clients)
+            
+            if not clients:
+                return
+
+            # Header: Type=2 (Metadata), Keyframe=0, Timestamp=now
+            header = struct.pack('<BBd', 2, 0, time.time())
+            payload = header + json.dumps(data).encode('utf-8')
+
+            for q, loop in clients:
+                if not q.full():
+                    loop.call_soon_threadsafe(q.put_nowait, payload)
+        except Exception as e:
+            logger.error(f"StreamReader ({self.camera_name}): Metadata broadcast error: {e}")
+
     def get_latest(self):
         with self.lock:
             return self.latest_frame, self.last_read_time

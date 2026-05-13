@@ -273,7 +273,18 @@ def _on_connect(self, client, userdata, flags, reason_code, properties=None):
         for camera_id, thread in manager.cameras.items():
             self.publish_discovery(camera_id, thread.config.get("name"))
 ```
-```
+
+### WebSocket 10-byte Hybrid Protocol
+VibeNVR uses a standardized 10-byte binary header for all streaming packets to ensure low-latency multiplexing.
+- **Format**: `struct.pack('<BBd', p_type, is_keyframe, timestamp)`
+- **Types**: 0 (Video), 1 (Audio), 2 (Metadata/AI).
+- **Rule**: All client implementations (Frontend, Python tests) must account for the `p_type` byte at offset 0.
+- **Rule**: AI metadata packets (pType 2) contain JSON strings for client-side rendering.
+
+### Secure Context & Fallback Policy
+To comply with browser security requirements, high-performance APIs (WebCodecs) are restricted to Secure Contexts (HTTPS/localhost).
+- **Rule**: Always check `window.isSecureContext` before initializing `VideoDecoder`.
+- **Rule**: If `isSecureContext` is false, the UI MUST provide a clear warning and fall back to JPEG polling.
 
 ## Anti-Patterns to Avoid
 
