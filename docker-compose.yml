@@ -133,6 +133,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
     networks:
       - vibe-network
     # ─────────────────────────────────────────────────────────────────────────
@@ -198,7 +201,6 @@ services:
 volumes:
   vibenvr_data:
   vibenvr_db_data:
-
 
 networks:
   vibe-network:

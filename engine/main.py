@@ -8,6 +8,7 @@ import psutil
 import os
 import sys
 import re
+from utils import mask_url
 
 # 1. IMMEDIATE LOGGING CONFIGURATION
 def setup_initial_logging():
@@ -63,12 +64,40 @@ class PollingSamplingFilter(logging.Filter):
                 return count == 0
         return True
 
+class TokenRedactingFilter(logging.Filter):
+    def filter(self, record):
+        if isinstance(record.msg, str):
+            record.msg = mask_url(record.msg)
+        
+        if hasattr(record, "args") and record.args:
+            new_args = list(record.args)
+            for i, arg in enumerate(new_args):
+                if isinstance(arg, str):
+                    new_args[i] = mask_url(arg)
+            record.args = tuple(new_args)
+        return True
+
 def apply_logging_filters():
+    redact_filter = TokenRedactingFilter()
     sampling_filter = PollingSamplingFilter()
-    access_logger = logging.getLogger("uvicorn.access")
-    access_logger.addFilter(sampling_filter)
-    for handler in access_logger.handlers:
-        handler.addFilter(sampling_filter)
+    
+    # Target loggers: root, uvicorn, and its sub-loggers
+    target_loggers = ["", "uvicorn", "uvicorn.access", "uvicorn.error", "VibeEngine", "core", "camera_thread", "StreamReader"]
+    
+    for name in target_loggers:
+        logger_obj = logging.getLogger(name)
+        # 1. Add Filters to logger
+        if not any(isinstance(f, TokenRedactingFilter) for f in logger_obj.filters):
+            logger_obj.addFilter(redact_filter)
+        if name == "uvicorn.access" and not any(isinstance(f, PollingSamplingFilter) for f in logger_obj.filters):
+            logger_obj.addFilter(sampling_filter)
+        
+        # 2. Add to all existing handlers
+        for handler in logger_obj.handlers:
+            if not any(isinstance(f, TokenRedactingFilter) for f in handler.filters):
+                handler.addFilter(redact_filter)
+            if name == "uvicorn.access" and not any(isinstance(f, PollingSamplingFilter) for f in handler.filters):
+                handler.addFilter(sampling_filter)
 
 # Initial application
 apply_logging_filters()
