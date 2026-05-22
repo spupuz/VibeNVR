@@ -63,10 +63,20 @@ If you experience "black screens":
 
 ---
 
+---
+
+### 🧠 High Memory Usage / OOM Errors
+If VibeNVR containers are crashing due to memory exhaustion or your host RAM is saturated:
+1. **Resolution vs Buffers**: High-resolution streams (1080p/4K) combined with large pre-capture buffers consume massive amounts of RAM.
+2. **Consult the [Resource Optimization Guide](Resource-Optimization.md)** for detailed RAM estimation formulas and tuning strategies (Passthrough, Sub-streams, Throttling).
+
+---
+
 ### 🐢 High CPU Usage / UI Lag in Grid View
 If the browser or host CPU spikes when viewing multiple cameras:
 1. **Enable Dual-Stream**: Configure a low-resolution sub-stream for your cameras. the UI grid will automatically prioritize the sub-stream, saving massive amounts of bandwidth and decoding power.
 2. **Check FPS Throttle**: Increase `opt_live_view_fps_throttle` in Global Settings to reduce the frequency of MJPEG fallback frames.
+3. **Hardware Offloading**: Use a Coral TPU for AI detection to offload CPU inference. See the **[Resource Optimization Guide](Resource-Optimization.md)** for more tips.
 
 ---
 

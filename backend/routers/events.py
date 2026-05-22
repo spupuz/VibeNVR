@@ -335,6 +335,12 @@ def read_events(
 ):
     user, is_token = auth_info
     events = crud.get_events(db, skip=skip, limit=limit, camera_id=camera_id, type=type, date=date)
+    
+    if user.role == "viewer" and user.restrict_camera_access:
+        allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
+        if allowed_ids is not None:
+            events = [e for e in events if e.camera_id in allowed_ids]
+            
     return events
 # Track active motion events globally
 # camera_id -> start_timestamp
@@ -343,14 +349,26 @@ ACTIVE_CAMERAS = {}
 LIVE_MOTION = {}
 
 @router.get("/status")
-def get_motion_status(auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
+def get_motion_status(auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token), db: Session = Depends(database.get_db)):
     user, is_token = auth_info
     """Returns list of camera IDs currently detecting motion and/or recording, plus health info"""
     from health_service import HEALTH_CACHE
+    
+    active_ids = list(ACTIVE_CAMERAS.keys())
+    live_motion = dict(LIVE_MOTION)
+    health = dict(HEALTH_CACHE)
+    
+    if user.role == "viewer" and user.restrict_camera_access:
+        allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
+        if allowed_ids is not None:
+            active_ids = [cid for cid in active_ids if cid in allowed_ids]
+            live_motion = {cid: v for cid, v in live_motion.items() if cid in allowed_ids}
+            health = {cid: v for cid, v in health.items() if cid in allowed_ids}
+            
     return {
-        "active_ids": list(ACTIVE_CAMERAS.keys()),
-        "live_motion": LIVE_MOTION, # Full dict with sources
-        "camera_health": HEALTH_CACHE
+        "active_ids": active_ids,
+        "live_motion": live_motion,
+        "camera_health": health
     }
 
 def is_within_schedule(camera: models.Camera):
@@ -600,10 +618,15 @@ async def download_event(event_id: int, request: Request, token: Optional[str] =
         raise HTTPException(status_code=401, detail="Missing media authentication")
 
     with database.get_db_ctx() as db:
-        await auth_service.get_user_from_token(media_token, db)
+        user = await auth_service.get_user_from_token(media_token, db)
         event = db.query(models.Event).filter(models.Event.id == event_id).first()
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
+        
+        if user.role == "viewer" and user.restrict_camera_access:
+            allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
+            if allowed_ids is not None and event.camera_id not in allowed_ids:
+                raise HTTPException(status_code=403, detail="Not authorized to download this event")
         
         if not event.file_path:
             raise HTTPException(status_code=404, detail="No file associated with this event")

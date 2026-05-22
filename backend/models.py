@@ -232,7 +232,21 @@ class User(Base):
     avatar_path = Column(String, nullable=True)
     totp_secret = Column(String, nullable=True)
     is_2fa_enabled = Column(Boolean, default=False)
+    restrict_camera_access = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    allowed_cameras = relationship("Camera", secondary="user_camera_access", backref="allowed_users")
+    allowed_groups = relationship("CameraGroup", secondary="user_group_access", backref="allowed_users")
+
+class UserCameraAccess(Base):
+    __tablename__ = "user_camera_access"
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    camera_id = Column(Integer, ForeignKey("cameras.id", ondelete="CASCADE"), primary_key=True)
+
+class UserGroupAccess(Base):
+    __tablename__ = "user_group_access"
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    group_id = Column(Integer, ForeignKey("camera_groups.id", ondelete="CASCADE"), primary_key=True)
 
 class ApiToken(Base):
     __tablename__ = "api_tokens"

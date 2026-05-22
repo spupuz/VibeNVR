@@ -59,6 +59,11 @@ Standard users pass the `Depends(auth_service.get_current_user)` check but fail 
 - Querying the Event timeline
 - Managing their own Profile and 2FA settings
 
+**Restricted Camera Access**: Standard users (Viewers) can be explicitly restricted to a specific subset of Cameras or Camera Groups by an Admin. If restricted:
+- They will only see the permitted cameras in the Live View, Dashboard, and Groups page.
+- The Event Timeline and status APIs will silently filter out events and motion triggers from unauthorized cameras.
+- Any direct attempt to access unauthorized media endpoints (`/frame`, `/stream`, `/ws`, `/download`) will proactively reject the connection with an HTTP 403 Forbidden or WebSocket closure.
+
 ## 🦠 Vulnerability Mitigations & Input Sanitization
 
 VibeNVR's code includes specific mitigations against common attack vectors:

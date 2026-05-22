@@ -457,6 +457,7 @@ class UserBase(BaseModel):
     email: Optional[str] = None
     role: Optional[str] = "viewer"
     is_2fa_enabled: Optional[bool] = False
+    restrict_camera_access: Optional[bool] = False
 
 class TOTPSetupResponse(BaseModel):
     secret: str
@@ -468,12 +469,26 @@ class TOTPVerify(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    allowed_camera_ids: Optional[List[int]] = []
+    allowed_group_ids: Optional[List[int]] = []
+
+class UserUpdate(UserBase):
+    password: Optional[str] = None
+    allowed_camera_ids: Optional[List[int]] = None
+    allowed_group_ids: Optional[List[int]] = None
+
+class AllowedResource(BaseModel):
+    id: int
+    name: str
+    model_config = ConfigDict(from_attributes=True)
 
 class User(UserBase):
     id: int
     is_active: bool = True # inherited logic? No model has active.
     avatar_path: Optional[str] = None
     created_at: datetime
+    allowed_cameras: List[AllowedResource] = []
+    allowed_groups: List[AllowedResource] = []
 
     model_config = ConfigDict(from_attributes=True)
 

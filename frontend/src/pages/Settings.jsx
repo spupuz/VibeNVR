@@ -20,6 +20,7 @@ import { AISettings } from './Settings/sections/AISettings';
 // Modularized Modals
 import { PasswordChangeModal } from './Settings/PasswordChangeModal';
 import { SyncResultModal } from './Settings/SyncResultModal';
+import { EditUserModal } from './Settings/EditUserModal';
 
 export const Settings = () => {
     const { user, token } = useAuth();
@@ -80,8 +81,10 @@ export const Settings = () => {
     // User management state
     const [users, setUsers] = useState([]);
     const [cameras, setCameras] = useState([]);
-    const [newUser, setNewUser] = useState({ username: '', password: '', role: 'viewer', email: '' });
+    const [groups, setGroups] = useState([]);
+    const [newUser, setNewUser] = useState({ username: '', password: '', role: 'viewer', email: '', restrict_camera_access: false, allowed_camera_ids: [], allowed_group_ids: [] });
     const [isCreatingUser, setIsCreatingUser] = useState(false);
+    const [editingUser, setEditingUser] = useState(null);
 
     // Modal states
     const [pwdModalOpen, setPwdModalOpen] = useState(false);
@@ -115,6 +118,19 @@ export const Settings = () => {
             }
         } catch (err) {
             console.error("Failed to fetch cameras", err);
+        }
+    }, [token]);
+
+    const fetchGroups = useCallback(async () => {
+        try {
+            const res = await fetch('/api/groups', {
+                headers: { Authorization: 'Bearer ' + token }
+            });
+            if (res.ok) {
+                setGroups(await res.json());
+            }
+        } catch (err) {
+            console.error("Failed to fetch groups", err);
         }
     }, [token]);
 
@@ -195,7 +211,8 @@ export const Settings = () => {
         fetchStats();
         fetchUsers();
         fetchCameras();
-    }, [token, fetchSettings, fetchStats, fetchUsers, fetchCameras]);
+        fetchGroups();
+    }, [token, fetchSettings, fetchStats, fetchUsers, fetchCameras, fetchGroups]);
 
     const handleSave = async () => {
         if (user?.role !== 'admin') {
@@ -273,7 +290,7 @@ export const Settings = () => {
                 body: JSON.stringify(newUser)
             });
             if (res.ok) {
-                setNewUser({ username: '', password: '', role: 'viewer', email: '' });
+                setNewUser({ username: '', password: '', role: 'viewer', email: '', restrict_camera_access: false, allowed_camera_ids: [], allowed_group_ids: [] });
                 setIsCreatingUser(false);
                 fetchUsers();
                 showToast('User created successfully', 'success');
@@ -283,6 +300,30 @@ export const Settings = () => {
             }
         } catch (err) {
             showToast('Failed to create user: ' + err.message, 'error');
+        }
+    };
+
+    const handleUpdateUser = async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch('/api/users/' + editingUser.id, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: 'Bearer ' + token
+                },
+                body: JSON.stringify(editingUser)
+            });
+            if (res.ok) {
+                setEditingUser(null);
+                fetchUsers();
+                showToast('User updated successfully', 'success');
+            } else {
+                const err = await res.json();
+                showToast('Failed to update user: ' + err.detail, 'error');
+            }
+        } catch (err) {
+            showToast('Failed to update user: ' + err.message, 'error');
         }
     };
 
@@ -481,6 +522,9 @@ export const Settings = () => {
                         fetchUsers={fetchUsers}
                         currentUser={user}
                         token={token}
+                        cameras={cameras}
+                        groups={groups}
+                        setEditingUser={setEditingUser}
                         isOpen={openSection === 'users'}
                         onToggle={toggleSection}
                     />
@@ -609,6 +653,16 @@ export const Settings = () => {
                 pwdForm={pwdForm}
                 setPwdForm={setPwdForm}
                 handlePasswordUpdate={handlePasswordUpdate}
+            />
+
+            <EditUserModal
+                isOpen={!!editingUser}
+                onClose={() => setEditingUser(null)}
+                editingUser={editingUser}
+                setEditingUser={setEditingUser}
+                handleUpdateUser={handleUpdateUser}
+                cameras={cameras}
+                groups={groups}
             />
 
             <SyncResultModal

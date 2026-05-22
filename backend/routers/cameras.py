@@ -125,6 +125,12 @@ def create_camera(
 def read_cameras(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
     user, is_token = auth_info
     cameras = crud.get_cameras(db, skip=skip, limit=limit)
+    
+    if user.role == "viewer" and user.restrict_camera_access:
+        allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
+        if allowed_ids is not None:
+            cameras = [c for c in cameras if c.id in allowed_ids]
+
     if is_token:
         # Return sanitized summary for 3rd party integrations
         return [schemas.CameraSummary.model_validate(c) for c in cameras]
@@ -136,6 +142,11 @@ def read_camera(camera_id: int, db: Session = Depends(database.get_db), auth_inf
     db_camera = crud.get_camera(db, camera_id=camera_id)
     if db_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
+        
+    if user.role == "viewer" and user.restrict_camera_access:
+        allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
+        if allowed_ids is not None and camera_id not in allowed_ids:
+            raise HTTPException(status_code=403, detail="Not authorized to view this camera")
     
     if is_token:
         # Return sanitized summary for 3rd party integrations
@@ -313,11 +324,16 @@ async def websocket_camera_stream(websocket: WebSocket, camera_id: int):
         
     try:
         with database.get_db_ctx() as db:
-            await auth_service.get_user_from_token(token, db)
+            user = await auth_service.get_user_from_token(token, db)
             db_camera = crud.get_camera(db, camera_id=camera_id)
             if db_camera is None:
                 await websocket.close(code=1008)
                 return
+            if user.role == "viewer" and user.restrict_camera_access:
+                allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
+                if allowed_ids is not None and camera_id not in allowed_ids:
+                    await websocket.close(code=1008)
+                    return
     except Exception as e:
         logging.error(f"WS Auth Fail: Invalid token for camera {camera_id} - {str(e)}")
         await websocket.close(code=1008)
@@ -359,6 +375,11 @@ async def get_camera_frame(camera_id: int, request: Request, token: Optional[str
         db_camera = crud.get_camera(db, camera_id=camera_id)
         if db_camera is None:
             raise HTTPException(status_code=404, detail="Camera not found")
+            
+        if user.role == "viewer" and user.restrict_camera_access:
+            allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
+            if allowed_ids is not None and camera_id not in allowed_ids:
+                raise HTTPException(status_code=403, detail="Not authorized to view this camera")
             
         frame_url = f"http://engine:8000/cameras/{camera_id}/frame"
         
@@ -402,10 +423,15 @@ async def stream_camera(camera_id: int, request: Request, token: Optional[str] =
 
     try:
         with database.get_db_ctx() as db:
-            await auth_service.get_user_from_token(media_token, db)
+            user = await auth_service.get_user_from_token(media_token, db)
             db_camera = crud.get_camera(db, camera_id=camera_id)
             if db_camera is None:
                 raise HTTPException(status_code=404, detail="Camera not found")
+            
+            if user.role == "viewer" and user.restrict_camera_access:
+                allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
+                if allowed_ids is not None and camera_id not in allowed_ids:
+                    raise HTTPException(status_code=403, detail="Not authorized to view this camera")
     except HTTPException:
         raise
     except Exception as e:

@@ -16,11 +16,13 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **[Storage Profiles](Storage-Profiles.md)** - Managing quotas and recording retention.
 - **[Camera Settings](Camera-Settings.md)** - Logic and behavior of the Bulk "Copy Settings" feature.
 - **[AI Object Detection](AI-Detection.md)** - Coral Edge TPU setup, Docker and LXC passthrough, and AI configuration.
+- **[Resource Optimization](Resource-Optimization.md)** - Guide to CPU/RAM impacts, sub-streams, and efficiency tuning.
 - **[System Architecture](Architecture.md)** - Deep dive into VibeEngine, PyAV/OpenCV, and microservices.
 - **[Privacy Masking](Privacy-Masking.md)** - Configuring obscured areas and motion exclusion zones.
 - **[Backup & Restore](Backups.md)** - System snapshots and configuration management.
 - **[UniFi Protect Integration](UniFi-Protect.md)** - Native support for RSTSPS and UniFi ports.
 - **[ONVIF Management](ONVIF-Management.md)** - Pan-Tilt-Zoom (PTZ) controls and hardware probing.
+- **[Users & Roles](Users-and-Roles.md)** - Role-Based Access Control (RBAC) and restricted viewer configurations.
 - **[2FA & Trusted Devices](MFA-Trusted-Devices.md)** - Two-Factor Authentication, recovery codes, and security tokens.
 - **[MQTT Integration](MQTT-Integration.md)** - Home Assistant Discovery, real-time reporting, and AI metadata publishing.
 - **[Telemetry & Privacy](Telemetry.md)** - Transparency on anonymous data collection and opt-out instructions.

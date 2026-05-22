@@ -18,9 +18,19 @@ export const UserManager = ({
     fetchUsers,
     currentUser,
     token,
+    cameras = [],
+    groups = [],
+    setEditingUser,
     isOpen,
     onToggle
 }) => {
+    const handleEditClick = (u) => {
+        setEditingUser({
+            ...u,
+            allowed_camera_ids: u.allowed_cameras?.map(c => c.id) || [],
+            allowed_group_ids: u.allowed_groups?.map(g => g.id) || []
+        });
+    };
     return (
         <CollapsibleSection
             id="users"
@@ -76,6 +86,71 @@ export const UserManager = ({
                             ]}
                         />
                     </div>
+                    {newUser.role === 'viewer' && (
+                        <div className="space-y-4 pt-4 border-t border-border/50">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                                <label className="text-sm font-bold sm:w-48">Restrict Camera Access</label>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewUser({ ...newUser, restrict_camera_access: !newUser.restrict_camera_access })}
+                                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${newUser.restrict_camera_access ? 'bg-primary' : 'bg-muted'}`}
+                                    >
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${newUser.restrict_camera_access ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </button>
+                                    <span className="text-xs text-muted-foreground">If enabled, the viewer can only access selected cameras/groups.</span>
+                                </div>
+                            </div>
+                            
+                            {newUser.restrict_camera_access && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-bold mb-2">Allowed Cameras</label>
+                                        <div className="bg-background rounded-lg border border-border p-2 max-h-40 overflow-y-auto space-y-1">
+                                            {cameras.map(cam => (
+                                                <label key={cam.id} className="flex items-center gap-2 p-1 hover:bg-muted rounded cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={newUser.allowed_camera_ids?.includes(cam.id)}
+                                                        onChange={(e) => {
+                                                            const ids = newUser.allowed_camera_ids || [];
+                                                            if (e.target.checked) setNewUser({ ...newUser, allowed_camera_ids: [...ids, cam.id] });
+                                                            else setNewUser({ ...newUser, allowed_camera_ids: ids.filter(id => id !== cam.id) });
+                                                        }}
+                                                        className="rounded text-primary focus:ring-primary bg-muted border-border"
+                                                    />
+                                                    <span className="text-sm">{cam.name}</span>
+                                                </label>
+                                            ))}
+                                            {cameras.length === 0 && <p className="text-xs text-muted-foreground p-1">No cameras available</p>}
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-bold mb-2">Allowed Groups</label>
+                                        <div className="bg-background rounded-lg border border-border p-2 max-h-40 overflow-y-auto space-y-1">
+                                            {groups.map(group => (
+                                                <label key={group.id} className="flex items-center gap-2 p-1 hover:bg-muted rounded cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={newUser.allowed_group_ids?.includes(group.id)}
+                                                        onChange={(e) => {
+                                                            const ids = newUser.allowed_group_ids || [];
+                                                            if (e.target.checked) setNewUser({ ...newUser, allowed_group_ids: [...ids, group.id] });
+                                                            else setNewUser({ ...newUser, allowed_group_ids: ids.filter(id => id !== group.id) });
+                                                        }}
+                                                        className="rounded text-primary focus:ring-primary bg-muted border-border"
+                                                    />
+                                                    <span className="text-sm">{group.name}</span>
+                                                </label>
+                                            ))}
+                                            {groups.length === 0 && <p className="text-xs text-muted-foreground p-1">No groups available</p>}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                     <div className="flex justify-end">
                         <Button type="submit" className="w-full sm:w-auto h-11 px-8 font-bold">Create User</Button>
                     </div>
@@ -101,6 +176,15 @@ export const UserManager = ({
                             )}
                         </div>
                         <div className="flex justify-end gap-2 pt-3 border-t border-border/30">
+                            {u.id !== currentUser.id && (
+                                <button
+                                    onClick={() => handleEditClick(u)}
+                                    className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
+                                    title="Edit User"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                                </button>
+                            )}
                             <button
                                 onClick={() => openPasswordModal(u)}
                                 className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
@@ -178,6 +262,15 @@ export const UserManager = ({
                                     </td>
                                     <td className="p-3 text-right">
                                         <div className="flex justify-end gap-2 pr-1">
+                                            {u.id !== currentUser.id && (
+                                                <button
+                                                    onClick={() => handleEditClick(u)}
+                                                    className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
+                                                    title="Edit User"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => openPasswordModal(u)}
                                                 className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"

@@ -111,12 +111,65 @@ def create_user(db: Session, user: schemas.UserCreate):
         username=user.username,
         email=user.email,
         hashed_password=hashed_password,
-        role=user.role
+        role=user.role,
+        restrict_camera_access=user.restrict_camera_access
     )
     db.add(db_user)
     db.commit()
+    
+    if user.allowed_camera_ids:
+        cameras = db.query(models.Camera).filter(models.Camera.id.in_(user.allowed_camera_ids)).all()
+        db_user.allowed_cameras = cameras
+    if user.allowed_group_ids:
+        groups = db.query(models.CameraGroup).filter(models.CameraGroup.id.in_(user.allowed_group_ids)).all()
+        db_user.allowed_groups = groups
+        
+    db.commit()
     db.refresh(db_user)
     return db_user
+
+def update_user(db: Session, user_id: int, user: schemas.UserUpdate):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        return None
+        
+    db_user.username = user.username
+    db_user.email = user.email
+    db_user.role = user.role
+    db_user.restrict_camera_access = user.restrict_camera_access
+    
+    # Note: password update is handled separately, but if provided here, we could update it.
+    if user.password and user.password != "********":
+        import auth_service
+        db_user.hashed_password = auth_service.get_password_hash(user.password)
+        
+    # Update relations
+    if user.allowed_camera_ids is not None:
+        cameras = db.query(models.Camera).filter(models.Camera.id.in_(user.allowed_camera_ids)).all()
+        db_user.allowed_cameras = cameras
+    if user.allowed_group_ids is not None:
+        groups = db.query(models.CameraGroup).filter(models.CameraGroup.id.in_(user.allowed_group_ids)).all()
+        db_user.allowed_groups = groups
+        
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def get_allowed_camera_ids_for_user(db: Session, user_id: int) -> list[int] | None:
+    """Returns a list of camera IDs the user is allowed to access, or None if they have full access."""
+    user = get_user(db, user_id)
+    if not user or user.role == "admin" or not user.restrict_camera_access:
+        return None
+    
+    # Collect explicit camera IDs
+    camera_ids = {c.id for c in user.allowed_cameras}
+    # Collect camera IDs from explicit groups
+    for group in user.allowed_groups:
+        for c in group.cameras:
+            camera_ids.add(c.id)
+            
+    return list(camera_ids)
+
 
 def delete_user(db: Session, user_id: int):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()

@@ -13,10 +13,15 @@ router = APIRouter(
 def read_groups(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
     user, is_token = auth_info
     groups = crud.get_groups(db, skip=skip, limit=limit)
+    
+    if user.role == "viewer" and user.restrict_camera_access:
+        allowed_group_ids = [g.id for g in user.allowed_groups]
+        groups = [g for g in groups if g.id in allowed_group_ids]
+
     if is_token:
         # Return sanitized groups (masking camera details)
-        return [schemas.CameraGroupSummary.from_orm(g) for g in groups]
-    return [schemas.CameraGroup.from_orm(g) for g in groups]
+        return [schemas.CameraGroupSummary.model_validate(g) for g in groups]
+    return [schemas.CameraGroup.model_validate(g) for g in groups]
 
 @router.post("", response_model=schemas.CameraGroup)
 def create_group(group: schemas.CameraGroupCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
@@ -28,11 +33,16 @@ def read_group(group_id: int, db: Session = Depends(database.get_db), auth_info:
     db_group = crud.get_group(db, group_id=group_id)
     if db_group is None:
         raise HTTPException(status_code=404, detail="Group not found")
+        
+    if user.role == "viewer" and user.restrict_camera_access:
+        allowed_group_ids = [g.id for g in user.allowed_groups]
+        if group_id not in allowed_group_ids:
+            raise HTTPException(status_code=403, detail="Not authorized to view this group")
     
     if is_token:
         # Return sanitized group
-        return schemas.CameraGroupSummary.from_orm(db_group)
-    return schemas.CameraGroup.from_orm(db_group)
+        return schemas.CameraGroupSummary.model_validate(db_group)
+    return schemas.CameraGroup.model_validate(db_group)
 
 @router.delete("/{group_id}")
 def delete_group(group_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):

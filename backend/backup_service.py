@@ -48,7 +48,10 @@ def run_backup(is_manual: bool = False):
                     "role": u.role,
                     "is_2fa_enabled": u.is_2fa_enabled,
                     "totp_secret": u.totp_secret,
-                    "avatar_path": u.avatar_path
+                    "avatar_path": u.avatar_path,
+                    "restrict_camera_access": u.restrict_camera_access,
+                    "allowed_camera_ids": [c.id for c in u.allowed_cameras],
+                    "allowed_group_ids": [g.id for g in u.allowed_groups]
                 } for u in db.query(models.User).all()],
                 "api_tokens": [{
                     "name": t.name,

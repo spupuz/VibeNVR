@@ -196,6 +196,26 @@ def migrate():
     add_column_if_not_exists(engine, "users", "avatar_path", "VARCHAR")
     add_column_if_not_exists(engine, "users", "totp_secret", "VARCHAR")
     add_column_if_not_exists(engine, "users", "is_2fa_enabled", "BOOLEAN", False)
+    add_column_if_not_exists(engine, "users", "restrict_camera_access", "BOOLEAN", False)
+    
+    # Granular User Access associations
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("SELECT 1 FROM user_camera_access LIMIT 1"))
+        except:
+            logger.info("Creating user_camera_access table via migration...")
+            models.user_camera_access.create(engine)
+            conn.commit()
+            logger.info("user_camera_access table created.")
+
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("SELECT 1 FROM user_group_access LIMIT 1"))
+        except:
+            logger.info("Creating user_group_access table via migration...")
+            models.user_group_access.create(engine)
+            conn.commit()
+            logger.info("user_group_access table created.")
 
     # API Tokens (New Security Features)
     add_column_if_not_exists(engine, "api_tokens", "name", "VARCHAR", "Unnamed Token")

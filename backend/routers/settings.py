@@ -230,7 +230,10 @@ def export_backup(request: Request, db: Session = Depends(database.get_db), curr
             "role": u.role,
             "is_2fa_enabled": u.is_2fa_enabled,
             "totp_secret": u.totp_secret,
-            "avatar_path": u.avatar_path
+            "avatar_path": u.avatar_path,
+            "restrict_camera_access": u.restrict_camera_access,
+            "allowed_camera_ids": [c.id for c in u.allowed_cameras],
+            "allowed_group_ids": [g.id for g in u.allowed_groups]
         } for u in db.query(models.User).all()],
         "api_tokens": [{
             "name": t.name,
@@ -390,12 +393,27 @@ async def perform_restore(data: dict, db: Session):
                     role=u.get("role", "viewer"),
                     is_2fa_enabled=u.get("is_2fa_enabled", False),
                     totp_secret=u.get("totp_secret"),
-                    avatar_path=u.get("avatar_path")
+                    avatar_path=u.get("avatar_path"),
+                    restrict_camera_access=u.get("restrict_camera_access", False)
                 )
+                if "allowed_camera_ids" in u:
+                    mapped_cam_ids = [cam_id_map.get(cid, cid) for cid in u["allowed_camera_ids"]]
+                    new_user.allowed_cameras = db.query(models.Camera).filter(models.Camera.id.in_(mapped_cam_ids)).all()
+                if "allowed_group_ids" in u:
+                    mapped_grp_ids = [grp_id_map.get(gid, gid) for gid in u["allowed_group_ids"]]
+                    new_user.allowed_groups = db.query(models.CameraGroup).filter(models.CameraGroup.id.in_(mapped_grp_ids)).all()
                 db.add(new_user)
             else:
                 existing_user.role = u.get("role", existing_user.role)
                 existing_user.email = u.get("email", existing_user.email)
+                if "restrict_camera_access" in u:
+                    existing_user.restrict_camera_access = u.get("restrict_camera_access")
+                if "allowed_camera_ids" in u:
+                    mapped_cam_ids = [cam_id_map.get(cid, cid) for cid in u["allowed_camera_ids"]]
+                    existing_user.allowed_cameras = db.query(models.Camera).filter(models.Camera.id.in_(mapped_cam_ids)).all()
+                if "allowed_group_ids" in u:
+                    mapped_grp_ids = [grp_id_map.get(gid, gid) for gid in u["allowed_group_ids"]]
+                    existing_user.allowed_groups = db.query(models.CameraGroup).filter(models.CameraGroup.id.in_(mapped_grp_ids)).all()
     
     # 7. Restore API Tokens
     if "api_tokens" in data:

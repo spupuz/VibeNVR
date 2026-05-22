@@ -25,11 +25,29 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
         raise HTTPException(status_code=400, detail="Username already registered")
     
     # Check email uniqueness
-    db_user_email = crud.get_user_by_email(db, email=user.email)
-    if db_user_email:
-        raise HTTPException(status_code=400, detail="Email already registered")
+    if user.email:
+        db_user_email = crud.get_user_by_email(db, email=user.email)
+        if db_user_email:
+            raise HTTPException(status_code=400, detail="Email already registered")
         
     return crud.create_user(db=db, user=user)
+
+@router.put("/{user_id}", response_model=schemas.User)
+def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    db_user = crud.get_user(db, user_id=user_id)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if user.username != db_user.username:
+        if crud.get_user_by_username(db, username=user.username):
+            raise HTTPException(status_code=400, detail="Username already registered")
+            
+    if user.email != db_user.email and user.email:
+        if crud.get_user_by_email(db, email=user.email):
+            raise HTTPException(status_code=400, detail="Email already registered")
+            
+    updated = crud.update_user(db=db, user_id=user_id, user=user)
+    return updated
 
 @router.delete("/{user_id}", response_model=schemas.User)
 def delete_user(user_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
