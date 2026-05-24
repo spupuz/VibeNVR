@@ -263,7 +263,7 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
 
     # Global Estimation
     global_retention_days = None
-    if global_daily_gb > 0.1: # Threshold to avoid div by zero/noise
+    if global_daily_gb > 0.01: # Lowered threshold to show capacity even with small burn rates
         # If global limit is set, use it. Otherwise use physical free space + used by vibe (Total available to app)
         available_gb = max_global_gb if max_global_gb > 0 else storage_total_gb
         global_retention_days = round(available_gb / global_daily_gb, 1)
@@ -287,8 +287,7 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
             camera_stats[cam.id]["daily_rate_gb"] = round(d_gb, 2)
             camera_stats[cam.id]["estimated_retention_days"] = est_days
 
-    # 4. Calculate Required Storage for Configured Retention
-    # Map retention settings to days
+    # 4. Calculate Required Storage for Configured Retention (Precise per-camera sum)
     RETENTION_DAYS_MAP = {
         "For One Day": 1,
         "For One Week": 7,
@@ -297,18 +296,40 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
         "Forever": None
     }
     
-    # Get the most common retention setting across cameras, or use a default
-    # For simplicity, use the first active camera's setting or fallback
-    configured_retention_setting = None
-    for cam in cameras:
-        if cam.preserve_movies and cam.preserve_movies in RETENTION_DAYS_MAP:
-            configured_retention_setting = cam.preserve_movies
-            break
+    required_storage_gb = 0.0
+    max_retention_days = 0
+    has_valid_retention = False
     
-    configured_retention_days = RETENTION_DAYS_MAP.get(configured_retention_setting) if configured_retention_setting else None
-    required_storage_gb = None
-    if configured_retention_days and global_daily_gb > 0.01:
-        required_storage_gb = round(global_daily_gb * configured_retention_days, 1)
+    for cam in cameras:
+        cam_daily_gb = daily_usage_map.get(cam.id, 0.0) / (1024**3)
+        cam_days = None
+        
+        if cam.preserve_movies:
+            if cam.preserve_movies in RETENTION_DAYS_MAP:
+                cam_days = RETENTION_DAYS_MAP.get(cam.preserve_movies)
+            elif cam.preserve_movies != "Forever":
+                try:
+                    days = int(cam.preserve_movies)
+                    if days > 0:
+                        cam_days = days
+                except (ValueError, TypeError):
+                    pass
+                    
+        if cam_days is not None:
+            has_valid_retention = True
+            if cam_days > max_retention_days:
+                max_retention_days = cam_days
+            if cam_daily_gb > 0.01:
+                required_storage_gb += (cam_daily_gb * cam_days)
+
+    if has_valid_retention and max_retention_days > 0 and required_storage_gb > 0:
+        configured_retention_days = max_retention_days
+        configured_retention_setting = f"Max {max_retention_days} Days"
+        required_storage_gb = round(required_storage_gb, 1)
+    else:
+        configured_retention_days = None
+        configured_retention_setting = None
+        required_storage_gb = None
 
     # 5. System Uptime
     uptime_seconds = int(time.time() - START_TIME)

@@ -159,6 +159,14 @@ def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None, s
     
     if not media_type or media_type == 'video':
         movie_delta = PRESERVE_MAP.get(camera.preserve_movies)
+        if movie_delta is None and camera.preserve_movies and camera.preserve_movies != "Forever":
+            try:
+                days = int(camera.preserve_movies)
+                if days > 0:
+                    movie_delta = timedelta(days=days)
+            except (ValueError, TypeError):
+                pass
+
         if movie_delta:
             cutoff = now_aware - movie_delta
             expired = db.query(models.Event).filter(models.Event.camera_id == camera.id, models.Event.type == "video", models.Event.timestamp_start < cutoff).all()
@@ -170,6 +178,14 @@ def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None, s
 
     if not media_type or media_type == 'snapshot':
         pic_delta = PRESERVE_MAP.get(camera.preserve_pictures)
+        if pic_delta is None and camera.preserve_pictures and camera.preserve_pictures != "Forever":
+            try:
+                days = int(camera.preserve_pictures)
+                if days > 0:
+                    pic_delta = timedelta(days=days)
+            except (ValueError, TypeError):
+                pass
+
         if pic_delta:
             cutoff = now_aware - pic_delta
             expired = db.query(models.Event).filter(models.Event.camera_id == camera.id, models.Event.type == "snapshot", models.Event.timestamp_start < cutoff).all()

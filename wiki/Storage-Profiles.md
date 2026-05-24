@@ -47,7 +47,7 @@ VibeNVR employs a hierarchical, **reactive** cleanup strategy. The system automa
 
 1. **Effective Limit Calculation**: The UI and Backend prioritize the most restrictive value between the individual camera setting and the global quota. 
    - *Example*: If a Camera is set to 10GB but the Global Quota is 5GB, the Effective Limit is **5GB**.
-2. **Camera-Level Controls**: Users can define specific `Max Storage (GB)` and `Retention (Days)` per camera.
+2. **Camera-Level Controls**: Users can define specific `Max Storage (GB)` and `Retention` (Preset intervals like 1 week, or a Custom number of days) per camera.
 3. **Profile/Global Limit**: The system ensures the total disk usage across all cameras remains within the defined profile or global quota, purging the oldest events from any camera as needed.
 
 ## Storage Maintenance & Breakdown

@@ -89,15 +89,31 @@ export const MoviesTab = ({ editingId, newCamera, setNewCamera, stats, handleCle
             />
             <SelectField
                 label="Preserve Movies"
-                value={newCamera.preserve_movies}
-                onChange={(val) => setNewCamera({ ...newCamera, preserve_movies: val })}
+                value={(!['Forever', 'For One Month', 'For One Week', 'For One Day'].includes(newCamera.preserve_movies) && newCamera.preserve_movies !== undefined) ? 'Custom' : (newCamera.preserve_movies || 'For One Week')}
+                onChange={(val) => {
+                    if (val === 'Custom') {
+                        setNewCamera({ ...newCamera, preserve_movies: '14' });
+                    } else {
+                        setNewCamera({ ...newCamera, preserve_movies: val });
+                    }
+                }}
                 options={[
                     { value: 'Forever', label: 'Forever' },
                     { value: 'For One Month', label: 'For One Month' },
                     { value: 'For One Week', label: 'For One Week' },
-                    { value: 'For One Day', label: 'For One Day' }
+                    { value: 'For One Day', label: 'For One Day' },
+                    { value: 'Custom', label: 'Custom (Days)' }
                 ]}
             />
+            {(!['Forever', 'For One Month', 'For One Week', 'For One Day'].includes(newCamera.preserve_movies) && newCamera.preserve_movies !== undefined) && (
+                <InputField
+                    label="Custom Days"
+                    type="number"
+                    value={parseInt(newCamera.preserve_movies) || 14}
+                    onChange={(val) => setNewCamera({ ...newCamera, preserve_movies: String(val) })}
+                    min={1}
+                />
+            )}
             <SectionHeader title="Storage Limit" description="Auto-delete old files when limit is reached" />
             {stats?.details?.cameras?.[editingId] && (
                 <div className="mb-6 p-4 bg-muted/30 rounded-lg border border-border">

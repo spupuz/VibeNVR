@@ -31,15 +31,31 @@ export const SnapshotsTab = ({ editingId, newCamera, setNewCamera, stats, handle
             />
             <SelectField
                 label="Preserve Pictures"
-                value={newCamera.picture_preserve_pictures}
-                onChange={(val) => setNewCamera({ ...newCamera, picture_preserve_pictures: val })}
+                value={(!['Forever', 'For One Month', 'For One Week', 'For One Day'].includes(newCamera.picture_preserve_pictures) && newCamera.picture_preserve_pictures !== undefined) ? 'Custom' : (newCamera.picture_preserve_pictures || 'Forever')}
+                onChange={(val) => {
+                    if (val === 'Custom') {
+                        setNewCamera({ ...newCamera, picture_preserve_pictures: '14' });
+                    } else {
+                        setNewCamera({ ...newCamera, picture_preserve_pictures: val });
+                    }
+                }}
                 options={[
                     { value: 'Forever', label: 'Forever' },
                     { value: 'For One Month', label: 'For One Month' },
                     { value: 'For One Week', label: 'For One Week' },
-                    { value: 'For One Day', label: 'For One Day' }
+                    { value: 'For One Day', label: 'For One Day' },
+                    { value: 'Custom', label: 'Custom (Days)' }
                 ]}
             />
+            {(!['Forever', 'For One Month', 'For One Week', 'For One Day'].includes(newCamera.picture_preserve_pictures) && newCamera.picture_preserve_pictures !== undefined) && (
+                <InputField
+                    label="Custom Days"
+                    type="number"
+                    value={parseInt(newCamera.picture_preserve_pictures) || 14}
+                    onChange={(val) => setNewCamera({ ...newCamera, picture_preserve_pictures: String(val) })}
+                    min={1}
+                />
+            )}
             <InputField
                 label="Maximum Pictures Storage (GB)"
                 type="number"
