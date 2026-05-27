@@ -1135,5 +1135,8 @@
     "Token copied to clipboard": "éxito",
     "Camera settings exported successfully": "éxito",
     "New Home position saved to camera memory": "éxito"
+  },
+  "profile": {
+    "display_language": "Idioma de visualización"
   }
 }

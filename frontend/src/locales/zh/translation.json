@@ -1183,5 +1183,8 @@
     "Network error during port probe": "错误",
     "Please enter an ONVIF Host IP": "错误",
     "Network error during probe": "错误"
+  },
+  "profile": {
+    "display_language": "显示语言"
   }
 }

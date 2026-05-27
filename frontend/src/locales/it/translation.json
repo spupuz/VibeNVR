@@ -1176,5 +1176,8 @@
     "Network error during port probe": "errore",
     "Please enter an ONVIF Host IP": "errore",
     "Network error during probe": "errore"
+  },
+  "profile": {
+    "display_language": "Lingua di visualizzazione"
   }
 }

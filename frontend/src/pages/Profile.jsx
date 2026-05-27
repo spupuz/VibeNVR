@@ -3,11 +3,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { Button } from '../components/ui/Button';
 import { Avatar } from '../components/ui/Avatar';
-import { Camera, Key, Mail, Shield, Upload, X, User as UserIcon, Smartphone, Check, Copy, Laptop, Trash2, Loader2, Calendar } from 'lucide-react';
+import { Camera, Key, Mail, Shield, Upload, X, User as UserIcon, Smartphone, Check, Copy, Laptop, Trash2, Loader2, Calendar, Globe } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { formatDistanceToNow } from 'date-fns';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 export const Profile = () => {
   const { t } = useTranslation();
@@ -561,6 +562,19 @@ export const Profile = () => {
                                 <div className="p-3 bg-muted/50 rounded-lg border border-border flex items-center gap-3">
                                     <Mail className="w-4 h-4 text-muted-foreground" />
                                     <span className="font-medium">{user.email || 'No email set'}</span>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-2">
+                                <label className="text-sm font-medium text-muted-foreground">{t('common.language', 'Language')}</label>
+                                <div className="p-3 bg-muted/50 rounded-lg border border-border flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3">
+                                        <Globe className="w-4 h-4 text-muted-foreground" />
+                                        <span className="font-medium text-sm">{t('profile.display_language', 'Display Language')}</span>
+                                    </div>
+                                    <div className="w-48">
+                                        <LanguageSwitcher />
+                                    </div>
                                 </div>
                             </div>
 

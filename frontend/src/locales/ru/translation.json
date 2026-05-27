@@ -1181,5 +1181,8 @@
     "Network error during port probe": "ошибка",
     "Please enter an ONVIF Host IP": "ошибка",
     "Network error during probe": "ошибка"
+  },
+  "profile": {
+    "display_language": "Язык дисплея"
   }
 }
