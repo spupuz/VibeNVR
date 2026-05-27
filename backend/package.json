@@ -1,6 +1,6 @@
 {
     "name": "vibenvr-backend",
-  "version": "1.28.7",
+  "version": "1.29.0",
     "description": "VibeNVR Backend API",
     "license": "MIT"
 }
