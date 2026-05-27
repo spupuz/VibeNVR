@@ -19,7 +19,7 @@ export const About = () => {
                     VibeNVR
                 </h1>
                 <p className="text-xl text-muted-foreground font-light max-w-2xl mx-auto">
-                    {t('about.subtitle', 'The Modern, Performant, and Beautiful Network Video Recorder')}
+                    {t('about.subtitle', 'The Modern, Performant, and Elegant Network Video Recorder')}
                 </p>
                 <div className="flex justify-center space-x-2">
                     <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold uppercase tracking-wider">

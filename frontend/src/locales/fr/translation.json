@@ -908,10 +908,10 @@
     "cancel": "Annuler"
   },
   "about": {
-    "subtitle": "L'enregistreur vidéo réseau moderne, performant et magnifique",
     "paragraph1": "J'ai créé VibeNVR parce que les solutions open source existantes comme MotionEye semblaient obsolètes, maladroites et difficiles à intégrer aux piles domotiques modernes.",
     "paragraph2": "VibeNVR comble le fossé entre des fonctionnalités puissantes et un design élégant. Il est construit avec une pile moderne (React, Python FastAPI, OpenCV) pour être léger, rapide et agréable à utiliser au quotidien.",
-    "support_text": "Si vous aimez VibeNVR, pensez à lui donner une étoile sur GitHub ou à m'offrir un café ! Votre soutien maintient les mises à jour à venir."
+    "support_text": "Si vous aimez VibeNVR, pensez à lui donner une étoile sur GitHub ou à m'offrir un café ! Votre soutien maintient les mises à jour à venir.",
+    "subtitle": "L'enregistreur vidéo réseau moderne, performant et élégant"
   },
   "settings_users": {
     "title": "Gestion des utilisateurs",

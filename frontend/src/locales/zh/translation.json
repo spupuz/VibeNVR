@@ -912,10 +912,10 @@
     "cancel": "取消"
   },
   "about": {
-    "subtitle": "现代，高性能且美观的网络录像机",
     "paragraph1": "我构建 VibeNVR 是因为 MotionEye 等现有开源解决方案感觉过时、笨重，并且难以与现代家庭自动化堆栈集成。",
     "paragraph2": "VibeNVR 弥合了强大功能和精美设计之间的差距。它采用现代堆栈（React、Python FastAPI、OpenCV）构建，轻量、快速且每天使用起来很愉快。",
-    "support_text": "如果您喜欢 VibeNVR，请考虑在 GitHub 上给它一个 Star 或请我喝杯咖啡！您的支持让我们不断更新。"
+    "support_text": "如果您喜欢 VibeNVR，请考虑在 GitHub 上给它一个 Star 或请我喝杯咖啡！您的支持让我们不断更新。",
+    "subtitle": "现代、高性能、优雅的网络录像机"
   },
   "settings_users": {
     "title": "用户管理",

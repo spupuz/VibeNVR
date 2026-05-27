@@ -905,10 +905,10 @@
     "cancel": "Stornieren"
   },
   "about": {
-    "subtitle": "Der moderne, leistungsstarke und schöne Netzwerk-Videorekorder",
     "paragraph1": "Ich habe VibeNVR entwickelt, weil sich bestehende Open-Source-Lösungen wie MotionEye veraltet, umständlich und schwer in moderne Heimautomatisierungs-Stacks zu integrieren anfühlten.",
     "paragraph2": "VibeNVR schließt die Lücke zwischen leistungsstarken Funktionen und schönem Design. Es ist mit einem modernen Stack (React, Python FastAPI, OpenCV) aufgebaut, um leichtgewichtig und schnell zu sein und jeden Tag Freude zu bereiten.",
-    "support_text": "Wenn Sie VibeNVR lieben, denken Sie darüber nach, ihm einen Stern auf GitHub zu geben oder mir einen Kaffee zu spendieren! Ihre Unterstützung sorgt dafür, dass die Updates kommen."
+    "support_text": "Wenn Sie VibeNVR lieben, denken Sie darüber nach, ihm einen Stern auf GitHub zu geben oder mir einen Kaffee zu spendieren! Ihre Unterstützung sorgt dafür, dass die Updates kommen.",
+    "subtitle": "Der moderne, leistungsstarke und elegante Netzwerk-Videorecorder"
   },
   "settings_users": {
     "title": "Benutzerverwaltung",

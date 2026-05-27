@@ -907,10 +907,10 @@
     "cancel": "Cancelar"
   },
   "about": {
-    "subtitle": "O Gravador de Vídeo em Rede Moderno, de Alto Desempenho e Bonito",
     "paragraph1": "Eu desenvolvi o VibeNVR porque as soluções de código aberto existentes, como o MotionEye, pareciam desatualizadas, desajeitadas e difíceis de integrar com pilhas modernas de automação residencial.",
     "paragraph2": "O VibeNVR preenche a lacuna entre recursos poderosos e um design bonito. Ele foi construído com uma pilha moderna (React, Python FastAPI, OpenCV) para ser leve, rápido e divertido de usar todos os dias.",
-    "support_text": "Se você adora o VibeNVR, considere dar uma estrela no GitHub ou comprar um café para mim! Seu apoio mantém as atualizações chegando."
+    "support_text": "Se você adora o VibeNVR, considere dar uma estrela no GitHub ou comprar um café para mim! Seu apoio mantém as atualizações chegando.",
+    "subtitle": "O gravador de vídeo em rede moderno, de alto desempenho e elegante"
   },
   "settings_users": {
     "title": "Gerenciamento de usuários",
