@@ -4,8 +4,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { Button } from '../../components/ui/Button';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { useTranslation } from 'react-i18next';
 
 export const BackupManager = () => {
+  const { t } = useTranslation();
     const { token } = useAuth();
     const { showToast } = useToast();
     const [backups, setBackups] = useState([]);
@@ -132,9 +134,9 @@ export const BackupManager = () => {
                 <div className="flex-1 min-w-0 overflow-hidden">
                     <h3 className="text-lg font-medium text-foreground flex items-center gap-2 truncate">
                         <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
-                        <span className="truncate">Backup Management</span>
+                        <span className="truncate">{t('timeline.backup_management', 'Backup Management')}</span>
                     </h3>
-                    <p className="text-sm text-muted-foreground truncate opacity-70">System snapshots and manual backups.</p>
+                    <p className="text-sm text-muted-foreground truncate opacity-70">{t('timeline.system_snapshots_and_manu', 'System snapshots and manual backups.')}</p>
                 </div>
                 <Button 
                     onClick={handleBackupNow} 
@@ -154,7 +156,7 @@ export const BackupManager = () => {
             ) : backups.length === 0 ? (
                 <div className="text-center py-12 bg-muted/5 rounded-2xl border border-dashed border-border/40">
                     <FileJson className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                    <p className="text-muted-foreground/60 text-sm">No backups found on server.</p>
+                    <p className="text-muted-foreground/60 text-sm">{t('timeline.no_backups_found_on_serve', 'No backups found on server.')}</p>
                 </div>
             ) : (
                 <div className="space-y-4">
@@ -163,11 +165,11 @@ export const BackupManager = () => {
                         <table className="w-full text-left text-sm">
                             <thead className="bg-muted/50 text-muted-foreground font-medium border-b border-border/50">
                                 <tr>
-                                    <th className="px-5 py-4">Filename</th>
-                                    <th className="px-5 py-4 text-center">Type</th>
-                                    <th className="px-5 py-4">Size</th>
-                                    <th className="px-5 py-4">Created</th>
-                                    <th className="px-5 py-4 text-right">Actions</th>
+                                    <th className="px-5 py-4">{t('timeline.filename', 'Filename')}</th>
+                                    <th className="px-5 py-4 text-center">{t('timeline.type', 'Type')}</th>
+                                    <th className="px-5 py-4">{t('timeline.size', 'Size')}</th>
+                                    <th className="px-5 py-4">{t('timeline.created', 'Created')}</th>
+                                    <th className="px-5 py-4 text-right">{t('timeline.actions', 'Actions')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/30">

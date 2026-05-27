@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Volume2, VolumeX, Activity } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const MAX_RETRIES = 5;
 const RETRY_BASE_MS = 1500;
@@ -61,6 +62,7 @@ function alaw2linear(alaw) {
 }
 
 export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, isAuditing }) => {
+  const { t } = useTranslation();
     const { token } = useAuth();
     const cameraId = camera?.id;
     const canvasRef = useRef(null);

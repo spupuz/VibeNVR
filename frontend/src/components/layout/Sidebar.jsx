@@ -3,6 +3,7 @@ import { LayoutDashboard, Camera, Film, History, Settings, LogOut, Moon, Sun, X,
 import { useAuth } from '../../contexts/AuthContext';
 import { Avatar } from '../ui/Avatar';
 import packageJson from '../../../package.json';
+import { useTranslation } from 'react-i18next';
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     <button
@@ -36,15 +37,17 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
             .catch(err => console.error("Failed to fetch latest release", err));
     }, []);
 
-    const menuItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'cameras', label: 'Cameras', icon: Camera },
-        { id: 'live', label: 'Live View', icon: Film },
-        { id: 'timeline', label: 'Timeline', icon: History },
+    const { t } = useTranslation();
 
-        ...(user?.role !== 'viewer' ? [{ id: 'settings', label: 'Settings', icon: Settings }] : []),
-        ...(user?.role === 'admin' ? [{ id: 'logs', label: 'System Logs', icon: FileText }] : []),
-        { id: 'about', label: 'About', icon: Info },
+    const menuItems = [
+        { id: 'dashboard', label: t('nav.dashboard', 'Dashboard'), icon: LayoutDashboard },
+        { id: 'cameras', label: t('nav.cameras', 'Cameras'), icon: Camera },
+        { id: 'live', label: t('nav.live', 'Live View'), icon: Film },
+        { id: 'timeline', label: t('nav.timeline', 'Timeline'), icon: History },
+
+        ...(user?.role !== 'viewer' ? [{ id: 'settings', label: t('nav.settings', 'Settings'), icon: Settings }] : []),
+        ...(user?.role === 'admin' ? [{ id: 'logs', label: t('nav.logs', 'System Logs'), icon: FileText }] : []),
+        { id: 'about', label: t('nav.about', 'About'), icon: Info },
     ];
 
     return (
@@ -95,7 +98,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                     <span className="font-medium text-sm truncate">{user?.username}</span>
                 </button>
 
-                <SidebarItem icon={LogOut} label="Logout" onClick={logout} />
+                <SidebarItem icon={LogOut} label={t('nav.logout', 'Logout')} onClick={logout} />
 
                 <button
                     onClick={toggleTheme}
@@ -107,7 +110,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                         <Moon className="w-5 h-5 group-hover:text-blue-500 transition-colors" />
                     )}
                     <span className="font-medium text-sm">
-                        {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                        {theme === 'dark' ? t('nav.light_mode', 'Light Mode') : t('nav.dark_mode', 'Dark Mode')}
                     </span>
                 </button>
 

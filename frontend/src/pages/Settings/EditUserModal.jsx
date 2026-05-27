@@ -2,6 +2,7 @@ import React from 'react';
 import { User, X } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { InputField, SelectField } from '../../components/ui/FormControls';
+import { useTranslation } from 'react-i18next';
 
 export const EditUserModal = ({
     isOpen,
@@ -12,6 +13,7 @@ export const EditUserModal = ({
     cameras = [],
     groups = []
 }) => {
+    const { t } = useTranslation();
     if (!isOpen || !editingUser) return null;
 
     return (
@@ -20,7 +22,7 @@ export const EditUserModal = ({
                 <div className="flex justify-between items-center mb-4 border-b border-border pb-4">
                     <h3 className="text-xl font-bold flex items-center gap-2">
                         <User className="w-5 h-5 text-primary" />
-                        Edit User: {editingUser.username}
+                        {t('settings.edit_user', 'Edit User')}: {editingUser.username}
                     </h3>
                     <button
                         onClick={onClose}
@@ -33,24 +35,24 @@ export const EditUserModal = ({
                 <form onSubmit={handleUpdateUser} className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <InputField
-                            label="Username"
+                            label={t('settings.username', 'Username')}
                             value={editingUser.username || ''}
                             onChange={(val) => setEditingUser({ ...editingUser, username: val })}
                             required
                         />
                         <InputField
-                            label="Email"
+                            label={t('settings.email', 'Email')}
                             type="email"
                             value={editingUser.email || ''}
                             onChange={(val) => setEditingUser({ ...editingUser, email: val })}
                         />
                         <SelectField
-                            label="Role"
+                            label={t('settings.role', 'Role')}
                             value={editingUser.role || 'viewer'}
                             onChange={(val) => setEditingUser({ ...editingUser, role: val })}
                             options={[
-                                { value: 'viewer', label: 'Viewer (Read Only)' },
-                                { value: 'admin', label: 'Admin (Full Access)' }
+                                { value: 'viewer', label: t('settings.viewer_read_only', 'Viewer (Read Only)') },
+                                { value: 'admin', label: t('settings.admin_full_access', 'Admin (Full Access)') }
                             ]}
                         />
                     </div>
@@ -58,7 +60,7 @@ export const EditUserModal = ({
                     {editingUser.role === 'viewer' && (
                         <div className="space-y-4 pt-4 border-t border-border/50">
                             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                                <label className="text-sm font-bold sm:w-48">Restrict Camera Access</label>
+                                <label className="text-sm font-bold sm:w-48">{t('timeline.restrict_camera_access', 'Restrict Camera Access')}</label>
                                 <div className="flex items-center gap-3">
                                     <button
                                         type="button"
@@ -67,14 +69,14 @@ export const EditUserModal = ({
                                     >
                                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${editingUser.restrict_camera_access ? 'translate-x-6' : 'translate-x-1'}`} />
                                     </button>
-                                    <span className="text-xs text-muted-foreground">If enabled, the viewer can only access selected cameras/groups.</span>
+                                    <span className="text-xs text-muted-foreground">{t('timeline.if_enabled_the_viewer_can', 'If enabled, the viewer can only access selected cameras/groups.')}</span>
                                 </div>
                             </div>
                             
                             {editingUser.restrict_camera_access && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-bold mb-2">Allowed Cameras</label>
+                                        <label className="block text-sm font-bold mb-2">{t('timeline.allowed_cameras', 'Allowed Cameras')}</label>
                                         <div className="bg-background rounded-lg border border-border p-2 max-h-40 overflow-y-auto space-y-1">
                                             {cameras.map(cam => (
                                                 <label key={cam.id} className="flex items-center gap-2 p-1 hover:bg-muted rounded cursor-pointer">
@@ -91,12 +93,12 @@ export const EditUserModal = ({
                                                     <span className="text-sm">{cam.name}</span>
                                                 </label>
                                             ))}
-                                            {cameras.length === 0 && <p className="text-xs text-muted-foreground p-1">No cameras available</p>}
+                                            {cameras.length === 0 && <p className="text-xs text-muted-foreground p-1">{t('timeline.no_cameras_available', 'No cameras available')}</p>}
                                         </div>
                                     </div>
                                     
                                     <div>
-                                        <label className="block text-sm font-bold mb-2">Allowed Groups</label>
+                                        <label className="block text-sm font-bold mb-2">{t('timeline.allowed_groups', 'Allowed Groups')}</label>
                                         <div className="bg-background rounded-lg border border-border p-2 max-h-40 overflow-y-auto space-y-1">
                                             {groups.map(group => (
                                                 <label key={group.id} className="flex items-center gap-2 p-1 hover:bg-muted rounded cursor-pointer">
@@ -113,7 +115,7 @@ export const EditUserModal = ({
                                                     <span className="text-sm">{group.name}</span>
                                                 </label>
                                             ))}
-                                            {groups.length === 0 && <p className="text-xs text-muted-foreground p-1">No groups available</p>}
+                                            {groups.length === 0 && <p className="text-xs text-muted-foreground p-1">{t('timeline.no_groups_available', 'No groups available')}</p>}
                                         </div>
                                     </div>
                                 </div>
@@ -127,10 +129,10 @@ export const EditUserModal = ({
                             variant="outline"
                             onClick={onClose}
                         >
-                            Cancel
+                            {t('actions.cancel', 'Cancel')}
                         </Button>
                         <Button type="submit">
-                            Save Changes
+                            {t('actions.save_changes', 'Save Changes')}
                         </Button>
                     </div>
                 </form>

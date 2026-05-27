@@ -1,8 +1,10 @@
 import React from 'react';
 import { ExternalLink, Github, Heart, Video, Star, LayoutDashboard } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import packageJson from '../../package.json';
 
 export const About = () => {
+    const { t } = useTranslation();
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-12">
             <div className="text-center space-y-4 mb-12">
@@ -17,7 +19,7 @@ export const About = () => {
                     VibeNVR
                 </h1>
                 <p className="text-xl text-muted-foreground font-light max-w-2xl mx-auto">
-                    The Modern, Performant, and Beautiful Network Video Recorder
+                    {t('about.subtitle', 'The Modern, Performant, and Beautiful Network Video Recorder')}
                 </p>
                 <div className="flex justify-center space-x-2">
                     <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold uppercase tracking-wider">
@@ -34,12 +36,12 @@ export const About = () => {
                     <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                         <Video className="w-6 h-6 text-primary" />
                     </div>
-                    <h2 className="text-2xl font-bold mb-4">Why VibeNVR?</h2>
+                    <h2 className="text-2xl font-bold mb-4">{t('timeline.why_vibenvr', 'Why VibeNVR?')}</h2>
                     <p className="text-muted-foreground leading-relaxed mb-4">
-                        I built VibeNVR because existing open-source solutions like MotionEye felt outdated, clunky, and hard to integrate with modern home automation stacks.
+                        {t('about.paragraph1', 'I built VibeNVR because existing open-source solutions like MotionEye felt outdated, clunky, and hard to integrate with modern home automation stacks.')}
                     </p>
                     <p className="text-muted-foreground leading-relaxed">
-                        VibeNVR bridges the gap between powerful features and beautiful design. It's built with a modern stack (React, Python FastAPI, OpenCV) to be lightweight, fast, and a joy to use every day.
+                        {t('about.paragraph2', "VibeNVR bridges the gap between powerful features and beautiful design. It's built with a modern stack (React, Python FastAPI, OpenCV) to be lightweight, fast, and a joy to use every day.")}
                     </p>
                 </div>
 
@@ -54,9 +56,9 @@ export const About = () => {
                     </div>
 
                     <div>
-                        <h2 className="text-2xl font-bold mb-2">Support the Project</h2>
+                        <h2 className="text-2xl font-bold mb-2">{t('timeline.support_the_project', 'Support the Project')}</h2>
                         <p className="text-muted-foreground mb-6">
-                            If you love VibeNVR, consider giving it a Star on GitHub or buying me a coffee! Your support keeps the updates coming.
+                            {t('about.support_text', 'If you love VibeNVR, consider giving it a Star on GitHub or buying me a coffee! Your support keeps the updates coming.')}
                         </p>
 
                         <div className="flex flex-col gap-4 justify-center items-center">
@@ -67,7 +69,7 @@ export const About = () => {
                                 className="inline-flex items-center justify-center space-x-2 bg-gray-900 text-white px-6 py-3 rounded-full font-bold hover:bg-gray-800 hover:scale-105 hover:shadow-xl transition-all duration-300 w-64"
                             >
                                 <Github className="w-5 h-5" />
-                                <span>Star on GitHub</span>
+                                <span>{t('timeline.star_on_github', 'Star on GitHub')}</span>
                             </a>
                             <a
                                 href="https://www.buymeacoffee.com/spupuz"
@@ -80,7 +82,7 @@ export const About = () => {
                                     alt="Buy me a coffee"
                                     className="w-5 h-5"
                                 />
-                                <span>Buy me a coffee</span>
+                                <span>{t('timeline.buy_me_a_coffee', 'Buy me a coffee')}</span>
                             </a>
                             <a
                                 href="https://vibenvr-telemetry.spupuz.workers.dev/"
@@ -89,7 +91,7 @@ export const About = () => {
                                 className="inline-flex items-center justify-center space-x-2 bg-blue-500 text-white px-6 py-3 rounded-full font-bold hover:bg-blue-600 hover:scale-105 hover:shadow-xl transition-all duration-300 w-64"
                             >
                                 <LayoutDashboard className="w-5 h-5" />
-                                <span>Public Telemetry</span>
+                                <span>{t('timeline.public_telemetry', 'Public Telemetry')}</span>
                             </a>
                         </div>
                     </div>
@@ -97,32 +99,32 @@ export const About = () => {
             </div>
 
             <div className="bg-card border border-border rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-4 border-b border-border pb-2">Technical Credits & Stack</h3>
+                <h3 className="text-lg font-semibold mb-4 border-b border-border pb-2">{t('timeline.technical_credits_stack', 'Technical Credits & Stack')}</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
                     <div className="flex flex-col space-y-1">
-                        <span className="font-medium text-foreground">Backend</span>
-                        <span>Python FastAPI</span>
-                        <span>SQLAlchemy</span>
-                        <span>PostgreSQL</span>
+                        <span className="font-medium text-foreground">{t('timeline.backend', 'Backend')}</span>
+                        <span>{t('timeline.python_fastapi', 'Python FastAPI')}</span>
+                        <span>{t('timeline.sqlalchemy', 'SQLAlchemy')}</span>
+                        <span>{t('timeline.postgresql', 'PostgreSQL')}</span>
                     </div>
                     <div className="flex flex-col space-y-1">
-                        <span className="font-medium text-foreground">Frontend</span>
-                        <span>React + Vite</span>
-                        <span>TailwindCSS</span>
-                        <span>Lucide Icons</span>
+                        <span className="font-medium text-foreground">{t('timeline.frontend', 'Frontend')}</span>
+                        <span>{t('timeline.react_vite', 'React + Vite')}</span>
+                        <span>{t('timeline.tailwindcss', 'TailwindCSS')}</span>
+                        <span>{t('timeline.lucide_icons', 'Lucide Icons')}</span>
                     </div>
                     <div className="flex flex-col space-y-1">
-                        <span className="font-medium text-foreground">Loop</span>
-                        <span>OpenCV</span>
-                        <span>FFmpeg</span>
-                        <span>Docker</span>
+                        <span className="font-medium text-foreground">{t('timeline.loop', 'Loop')}</span>
+                        <span>{t('timeline.opencv', 'OpenCV')}</span>
+                        <span>{t('timeline.ffmpeg', 'FFmpeg')}</span>
+                        <span>{t('timeline.docker', 'Docker')}</span>
                     </div>
                     <div className="flex flex-col space-y-1">
-                        <span className="font-medium text-foreground">Author</span>
-                        <span>Alessandro Belloni</span>
+                        <span className="font-medium text-foreground">{t('timeline.author', 'Author')}</span>
+                        <span>{t('timeline.alessandro_belloni', 'Alessandro Belloni')}</span>
                         <a href="https://github.com/spupuz" className="flex items-center space-x-1 text-primary hover:underline">
                             <Github className="w-3 h-3" />
-                            <span>@spupuz</span>
+                            <span>{t('timeline.spupuz', '@spupuz')}</span>
                         </a>
                     </div>
                 </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Bell } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { CollapsibleSection } from '../../../components/ui/CollapsibleSection';
@@ -11,11 +12,12 @@ export const NotificationSettings = ({
     isOpen,
     onToggle
 }) => {
+    const { t } = useTranslation();
     return (
         <CollapsibleSection
             id="notifications"
-            title="Notification Settings"
-            description="Configure global Email and Telegram credentials"
+            title={t('settings_notificationsettings.title', 'Notification Settings')}
+            description={t('settings_notificationsettings.subtitle', 'Configure global Email and Telegram credentials')}
             icon={<Bell className="w-6 h-6" />}
             isOpen={isOpen}
             onToggle={onToggle}
@@ -24,7 +26,7 @@ export const NotificationSettings = ({
                 {/* SMTP Section */}
                 <div>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                        <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground shrink-0">SMTP (Email) Configuration</h4>
+                        <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground shrink-0">{t('timeline.smtp_email_configuration', 'SMTP (Email) Configuration')}</h4>
                         <Button
                             type="button"
                             variant="outline"
@@ -32,50 +34,50 @@ export const NotificationSettings = ({
                             className="h-11 sm:h-9 w-full sm:w-auto text-xs px-5 shadow-sm active:scale-95"
                         >
                             <Bell className="w-4 h-4 mr-2 opacity-60" />
-                            Test Email
+                            {t('settings_notificationsettings.test_email', 'Test Email')}
                         </Button>
                     </div>
                     <p className="text-xs text-muted-foreground mb-4 bg-muted/30 p-3 rounded-xl border border-border/50 leading-relaxed">
-                        <span className="font-semibold text-primary">Note:</span> These global credentials will be used for all cameras unless a camera specifically overrides them in its own settings.
+                        <span className="font-semibold text-primary">{t('timeline.note', 'Note:')}</span> {t('settings_notificationsettings.note_desc', 'These global credentials will be used for all cameras unless a camera specifically overrides them in its own settings.')}
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <InputField
-                            label="SMTP Server"
+                            label={t('settings_notificationsettings.smtp_server', 'SMTP Server')}
                             placeholder="smtp.gmail.com"
                             value={globalSettings.smtp_server}
                             onChange={(val) => setGlobalSettings({ ...globalSettings, smtp_server: val })}
                         />
                         <InputField
-                            label="SMTP Port"
+                            label={t('settings_notificationsettings.smtp_port', 'SMTP Port')}
                             placeholder="587"
                             value={globalSettings.smtp_port}
                             onChange={(val) => setGlobalSettings({ ...globalSettings, smtp_port: val })}
                         />
                         <InputField
-                            label="Username"
+                            label={t('settings_notificationsettings.username', 'Username')}
                             placeholder="user@example.com"
                             value={globalSettings.smtp_username}
                             onChange={(val) => setGlobalSettings({ ...globalSettings, smtp_username: val })}
                         />
                         <InputField
-                            label="Password"
+                            label={t('settings_notificationsettings.password', 'Password')}
                             type="password"
                             placeholder="App Password"
                             value={globalSettings.smtp_password}
                             onChange={(val) => setGlobalSettings({ ...globalSettings, smtp_password: val })}
                         />
                         <InputField
-                            label="Sender Email ('From')"
+                            label={t('settings_notificationsettings.sender_email', 'Sender Email (\'From\')')}
                             type="email"
                             placeholder="nvr@yourdomain.com"
                             value={globalSettings.smtp_from_email}
                             onChange={(val) => setGlobalSettings({ ...globalSettings, smtp_from_email: val })}
                         />
                         <InputField
-                            label="Default Email Recipient ('To')"
+                            label={t('settings_notificationsettings.default_email_recipient', 'Default Email Recipient (\'To\')')}
                             type="email"
                             placeholder="admin@example.com"
-                            help="Fallback if camera recipient is not set"
+                            help={t('settings_notificationsettings.email_fallback_help', 'Fallback if camera recipient is not set')}
                             value={globalSettings.notify_email_recipient}
                             onChange={(val) => setGlobalSettings({ ...globalSettings, notify_email_recipient: val })}
                         />
@@ -85,7 +87,7 @@ export const NotificationSettings = ({
                 {/* Telegram Section */}
                 <div className="pt-6 border-t border-border/50 mt-2">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                        <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Telegram Configuration</h4>
+                        <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground shrink-0">{t('timeline.telegram_configuration', 'Telegram Configuration')}</h4>
                         <Button
                             type="button"
                             variant="outline"
@@ -93,24 +95,24 @@ export const NotificationSettings = ({
                             className="h-11 sm:h-9 w-full sm:w-auto text-xs px-5 shadow-sm active:scale-95"
                         >
                             <Bell className="w-4 h-4 mr-2 opacity-60" />
-                            Test Telegram
+                            {t('settings_notificationsettings.test_telegram', 'Test Telegram')}
                         </Button>
                     </div>
                     <div className="space-y-4">
                         <InputField
-                            label="Bot Token"
+                            label={t('settings_notificationsettings.bot_token', 'Bot Token')}
                             type="password"
                             placeholder="123456:ABC-DEF..."
                             value={globalSettings.telegram_bot_token}
                             onChange={(val) => setGlobalSettings({ ...globalSettings, telegram_bot_token: val })}
-                            help="Global Default. Can be overridden per camera."
+                            help={t('settings_notificationsettings.global_default_help', 'Global Default. Can be overridden per camera.')}
                         />
                         <InputField
-                            label="Global Chat ID"
+                            label={t('settings_notificationsettings.global_chat_id', 'Global Chat ID')}
                             placeholder="-100123456789"
                             value={globalSettings.telegram_chat_id}
                             onChange={(val) => setGlobalSettings({ ...globalSettings, telegram_chat_id: val })}
-                            help="Default destination for all cameras. Specific cameras can override this."
+                            help={t('settings_notificationsettings.telegram_chat_help', 'Default destination for all cameras. Specific cameras can override this.')}
                         />
                     </div>
                 </div>
@@ -118,7 +120,7 @@ export const NotificationSettings = ({
                 {/* Webhook Section */}
                 <div className="pt-6 border-t border-border/50 mt-2">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                        <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Webhook Configuration</h4>
+                        <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground shrink-0">{t('timeline.webhook_configuration', 'Webhook Configuration')}</h4>
                         <Button
                             type="button"
                             variant="outline"
@@ -126,34 +128,34 @@ export const NotificationSettings = ({
                             className="h-11 sm:h-9 w-full sm:w-auto text-xs px-5 shadow-sm active:scale-95"
                         >
                             <Bell className="w-4 h-4 mr-2 opacity-60" />
-                            Test Webhook
+                            {t('settings_notificationsettings.test_webhook', 'Test Webhook')}
                         </Button>
                     </div>
                     <InputField
-                        label="Global Webhook URL"
+                        label={t('settings_notificationsettings.global_webhook_url', 'Global Webhook URL')}
                         placeholder="https://homeassistant.local/api/webhook/..."
                         value={globalSettings.notify_webhook_url}
                         onChange={(val) => setGlobalSettings({ ...globalSettings, notify_webhook_url: val })}
-                        help="Global Default. Used if a camera doesn't specify a webhook."
+                        help={t('settings_notificationsettings.webhook_help', 'Global Default. Used if a camera doesn\'t specify a webhook.')}
                     />
                 </div>
 
                 {/* Defaults section inside Notifications */}
                 <div className="pt-4 border-t border-border/50">
-                    <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">Attachment Defaults</h4>
+                    <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">{t('timeline.attachment_defaults', 'Attachment Defaults')}</h4>
 
                     <div className="mt-4 space-y-4">
                         <Toggle
-                            label="Attach Snapshot to Email (Global)"
+                            label={t('settings_notificationsettings.attach_snapshot_email', 'Attach Snapshot to Email (Global)')}
                             checked={globalSettings.global_attach_image_email}
                             onChange={(val) => setGlobalSettings({ ...globalSettings, global_attach_image_email: val })}
                         />
                         <Toggle
-                            label="Attach Snapshot to Telegram (Global)"
+                            label={t('settings_notificationsettings.attach_snapshot_telegram', 'Attach Snapshot to Telegram (Global)')}
                             checked={globalSettings.global_attach_image_telegram}
                             onChange={(val) => setGlobalSettings({ ...globalSettings, global_attach_image_telegram: val })}
                         />
-                        <p className="text-[10px] text-muted-foreground">Default behavior for image attachments in notifications</p>
+                        <p className="text-[10px] text-muted-foreground">{t('timeline.default_behavior_for_imag', 'Default behavior for image attachments in notifications')}</p>
                     </div>
                 </div>
             </div>

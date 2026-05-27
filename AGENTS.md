@@ -70,6 +70,7 @@ src/
 - **Modular Pages**: Large pages (e.g., `Cameras.jsx`) must be decomposed into a directory (e.g., `src/components/Cameras/`) with sub-components for modals and complex UI sections.
 - **Styling**: TailwindCSS utility classes.
 - **State Management**: React `useState` and `Context` for global state (Auth).
+- **Localization**: NEVER hardcode English strings in JSX. Always use the `t()` hook from `react-i18next` (e.g., `t('key', 'Default English')`). Use `update_locales.py` and `auto_translate.py` in `frontend/scripts/` to generate translations.
 - **Icons**: `lucide-react` for all icons.
 
 ### Telemetry Worker (`vibenvr-telemetry-worker/`)

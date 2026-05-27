@@ -4,8 +4,10 @@ import { Toggle } from '../ui/FormControls';
 import { Button } from '../ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import { useTranslation } from 'react-i18next';
 
 export const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelected, onSelect }) => {
+  const { t } = useTranslation();
     const { user, token } = useAuth();
     const { showToast } = useToast();
 
@@ -71,7 +73,7 @@ export const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelecte
 
                             {camera.detect_engine === 'ONVIF Edge' && (
                                 <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-indigo-500/10 text-indigo-600 border-indigo-500/20" title="Camera-side Motion Detection">
-                                    <span>EDGE</span>
+                                    <span>{t('cameras.edge', 'EDGE')}</span>
                                 </div>
                             )}
 
@@ -103,7 +105,7 @@ export const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelecte
                 {user?.role === 'admin' && (
                     <div className="space-y-2 text-sm text-muted-foreground">
                         <p className="truncate">
-                            <span className="font-medium text-foreground">RTSP:</span> {(() => {
+                            <span className="font-medium text-foreground">{t('cameras.rtsp', 'RTSP:')}</span> {(() => {
                                 try {
                                     if (camera.rtsp_url && camera.rtsp_url.includes('@')) {
                                         const parts = camera.rtsp_url.split('@');

@@ -1,8 +1,10 @@
 import React from 'react';
 import { Loader2, ShieldCheck, RefreshCw, Database, Cpu, AlertCircle, CheckCircle2, RotateCcw, Server } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 export const SystemInitializing = () => {
+  const { t } = useTranslation();
     const { healthDetails, checkBackendHealth } = useAuth();
     const [retrying, setRetrying] = React.useState(false);
 
@@ -59,7 +61,7 @@ export const SystemInitializing = () => {
                 </div>
 
                 <div className="space-y-3">
-                    <h1 className="text-2xl font-bold tracking-tight">VibeNVR is starting up</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">{t('timeline.vibenvr_is_starting_up', 'VibeNVR is starting up')}</h1>
                     <p className="text-muted-foreground leading-relaxed">
                         We are waiting for all system components to initialize. This usually takes less than a minute.
                     </p>
@@ -69,7 +71,7 @@ export const SystemInitializing = () => {
                     <div className="flex items-center justify-between px-1">
                         <div className="flex items-center gap-3 text-sm font-semibold">
                             <Loader2 className={`w-4 h-4 animate-spin ${retrying ? 'text-primary' : 'text-muted-foreground opacity-50'}`} />
-                            <span>System Status</span>
+                            <span>{t('timeline.system_status', 'System Status')}</span>
                         </div>
                         {healthDetails?.status === 'error' && (
                             <span className="text-[10px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">

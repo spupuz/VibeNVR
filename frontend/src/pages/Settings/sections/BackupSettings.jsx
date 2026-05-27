@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { HardDrive, Download, Upload } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { CollapsibleSection } from '../../../components/ui/CollapsibleSection';
@@ -13,11 +14,12 @@ export const BackupSettings = ({
     isOpen,
     onToggle
 }) => {
+    const { t } = useTranslation();
     return (
         <CollapsibleSection
             id="backup"
-            title="Backup & Restore"
-            description="Export or Import system configuration (Settings, Cameras, Groups)"
+            title={t('settings_backupsettings.title', 'Backup & Restore')}
+            description={t('settings_backupsettings.subtitle', 'Export or Import system configuration (Settings, Cameras, Groups)')}
             icon={<HardDrive className="w-6 h-6" />}
             isOpen={isOpen}
             onToggle={onToggle}
@@ -33,7 +35,7 @@ export const BackupSettings = ({
                         />
                         <div className="space-y-2">
                             <p className="text-xs text-muted-foreground leading-relaxed">
-                                Automatically save a full system configuration backup to <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-[10px]">/data/backups/</code>.
+                                Automatically save a full system configuration backup to <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-[10px]">{t('timeline.data_backups', '/data/backups/')}</code>.
                             </p>
                             <p className="text-xs text-muted-foreground leading-relaxed opacity-70">
                                 Includes: Cameras, Groups, Users, 2FA secrets, and System Settings.
@@ -71,7 +73,7 @@ export const BackupSettings = ({
                         className="w-full sm:w-auto px-6 py-3 font-bold shadow-sm active:scale-95 text-xs"
                     >
                         <Download className="w-4 h-4 shrink-0 mr-2" />
-                        <span>Export (Local Save)</span>
+                        <span>{t('timeline.export_local_save', 'Export (Local Save)')}</span>
                     </Button>
 
                     <div className="relative w-full sm:w-auto">
@@ -86,7 +88,7 @@ export const BackupSettings = ({
                             variant="outline"
                         >
                             <Upload className="w-4 h-4 shrink-0 mr-2" />
-                            <span>Import (Local File)</span>
+                            <span>{t('timeline.import_local_file', 'Import (Local File)')}</span>
                         </Button>
                     </div>
                 </div>

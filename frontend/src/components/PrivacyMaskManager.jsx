@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Trash2, Plus, MousePointer2, HelpCircle, X, Check } from 'lucide-react';
 import { Button } from './ui/Button';
+import { useTranslation } from 'react-i18next';
 
 export const PrivacyMaskManager = ({ 
     cameraId, 
@@ -12,6 +13,7 @@ export const PrivacyMaskManager = ({
     color = "#ef4444", // Default red
     hint = ""
 }) => {
+    const { t } = useTranslation();
     const [currentPoints, setCurrentPoints] = useState([]);
     const [localMasks, setLocalMasks] = useState([]);
     const [snapshotUrl, setSnapshotUrl] = useState('');
@@ -244,7 +246,7 @@ export const PrivacyMaskManager = ({
                 ) : (
                     <div className="w-full h-full flex items-center justify-center bg-muted/20 text-muted-foreground space-x-2">
                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-                        <span className="text-sm">Loading Snapshot...</span>
+                        <span className="text-sm">{t('timeline.loading_snapshot', 'Loading Snapshot...')}</span>
                     </div>
                 )}
                 
@@ -261,7 +263,7 @@ export const PrivacyMaskManager = ({
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
                         <div className="bg-background/90 p-4 rounded-xl border border-border shadow-2xl text-center max-w-[250px]">
                             <MousePointer2 className="w-8 h-8 mx-auto mb-3 text-primary opacity-50" />
-                            <p className="text-sm font-bold">Start Drawing</p>
+                            <p className="text-sm font-bold">{t('timeline.start_drawing', 'Start Drawing')}</p>
                             <p className="text-xs text-muted-foreground mt-1">
                                 Click on the image to place points. Connect back to the first point to close the area.
                             </p>

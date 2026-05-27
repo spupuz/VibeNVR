@@ -197,6 +197,7 @@ def migrate():
     add_column_if_not_exists(engine, "users", "totp_secret", "VARCHAR")
     add_column_if_not_exists(engine, "users", "is_2fa_enabled", "BOOLEAN", False)
     add_column_if_not_exists(engine, "users", "restrict_camera_access", "BOOLEAN", False)
+    add_column_if_not_exists(engine, "users", "language", "VARCHAR", "en")
     
     # Granular User Access associations
     with engine.connect() as conn:

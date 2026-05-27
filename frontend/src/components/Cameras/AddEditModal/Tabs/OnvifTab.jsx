@@ -5,8 +5,10 @@ import { useToast } from '../../../../contexts/ToastContext';
 import { Settings, ShieldCheck, ShieldAlert, Loader2, Crosshair } from 'lucide-react';
 import { Button } from '../../../ui/Button';
 import { parseRtspUrl } from '../../../../utils/cameraUtils';
+import { useTranslation } from 'react-i18next';
 
 export const OnvifTab = ({ newCamera, setNewCamera }) => {
+  const { t } = useTranslation();
     const { token } = useAuth();
     const { showToast } = useToast();
     const [probing, setProbing] = useState(false);
@@ -169,24 +171,24 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
     return (
         <div className="space-y-6">
             <SectionHeader 
-                title="ONVIF Management" 
-                description="Configure management connection for PTZ and advanced features" 
+                title={t('cameras.onvif_management', 'ONVIF Management')}
+                description={t('cameras.configure_management_co', 'Configure management connection for PTZ and advanced features')}
             />
 
             <div className="bg-muted/30 p-4 rounded-lg border border-border space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                     <div className="sm:col-span-3">
                         <InputField
-                            label="ONVIF Host / IP"
+                            label={t('cameras.onvif_host_ip', 'ONVIF Host / IP')}
                             value={newCamera.onvif_host}
                             onChange={(val) => setNewCamera({ ...newCamera, onvif_host: val })}
                             placeholder="192.168.1.100"
-                            help="IP address used for ONVIF management (often same as camera IP)"
+                            help={t('cameras.ip_address_used_for_onv', 'IP address used for ONVIF management (often same as camera IP)')}
                         />
                     </div>
                     <div className="relative group">
                         <InputField
-                            label="Port"
+                            label={t('cameras.port', 'Port')}
                             type="number"
                             value={newCamera.onvif_port}
                             onChange={(val) => setNewCamera({ ...newCamera, onvif_port: val })}
@@ -210,13 +212,13 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InputField
-                        label="ONVIF Username"
+                        label={t('cameras.onvif_username', 'ONVIF Username')}
                         value={newCamera.onvif_username}
                         onChange={(val) => setNewCamera({ ...newCamera, onvif_username: val })}
                         placeholder="admin"
                     />
                     <InputField
-                        label="ONVIF Password"
+                        label={t('cameras.onvif_password', 'ONVIF Password')}
                         type="password"
                         showPasswordToggle
                         value={newCamera.onvif_password}
@@ -237,19 +239,19 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                         ) : (
                             <Settings className="w-4 h-4 mr-2" />
                         )}
-                        Test ONVIF Connection
+                        {t('cameras.test_onvif_connection', 'Test ONVIF Connection')}
                     </Button>
 
                     {probeStatus === 'success' && (
                         <div className="flex items-center gap-2 text-xs text-green-500 font-medium">
                             <ShieldCheck className="w-4 h-4" />
-                            <span>Connection Verified</span>
+                            <span>{t('cameras.connection_verified', 'Connection Verified')}</span>
                         </div>
                     )}
                     {probeStatus === 'error' && (
                         <div className="flex items-center gap-2 text-xs text-red-500 font-medium">
                             <ShieldAlert className="w-4 h-4" />
-                            <span>Connection Failed</span>
+                            <span>{t('cameras.connection_failed', 'Connection Failed')}</span>
                         </div>
                     )}
                 </div>
@@ -260,34 +262,34 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                     <div className="p-4 bg-muted/20 rounded-lg border border-border">
                         <div className="flex items-center gap-2 mb-4">
                             <Settings className="w-3.5 h-3.5 text-muted-foreground" />
-                            <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground m-0">Device Information</h5>
+                            <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground m-0">{t('cameras.device_information', 'Device Information')}</h5>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                             <div className="flex flex-col">
-                                <span className="text-[9px] uppercase font-bold text-muted-foreground opacity-70 mb-1">Manufacturer</span>
+                                <span className="text-[9px] uppercase font-bold text-muted-foreground opacity-70 mb-1">{t('cameras.manufacturer', 'Manufacturer')}</span>
                                 <span className="text-sm font-medium break-words" title={probeResult?.manufacturer || newCamera.onvif_manufacturer || '-'}>{probeResult?.manufacturer || newCamera.onvif_manufacturer || '-'}</span>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-[9px] uppercase font-bold text-muted-foreground opacity-70 mb-1">Model</span>
+                                <span className="text-[9px] uppercase font-bold text-muted-foreground opacity-70 mb-1">{t('cameras.model', 'Model')}</span>
                                 <span className="text-sm font-medium break-words" title={probeResult?.model || newCamera.onvif_model || '-'}>{probeResult?.model || newCamera.onvif_model || '-'}</span>
                             </div>
                             <div className="flex flex-col sm:col-span-1">
-                                <span className="text-[9px] uppercase font-bold text-muted-foreground opacity-70 mb-1">Firmware</span>
+                                <span className="text-[9px] uppercase font-bold text-muted-foreground opacity-70 mb-1">{t('cameras.firmware', 'Firmware')}</span>
                                 <span className="text-sm font-medium break-words" title={probeResult?.firmware || newCamera.onvif_firmware || '-'}>{probeResult?.firmware || newCamera.onvif_firmware || '-'}</span>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-[9px] uppercase font-bold text-muted-foreground opacity-70 mb-1">Serial Number</span>
+                                <span className="text-[9px] uppercase font-bold text-muted-foreground opacity-70 mb-1">{t('cameras.serial_number', 'Serial Number')}</span>
                                 <span className="text-sm font-medium break-words" title={probeResult?.serial || newCamera.onvif_serial || '-'}>{probeResult?.serial || newCamera.onvif_serial || '-'}</span>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-[9px] uppercase font-bold text-muted-foreground opacity-70 mb-1">Hardware ID</span>
+                                <span className="text-[9px] uppercase font-bold text-muted-foreground opacity-70 mb-1">{t('cameras.hardware_id', 'Hardware ID')}</span>
                                 <span className="text-sm font-medium break-words" title={probeResult?.hw_id || newCamera.onvif_hw_id || '-'}>{probeResult?.hw_id || newCamera.onvif_hw_id || '-'}</span>
                             </div>
                         </div>
                     </div>
 
                     <div className="p-4 bg-muted/20 rounded-lg border border-border">
-                        <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Detected Capabilities</h5>
+                        <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">{t('cameras.detected_capabilities', 'Detected Capabilities')}</h5>
                         <div className="flex flex-wrap gap-2">
                             {(probeResult?.features?.ptz_can_pan_tilt ?? newCamera.ptz_can_pan_tilt) && (
                                 <span className="px-2 py-1 bg-indigo-500/10 text-indigo-500 text-[10px] font-bold rounded-md border border-indigo-500/20 flex items-center gap-1">
@@ -321,14 +323,14 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                                 probeResult?.features?.onvif_can_events ?? newCamera.onvif_can_events,
                                 probeResult?.features?.audio_enabled ?? newCamera.audio_enabled
                             ].some(v => v) && (
-                                <span className="text-[10px] text-muted-foreground italic">No advanced features detected</span>
+                                <span className="text-[10px] text-muted-foreground italic">{t('cameras.no_advanced_features_dete', 'No advanced features detected')}</span>
                             )}
                         </div>
                     </div>
 
                     {probeResult?.profiles?.length > 0 && (
                         <div className="p-4 bg-muted/20 rounded-lg border border-border">
-                            <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Detected Stream Profiles</h5>
+                            <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">{t('cameras.detected_stream_profiles', 'Detected Stream Profiles')}</h5>
                             <div className="space-y-2">
                                 {probeResult.profiles.map((profile, idx) => (
                                     <div key={idx} className="flex flex-col gap-1 p-2 bg-background/50 rounded border border-border/50">
@@ -350,12 +352,12 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
             <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                 <h5 className="text-xs font-bold uppercase tracking-wider text-primary mb-2 flex items-center gap-2">
                     <Settings className="w-3 h-3" />
-                    Why configure ONVIF?
+                    {t('cameras.why_configure_onvif', 'Why configure ONVIF?')}
                 </h5>
                 <ul className="text-xs space-y-2 text-muted-foreground list-disc pl-4">
-                    <li>Enable real-time Pan, Tilt, and Zoom controls directly from the dashboard.</li>
-                    <li>Enable <strong>ONVIF Edge Motion Detection</strong> to offload processing to camera hardware, drastically reducing NVR server CPU usage.</li>
-                    <li>Higher detection accuracy by utilizing the camera's native sensor-level analytics.</li>
+                    <li>{t('cameras.enable_real_time_pan_tilt', 'Enable real-time Pan, Tilt, and Zoom controls directly from the dashboard.')}</li>
+                    <li>{t('cameras.enable', 'Enable')} <strong>{t('cameras.onvif_edge_motion_detecti', 'ONVIF Edge Motion Detection')}</strong> to offload processing to camera hardware, drastically reducing NVR server CPU usage.</li>
+                    <li>{t('cameras.higher_detection_accuracy', "Higher detection accuracy by utilizing the camera's native sensor-level analytics.")}</li>
                 </ul>
             </div>
         </div>

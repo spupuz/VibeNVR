@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Vertical Hour Timeline Component with motion indicators
@@ -8,6 +9,7 @@ import React, { useMemo } from 'react';
  * @param {Number} props.selectedHour - Currently selected hour
  */
 export const HourTimeline = ({ events, onHourClick, selectedHour }) => {
+  const { t } = useTranslation();
     const hours = Array.from({ length: 24 }, (_, i) => 23 - i); // Newest at top
 
     // Count events per hour
@@ -25,7 +27,7 @@ export const HourTimeline = ({ events, onHourClick, selectedHour }) => {
 
     return (
         <div className="w-16 flex-shrink-0 flex flex-col sticky top-0 z-20 h-[calc(100dvh-53px)] lg:h-dvh">
-            <div className="text-[9px] text-muted-foreground mb-1 font-medium text-center">24h</div>
+            <div className="text-[9px] text-muted-foreground mb-1 font-medium text-center">{t('timeline.24h', '24h')}</div>
             <div className="flex-1 flex flex-col gap-px">
                 {hours.map(hour => {
                     const count = eventsByHour[hour] || 0;

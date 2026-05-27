@@ -1,14 +1,16 @@
 import React from 'react';
 import { InputField, SelectField, Slider, SectionHeader } from '../../../ui/FormControls';
+import { useTranslation } from 'react-i18next';
 
 export const OverlayTab = ({ newCamera, setNewCamera }) => {
+    const { t } = useTranslation();
     return (
         <div className="space-y-6">
-            <SectionHeader title="Text Overlay" description="Configure on-screen text display" />
+            <SectionHeader title={t('cameras.text_overlay', 'Text Overlay')} description={t('cameras.configure_on_screen_text', 'Configure on-screen text display')} />
 
             {/* Left Text */}
             <SelectField
-                label="Left Text"
+                label={t('cameras.left_text', 'Left Text')}
                 value={
                     newCamera.text_left === '' ? 'disabled' :
                         newCamera.text_left === '%$' ? 'name' :
@@ -22,10 +24,10 @@ export const OverlayTab = ({ newCamera, setNewCamera }) => {
                     else if (val === 'custom') setNewCamera({ ...newCamera, text_left: 'Custom Text' });
                 }}
                 options={[
-                    { value: 'name', label: 'Camera Name' },
-                    { value: 'timestamp', label: 'Timestamp' },
-                    { value: 'custom', label: 'Custom Text' },
-                    { value: 'disabled', label: 'Disabled' }
+                    { value: 'name', label: t('cameras.camera_name', 'Camera Name') },
+                    { value: 'timestamp', label: t('cameras.timestamp', 'Timestamp') },
+                    { value: 'custom', label: t('cameras.custom_text', 'Custom Text') },
+                    { value: 'disabled', label: t('cameras.disabled', 'Disabled') }
                 ]}
             />
             {/* Custom Input */}
@@ -33,13 +35,13 @@ export const OverlayTab = ({ newCamera, setNewCamera }) => {
                 <InputField
                     value={newCamera.text_left}
                     onChange={(val) => setNewCamera({ ...newCamera, text_left: val })}
-                    placeholder="Enter custom text"
+                    placeholder={t('cameras.enter_custom_text', 'Enter custom text')}
                 />
             )}
 
             {/* Right Text */}
             <SelectField
-                label="Right Text"
+                label={t('cameras.right_text', 'Right Text')}
                 value={
                     newCamera.text_right === '' ? 'disabled' :
                         newCamera.text_right === '%$' ? 'name' :
@@ -53,22 +55,22 @@ export const OverlayTab = ({ newCamera, setNewCamera }) => {
                     else if (val === 'custom') setNewCamera({ ...newCamera, text_right: 'Custom Text' });
                 }}
                 options={[
-                    { value: 'name', label: 'Camera Name' },
-                    { value: 'timestamp', label: 'Timestamp' },
-                    { value: 'custom', label: 'Custom Text' },
-                    { value: 'disabled', label: 'Disabled' }
+                    { value: 'name', label: t('cameras.camera_name', 'Camera Name') },
+                    { value: 'timestamp', label: t('cameras.timestamp', 'Timestamp') },
+                    { value: 'custom', label: t('cameras.custom_text', 'Custom Text') },
+                    { value: 'disabled', label: t('cameras.disabled', 'Disabled') }
                 ]}
             />
             {!['', '%$', '%Y-%m-%d %H:%M:%S'].includes(newCamera.text_right) && (
                 <InputField
                     value={newCamera.text_right}
                     onChange={(val) => setNewCamera({ ...newCamera, text_right: val })}
-                    placeholder="Enter custom text"
+                    placeholder={t('cameras.enter_custom_text', 'Enter custom text')}
                 />
             )}
 
             <Slider
-                label="Text Scale"
+                label={t('cameras.text_scale', 'Text Scale')}
                 value={newCamera.text_scale || 1}
                 onChange={(val) => setNewCamera({ ...newCamera, text_scale: val })}
                 min={1}

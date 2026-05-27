@@ -5,8 +5,10 @@ import { useToast } from '../contexts/ToastContext';
 import { Button } from './ui/Button';
 import { InputField } from './ui/FormControls';
 import { ConfirmModal } from './ui/ConfirmModal';
+import { useTranslation } from 'react-i18next';
 
 export const StorageProfileManager = () => {
+  const { t } = useTranslation();
     const { token } = useAuth();
     const { showToast } = useToast();
     const [profiles, setProfiles] = useState([]);
@@ -110,8 +112,8 @@ export const StorageProfileManager = () => {
                         <HardDrive className="w-5 h-5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <h4 className="font-semibold text-sm">Custom Storage Profiles</h4>
-                        <p className="text-xs text-muted-foreground italic leading-tight break-words">Map recordings to different host volumes (e.g., SSD for motion, NAS for long-term storage).</p>
+                        <h4 className="font-semibold text-sm">{t('timeline.custom_storage_profiles', 'Custom Storage Profiles')}</h4>
+                        <p className="text-xs text-muted-foreground italic leading-tight break-words">{t('timeline.map_recordings_to_differe', 'Map recordings to different host volumes (e.g., SSD for motion, NAS for long-term storage).')}</p>
                     </div>
                 </div>
                 <Button 
@@ -200,8 +202,8 @@ export const StorageProfileManager = () => {
                 {profiles.length === 0 && !loading && !isCreating && (
                     <div className="text-center py-8 bg-muted/5 border border-dashed border-border rounded-xl">
                         <Info className="w-8 h-8 mx-auto text-muted-foreground/30 mb-2" />
-                        <p className="text-sm text-muted-foreground">No custom storage profiles configured.</p>
-                        <p className="text-[10px] text-muted-foreground/60 mt-1">Recordings will use the default path defined in the engine.</p>
+                        <p className="text-sm text-muted-foreground">{t('timeline.no_custom_storage_profile', 'No custom storage profiles configured.')}</p>
+                        <p className="text-[10px] text-muted-foreground/60 mt-1">{t('timeline.recordings_will_use_the_d', 'Recordings will use the default path defined in the engine.')}</p>
                     </div>
                 )}
             </div>

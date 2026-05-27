@@ -1,4 +1,6 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+// from 'react';
 import { X, HardDrive, Trash2 } from 'lucide-react';
 
 /**
@@ -20,6 +22,7 @@ export const BulkActionBar = ({
     isBulkDeleting,
     user
 }) => {
+    const { t } = useTranslation();
     if (selectedIds.size === 0 || user?.role !== 'admin') return null;
 
     return (
@@ -40,12 +43,12 @@ export const BulkActionBar = ({
                         {selectedIds.size === filteredEvents.length ? (
                             <>
                                 <X className="w-3.5 h-3.5" />
-                                <span className="text-[10px] sm:text-sm font-semibold whitespace-nowrap">Deselect All</span>
+                                <span className="text-[10px] sm:text-sm font-semibold whitespace-nowrap">{t('timeline.deselect_all', 'Deselect All')}</span>
                             </>
                         ) : (
                             <>
                                 <HardDrive className="w-3.5 h-3.5 opacity-70" />
-                                <span className="text-[10px] sm:text-sm font-semibold whitespace-nowrap">Select All</span>
+                                <span className="text-[10px] sm:text-sm font-semibold whitespace-nowrap">{t('timeline.select_all', 'Select All')}</span>
                             </>
                         )}
                     </button>
@@ -56,7 +59,7 @@ export const BulkActionBar = ({
                         className="p-2 sm:px-3 sm:py-1.5 hover:bg-white/10 rounded-xl transition-colors"
                     >
                         <X className="w-4 h-4 sm:hidden" />
-                        <span className="hidden sm:inline text-sm font-semibold">Cancel</span>
+                        <span className="hidden sm:inline text-sm font-semibold">{t('timeline.cancel', 'Cancel')}</span>
                     </button>
                     
                     {user?.role === 'admin' && (

@@ -233,6 +233,7 @@ class User(Base):
     totp_secret = Column(String, nullable=True)
     is_2fa_enabled = Column(Boolean, default=False)
     restrict_camera_access = Column(Boolean, default=False)
+    language = Column(String, default="en")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     allowed_cameras = relationship("Camera", secondary="user_camera_access", backref="allowed_users")

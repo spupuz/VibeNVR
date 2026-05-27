@@ -7,8 +7,10 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { ConfirmModal } from '../ui/ConfirmModal';
+import { useTranslation } from 'react-i18next';
 
 export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebCodecPlayback }) => {
+  const { t } = useTranslation();
     const { token } = useAuth();
     const { showToast } = useToast();
     const cameraId = camera.id;
@@ -228,7 +230,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
             {!hasAnyPTZ && (
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/50 backdrop-blur-md rounded-full border border-white/10 pointer-events-auto flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <Move className="w-3.5 h-3.5 text-white/70" />
-                    <span className="text-[10px] text-white/90 font-medium whitespace-nowrap">PTZ Not Supported</span>
+                    <span className="text-[10px] text-white/90 font-medium whitespace-nowrap">{t('cameras.ptz_not_supported', 'PTZ Not Supported')}</span>
                 </div>
             )}
 

@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Form, Body, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from slowapi import Limiter
@@ -274,6 +275,20 @@ def auth_status(db: Session = Depends(database.get_db)):
 
 @router.get("/me", response_model=schemas.User)
 async def read_users_me(current_user: models.User = Depends(auth_service.get_current_user)):
+    return current_user
+
+class LanguageUpdate(BaseModel):
+    language: str
+
+@router.patch("/me/language", response_model=schemas.User)
+async def update_my_language(
+    update_data: LanguageUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_user)
+):
+    current_user.language = update_data.language
+    db.commit()
+    db.refresh(current_user)
     return current_user
 
 @router.post("/logout")

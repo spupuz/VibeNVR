@@ -458,6 +458,7 @@ class UserBase(BaseModel):
     role: Optional[str] = "viewer"
     is_2fa_enabled: Optional[bool] = False
     restrict_camera_access: Optional[bool] = False
+    language: Optional[str] = "en"
 
 class TOTPSetupResponse(BaseModel):
     secret: str

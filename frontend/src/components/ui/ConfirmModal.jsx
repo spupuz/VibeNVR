@@ -1,8 +1,10 @@
 import { AlertTriangle, X } from 'lucide-react';
 import { Portal } from './Portal';
 import { Button } from './Button';
+import { useTranslation } from 'react-i18next';
 
-export const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel', variant = 'danger' }) => {
+export const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText, cancelText, variant = 'danger' }) => {
+    const { t } = useTranslation();
     if (!isOpen) return null;
 
     const variants = {
@@ -30,13 +32,13 @@ export const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, conf
                             variant="ghost"
                             onClick={onCancel}
                         >
-                            {cancelText}
+                            {cancelText || t('actions.cancel', 'Cancel')}
                         </Button>
                         <Button
                             onClick={onConfirm}
                             variant={variants[variant]}
                         >
-                            {confirmText}
+                            {confirmText || t('actions.confirm', 'Confirm')}
                         </Button>
                     </div>
                 </div>

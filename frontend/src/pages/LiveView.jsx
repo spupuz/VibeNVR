@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Camera, CameraOff, Maximize2, Minimize2, Settings, Image as ImageIcon, Play, Square, Power, Disc, Grid, X, Volume2, VolumeX, Move } from 'lucide-react';
 import { Toggle } from '../components/ui/FormControls';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '../contexts/ToastContext';
 import { WebCodecsPlayer } from '../components/WebCodecsPlayer';
 import { PTZControls } from '../components/Cameras/PTZControls';
@@ -195,7 +196,7 @@ const VideoPlayer = ({
                 {(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? (
                     <div className="flex items-center space-x-2 bg-blue-600 px-2.5 py-1 rounded shadow-2xl ring-1 ring-white/20 w-fit">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-200" />
-                        <span className="text-[10px] font-black text-white tracking-widest uppercase">CONTINUOUS</span>
+                        <span className="text-[10px] font-black text-white tracking-widest uppercase">{t('timeline.continuous', 'CONTINUOUS')}</span>
                     </div>
                 ) : (isLiveMotion || isRecording) ? (
                     <div className="flex items-center space-x-2 bg-red-600 px-2 py-1 rounded shadow-2xl animate-pulse ring-1 ring-white/40 w-fit">
@@ -221,13 +222,13 @@ const VideoPlayer = ({
                 {isOffline && (
                     <div className="flex items-center space-x-2 bg-zinc-800 px-2.5 py-1 rounded shadow-2xl ring-1 ring-white/20 w-fit">
                         <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
-                        <span className="text-[10px] font-black text-white tracking-widest uppercase">NO SIGNAL</span>
+                        <span className="text-[10px] font-black text-white tracking-widest uppercase">{t('timeline.no_signal', 'NO SIGNAL')}</span>
                     </div>
                 )}
                 {isUnauthorized && (
                     <div className="flex items-center space-x-2 bg-amber-600 px-2.5 py-1 rounded shadow-2xl ring-1 ring-white/20 w-fit">
                         <div className="w-1.5 h-1.5 rounded-full bg-amber-200" />
-                        <span className="text-[10px] font-black text-white tracking-widest uppercase">AUTH ERROR</span>
+                        <span className="text-[10px] font-black text-white tracking-widest uppercase">{t('timeline.auth_error', 'AUTH ERROR')}</span>
                     </div>
                 )}
 
@@ -365,6 +366,7 @@ const VideoPlayer = ({
 
 export const LiveView = () => {
     const { token } = useAuth();
+    const { t } = useTranslation();
     const { showToast } = useToast();
     const navigate = useNavigate();
     const [cameras, setCameras] = useState([]);
@@ -481,10 +483,10 @@ export const LiveView = () => {
             <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight flex items-baseline gap-2">
-                        Live View
-                        <span className="text-lg font-normal text-muted-foreground">({cameras.length} cameras)</span>
+                        {t('live.title', 'Live View')}
+                        <span className="text-lg font-normal text-muted-foreground">({cameras.length} {t('live.cameras', 'cameras')})</span>
                     </h2>
-                    <p className="text-muted-foreground mt-2">Monitor your cameras in real-time.</p>
+                    <p className="text-muted-foreground mt-2">{t('live.subtitle', 'Monitor your cameras in real-time.')}</p>
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
 
@@ -492,13 +494,13 @@ export const LiveView = () => {
                         {/* Group Selector */}
                         {availableGroups.length > 0 && (
                             <div className="flex items-center space-x-1 bg-card border border-border rounded-lg p-1">
-                                <span className="text-xs text-muted-foreground ml-2 font-medium">Group:</span>
+                                <span className="text-xs text-muted-foreground ml-2 font-medium">{t('timeline.group', 'Group:')}</span>
                                 <select
                                     className="bg-transparent text-sm border-none focus:ring-0 cursor-pointer py-1 pr-8 pl-1 max-w-[100px] sm:max-w-none"
                                     value={selectedGroup}
                                     onChange={(e) => setSelectedGroup(e.target.value)}
                                 >
-                                    <option value="all">All</option>
+                                    <option value="all">{t('timeline.all', 'All')}</option>
                                     {availableGroups.map(g => (
                                         <option key={g} value={g}>{g}</option>
                                     ))}
@@ -529,11 +531,11 @@ export const LiveView = () => {
                                 localStorage.setItem('liveViewColumns', val);
                             }}
                         >
-                            <option value="auto">Auto</option>
-                            <option value="1">1 Col</option>
-                            <option value="2">2 Cols</option>
-                            <option value="3">3 Cols</option>
-                            <option value="4">4 Cols</option>
+                            <option value="auto">{t('timeline.auto', 'Auto')}</option>
+                            <option value="1">{t('timeline.1_col', '1 Col')}</option>
+                            <option value="2">{t('timeline.2_cols', '2 Cols')}</option>
+                            <option value="3">{t('timeline.3_cols', '3 Cols')}</option>
+                            <option value="4">{t('timeline.4_cols', '4 Cols')}</option>
                         </select>
                     </div>
 
@@ -691,7 +693,7 @@ export const LiveView = () => {
             {
                 cameras.length === 0 && (
                     <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed border-border rounded-xl">
-                        <p>No cameras configured.</p>
+                        <p>{t('timeline.no_cameras_configured', 'No cameras configured.')}</p>
                     </div>
                 )
             }

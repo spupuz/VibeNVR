@@ -1,12 +1,14 @@
 import React from 'react';
 import { HardDrive, X, Trash2 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { useTranslation } from 'react-i18next';
 
 export const SyncResultModal = ({
     isOpen,
     data,
     onClose
 }) => {
+    const { t } = useTranslation();
     if (!isOpen || !data) return null;
 
     return (
@@ -28,23 +30,23 @@ export const SyncResultModal = ({
                 <div className="space-y-4">
                     {data.error ? (
                         <div className="p-4 bg-red-500/10 text-red-500 rounded-lg">
-                            <p className="font-semibold">Error Occurred</p>
+                            <p className="font-semibold">{t('timeline.error_occurred', 'Error Occurred')}</p>
                             <p className="text-sm">{data.error}</p>
                         </div>
                     ) : (
                         <div className="space-y-3 text-sm">
                             <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                                <span className="font-medium">Recovered Recordings</span>
+                                <span className="font-medium">{t('timeline.recovered_recordings', 'Recovered Recordings')}</span>
                                 <span className="font-bold text-green-600 bg-green-100 px-2 py-1 rounded">{data.imported}</span>
                             </div>
                             <div className="flex justify-between items-center p-2 border-b">
-                                <span className="text-muted-foreground">Skipped (Already in DB)</span>
+                                <span className="text-muted-foreground">{t('timeline.skipped_already_in_db', 'Skipped (Already in DB)')}</span>
                                 <span className="font-medium">{data.skipped}</span>
                             </div>
 
                             {(data.thumbnails_generated > 0) && (
                                 <div className="flex justify-between items-center p-2 border-b">
-                                    <span>Thumbnails Generated</span>
+                                    <span>{t('timeline.thumbnails_generated', 'Thumbnails Generated')}</span>
                                     <span className="font-medium text-blue-500">{data.thumbnails_generated}</span>
                                 </div>
                             )}
@@ -53,7 +55,7 @@ export const SyncResultModal = ({
                                 <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20 mt-2">
                                     <div className="flex items-center gap-2 mb-1 text-amber-700 font-medium">
                                         <Trash2 className="w-3 h-3" />
-                                        <span>Corrupted Files Removed</span>
+                                        <span>{t('timeline.corrupted_files_removed', 'Corrupted Files Removed')}</span>
                                     </div>
                                     <div className="flex justify-between text-xs text-amber-600/80 pl-5">
                                         <span>Count: {data.corrupted_deleted}</span>
@@ -66,7 +68,7 @@ export const SyncResultModal = ({
                                 <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20 mt-2">
                                     <div className="flex items-center gap-2 mb-1 text-red-700 font-medium">
                                         <Trash2 className="w-3 h-3" />
-                                        <span>Deleted Camera Files Cleaned</span>
+                                        <span>{t('timeline.deleted_camera_files_clea', 'Deleted Camera Files Cleaned')}</span>
                                     </div>
                                     <div className="flex justify-between text-xs text-red-600/80 pl-5">
                                         <span>Count: {data.orphaned_deleted}</span>

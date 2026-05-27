@@ -3,8 +3,10 @@ import { useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Menu, X, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 export const Layout = ({ children, activeTab, onTabChange, theme, toggleTheme }) => {
+  const { t } = useTranslation();
     const location = useLocation();
     const { healthDetails, user } = useAuth();
     const isLivePage = activeTab === 'live' || location.pathname.startsWith('/live') || activeTab === 'timeline';
@@ -27,26 +29,26 @@ export const Layout = ({ children, activeTab, onTabChange, theme, toggleTheme })
                                     CRITICAL SECURITY WARNING
                                 </h2>
                                 <p className="text-sm text-red-100 mb-6 font-medium">
-                                    Your NVR is vulnerable. You are using a default or weak <code>SECRET_KEY</code>.
+                                    Your NVR is vulnerable. You are using a default or weak <code>{t('layout.secret_key', 'SECRET_KEY')}</code>.
                                 </p>
                                 
                                 <div className="bg-black/20 p-5 rounded-xl text-left border border-white/10">
-                                    <p className="text-xs font-bold text-red-200 uppercase mb-3 px-1">How to fix this:</p>
+                                    <p className="text-xs font-bold text-red-200 uppercase mb-3 px-1">{t('layout.how_to_fix_this', 'How to fix this:')}</p>
                                     <div className="space-y-4 text-xs font-mono text-red-50">
                                         <div className="bg-black/30 p-3 rounded-lg border border-white/5 relative group">
-                                            <p className="text-[10px] text-red-300/60 uppercase mb-1.5 font-sans">1. Generate Secure Key</p>
+                                            <p className="text-[10px] text-red-300/60 uppercase mb-1.5 font-sans">{t('layout.1_generate_secure_key', '1. Generate Secure Key')}</p>
                                             <code className="text-white block select-all break-all overflow-x-auto">
                                                 openssl rand -hex 32
                                             </code>
                                         </div>
                                         <div className="px-1">
-                                            <p className="text-[10px] text-red-300/60 uppercase mb-1.5 font-sans">2. Update .env</p>
+                                            <p className="text-[10px] text-red-300/60 uppercase mb-1.5 font-sans">{t('layout.2_update_env', '2. Update .env')}</p>
                                             <p className="font-sans leading-relaxed text-red-100">
-                                                Paste the generated key into your <code className="bg-white/10 px-1 rounded">.env</code> file as <code className="bg-white/10 px-1 rounded text-white">SECRET_KEY=...</code>
+                                                {t('layout.paste_generated_key', 'Paste the generated key into your')} <code className="bg-white/10 px-1 rounded">{t('layout.env', '.env')}</code> {t('layout.file_as', 'file as')} <code className="bg-white/10 px-1 rounded text-white">{t('layout.secret_key', 'SECRET_KEY=...')}</code>
                                             </p>
                                         </div>
                                         <div className="bg-black/30 p-3 rounded-lg border border-white/5">
-                                            <p className="text-[10px] text-red-300/60 uppercase mb-1.5 font-sans">3. Rebuild & Apply</p>
+                                            <p className="text-[10px] text-red-300/60 uppercase mb-1.5 font-sans">{t('layout.3_rebuild_apply', '3. Rebuild & Apply')}</p>
                                             <code className="text-white block">
                                                 docker compose down && docker compose up -d --build
                                             </code>

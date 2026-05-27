@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Save } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 
@@ -24,6 +25,7 @@ import { EditUserModal } from './Settings/EditUserModal';
 
 export const Settings = () => {
     const { user, token } = useAuth();
+    const { t } = useTranslation();
     const { showToast } = useToast();
     const [loading, setLoading] = useState(true);
     const [openSection, setOpenSection] = useState('users');
@@ -503,8 +505,8 @@ export const Settings = () => {
     return (
         <div className="space-y-12 relative w-full pb-52 min-w-0 max-w-full overflow-hidden">
             <div>
-                <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
-                <p className="text-muted-foreground mt-2">Configure your VibeNVR preferences.</p>
+                <h2 className="text-3xl font-bold tracking-tight">{t('settings_main.title', 'Settings')}</h2>
+                <p className="text-muted-foreground mt-2">{t('settings_main.subtitle', 'Configure your VibeNVR preferences.')}</p>
             </div>
 
             <div className="space-y-6">
@@ -641,7 +643,7 @@ export const Settings = () => {
                         className="pointer-events-auto h-12 flex items-center justify-center space-x-3 bg-primary text-primary-foreground px-10 rounded-xl hover:bg-primary/90 transition-all active:scale-95 font-bold text-base shadow-2xl shadow-primary/30 border border-primary/20 ring-4 ring-background/50 backdrop-blur-sm"
                     >
                         <Save className="w-5 h-5" />
-                        <span>Save Settings</span>
+                        <span>{t('settings_main.save_button', 'Save Settings')}</span>
                     </button>
                 </div>
             )}

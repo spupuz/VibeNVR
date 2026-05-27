@@ -30,6 +30,7 @@
 - **Dynamic Cookie Security**: Implements an 'auto-detect' protocol policy (`COOKIE_SECURE=auto`). The system dynamically toggles the `Secure` flag based on the connection type (HTTP vs HTTPS), providing zero-config local access while maintaining high security on public networks.
 - **Build Hygiene**: Every component context enforces strict build isolation via `.dockerignore` files, ensuring lean and secure production images.
 - **Frontend Modularity**: Large page views (e.g., `Cameras.jsx`) are decomposed into component directories to maintain code size limits and improve reusability.
+- **Localization (i18n)**: All UI strings are decoupled from JSX using `react-i18next`. Translation dictionaries for 9 supported languages are auto-generated via Python scripts (`frontend/scripts/update_locales.py` and `auto_translate.py`).
 - **Telemetry Worker**: A Cloudflare edge service (`vibenvr-telemetry-worker`) handles telemetry, static assets, and proxying. It is cleanly modularized (`api.js`, `dashboard.js`, `ingest.js`, `security.js`, `assets.js`) to enforce strict security at the edge level and maintain short file lengths.
 
 

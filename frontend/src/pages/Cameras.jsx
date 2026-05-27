@@ -6,6 +6,7 @@ import { GroupsManager } from '../components/GroupsManager';
 import { CameraScanner } from '../components/CameraScanner';
 
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { Button } from '../components/ui/Button';
@@ -21,6 +22,7 @@ import { ProcessingOverlay } from '../components/Cameras/ProcessingOverlay';
 
 export const Cameras = () => {
     const { user, token } = useAuth();
+    const { t } = useTranslation();
     const [cameras, setCameras] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -470,8 +472,8 @@ export const Cameras = () => {
         <div className="space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Cameras</h2>
-                    <p className="text-muted-foreground mt-2">Manage your video sources.</p>
+                    <h2 className="text-3xl font-bold tracking-tight">{t('cameras.title', 'Cameras')}</h2>
+                    <p className="text-muted-foreground mt-2">{t('cameras.subtitle', 'Manage your video sources.')}</p>
                 </div>
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 w-full sm:w-auto overflow-hidden">
                     {/* Group View Toggle - visible to all users */}
@@ -491,7 +493,7 @@ export const Cameras = () => {
                                     <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-colors ${cameras.every(c => selectedCameraIds.includes(c.id)) ? 'bg-primary border-primary' : 'bg-background border-border'}`}>
                                         {cameras.every(c => selectedCameraIds.includes(c.id)) && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={5} d="M5 13l4 4L19 7" /></svg>}
                                     </div>
-                                    <span>{cameras.every(c => selectedCameraIds.includes(c.id)) ? 'Deselect All' : 'Select All'}</span>
+                                    <span>{cameras.every(c => selectedCameraIds.includes(c.id)) ? t('cameras.deselect_all', 'Deselect All') : t('cameras.select_all', 'Select All')}</span>
                                 </button>
                             )}
                         </div>
@@ -507,7 +509,7 @@ export const Cameras = () => {
                                 }}
                             >
                                 <Plus className="w-4 h-4 mr-2" />
-                                <span>Add Camera</span>
+                                <span>{t('cameras.add_camera', 'Add Camera')}</span>
                             </Button>
 
                             <Button
@@ -516,7 +518,7 @@ export const Cameras = () => {
                                 className="transition-all"
                             >
                                 <Search className="w-4 h-4 mr-2" />
-                                <span>{showScanner ? "Hide Scanner" : "Scan Network"}</span>
+                                <span>{showScanner ? t('cameras.hide_scanner', 'Hide Scanner') : t('cameras.scan_network', 'Scan Network')}</span>
                             </Button>
 
                             <Button
@@ -554,7 +556,7 @@ export const Cameras = () => {
                                 title="Export all cameras to JSON"
                             >
                                 <Download className="w-4 h-4 mr-2" />
-                                <span>Export All</span>
+                                <span>{t('cameras.export_all', 'Export All')}</span>
                             </Button>
 
                             <div className="flex gap-px shrink-0">
@@ -639,7 +641,7 @@ export const Cameras = () => {
                                     title="Import cameras from VibeNVR JSON"
                                 >
                                     <Upload className="w-4 h-4 mr-2" />
-                                    <span>Import</span>
+                                    <span>{t('cameras.import', 'Import')}</span>
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -648,8 +650,8 @@ export const Cameras = () => {
                                     title="Import from MotionEye backup (.tar.gz)"
                                 >
                                     <div className="flex flex-col items-center leading-tight">
-                                        <span className="text-[10px] opacity-70">from</span>
-                                        <span className="text-xs">MotionEye</span>
+                                        <span className="text-[10px] opacity-70">{t('cameras.from', 'from')}</span>
+                                        <span className="text-xs">{t('cameras.motioneye', 'MotionEye')}</span>
                                     </div>
                                 </Button>
                             </div>
@@ -661,27 +663,27 @@ export const Cameras = () => {
             {/* Quick Stats Summary Bar */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="bg-card border border-border rounded-lg p-2.5 flex flex-row justify-between items-center shadow-sm">
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Configured</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{t('cameras.configured', 'Configured')}</span>
                     <span className="text-xl font-bold">{cameras.length}</span>
                 </div>
                 <div className="bg-card border border-border rounded-lg p-2.5 flex flex-row justify-between items-center shadow-sm border-l-4 border-l-primary">
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Active</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{t('cameras.active', 'Active')}</span>
                     <span className="text-xl font-bold">{cameras.filter(c => c.is_active).length}</span>
                 </div>
                 <div className="bg-card border border-border rounded-lg p-2.5 flex flex-row justify-between items-center shadow-sm border-l-4 border-l-green-500">
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Online</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{t('cameras.online', 'Online')}</span>
                     <span className="text-xl font-bold text-green-600">
                         {cameras.filter(c => c.status === 'CONNECTED').length}
                     </span>
                 </div>
                 <div className="bg-card border border-border rounded-lg p-2.5 flex flex-row justify-between items-center shadow-sm border-l-4 border-l-red-500">
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Offline</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{t('cameras.offline', 'Offline')}</span>
                     <span className="text-xl font-bold text-red-600">
                         {cameras.filter(c => c.status === 'UNREACHABLE' || c.status === 'OFFLINE' || !c.status).length}
                     </span>
                 </div>
                 <div className="bg-card border border-border rounded-lg p-2.5 flex flex-row justify-between items-center shadow-sm border-l-4 border-l-amber-500">
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Auth Errors</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{t('cameras.auth_errors', 'Auth Errors')}</span>
                     <span className="text-xl font-bold text-amber-600">
                         {cameras.filter(c => c.status === 'UNAUTHORIZED').length}
                     </span>
@@ -702,13 +704,13 @@ export const Cameras = () => {
                     onClick={() => setView('cameras')}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${view === 'cameras' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                 >
-                    Cameras
+                    {t('cameras.cameras_tab', 'Cameras')}
                 </button>
                 <button
                     onClick={() => setView('groups')}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${view === 'groups' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                 >
-                    Groups
+                    {t('cameras.groups_tab', 'Groups')}
                 </button>
             </div>
 
@@ -759,7 +761,7 @@ export const Cameras = () => {
                                                                     <div className={`w-3 h-3 rounded-sm border flex items-center justify-center transition-colors ${allInGroupSelected ? 'bg-primary border-primary' : 'bg-background border-border'}`}>
                                                                         {allInGroupSelected && <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={6} d="M5 13l4 4L19 7" /></svg>}
                                                                     </div>
-                                                                    {allInGroupSelected ? 'Deselect Group' : 'Select Group'}
+                                                                    {allInGroupSelected ? t('cameras.deselect_group', 'Deselect Group') : t('cameras.select_group', 'Select Group')}
                                                                 </button>
                                                             )}
                                                         </h3>
@@ -793,7 +795,7 @@ export const Cameras = () => {
                                                                     <div className={`w-3 h-3 rounded-sm border flex items-center justify-center transition-colors ${ungrouped.every(c => selectedCameraIds.includes(c.id)) ? 'bg-primary border-primary' : 'bg-background border-border'}`}>
                                                                         {ungrouped.every(c => selectedCameraIds.includes(c.id)) && <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={6} d="M5 13l4 4L19 7" /></svg>}
                                                                     </div>
-                                                                    {ungrouped.every(c => selectedCameraIds.includes(c.id)) ? 'Deselect Ungrouped' : 'Select Ungrouped'}
+                                                                    {ungrouped.every(c => selectedCameraIds.includes(c.id)) ? t('cameras.deselect_ungrouped', 'Deselect Ungrouped') : t('cameras.select_ungrouped', 'Select Ungrouped')}
                                                                 </button>
                                                             )}
                                                         </h3>
@@ -839,7 +841,7 @@ export const Cameras = () => {
                         {cameras.length === 0 && (
                             <div className="text-center py-12 text-muted-foreground bg-card border border-dashed border-border rounded-xl">
                                 <Camera className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                <p>No cameras found. Add one to get started.</p>
+                                <p>{t('cameras.no_cameras_found_add_one', 'No cameras found. Add one to get started.')}</p>
                             </div>
                         )}
                     </>

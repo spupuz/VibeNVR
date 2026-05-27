@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 export const Login = () => {
     const [username, setUsername] = useState('');
@@ -12,6 +14,7 @@ export const Login = () => {
     const [useRecoveryCode, setUseRecoveryCode] = useState(false);
     const [require2FA, setRequire2FA] = useState(false);
     const [error, setError] = useState('');
+    const { t } = useTranslation();
 
     // Trusted Device State
     const [trustDevice, setTrustDevice] = useState(false);
@@ -89,6 +92,26 @@ export const Login = () => {
                 });
                 if (userRes.ok) {
                     const userData = await userRes.json();
+
+                    // Check if the user explicitly changed language on the login screen
+                    const explicitLang = sessionStorage.getItem('explicit_language_selection');
+                    if (explicitLang && explicitLang !== userData.language) {
+                        try {
+                            await fetch('/api/auth/me/language', {
+                                method: 'PATCH',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${data.access_token}`
+                                },
+                                body: JSON.stringify({ language: explicitLang })
+                            });
+                            userData.language = explicitLang;
+                        } catch (e) {
+                            console.error("Failed to sync login language", e);
+                        }
+                    }
+                    sessionStorage.removeItem('explicit_language_selection');
+
                     login(data.access_token, userData);
                     navigate('/');
                 }
@@ -117,9 +140,9 @@ export const Login = () => {
                         className="h-32 sm:h-40 w-auto"
                     />
                     <div className="text-center">
-                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Welcome Back</h1>
+                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">{t('login.welcome_back', 'Welcome Back')}</h1>
                         <p className="text-gray-500 text-sm sm:text-base mt-1">
-                            {require2FA ? 'Enter your 2FA code' : 'Enter your credentials to access VibeNVR'}
+                            {require2FA ? t('login.enter_2fa', 'Enter your 2FA code') : t('login.enter_credentials', 'Enter your credentials to access VibeNVR')}
                         </p>
                     </div>
                 </div>
@@ -128,7 +151,7 @@ export const Login = () => {
                     {!require2FA ? (
                         <>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Username</label>
+                                <label className="text-sm font-medium">{t('login.username', 'Username')}</label>
                                 <div className="relative">
                                     <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                     <input
@@ -143,7 +166,7 @@ export const Login = () => {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Password</label>
+                                <label className="text-sm font-medium">{t('login.password', 'Password')}</label>
                                 <div className="relative">
                                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                     <input
@@ -161,7 +184,7 @@ export const Login = () => {
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                             {useRecoveryCode ? (
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-center block">Recovery Code</label>
+                                    <label className="text-sm font-medium text-center block">{t('timeline.recovery_code', 'Recovery Code')}</label>
                                     <input
                                         type="text"
                                         className="w-full text-center text-xl tracking-wider font-mono py-3 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
@@ -177,7 +200,7 @@ export const Login = () => {
                                 </div>
                             ) : (
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-center block">Two-Factor Authenticator Code</label>
+                                    <label className="text-sm font-medium text-center block">{t('timeline.two_factor_authenticator', 'Two-Factor Authenticator Code')}</label>
                                     <input
                                         type="text"
                                         className="w-full text-center text-2xl tracking-[0.5em] font-mono py-3 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
@@ -209,7 +232,7 @@ export const Login = () => {
 
                                 {trustDevice && (
                                     <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Device Name</label>
+                                        <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('timeline.device_name', 'Device Name')}</label>
                                         <input
                                             type="text"
                                             className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none"
@@ -227,7 +250,7 @@ export const Login = () => {
 
                     <div className="space-y-3">
                         <Button className="w-full py-2.5" type="submit">
-                            {require2FA ? 'Verify & Login' : 'Sign In'}
+                            {require2FA ? t('login.verify_login', 'Verify & Login') : t('login.sign_in', 'Sign In')}
                         </Button>
 
                         {require2FA && (
@@ -256,9 +279,14 @@ export const Login = () => {
                     </div>
                 </form>
 
-                <p className="text-center text-xs text-muted-foreground">
-                    Secure Video Surveillance System
-                </p>
+                <div className="flex flex-col items-center justify-center space-y-2 mt-4">
+                    <p className="text-center text-xs text-muted-foreground">
+                        {t('login.secure_system', 'Secure Video Surveillance System')}
+                    </p>
+                    <div className="w-32">
+                        <LanguageSwitcher className="text-center" />
+                    </div>
+                </div>
             </div>
         </div>
     );

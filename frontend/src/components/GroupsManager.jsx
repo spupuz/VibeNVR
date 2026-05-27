@@ -5,8 +5,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { CAMERA_SETTINGS_CATEGORIES } from '../utils/cameraSettingsMapping';
+import { useTranslation } from 'react-i18next';
 
 export const GroupsManager = ({ cameras, onUpdate }) => {
+  const { t } = useTranslation();
     const { token, user } = useAuth();
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -246,7 +248,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                             className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
                         >
                             <Plus className="w-4 h-4" />
-                            <span>New Group</span>
+                            <span>{t('timeline.new_group', 'New Group')}</span>
                         </button>
                     )}
                 </div>
@@ -288,7 +290,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                         ) : (
                                             <Pause className="w-3 h-3 text-muted-foreground mr-1" />
                                         )}
-                                        <span className="text-[10px] font-medium text-muted-foreground uppercase">Motion</span>
+                                        <span className="text-[10px] font-medium text-muted-foreground uppercase">{t('timeline.motion', 'Motion')}</span>
                                     </div>
                                     <Toggle
                                         compact={true}
@@ -308,7 +310,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
 
                             {/* Camera Badges */}
                             <div className="flex flex-wrap gap-2 min-h-[40px] content-start">
-                                {group.cameras.length === 0 && <span className="text-xs text-muted-foreground italic">No cameras assigned</span>}
+                                {group.cameras.length === 0 && <span className="text-xs text-muted-foreground italic">{t('timeline.no_cameras_assigned', 'No cameras assigned')}</span>}
                                 {group.cameras.slice(0, 5).map(cam => (
                                     <span key={cam.id} className="text-xs bg-muted px-2 py-1 rounded-md border border-border flex items-center">
                                         <div className="relative mr-1.5 flex items-center">
@@ -338,7 +340,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                         title="Copy Settings to all cameras in group"
                                     >
                                         <Copy className="w-3.5 h-3.5" />
-                                        <span>Copy Settings</span>
+                                        <span>{t('timeline.copy_settings', 'Copy Settings')}</span>
                                     </button>
                                 )}
                             </div>
@@ -374,7 +376,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <form onSubmit={handleCreateGroup} className="bg-card p-6 rounded-xl w-full max-w-sm border border-border">
-                        <h3 className="text-lg font-bold mb-4">Create New Group</h3>
+                        <h3 className="text-lg font-bold mb-4">{t('timeline.create_new_group', 'Create New Group')}</h3>
                         <input
                             autoFocus
                             className="w-full px-3 py-2 bg-background border border-input rounded-md mb-4"
@@ -383,8 +385,8 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                             onChange={e => setNewGroupName(e.target.value)}
                         />
                         <div className="flex justify-end space-x-2">
-                            <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md">Cancel</button>
-                            <button type="submit" disabled={!newGroupName} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md disabled:opacity-50">Create</button>
+                            <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md">{t('timeline.cancel', 'Cancel')}</button>
+                            <button type="submit" disabled={!newGroupName} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md disabled:opacity-50">{t('timeline.create', 'Create')}</button>
                         </div>
                     </form>
                 </div>
@@ -409,8 +411,8 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                     return (
                                         <div className="flex flex-col items-center justify-center py-8 text-center bg-muted/20 rounded-lg border border-dashed border-border">
                                             <Camera className="w-8 h-8 text-muted-foreground mb-2 opacity-20" />
-                                            <p className="text-sm text-muted-foreground">No free cameras available</p>
-                                            <p className="text-xs text-muted-foreground/60 mt-1">All cameras are already assigned to other groups.</p>
+                                            <p className="text-sm text-muted-foreground">{t('timeline.no_free_cameras_available', 'No free cameras available')}</p>
+                                            <p className="text-xs text-muted-foreground/60 mt-1">{t('timeline.all_cameras_are_already_a', 'All cameras are already assigned to other groups.')}</p>
                                         </div>
                                     );
                                 }
@@ -441,8 +443,8 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                             })()}
                         </div>
                         <div className="flex justify-end space-x-2 pt-4 border-t border-border">
-                            <button onClick={() => setManagingGroup(null)} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md">Cancel</button>
-                            <button onClick={saveGroupCameras} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md">Save Changes</button>
+                            <button onClick={() => setManagingGroup(null)} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md">{t('timeline.cancel', 'Cancel')}</button>
+                            <button onClick={saveGroupCameras} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md">{t('timeline.save_changes', 'Save Changes')}</button>
                         </div>
                     </div>
                 </div>
@@ -454,24 +456,24 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                     <div className="bg-card p-6 rounded-xl w-full max-w-md border border-border shadow-2xl flex flex-col max-h-[90vh]">
                         <div className="flex items-center gap-2 mb-2 text-blue-500">
                             <Copy className="w-5 h-5" />
-                            <h3 className="text-lg font-bold text-foreground">Copy Settings</h3>
+                            <h3 className="text-lg font-bold text-foreground">{t('timeline.copy_settings', 'Copy Settings')}</h3>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-6">Select a source camera and the categories to apply to all cameras in <strong>{copyingGroup.name}</strong>.</p>
+                        <p className="text-sm text-muted-foreground mb-6">{t('timeline.select_a_source_camera_an', 'Select a source camera and the categories to apply to all cameras in')} <strong>{copyingGroup.name}</strong>.</p>
 
                         <div className="space-y-6 overflow-y-auto pr-2 -mr-2 mb-6">
                             <div>
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 block">1. Source Camera</span>
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 block">{t('timeline.1_source_camera', '1. Source Camera')}</span>
                                 <select
                                     className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm"
                                     value={sourceCameraId}
                                     onChange={e => setSourceCameraId(e.target.value)}
                                 >
-                                    <option value="">-- Select Source Camera --</option>
-                                    <option disabled>-- Outside Group --</option>
+                                    <option value="">{t('timeline.select_source_camera', '-- Select Source Camera --')}</option>
+                                    <option disabled>{t('timeline.outside_group', '-- Outside Group --')}</option>
                                     {cameras.filter(c => !copyingGroup.cameras.some(gc => gc.id === c.id)).map(c => (
                                         <option key={c.id} value={c.id}>External: {c.name}</option>
                                     ))}
-                                    <option disabled>-- Inside Group --</option>
+                                    <option disabled>{t('timeline.inside_group', '-- Inside Group --')}</option>
                                     {copyingGroup.cameras.map(c => (
                                         <option key={c.id} value={c.id}>{c.name}</option>
                                     ))}
@@ -480,10 +482,10 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
 
                             <div>
                                 <div className="flex justify-between items-center mb-2">
-                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">2. Settings Categories</span>
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('timeline.2_settings_categories', '2. Settings Categories')}</span>
                                     <div className="flex gap-2">
-                                        <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline" onClick={() => setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id))}>All</button>
-                                        <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline" onClick={() => setSelectedCategories([])}>None</button>
+                                        <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline" onClick={() => setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id))}>{t('timeline.all', 'All')}</button>
+                                        <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline" onClick={() => setSelectedCategories([])}>{t('timeline.none', 'None')}</button>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-1 gap-1.5 bg-muted/20 p-2 rounded-lg border border-border/50">
@@ -504,7 +506,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                         </div>
 
                         <div className="flex justify-end space-x-2 pt-4 border-t border-border">
-                            <button onClick={() => { setCopyingGroup(null); setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); }} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md transition-colors">Cancel</button>
+                            <button onClick={() => { setCopyingGroup(null); setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); }} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md transition-colors">{t('timeline.cancel', 'Cancel')}</button>
                             <button
                                 onClick={() => handleAction(copyingGroup.id, 'copy_settings', sourceCameraId, selectedCategories)}
                                 disabled={!sourceCameraId || selectedCategories.length === 0}
@@ -523,7 +525,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                         <div className="bg-card/95 backdrop-blur-md border border-primary/20 shadow-2xl rounded-2xl px-6 py-4 flex items-center space-x-6 text-foreground min-w-[320px]">
                             <div className="flex-1">
                                 <p className="font-bold text-sm">{selectedGroupIds.length} Group(s) selected</p>
-                                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Bulk Actions</p>
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{t('timeline.bulk_actions', 'Bulk Actions')}</p>
                             </div>
                             <div className="flex items-center space-x-2">
                                 <button

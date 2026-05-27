@@ -1,4 +1,6 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+// from 'react';
 import { Filter, Video, Image as ImageIcon, Play, Calendar, Brain } from 'lucide-react';
 
 /**
@@ -33,6 +35,7 @@ export const EventFilters = ({
     searchParams,
     setSearchParams
 }) => {
+    const { t } = useTranslation();
     return (
         <div className="flex flex-wrap items-center gap-3 mb-4 p-1">
             {/* Camera Filter */}
@@ -48,7 +51,7 @@ export const EventFilters = ({
                         setSearchParams(newParams);
                     }}
                 >
-                    <option value="all">All Cameras</option>
+                    <option value="all">{t('timeline.all_cameras', 'All Cameras')}</option>
                     {cameras.map(cam => (
                         <option key={cam.id} value={cam.id}>{cam.name}</option>
                     ))}
@@ -71,9 +74,9 @@ export const EventFilters = ({
                         setSearchParams(newParams);
                     }}
                 >
-                    <option value="all">All Media</option>
-                    <option value="video">Videos</option>
-                    <option value="snapshot">Snapshots</option>
+                    <option value="all">{t('timeline.all_media', 'All Media')}</option>
+                    <option value="video">{t('timeline.videos', 'Videos')}</option>
+                    <option value="snapshot">{t('timeline.snapshots', 'Snapshots')}</option>
                 </select>
                 <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
                     {selectedTypeFilter === 'video' ? <Video className="w-3.5 h-3.5" /> : selectedTypeFilter === 'snapshot' ? <ImageIcon className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
@@ -89,11 +92,11 @@ export const EventFilters = ({
                         setSelectedObjectFilter(e.target.value);
                     }}
                 >
-                    <option value="all">All Objects</option>
-                    <option value="person">Person</option>
-                    <option value="vehicle">Vehicle</option>
-                    <option value="dog">Dog</option>
-                    <option value="cat">Cat</option>
+                    <option value="all">{t('timeline.all_objects', 'All Objects')}</option>
+                    <option value="person">{t('timeline.person', 'Person')}</option>
+                    <option value="vehicle">{t('timeline.vehicle', 'Vehicle')}</option>
+                    <option value="dog">{t('timeline.dog', 'Dog')}</option>
+                    <option value="cat">{t('timeline.cat', 'Cat')}</option>
                 </select>
                 <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
                     <Brain className="w-3.5 h-3.5" />
@@ -125,7 +128,7 @@ export const EventFilters = ({
                         : 'bg-card border-border hover:bg-accent text-muted-foreground'
                     }`}
             >
-                <span>Reset</span>
+                <span>{t('timeline.reset', 'Reset')}</span>
             </button>
 
             {/* Selected Hour Active Filter */}

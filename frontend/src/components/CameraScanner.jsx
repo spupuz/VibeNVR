@@ -4,8 +4,10 @@ import { Button } from './ui/Button';
 import { InputField } from './ui/FormControls';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useTranslation } from 'react-i18next';
 
 export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
+  const { t } = useTranslation();
     const { token } = useAuth();
     const { showToast } = useToast();
     const [ipRange, setIpRange] = useState('');
@@ -332,7 +334,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                 {results.length === 0 && !isScanning && (
                     <div className="text-center py-10 text-muted-foreground">
                         <Search className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                        <p>Enter a range and scan to find cameras</p>
+                        <p>{t('cameras.enter_a_range_and_scan_to', 'Enter a range and scan to find cameras')}</p>
                     </div>
                 )}
 
@@ -373,7 +375,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                         {!isScanning && progress && progress.current === progress.total && (
                             <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-md border border-green-200">
                                 <Info className="w-4 h-4" />
-                                <span>Found <strong>{filteredResults.length}</strong> viable cameras out of {progress.total} scanned IPs.</span>
+                                <span>{t('cameras.found', 'Found')} <strong>{filteredResults.length}</strong> viable cameras out of {progress.total} scanned IPs.</span>
                             </div>
                         )}
                         <Button
@@ -405,7 +407,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                                                     {dev.port !== 554 && dev.port !== 0 && ` (${dev.port})`}
                                                 </span>
                                             )}
-                                            {dev.manufacturer && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-600 font-bold">ONVIF</span>}
+                                            {dev.manufacturer && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-600 font-bold">{t('cameras.onvif', 'ONVIF')}</span>}
                                             {isAlreadyAdded(dev.ip) && (
                                                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold flex items-center gap-1 shadow-sm">
                                                     <CheckCircle2 className="w-2.5 h-2.5" />
@@ -425,7 +427,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                                 {dev.status === 'rtsp_only' && !dev.manufacturer && !dev.deepScanDone && (
                                     <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-lg text-[10px] text-muted-foreground animate-pulse border border-border/50">
                                         <Loader2 className="w-3 h-3 animate-spin" />
-                                        <span>Searching ports...</span>
+                                        <span>{t('cameras.searching_ports', 'Searching ports...')}</span>
                                     </div>
                                 )}
                                 <div className="flex gap-1">
@@ -462,7 +464,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                         <div className="p-6">
                             {probingDevice.step === 'credentials' && (
                                 <div className="space-y-4">
-                                    <p className="text-sm text-muted-foreground mb-4">Enter ONVIF credentials for this device to retrieve stream profiles.</p>
+                                    <p className="text-sm text-muted-foreground mb-4">{t('cameras.enter_onvif_credentials_f', 'Enter ONVIF credentials for this device to retrieve stream profiles.')}</p>
 
                                     {(!probingDevice.manufacturer || probingDevice.status === 'rtsp_only') && (
                                         <InputField
@@ -485,14 +487,14 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                                         value={credentials.password}
                                         onChange={(val) => setCredentials({ ...credentials, password: val })}
                                     />
-                                    <Button onClick={runProbe} className="w-full mt-4">Connect & Probe</Button>
+                                    <Button onClick={runProbe} className="w-full mt-4">{t('cameras.connect_probe', 'Connect & Probe')}</Button>
                                 </div>
                             )}
 
                             {probingDevice.step === 'probing' && (
                                 <div className="text-center py-10">
                                     <Loader2 className="w-10 h-10 mx-auto mb-4 animate-spin text-primary" />
-                                    <p>Retrieving device information and profiles...</p>
+                                    <p>{t('cameras.retrieving_device_informa', 'Retrieving device information and profiles...')}</p>
                                 </div>
                             )}
 
@@ -506,7 +508,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                                         <p className="text-xs text-muted-foreground ml-8">Found {probingDevice.profiles.length} stream profiles.</p>
                                     </div>
 
-                                    <p className="text-sm font-medium mb-2">Select a profile to import:</p>
+                                    <p className="text-sm font-medium mb-2">{t('cameras.select_a_profile_to_impor', 'Select a profile to import:')}</p>
                                     <div className="space-y-2">
                                         {probingDevice.profiles.map((p, idx) => (
                                             <div

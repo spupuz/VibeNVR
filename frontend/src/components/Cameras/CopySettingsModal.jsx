@@ -3,6 +3,7 @@ import { Copy, Check } from 'lucide-react';
 import { Portal } from '../ui/Portal';
 import { Button } from '../ui/Button';
 import { CAMERA_SETTINGS_CATEGORIES } from '../../utils/cameraSettingsMapping';
+import { useTranslation } from 'react-i18next';
 
 export const CopySettingsModal = ({
     showCopyModal,
@@ -13,6 +14,7 @@ export const CopySettingsModal = ({
     setCopyTargets,
     handleCopySettings
 }) => {
+    const { t } = useTranslation();
     const [selectedCategories, setSelectedCategories] = useState(CAMERA_SETTINGS_CATEGORIES.map(c => c.id));
 
     if (!showCopyModal) return null;
@@ -35,18 +37,18 @@ export const CopySettingsModal = ({
                 <div className="bg-card p-6 rounded-xl w-full max-w-lg border border-border shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
                     <div className="flex items-center gap-2 mb-2">
                         <Copy className="w-5 h-5 text-blue-500" />
-                        <h3 className="text-lg font-bold">Copy Settings</h3>
+                        <h3 className="text-lg font-bold">{t('cameras.copy_settings', 'Copy Settings')}</h3>
                     </div>
                     
                     <p className="text-sm text-muted-foreground mb-6">
                         Select target cameras and settings categories to overwrite. <br />
-                        <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Warning: This will replace configuration for selected cameras.</span>
+                        <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">{t('cameras.warning_this_will_replace', 'Warning: This will replace configuration for selected cameras.')}</span>
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 overflow-hidden">
                         {/* Categories Selection */}
                         <div className="flex flex-col h-full overflow-hidden">
-                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Settings Categories</span>
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">{t('cameras.settings_categories', 'Settings Categories')}</span>
                             <div className="space-y-1.5 overflow-y-auto pr-2 bg-muted/20 p-2 rounded-lg border border-border/50">
                                 {CAMERA_SETTINGS_CATEGORIES.map(cat => (
                                     <div
@@ -62,14 +64,14 @@ export const CopySettingsModal = ({
                                 ))}
                             </div>
                             <div className="flex gap-2 mt-2">
-                                <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline" onClick={() => setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id))}>Select All</button>
-                                <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline" onClick={() => setSelectedCategories([])}>Clear</button>
+                                <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline" onClick={() => setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id))}>{t('cameras.select_all', 'Select All')}</button>
+                                <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline" onClick={() => setSelectedCategories([])}>{t('cameras.clear', 'Clear')}</button>
                             </div>
                         </div>
 
                         {/* Target Cameras Selection */}
                         <div className="flex flex-col h-full overflow-hidden">
-                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Target Cameras</span>
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">{t('cameras.target_cameras', 'Target Cameras')}</span>
                             <div className="space-y-1.5 overflow-y-auto pr-2 bg-muted/20 p-2 rounded-lg border border-border/50">
                                 {cameras.filter(c => c.id !== editingId).map(cam => (
                                     <div
@@ -93,12 +95,12 @@ export const CopySettingsModal = ({
                                     </div>
                                 ))}
                                 {cameras.filter(c => c.id !== editingId).length === 0 && (
-                                    <p className="text-xs text-center py-8 text-muted-foreground italic">No other cameras available.</p>
+                                    <p className="text-xs text-center py-8 text-muted-foreground italic">{t('cameras.no_other_cameras_availabl', 'No other cameras available.')}</p>
                                 )}
                             </div>
                             <div className="flex gap-2 mt-2">
-                                <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline" onClick={() => setCopyTargets(cameras.filter(c => c.id !== editingId).map(c => c.id))}>Select All</button>
-                                <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline" onClick={() => setCopyTargets([])}>Clear</button>
+                                <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline" onClick={() => setCopyTargets(cameras.filter(c => c.id !== editingId).map(c => c.id))}>{t('cameras.select_all', 'Select All')}</button>
+                                <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline" onClick={() => setCopyTargets([])}>{t('cameras.clear', 'Clear')}</button>
                             </div>
                         </div>
                     </div>

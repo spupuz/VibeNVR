@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom';
 import { Calendar, Play } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 
@@ -16,6 +17,7 @@ const API_BASE = `/api`;
 
 export const Timeline = () => {
     const { token, user } = useAuth();
+    const { t } = useTranslation();
     const [events, setEvents] = useState([]);
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [cameraMap, setCameraMap] = useState({});
@@ -120,8 +122,8 @@ export const Timeline = () => {
     const handleDelete = async (id) => {
         setConfirmConfig({
             isOpen: true,
-            title: 'Delete Event',
-            message: 'Are you sure you want to delete this event? This action cannot be undone.',
+            title: t('timeline.delete_event_title', 'Delete Event'),
+            message: t('timeline.delete_event_msg', 'Are you sure you want to delete this event? This action cannot be undone.'),
             onConfirm: async () => {
                 try {
                     const res = await fetch(`${API_BASE}/events/${id}`, {
@@ -136,12 +138,12 @@ export const Timeline = () => {
                             return next;
                         });
                         if (selectedEvent?.id === id) setSelectedEvent(null);
-                        showToast('Event deleted successfully', 'success');
+                        showToast(t('timeline.event_deleted', 'Event deleted successfully'), 'success');
                     } else {
-                        showToast('Failed to delete event', 'error');
+                        showToast(t('timeline.delete_failed', 'Failed to delete event'), 'error');
                     }
                 } catch (err) {
-                    showToast('Error deleting event: ' + err.message, 'error');
+                    showToast(t('timeline.delete_error', 'Error deleting event: {{error}}', { error: err.message }), 'error');
                 }
                 setConfirmConfig({ isOpen: false });
             },
@@ -175,8 +177,8 @@ export const Timeline = () => {
         if (count === 0) return;
         setConfirmConfig({
             isOpen: true,
-            title: `Delete ${count} Events`,
-            message: `Are you sure you want to delete ${count} selected events?`,
+            title: t('timeline.bulk_delete_title', 'Delete {{count}} Events', { count }),
+            message: t('timeline.bulk_delete_msg', 'Are you sure you want to delete {{count}} selected events?', { count }),
             onConfirm: async () => {
                 setIsBulkDeleting(true);
                 try {
@@ -190,12 +192,12 @@ export const Timeline = () => {
                         setEvents(prev => prev.filter(e => !selectedIds.has(e.id)));
                         if (selectedEvent && selectedIds.has(selectedEvent.id)) setSelectedEvent(null);
                         setSelectedIds(new Set());
-                        showToast(`Successfully deleted ${data.deleted_count} events`, 'success');
+                        showToast(t('timeline.bulk_deleted', 'Successfully deleted {{count}} events', { count: data.deleted_count }), 'success');
                     } else {
-                        showToast('Failed to perform bulk delete', 'error');
+                        showToast(t('timeline.bulk_failed', 'Failed to perform bulk delete'), 'error');
                     }
                 } catch (err) {
-                    showToast('Error during bulk delete: ' + err.message, 'error');
+                    showToast(t('timeline.bulk_error', 'Error during bulk delete: {{error}}', { error: err.message }), 'error');
                 } finally {
                     setIsBulkDeleting(false);
                     setConfirmConfig({ isOpen: false });
@@ -255,9 +257,9 @@ export const Timeline = () => {
         <div className="h-full flex flex-col px-5 py-4 lg:p-8">
             <div className="mb-4">
                 <h2 className="text-3xl font-bold tracking-tight flex items-baseline gap-2">
-                    Timeline <span className="text-lg font-normal text-muted-foreground">({filteredEvents.length} events)</span>
+                    {t('timeline.title', 'Timeline')} <span className="text-lg font-normal text-muted-foreground">({filteredEvents.length} {t('timeline.events', 'events')})</span>
                 </h2>
-                <p className="text-muted-foreground mt-2">Browse recorded events and media.</p>
+                <p className="text-muted-foreground mt-2">{t('timeline.subtitle', 'Browse recorded events and media.')}</p>
             </div>
 
             <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
@@ -292,7 +294,7 @@ export const Timeline = () => {
                                 {filteredEvents.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
                                         <Calendar className="w-10 h-10 mb-3 opacity-30" />
-                                        <p className="text-sm">No events found</p>
+                                        <p className="text-sm">{t('timeline.no_events', 'No events found')}</p>
                                     </div>
                                 ) : (
                                     Object.entries(groupedEvents).map(([date, dateEvents]) => (
@@ -332,3 +334,5 @@ export const Timeline = () => {
         </div>
     );
 };
+
+export default Timeline;

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '../contexts/ToastContext';
 import { Terminal, Download, Search, Pause, Play, RefreshCw, FileText, Settings as SettingsIcon } from 'lucide-react';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 
 export const Logs = () => {
     const { token, user } = useAuth();
+    const { t } = useTranslation();
     const { showToast } = useToast();
     const [logs, setLogs] = useState([]);
     const [service, setService] = useState('backend');
@@ -18,11 +20,11 @@ export const Logs = () => {
 
     // Services map
     const services = [
-        { id: 'all', label: 'All Services (Aggregated)' },
-        { id: 'backend', label: 'Backend API' },
-        { id: 'engine', label: 'Video Engine' },
-        { id: 'frontend_access', label: 'Frontend Access' },
-        { id: 'frontend_error', label: 'Frontend Errors' }
+        { id: 'all', label: t('logs.services_all', 'All Services (Aggregated)') },
+        { id: 'backend', label: t('logs.services_backend', 'Backend API') },
+        { id: 'engine', label: t('logs.services_engine', 'Video Engine') },
+        { id: 'frontend_access', label: t('logs.services_frontend_access', 'Frontend Access') },
+        { id: 'frontend_error', label: t('logs.services_frontend_error', 'Frontend Errors') }
     ];
 
     const logsEndRef = useRef(null);
@@ -74,8 +76,8 @@ export const Logs = () => {
     const handleDownload = () => {
         setConfirmConfig({
             isOpen: true,
-            title: 'Download Sanitized Logs',
-            message: 'You are about to download a system report and logs archive. This includes VibeNVR system information, resource usage, configuration summaries, and sanitized application logs. Sensitive data (tokens, passwords, IPs) is redacted.',
+            title: t('logs.download_title', 'Download Sanitized Logs'),
+            message: t('logs.download_msg', 'You are about to download a system report and logs archive. This includes VibeNVR system information, resource usage, configuration summaries, and sanitized application logs. Sensitive data (tokens, passwords, IPs) is redacted.'),
             onConfirm: async () => {
                 try {
                     const res = await fetch('/api/logs/download', {
@@ -91,12 +93,12 @@ export const Logs = () => {
                         document.body.appendChild(a);
                         a.click();
                         a.remove();
-                        showToast('Logs downloaded successfully', 'success');
+                        showToast(t('logs.download_success', 'Logs downloaded successfully'), 'success');
                     } else {
-                        showToast('Download failed', 'error');
+                        showToast(t('logs.download_failed', 'Download failed'), 'error');
                     }
                 } catch (err) {
-                    showToast('Download error: ' + err.message, 'error');
+                    showToast(t('logs.download_error', 'Download error: ') + err.message, 'error');
                 }
                 setConfirmConfig({ isOpen: false });
             },
@@ -108,8 +110,8 @@ export const Logs = () => {
         return (
             <div className="flex flex-col items-center justify-center h-[50vh] text-muted-foreground">
                 <FileText className="w-16 h-16 mb-4 opacity-20" />
-                <h2 className="text-xl font-semibold">Access Denied</h2>
-                <p>Only administrators can view system logs.</p>
+                <h2 className="text-xl font-semibold">{t('logs.access_denied_title', 'Access Denied')}</h2>
+                <p>{t('logs.access_denied_desc', 'Only administrators can view system logs.')}</p>
             </div>
         );
     }
@@ -119,16 +121,16 @@ export const Logs = () => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-                        System Logs
+                        {t('logs.title', 'System Logs')}
                     </h2>
-                    <p className="text-muted-foreground mt-1">View and analyze system activity.</p>
+                    <p className="text-muted-foreground mt-1">{t('logs.subtitle', 'View and analyze system activity.')}</p>
                 </div>
                 <button
                     onClick={handleDownload}
                     className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-all shadow-sm"
                 >
                     <Download className="w-4 h-4" />
-                    <span>Download Report</span>
+                    <span>{t('logs.download_report', 'Download Report')}</span>
                 </button>
             </div>
 
@@ -136,7 +138,7 @@ export const Logs = () => {
             <div className="bg-card border border-border p-3 rounded-lg flex flex-wrap gap-4 items-center shadow-sm">
 
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Service:</span>
+                    <span className="text-sm font-medium">{t('logs.service', 'Service:')}</span>
                     <select
                         className="bg-background border border-input rounded px-2 py-1.5 text-sm min-w-[140px]"
                         value={service}
@@ -152,7 +154,7 @@ export const Logs = () => {
                     <Search className="w-4 h-4 text-muted-foreground" />
                     <input
                         type="text"
-                        placeholder="Search logs..."
+                        placeholder={t('logs.search_placeholder', 'Search logs...')}
                         className="bg-background border border-input rounded px-3 py-1.5 text-sm w-full"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -160,7 +162,7 @@ export const Logs = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Lines:</span>
+                    <span className="text-sm font-medium">{t('logs.lines', 'Lines:')}</span>
                     <input
                         type="number"
                         className="bg-background border border-input rounded px-2 py-1.5 text-sm w-20"
@@ -175,14 +177,14 @@ export const Logs = () => {
                     <button
                         onClick={() => setAutoScroll(!autoScroll)}
                         className={`p-2 rounded-md border transition-colors ${autoScroll ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-background border-border text-muted-foreground'}`}
-                        title={autoScroll ? "Pause Auto-scroll" : "Resume Auto-scroll"}
+                        title={autoScroll ? t('logs.pause_scroll', 'Pause Auto-scroll') : t('logs.resume_scroll', 'Resume Auto-scroll')}
                     >
                         {autoScroll ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                     </button>
                     <button
                         onClick={fetchLogs}
                         className="p-2 rounded-md hover:bg-accent text-muted-foreground"
-                        title="Refresh Now"
+                        title={t('logs.refresh_now', 'Refresh Now')}
                     >
                         <RefreshCw className="w-4 h-4" />
                     </button>
@@ -200,7 +202,7 @@ export const Logs = () => {
             <div className="flex-1 bg-black rounded-lg border border-gray-800 overflow-hidden flex flex-col font-mono text-xs md:text-sm shadow-inner">
                 <div className="flex-1 overflow-y-auto p-4 space-y-1 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
                     {logs.length === 0 ? (
-                        <div className="text-gray-500 italic">No logs found or waiting for data...</div>
+                        <div className="text-gray-500 italic">{t('timeline.no_logs_found_or_waiting', 'No logs found or waiting for data...')}</div>
                     ) : (
                         logs.map((line, idx) => {
                             // Syntax highlighting logic
@@ -244,7 +246,7 @@ export const Logs = () => {
             </div>
 
             <p className="text-xs text-muted-foreground text-center">
-                Logs show sanitized output. Real-time entries may be delayed by a few seconds.
+                {t('logs.sanitized_disclaimer', 'Logs show sanitized output. Real-time entries may be delayed by a few seconds.')}
             </p>
 
             <ConfirmModal {...confirmConfig} />
@@ -322,41 +324,41 @@ const LogSettingsModal = ({ isOpen, onClose, token, showToast }) => {
             <div className="bg-card border border-border rounded-lg shadow-lg w-full max-w-md p-6 space-y-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                     <SettingsIcon className="w-5 h-5" />
-                    Log Rotation Settings
+                    {t('logs.log_rotation_settings', 'Log Rotation Settings')}
                 </h3>
 
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">Max Log Size (MB)</label>
+                        <label className="block text-sm font-medium mb-1">{t('timeline.max_log_size_mb', 'Max Log Size (MB)')}</label>
                         <input
                             type="number"
                             className="w-full bg-background border border-input rounded px-3 py-2"
                             value={settings.log_max_size_mb}
                             onChange={e => setSettings({ ...settings, log_max_size_mb: e.target.value })}
                         />
-                        <p className="text-xs text-muted-foreground mt-1">If a file exceeds this size, it will be rotated.</p>
+                        <p className="text-xs text-muted-foreground mt-1">{t('timeline.if_a_file_exceeds_this_si', 'If a file exceeds this size, it will be rotated.')}</p>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-1">Backup Count</label>
+                        <label className="block text-sm font-medium mb-1">{t('timeline.backup_count', 'Backup Count')}</label>
                         <input
                             type="number"
                             className="w-full bg-background border border-input rounded px-3 py-2"
                             value={settings.log_backup_count}
                             onChange={e => setSettings({ ...settings, log_backup_count: e.target.value })}
                         />
-                        <p className="text-xs text-muted-foreground mt-1">Number of old log files to keep (e.g. 5 = keep .1 to .5).</p>
+                        <p className="text-xs text-muted-foreground mt-1">{t('timeline.number_of_old_log_files_t', 'Number of old log files to keep (e.g. 5 = keep .1 to .5).')}</p>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-1">Check Interval (Minutes)</label>
+                        <label className="block text-sm font-medium mb-1">{t('timeline.check_interval_minutes', 'Check Interval (Minutes)')}</label>
                         <input
                             type="number"
                             className="w-full bg-background border border-input rounded px-3 py-2"
                             value={settings.log_rotation_check_minutes}
                             onChange={e => setSettings({ ...settings, log_rotation_check_minutes: e.target.value })}
                         />
-                        <p className="text-xs text-muted-foreground mt-1">How often the system checks for large files.</p>
+                        <p className="text-xs text-muted-foreground mt-1">{t('timeline.how_often_the_system_chec', 'How often the system checks for large files.')}</p>
                     </div>
                 </div>
 
@@ -365,14 +367,14 @@ const LogSettingsModal = ({ isOpen, onClose, token, showToast }) => {
                         onClick={onClose}
                         className="px-4 py-2 rounded text-sm font-medium hover:bg-accent"
                     >
-                        Cancel
+                        {t('logs.cancel', 'Cancel')}
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={loading}
                         className="px-4 py-2 rounded text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                     >
-                        {loading ? 'Saving...' : 'Save Changes'}
+                        {loading ? 'Saving...' : t('actions.save_changes', 'Save Changes')}
                     </button>
                 </div>
             </div>

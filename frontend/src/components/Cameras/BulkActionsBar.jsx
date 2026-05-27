@@ -1,13 +1,15 @@
 import React from 'react';
 import { Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export const BulkActionsBar = ({ selectedCameraIds, setSelectedCameraIds, handleBulkDelete }) => {
+  const { t } = useTranslation();
     return (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
             <div className="bg-card/95 backdrop-blur-md border border-primary/20 shadow-2xl rounded-2xl px-6 py-4 flex items-center space-x-6 text-foreground min-w-[320px]">
                 <div className="flex-1">
                     <p className="font-bold text-sm">{selectedCameraIds.length} Camera(s) selected</p>
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Bulk Actions</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{t('cameras.bulk_actions', 'Bulk Actions')}</p>
                 </div>
                 <div className="flex items-center space-x-2">
                     <button

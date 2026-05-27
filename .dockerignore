@@ -3,6 +3,8 @@
 .gitignore
 scripts/
 backend/scripts/
+frontend/scripts/
+frontend/*.py
 .agents/
 .gemini/
 **/node_modules/

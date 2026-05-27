@@ -19,6 +19,7 @@ import { AlertsTab } from './Tabs/AlertsTab';
 import { OverlayTab } from './Tabs/OverlayTab';
 import { OnvifTab } from './Tabs/OnvifTab';
 import { AITab } from './Tabs/AITab';
+import { useTranslation } from 'react-i18next';
 
 export const CameraAddEditModal = ({
     showAddModal,
@@ -39,6 +40,7 @@ export const CameraAddEditModal = ({
     setShowCopyModal,
     globalSettings
 }) => {
+    const { t } = useTranslation();
     const [cloneSourceId, setCloneSourceId] = React.useState('');
     const [selectedCloneCategories, setSelectedCloneCategories] = React.useState(CAMERA_SETTINGS_CATEGORIES.map(c => c.id));
 
@@ -96,17 +98,17 @@ export const CameraAddEditModal = ({
     };
 
     const tabs = [
-        { id: 'general', label: 'General', icon: Info },
-        { id: 'video', label: 'Device', icon: Settings2 },
-        { id: 'motion', label: 'Motion', icon: Activity },
-        { id: 'privacy', label: 'Privacy Mask', icon: EyeOff },
-        { id: 'motion_zones', label: 'Motion Zones', icon: Shield },
-        { id: 'movies', label: 'Movies', icon: Film },
-        { id: 'still_images', label: 'Snapshots', icon: Image },
-        { id: 'notifications', label: 'Alerts', icon: Bell },
-        { id: 'overlay', label: 'Overlay', icon: Type },
-        { id: 'onvif', label: 'ONVIF', icon: Shield },
-        { id: 'ai', label: 'AI & Tracking', icon: Brain },
+        { id: 'general', label: t('cameras.general', 'General'), icon: Info },
+        { id: 'video', label: t('cameras.device', 'Device'), icon: Settings2 },
+        { id: 'motion', label: t('cameras.motion', 'Motion'), icon: Activity },
+        { id: 'privacy', label: t('cameras.privacy_mask', 'Privacy Mask'), icon: EyeOff },
+        { id: 'motion_zones', label: t('cameras.motion_zones', 'Motion Zones'), icon: Shield },
+        { id: 'movies', label: t('cameras.movies', 'Movies'), icon: Film },
+        { id: 'still_images', label: t('cameras.snapshots', 'Snapshots'), icon: Image },
+        { id: 'notifications', label: t('cameras.alerts', 'Alerts'), icon: Bell },
+        { id: 'overlay', label: t('cameras.overlay', 'Overlay'), icon: Type },
+        { id: 'onvif', label: t('cameras.onvif', 'ONVIF'), icon: Shield },
+        { id: 'ai', label: t('cameras.ai_tracking', 'AI & Tracking'), icon: Brain },
     ].filter(tab => {
         if (tab.id === 'motion_zones' && newCamera.detect_engine === 'ONVIF Edge') return false;
         if (tab.id === 'ai' && newCamera.detect_engine !== 'AI') return false;
@@ -119,9 +121,9 @@ export const CameraAddEditModal = ({
                 <div className="bg-card p-4 sm:p-6 rounded-xl w-full max-w-lg border border-border relative">
                     <div className="flex justify-between items-center mb-6">
                         <div>
-                            <h2 className="text-xl font-bold">{editingId ? 'Edit Camera' : 'Add New Camera'}</h2>
+                            <h2 className="text-xl font-bold">{editingId ? t('cameras.edit_camera', 'Edit Camera') : t('cameras.add_new_camera', 'Add New Camera')}</h2>
                             <p className="text-xs text-muted-foreground mt-1">
-                                {editingId ? `Configuring ${newCamera.name}` : 'Connect and configure your RTSP camera'}
+                                {editingId ? t('cameras.configuring_camera', 'Configuring {{name}}', { name: newCamera.name }) : t('cameras.connect_configure', 'Connect and configure your RTSP camera')}
                             </p>
                         </div>
                         <button
@@ -136,7 +138,7 @@ export const CameraAddEditModal = ({
                         <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-xl animate-in fade-in slide-in-from-top-2 duration-300 shadow-sm">
                             <div className="flex items-center gap-2 mb-3 text-primary">
                                 <Copy className="w-4 h-4" />
-                                <span className="text-xs font-bold uppercase tracking-wider">Clone Settings</span>
+                                <span className="text-xs font-bold uppercase tracking-wider">{t('cameras.clone_settings', 'Clone Settings')}</span>
                             </div>
                             
                             <SelectField
@@ -149,7 +151,7 @@ export const CameraAddEditModal = ({
                                     }
                                 }}
                                 options={[
-                                    { value: '', label: '-- Start Fresh --' },
+                                    { value: '', label: t('cameras.start_fresh', '-- Start Fresh --') },
                                     ...cameras.map(c => ({ value: c.id, label: c.name }))
                                 ]}
                             />
@@ -157,10 +159,10 @@ export const CameraAddEditModal = ({
                             {cloneSourceId && (
                                 <div className="mt-4 animate-in fade-in zoom-in-95 duration-200">
                                     <div className="flex justify-between items-center mb-2">
-                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-primary/70">Categories to Import</span>
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-primary/70">{t('cameras.categories_to_import', 'Categories to Import')}</span>
                                         <div className="flex gap-2">
-                                            <button type="button" className="text-[10px] uppercase font-bold text-blue-600 hover:underline" onClick={() => { setSelectedCloneCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); performClone(cloneSourceId, CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); }}>All</button>
-                                            <button type="button" className="text-[10px] uppercase font-bold text-muted-foreground hover:underline" onClick={() => { setSelectedCloneCategories([]); performClone(cloneSourceId, []); }}>None</button>
+                                            <button type="button" className="text-[10px] uppercase font-bold text-blue-600 hover:underline" onClick={() => { setSelectedCloneCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); performClone(cloneSourceId, CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); }}>{t('cameras.all', 'All')}</button>
+                                            <button type="button" className="text-[10px] uppercase font-bold text-muted-foreground hover:underline" onClick={() => { setSelectedCloneCategories([]); performClone(cloneSourceId, []); }}>{t('cameras.none', 'None')}</button>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 bg-background/50 p-2 rounded-lg border border-primary/10">
@@ -177,7 +179,7 @@ export const CameraAddEditModal = ({
                                             </div>
                                         ))}
                                     </div>
-                                    <p className="text-[10px] text-muted-foreground mt-2 italic">* Unique settings (URLs, ONVIF credentials, Storage Profiles) are never cloned.</p>
+                                    <p className="text-[10px] text-muted-foreground mt-2 italic">{t('cameras.unique_settings_urls_onvi', '* Unique settings (URLs, ONVIF credentials, Storage Profiles) are never cloned.')}</p>
                                 </div>
                             )}
                         </div>
@@ -283,45 +285,48 @@ export const CameraAddEditModal = ({
                             )}
                         </div>
 
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-4 border-t border-border mt-4 gap-4">
-                            {editingId && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setShowCopyModal(true)}
-                                    className="flex items-center justify-center space-x-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-4 py-2 rounded-lg transition-colors border-blue-100 dark:border-blue-900/30 w-full sm:w-auto whitespace-nowrap"
-                                >
-                                    <Copy className="w-4 h-4" />
-                                    <span>Copy Settings to...</span>
-                                </Button>
-                            )}
-                            {!editingId && <div className="hidden sm:block"></div>}
-
-                            <div className="flex space-x-3 w-full sm:w-auto">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={() => { setShowAddModal(false); setEditingId(null); setCloneSourceId(''); }}
-                                    className="flex-1 sm:flex-none border border-border sm:border-none"
-                                >
-                                    Cancel
-                                </Button>
+                        <div className="flex-none p-4 sm:p-6 border-t border-border bg-card/50 backdrop-blur-sm rounded-b-2xl">
+                            <div className="flex flex-col-reverse gap-3">
                                 {editingId && (
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        onClick={(e) => handleCreate(e, false)}
-                                        className="flex-1 sm:flex-none text-primary hover:bg-primary/10 border-primary/20"
+                                        title={t('cameras.copy_settings_to', 'Copy Settings to...')}
+                                        onClick={() => setShowCopyModal(true)}
+                                        className="flex items-center justify-center text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-4 py-2 rounded-lg transition-colors border-blue-100 dark:border-blue-900/30 w-full"
                                     >
-                                        Apply
+                                        <Copy className="w-4 h-4 mr-2" />
+                                        <span>{t('cameras.copy_settings_to', 'Copy Settings to...')}</span>
                                     </Button>
                                 )}
-                                <Button
-                                    type="submit"
-                                    className="flex-1 sm:flex-none"
-                                >
-                                    {editingId ? 'Save Changes' : 'Create Camera'}
-                                </Button>
+                                {!editingId && <div className="hidden"></div>}
+
+                                <div className="flex flex-col sm:flex-row gap-3 w-full">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={() => { setShowAddModal(false); setEditingId(null); setCloneSourceId(''); }}
+                                        className="w-full sm:flex-1 border border-border sm:border-none whitespace-nowrap"
+                                    >
+                                        {t('actions.cancel', 'Cancel')}
+                                    </Button>
+                                    {editingId && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={(e) => handleCreate(e, false)}
+                                            className="w-full sm:flex-1 text-primary hover:bg-primary/10 border-primary/20 whitespace-nowrap"
+                                        >
+                                            {t('actions.apply', 'Apply')}
+                                        </Button>
+                                    )}
+                                    <Button
+                                        type="submit"
+                                        className="w-full sm:flex-1 whitespace-nowrap"
+                                    >
+                                        {editingId ? t('actions.save_changes', 'Save Changes') : t('actions.create_camera', 'Create Camera')}
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </form>

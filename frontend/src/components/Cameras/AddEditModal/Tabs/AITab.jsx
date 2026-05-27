@@ -1,17 +1,19 @@
 import React from 'react';
 import { Zap, Brain } from 'lucide-react';
 import { Toggle, SelectField } from '../../../ui/FormControls';
+import { useTranslation, Trans } from 'react-i18next';
 
 export const AITab = ({ newCamera, setNewCamera, globalSettings }) => {
+  const { t } = useTranslation();
     const objects = [
-        { id: 'person', label: 'Person' },
-        { id: 'vehicle', label: 'Vehicle' },
-        { id: 'bicycle', label: 'Bicycle' },
-        { id: 'motorcycle', label: 'Motorcycle' },
-        { id: 'bus', label: 'Bus' },
-        { id: 'truck', label: 'Truck' },
-        { id: 'dog', label: 'Dog' },
-        { id: 'cat', label: 'Cat' },
+        { id: 'person', label: t('cameras.person', 'Person') },
+        { id: 'vehicle', label: t('cameras.vehicle', 'Vehicle') },
+        { id: 'bicycle', label: t('cameras.bicycle', 'Bicycle') },
+        { id: 'motorcycle', label: t('cameras.motorcycle', 'Motorcycle') },
+        { id: 'bus', label: t('cameras.bus', 'Bus') },
+        { id: 'truck', label: t('cameras.truck', 'Truck') },
+        { id: 'dog', label: t('cameras.dog', 'Dog') },
+        { id: 'cat', label: t('cameras.cat', 'Cat') },
     ];
 
     const validObjectIds = objects.map(o => o.id);
@@ -62,12 +64,12 @@ export const AITab = ({ newCamera, setNewCamera, globalSettings }) => {
                 <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3">
                     <Brain className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                     <div>
-                        <h4 className="text-sm font-bold text-amber-600 dark:text-amber-400">AI Engine is Disabled</h4>
+                        <h4 className="text-sm font-bold text-amber-600 dark:text-amber-400">{t('cameras.ai_engine_is_disabled', 'AI Engine is Disabled')}</h4>
                         <p className="text-[11px] text-amber-600/80 dark:text-amber-400/70 mt-1">
-                            The global AI activation switch is currently <strong>OFF</strong>. This camera will fallback to <strong>OpenCV</strong> motion detection even if AI is enabled here.
+                            The global AI activation switch is currently <strong>{t('cameras.off', 'OFF')}</strong>. This camera will fallback to <strong>{t('cameras.opencv', 'OpenCV')}</strong> motion detection even if AI is enabled here.
                         </p>
                         <p className="text-[10px] text-amber-600/60 dark:text-amber-400/50 mt-2 italic">
-                            Enable it in Settings &gt; AI Detection Engine to use these features.
+                            {t('cameras.enable_it_in_settings_ai_', 'Enable it in Settings > AI Detection Engine to use these features.')}
                         </p>
                     </div>
                 </div>
@@ -77,8 +79,8 @@ export const AITab = ({ newCamera, setNewCamera, globalSettings }) => {
                 {newCamera.detect_engine !== 'AI' && (
                     <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
                         <Toggle
-                            label="Enable AI Inference"
-                            help="Run deep learning models on motion events to identify objects."
+                            label={t('cameras.enable_ai_inference', 'Enable AI Inference')}
+                            help={t('cameras.run_deep_learning_models_', 'Run deep learning models on motion events to identify objects.')}
                             checked={newCamera.ai_enabled}
                             onChange={(val) => setNewCamera({ ...newCamera, ai_enabled: val })}
                             disabled={isAiDisabledGlobally}
@@ -91,11 +93,13 @@ export const AITab = ({ newCamera, setNewCamera, globalSettings }) => {
                         <div className="space-y-4 mt-6">
                             <div className="flex items-center gap-2 text-primary">
                                 <Zap className="w-4 h-4" />
-                                <span className="text-xs font-bold uppercase tracking-wider">Object Filters</span>
+                                <span className="text-xs font-bold uppercase tracking-wider">{t('cameras.object_filters', 'Object Filters')}</span>
                             </div>
                             {newCamera.detect_engine === 'AI' && (
                                 <p className="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-500/5 p-2 rounded border border-blue-500/10 italic">
-                                    <strong>Note:</strong> Since you selected "AI" as the Detection Engine, these objects are the <u>only</u> thing that will trigger a motion event.
+                                    <Trans i18nKey="cameras.ai_note">
+                                        <strong>Note:</strong> Since you selected "AI" as the Detection Engine, these objects are the <u>only</u> thing that will trigger a motion event.
+                                    </Trans>
                                 </p>
                             )}
                             <div className="grid grid-cols-2 gap-2">
@@ -129,7 +133,7 @@ export const AITab = ({ newCamera, setNewCamera, globalSettings }) => {
                         <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 mt-6">
                             <div className="space-y-1">
                                 <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
-                                    Confidence Threshold
+                                    {t('cameras.confidence_threshold', 'Confidence Threshold')}
                                 </label>
                                 <div className="flex items-center gap-3">
                                     <input
@@ -151,8 +155,8 @@ export const AITab = ({ newCamera, setNewCamera, globalSettings }) => {
 
                         <div className="p-4 bg-muted/30 rounded-xl border border-border mt-6">
                             <Toggle
-                                label="Object Tracking"
-                                help="Track objects across frames to reduce false positives."
+                                label={t('cameras.object_tracking', 'Object Tracking')}
+                                help={t('cameras.track_objects_across_fram', 'Track objects across frames to reduce false positives.')}
                                 checked={newCamera.ai_tracking_enabled}
                                 onChange={(val) => setNewCamera({ ...newCamera, ai_tracking_enabled: val })}
                                 disabled={isAiDisabledGlobally}

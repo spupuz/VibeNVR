@@ -4,6 +4,7 @@ import { Button } from '../../../components/ui/Button';
 import { CollapsibleSection } from '../../../components/ui/CollapsibleSection';
 import { Avatar } from '../../../components/ui/Avatar';
 import { InputField, SelectField } from '../../../components/ui/FormControls';
+import { useTranslation } from 'react-i18next';
 
 export const UserManager = ({
     users,
@@ -24,6 +25,7 @@ export const UserManager = ({
     isOpen,
     onToggle
 }) => {
+    const { t } = useTranslation();
     const handleEditClick = (u) => {
         setEditingUser({
             ...u,
@@ -34,8 +36,8 @@ export const UserManager = ({
     return (
         <CollapsibleSection
             id="users"
-            title="User Management"
-            description="Manage system access and roles"
+            title={t('settings_users.title', 'User Management')}
+            description={t('settings_users.subtitle', 'Manage system access and roles')}
             icon={<Users className="w-6 h-6" />}
             isOpen={isOpen}
             onToggle={onToggle}
@@ -89,7 +91,7 @@ export const UserManager = ({
                     {newUser.role === 'viewer' && (
                         <div className="space-y-4 pt-4 border-t border-border/50">
                             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                                <label className="text-sm font-bold sm:w-48">Restrict Camera Access</label>
+                                <label className="text-sm font-bold sm:w-48">{t('timeline.restrict_camera_access', 'Restrict Camera Access')}</label>
                                 <div className="flex items-center gap-3">
                                     <button
                                         type="button"
@@ -98,14 +100,14 @@ export const UserManager = ({
                                     >
                                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${newUser.restrict_camera_access ? 'translate-x-6' : 'translate-x-1'}`} />
                                     </button>
-                                    <span className="text-xs text-muted-foreground">If enabled, the viewer can only access selected cameras/groups.</span>
+                                    <span className="text-xs text-muted-foreground">{t('timeline.if_enabled_the_viewer_can', 'If enabled, the viewer can only access selected cameras/groups.')}</span>
                                 </div>
                             </div>
                             
                             {newUser.restrict_camera_access && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-bold mb-2">Allowed Cameras</label>
+                                        <label className="block text-sm font-bold mb-2">{t('timeline.allowed_cameras', 'Allowed Cameras')}</label>
                                         <div className="bg-background rounded-lg border border-border p-2 max-h-40 overflow-y-auto space-y-1">
                                             {cameras.map(cam => (
                                                 <label key={cam.id} className="flex items-center gap-2 p-1 hover:bg-muted rounded cursor-pointer">
@@ -122,12 +124,12 @@ export const UserManager = ({
                                                     <span className="text-sm">{cam.name}</span>
                                                 </label>
                                             ))}
-                                            {cameras.length === 0 && <p className="text-xs text-muted-foreground p-1">No cameras available</p>}
+                                            {cameras.length === 0 && <p className="text-xs text-muted-foreground p-1">{t('timeline.no_cameras_available', 'No cameras available')}</p>}
                                         </div>
                                     </div>
                                     
                                     <div>
-                                        <label className="block text-sm font-bold mb-2">Allowed Groups</label>
+                                        <label className="block text-sm font-bold mb-2">{t('timeline.allowed_groups', 'Allowed Groups')}</label>
                                         <div className="bg-background rounded-lg border border-border p-2 max-h-40 overflow-y-auto space-y-1">
                                             {groups.map(group => (
                                                 <label key={group.id} className="flex items-center gap-2 p-1 hover:bg-muted rounded cursor-pointer">
@@ -144,7 +146,7 @@ export const UserManager = ({
                                                     <span className="text-sm">{group.name}</span>
                                                 </label>
                                             ))}
-                                            {groups.length === 0 && <p className="text-xs text-muted-foreground p-1">No groups available</p>}
+                                            {groups.length === 0 && <p className="text-xs text-muted-foreground p-1">{t('timeline.no_groups_available', 'No groups available')}</p>}
                                         </div>
                                     </div>
                                 </div>
@@ -152,7 +154,7 @@ export const UserManager = ({
                         </div>
                     )}
                     <div className="flex justify-end">
-                        <Button type="submit" className="w-full sm:w-auto h-11 px-8 font-bold">Create User</Button>
+                        <Button type="submit" className="w-full sm:w-auto h-11 px-8 font-bold">{t('timeline.create_user', 'Create User')}</Button>
                     </div>
                 </form>
             )}
@@ -172,7 +174,7 @@ export const UserManager = ({
                                 </div>
                             </div>
                             {u.id === currentUser.id && (
-                                <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-lg font-bold uppercase tracking-tight">You</span>
+                                <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-lg font-bold uppercase tracking-tight">{t('timeline.you', 'You')}</span>
                             )}
                         </div>
                         <div className="flex justify-end gap-2 pt-3 border-t border-border/30">
@@ -180,7 +182,7 @@ export const UserManager = ({
                                 <button
                                     onClick={() => handleEditClick(u)}
                                     className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
-                                    title="Edit User"
+                                    title={t('settings_usermanager.title', 'Edit User')}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                                 </button>
@@ -188,7 +190,7 @@ export const UserManager = ({
                             <button
                                 onClick={() => openPasswordModal(u)}
                                 className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
-                                title="Change Password"
+                                title={t('settings_usermanager.title', 'Change Password')}
                             >
                                 <Key className="w-5 h-5" />
                             </button>
@@ -221,7 +223,7 @@ export const UserManager = ({
                                         });
                                     }}
                                     className="p-2 hover:bg-red-100 text-red-500 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
-                                    title="Delete User"
+                                    title={t('settings_usermanager.title', 'Delete User')}
                                 >
                                     <Trash2 className="w-5 h-5" />
                                 </button>
@@ -236,10 +238,10 @@ export const UserManager = ({
                     <table className="w-full text-sm">
                         <thead className="bg-muted/40 text-left">
                             <tr>
-                                <th className="p-3 font-medium text-muted-foreground">Username</th>
-                                <th className="p-3 font-medium text-muted-foreground">Role</th>
-                                <th className="p-3 font-medium text-muted-foreground hidden sm:table-cell">Created</th>
-                                <th className="p-3 font-medium text-muted-foreground text-right">Actions</th>
+                                <th className="p-3 font-medium text-muted-foreground">{t('timeline.username', 'Username')}</th>
+                                <th className="p-3 font-medium text-muted-foreground">{t('timeline.role', 'Role')}</th>
+                                <th className="p-3 font-medium text-muted-foreground hidden sm:table-cell">{t('timeline.created', 'Created')}</th>
+                                <th className="p-3 font-medium text-muted-foreground text-right">{t('timeline.actions', 'Actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -248,7 +250,7 @@ export const UserManager = ({
                                     <td className="p-3 font-medium flex items-center gap-3 overflow-hidden">
                                         <Avatar user={u} size="xs" />
                                         <span className="truncate">{u.username}</span>
-                                        {u.id === currentUser.id && <span className="text-[10px] bg-primary/20 text-primary px-1.5 shrink-0 rounded">You</span>}
+                                        {u.id === currentUser.id && <span className="text-[10px] bg-primary/20 text-primary px-1.5 shrink-0 rounded">{t('timeline.you', 'You')}</span>}
                                     </td>
                                     <td className="p-3">
                                         <span className={'inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ' +
@@ -266,7 +268,7 @@ export const UserManager = ({
                                                 <button
                                                     onClick={() => handleEditClick(u)}
                                                     className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
-                                                    title="Edit User"
+                                                    title={t('settings_usermanager.title', 'Edit User')}
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                                                 </button>
@@ -274,7 +276,7 @@ export const UserManager = ({
                                             <button
                                                 onClick={() => openPasswordModal(u)}
                                                 className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
-                                                title="Change Password"
+                                                title={t('settings_usermanager.title', 'Change Password')}
                                             >
                                                 <Key className="w-5 h-5" />
                                             </button>
@@ -307,7 +309,7 @@ export const UserManager = ({
                                                         });
                                                     }}
                                                     className="p-2 hover:bg-red-100 text-red-500 rounded-lg transition-colors"
-                                                    title="Delete User"
+                                                    title={t('settings_usermanager.title', 'Delete User')}
                                                 >
                                                     <Trash2 className="w-5 h-5" />
                                                 </button>
@@ -317,7 +319,7 @@ export const UserManager = ({
                                 </tr>
                             ))}
                             {users.length === 0 && (
-                                <tr><td colSpan="4" className="p-4 text-center text-muted-foreground">No users found</td></tr>
+                                <tr><td colSpan="4" className="p-4 text-center text-muted-foreground">{t('timeline.no_users_found', 'No users found')}</td></tr>
                             )}
                         </tbody>
                     </table>

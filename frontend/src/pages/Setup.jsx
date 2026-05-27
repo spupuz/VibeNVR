@@ -3,8 +3,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, User, Lock, Mail } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { useTranslation } from 'react-i18next';
 
 export const Setup = () => {
+  const { t } = useTranslation();
     const [username, setUsername] = useState('admin');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -68,13 +70,13 @@ export const Setup = () => {
                     <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary">
                         <ShieldCheck className="w-8 h-8" />
                     </div>
-                    <h1 className="text-3xl font-bold tracking-tighter">System Setup</h1>
-                    <p className="text-muted-foreground">Create your Administrator account to secure VibeNVR</p>
+                    <h1 className="text-3xl font-bold tracking-tighter">{t('timeline.system_setup', 'System Setup')}</h1>
+                    <p className="text-muted-foreground">{t('timeline.create_your_administrator', 'Create your Administrator account to secure VibeNVR')}</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Username</label>
+                        <label className="text-sm font-medium">{t('timeline.username', 'Username')}</label>
                         <div className="relative">
                             <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                             <input
@@ -88,7 +90,7 @@ export const Setup = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Email</label>
+                        <label className="text-sm font-medium">{t('timeline.email', 'Email')}</label>
                         <div className="relative">
                             <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                             <input
@@ -103,7 +105,7 @@ export const Setup = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Password</label>
+                        <label className="text-sm font-medium">{t('timeline.password', 'Password')}</label>
                         <div className="relative">
                             <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                             <input
@@ -116,7 +118,7 @@ export const Setup = () => {
                                 minLength={8}
                             />
                         </div>
-                        <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
+                        <p className="text-xs text-muted-foreground">{t('timeline.must_be_at_least_8_charac', 'Must be at least 8 characters')}</p>
                     </div>
 
                     {error && <p className="text-sm text-red-500 text-center">{error}</p>}

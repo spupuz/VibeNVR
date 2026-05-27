@@ -6,6 +6,7 @@ import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, Cartesia
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useTranslation } from 'react-i18next';
 
 const StatCard = ({ title, value, subtext, icon: Icon, trend }) => (
     <div className="p-4 md:p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group h-full relative flex flex-col justify-between">
@@ -26,6 +27,7 @@ const StatCard = ({ title, value, subtext, icon: Icon, trend }) => (
 
 // Draggable Wrapper
 const SortableWidget = ({ id, span, children }) => {
+  const { t } = useTranslation();
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
 
     const style = {
@@ -57,6 +59,7 @@ const SortableWidget = ({ id, span, children }) => {
 };
 
 export const Dashboard = () => {
+    const { t } = useTranslation();
     const { token } = useAuth();
     const navigate = useNavigate();
     const [stats, setStats] = useState({
@@ -232,15 +235,15 @@ export const Dashboard = () => {
                         <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
                             <Film className="w-5 h-5" />
                         </div>
-                        <h3 className="font-semibold text-lg">Movies</h3>
+                        <h3 className="font-semibold text-lg">{t('dashboard.movies', 'Movies')}</h3>
                     </div>
                     <div className="space-y-4">
                         <div className="p-3 rounded-lg bg-muted/30">
-                            <p className="text-xs text-muted-foreground">Total Files</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.total_files', 'Total Files')}</p>
                             <p className="text-xl font-bold">{stats.details?.global.movies.count || 0}</p>
                         </div>
                         <div className="p-3 rounded-lg bg-muted/30">
-                            <p className="text-xs text-muted-foreground">Disk Usage</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.disk_usage', 'Disk Usage')}</p>
                             <p className="text-xl font-bold">{stats.details?.global.movies.size_gb || 0} GB</p>
                         </div>
                     </div>
@@ -256,15 +259,15 @@ export const Dashboard = () => {
                         <div className="p-2 bg-green-500/10 rounded-lg text-green-500">
                             <Image className="w-5 h-5" />
                         </div>
-                        <h3 className="font-semibold text-lg">Snapshots</h3>
+                        <h3 className="font-semibold text-lg">{t('dashboard.snapshots', 'Snapshots')}</h3>
                     </div>
                     <div className="space-y-4">
                         <div className="p-3 rounded-lg bg-muted/30">
-                            <p className="text-xs text-muted-foreground">Total Files</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.total_files', 'Total Files')}</p>
                             <p className="text-xl font-bold">{stats.details?.global.images.count || 0}</p>
                         </div>
                         <div className="p-3 rounded-lg bg-muted/30">
-                            <p className="text-xs text-muted-foreground">Disk Usage</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.disk_usage', 'Disk Usage')}</p>
                             <p className="text-xl font-bold">{stats.details?.global.images.size_gb || 0} GB</p>
                         </div>
                     </div>
@@ -280,7 +283,7 @@ export const Dashboard = () => {
                         <div className="p-2 bg-purple-500/10 rounded-lg text-purple-500">
                             <CalendarClock className="w-5 h-5" />
                         </div>
-                        <h3 className="font-semibold text-lg">Retention</h3>
+                        <h3 className="font-semibold text-lg">{t('dashboard.retention', 'Retention')}</h3>
                     </div>
                     <div className="space-y-4">
                         <div>
@@ -289,16 +292,16 @@ export const Dashboard = () => {
                                     ? `~${stats.storage.estimated_retention_days} Days`
                                     : '...'}
                             </p>
-                            <p className="text-xs text-muted-foreground mt-1">Capacity at current daily rate</p>
+                            <p className="text-xs text-muted-foreground mt-1">{t('dashboard.capacity_rate', 'Capacity at current daily rate')}</p>
                         </div>
                         <div className="p-2 rounded-lg bg-muted/30 flex justify-between items-center">
-                            <p className="text-xs text-muted-foreground">Burn Rate</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.burn_rate', 'Burn Rate')}</p>
                             <p className="text-sm font-bold">{stats.storage.daily_rate_gb || 0} GB/d</p>
                         </div>
                         {stats.storage.required_storage_gb && (
                             <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 flex justify-between items-center">
                                 <p className="text-xs text-muted-foreground">
-                                    Req. for {stats.storage.configured_retention_days} days
+                                    {t('dashboard.req_for', 'Req. for {{days}} days', { days: stats.storage.configured_retention_days })}
                                 </p>
                                 <p className="text-sm font-bold text-purple-500">
                                     {stats.storage.required_storage_gb} GB
@@ -316,25 +319,25 @@ export const Dashboard = () => {
                 const hasErrors = (stats.total_errors || 0) > 0;
                 return (
                     <StatCard 
-                        title="Active Cameras" 
+                        title={t('dashboard.active_cameras', 'Active Cameras')} 
                         value={stats.active_cameras} 
-                        subtext={hasErrors ? `${stats.total_errors} issue(s) detected` : "Operational"} 
+                        subtext={hasErrors ? t('dashboard.issues_detected', '{{count}} issue(s) detected', { count: stats.total_errors }) : t('dashboard.operational', 'Operational')} 
                         icon={Camera} 
                         trend={hasErrors ? "negative" : "positive"} 
                     />
                 );
             }
         },
-        total_events: { group: 'videos', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title="Last 24h" value={stats.events_24h || 0} subtext="Events Recorded" icon={Activity} /> },
-        network_stats: { group: 'system', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title="Network I/O" value={`${stats.network?.recv_mbps || 0} MB/s`} subtext={`Out: ${stats.network?.sent_mbps || 0} MB/s`} icon={Network} /> },
-        db_stats: { group: 'system', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title="Database" value={`${stats.database?.size_mb || 0} MB`} subtext={`${stats.database?.event_count || 0} Events`} icon={Database} /> },
+        total_events: { group: 'videos', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title={t('dashboard.last_24h', 'Last 24h')} value={stats.events_24h || 0} subtext={t('dashboard.events_recorded', 'Events Recorded')} icon={Activity} /> },
+        network_stats: { group: 'system', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title={t('dashboard.network_io', 'Network I/O')} value={`${stats.network?.recv_mbps || 0} MB/s`} subtext={`${t('dashboard.out', 'Out')}: ${stats.network?.sent_mbps || 0} MB/s`} icon={Network} /> },
+        db_stats: { group: 'system', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title={t('dashboard.database', 'Database')} value={`${stats.database?.size_mb || 0} MB`} subtext={`${stats.database?.event_count || 0} ${t('dashboard.events', 'Events')}`} icon={Database} /> },
         storage_used: {
             group: 'storage',
             span: 'col-span-12 md:col-span-6 lg:col-span-3',
             render: () => (
                 <div className="p-4 md:p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group h-full relative flex flex-col justify-between">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-medium text-muted-foreground">Storage Used</h3>
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.storage_used', 'Storage Used')}</h3>
                         <div className="rounded-full bg-primary/10 p-2 text-primary group-hover:scale-110 transition-transform">
                             <HardDrive className="w-5 h-5" />
                         </div>
@@ -344,7 +347,7 @@ export const Dashboard = () => {
                         {/* Physical Disk */}
                         <div>
                             <div className="flex justify-between items-end mb-1">
-                                <span className="text-xs font-semibold text-muted-foreground">Physical Disk</span>
+                                <span className="text-xs font-semibold text-muted-foreground">{t('dashboard.physical_disk', 'Physical Disk')}</span>
                                 <span className="text-sm font-bold">{stats.storage.percent}%</span>
                             </div>
                             <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
@@ -357,7 +360,7 @@ export const Dashboard = () => {
                         {stats.storage.total_quota_gb > 0 && (
                             <div>
                                 <div className="flex justify-between items-end mb-1">
-                                    <span className="text-xs font-semibold text-muted-foreground">App Quota</span>
+                                    <span className="text-xs font-semibold text-muted-foreground">{t('dashboard.app_quota', 'App Quota')}</span>
                                     <span className={`text-sm font-bold ${stats.storage.quota_percent > 90 ? 'text-red-500' : 'text-blue-500'}`}>
                                         {stats.storage.quota_percent}%
                                     </span>
@@ -377,8 +380,8 @@ export const Dashboard = () => {
                         {(!stats.storage.total_quota_gb || stats.storage.total_quota_gb === 0) && (
                             <div>
                                 <div className="flex justify-between items-end mb-1">
-                                    <span className="text-xs font-semibold text-muted-foreground">App Quota</span>
-                                    <span className="text-xs text-muted-foreground">Unlimited</span>
+                                    <span className="text-xs font-semibold text-muted-foreground">{t('dashboard.app_quota', 'App Quota')}</span>
+                                    <span className="text-xs text-muted-foreground">{t('dashboard.unlimited', 'Unlimited')}</span>
                                 </div>
                                 <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden opacity-20">
                                     <div className="h-full bg-muted" style={{ width: '100%' }} />
@@ -389,27 +392,27 @@ export const Dashboard = () => {
                 </div>
             )
         },
-        cpu_usage: { group: 'system', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title="CPU Usage" value={`${stats.resources?.cpu_percent || 0}%`} subtext={`Engine: ${stats.resources?.engine_cpu || 0}%`} icon={Cpu} /> },
-        memory_usage: { group: 'system', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title="Memory" value={`${Math.round(stats.resources?.memory_mb || 0)} MB`} subtext={`Engine: ${Math.round(stats.resources?.engine_mem_mb || 0)} MB`} icon={MemoryStick} /> },
+        cpu_usage: { group: 'system', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title={t('dashboard.cpu_usage', 'CPU Usage')} value={`${stats.resources?.cpu_percent || 0}%`} subtext={`${t('dashboard.engine', 'Engine')}: ${stats.resources?.engine_cpu || 0}%`} icon={Cpu} /> },
+        memory_usage: { group: 'system', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title={t('dashboard.memory', 'Memory')} value={`${Math.round(stats.resources?.memory_mb || 0)} MB`} subtext={`${t('dashboard.engine', 'Engine')}: ${Math.round(stats.resources?.engine_mem_mb || 0)} MB`} icon={MemoryStick} /> },
         system_status: {
             group: 'system',
             span: 'col-span-12 md:col-span-6 lg:col-span-3',
             render: () => (
                 <div className="p-4 md:p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group h-full relative">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-medium text-muted-foreground">System Status</h3>
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.system_status', 'System Status')}</h3>
                         <div className="rounded-full bg-primary/10 p-2 text-primary group-hover:scale-110 transition-transform">
                             <ShieldAlert className="w-5 h-5" />
                         </div>
                     </div>
-                    <p className="text-3xl font-bold">{stats.system_status}</p>
+                    <p className="text-3xl font-bold">{stats.system_status === 'Healthy' ? t('dashboard.status_healthy', 'Healthy') : stats.system_status === 'Issues Detected' ? t('dashboard.status_issues', 'Issues Detected') : t('dashboard.status_unknown', 'Unknown')}</p>
                     <div className="flex flex-col gap-1 mt-1">
-                        <p className="text-xs text-green-500">Uptime: {stats.uptime}</p>
+                        <p className="text-xs text-green-500">{t('dashboard.uptime', 'Uptime')}: {stats.uptime}</p>
                         {stats.hw_accel?.enabled && (
                             <div className="flex items-center gap-2 mt-2">
                                 <span className="text-[10px] px-2 py-0.5 rounded font-medium border bg-orange-500/10 text-orange-500 border-orange-500/20 flex items-center gap-1">
                                     <Zap className="w-2.5 h-2.5 fill-current" />
-                                    VIDEO ACCEL: {stats.hw_accel.type.toUpperCase()}
+                                    {t('dashboard.video_accel', 'VIDEO ACCEL')}: {stats.hw_accel.type.toUpperCase()}
                                 </span>
                             </div>
                         )}
@@ -426,7 +429,7 @@ export const Dashboard = () => {
                 return (
                     <div className="p-4 md:p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group h-full relative flex flex-col justify-between">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-sm font-medium text-muted-foreground">MQTT Service</h3>
+                            <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.mqtt_service', 'MQTT Service')}</h3>
                             <div className="rounded-full bg-primary/10 p-2 text-primary group-hover:scale-110 transition-transform">
                                 <Share2 className="w-5 h-5" />
                             </div>
@@ -434,7 +437,7 @@ export const Dashboard = () => {
                         <div>
                             <div className="flex items-center gap-2">
                                 <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                                <p className="text-2xl font-bold">{isConnected ? 'Connected' : mqtt?.enabled ? 'Disconnected' : 'Disabled'}</p>
+                                <p className="text-2xl font-bold">{isConnected ? t('dashboard.mqtt_connected', 'Connected') : mqtt?.enabled ? t('dashboard.mqtt_disconnected', 'Disconnected') : t('dashboard.mqtt_disabled', 'Disabled')}</p>
                             </div>
                             <p className="text-xs text-muted-foreground mt-1 truncate">{mqtt?.host || '---'}</p>
                         </div>
@@ -452,7 +455,7 @@ export const Dashboard = () => {
                 return (
                     <div className="p-4 md:p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group h-full relative flex flex-col justify-between">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-sm font-medium text-muted-foreground">AI Processor</h3>
+                            <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.ai_processor', 'AI Processor')}</h3>
                             <div className="rounded-full bg-primary/10 p-2 text-primary group-hover:scale-110 transition-transform">
                                 <Bot className="w-5 h-5" />
                             </div>
@@ -468,7 +471,7 @@ export const Dashboard = () => {
                                 )}
                             </div>
                             <p className={`text-xs mt-1 ${isInitialized ? 'text-green-500' : 'text-red-500'}`}>
-                                {isInitialized ? 'Engine Initialized' : 'Not Ready'}
+                                {isInitialized ? t('dashboard.engine_initialized', 'Engine Initialized') : t('dashboard.engine_not_ready', 'Not Ready')}
                             </p>
                         </div>
                     </div>
@@ -481,7 +484,7 @@ export const Dashboard = () => {
             span: 'col-span-12 h-64',
             render: () => (
                 <div className="bg-card rounded-xl border border-border p-6 h-full">
-                    <h3 className="text-lg font-semibold mb-4">Resource Usage (Last Hour)</h3>
+                    <h3 className="text-lg font-semibold mb-4">{t('dashboard.resource_usage', 'Resource Usage (Last Hour)')}</h3>
                     <div className="h-[200px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={resourceHistory} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -494,8 +497,8 @@ export const Dashboard = () => {
                                     itemStyle={{ color: 'hsl(var(--card-foreground))' }}
                                 />
                                 <Legend verticalAlign="bottom" height={36} />
-                                <Line yAxisId="cpu" name="CPU Usage %" type="monotone" dataKey="cpu" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                                <Line yAxisId="mem" name="Memory (MB)" type="monotone" dataKey="memory" stroke="#10b981" strokeWidth={2} dot={false} />
+                                <Line yAxisId="cpu" name={t('dashboard.cpu_usage_pct', 'CPU Usage %')} type="monotone" dataKey="cpu" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                                <Line yAxisId="mem" name={t('dashboard.memory_mb', 'Memory (MB)')} type="monotone" dataKey="memory" stroke="#10b981" strokeWidth={2} dot={false} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
@@ -508,7 +511,7 @@ export const Dashboard = () => {
             span: 'col-span-12 h-64',
             render: () => (
                 <div className="bg-card rounded-xl border border-border p-6 h-full">
-                    <h3 className="text-lg font-semibold mb-4">Network Traffic(Last Hour)</h3>
+                    <h3 className="text-lg font-semibold mb-4">{t('dashboard.network_traffic', 'Network Traffic(Last Hour)')}</h3>
                     <div className="h-[200px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={resourceHistory} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -535,7 +538,7 @@ export const Dashboard = () => {
             span: 'col-span-12 lg:col-span-6 h-96',
             render: () => (
                 <div className="bg-card rounded-xl border border-border p-6 h-full">
-                    <h3 className="text-lg font-semibold mb-6">Activity (24h)</h3>
+                    <h3 className="text-lg font-semibold mb-6">{t('dashboard.activity', 'Activity (24h)')}</h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={graphData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -562,7 +565,7 @@ export const Dashboard = () => {
             span: 'col-span-12 lg:col-span-6 h-96',
             render: () => (
                 <div className="bg-card rounded-xl border border-border p-6 h-full">
-                    <h3 className="text-lg font-semibold mb-6">Media per Camera</h3>
+                    <h3 className="text-lg font-semibold mb-6">{t('dashboard.media_camera', 'Media per Camera')}</h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart
@@ -590,10 +593,10 @@ export const Dashboard = () => {
             span: 'col-span-12 h-96',
             render: () => (
                 <div className="bg-card rounded-xl border border-border p-6 h-full flex flex-col">
-                    <h3 className="text-lg font-semibold mb-4">Recent Events</h3>
+                    <h3 className="text-lg font-semibold mb-4">{t('dashboard.recent_events', 'Recent Events')}</h3>
                     <div className="flex-1 overflow-y-auto space-y-1 pr-2">
                         {recentEvents.length === 0 ? (
-                            <p className="text-sm text-muted-foreground text-center py-4">No recent events</p>
+                            <p className="text-sm text-muted-foreground text-center py-4">{t('dashboard.no_recent_events', 'No recent events')}</p>
                         ) : (
                             recentEvents.map((evt) => {
                                 let aiLabels = [];
@@ -655,8 +658,8 @@ export const Dashboard = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-                    <p className="text-muted-foreground mt-2">Drag widgets to reorder. Configure visibility in settings.</p>
+                    <h2 className="text-3xl font-bold tracking-tight">{t('timeline.dashboard', 'Dashboard')}</h2>
+                    <p className="text-muted-foreground mt-2">{t('timeline.drag_widgets_to_reorder_c', 'Drag widgets to reorder. Configure visibility in settings.')}</p>
                 </div>
                 <button
                     onClick={() => setShowWidgetModal(true)}
@@ -670,7 +673,7 @@ export const Dashboard = () => {
             {showWidgetModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
                     <div className="bg-card border border-border rounded-xl p-6 w-full max-w-md shadow-2xl">
-                        <h3 className="text-xl font-bold mb-4">Dashboard Widgets</h3>
+                        <h3 className="text-xl font-bold mb-4">{t('dashboard.widgets_title', 'Dashboard Widgets')}</h3>
                         <div className="space-y-3 mb-6">
                             {Object.entries({
                                 videos: 'Event Stats',
@@ -737,3 +740,5 @@ export const Dashboard = () => {
         </div>
     );
 };
+
+export default Dashboard;

@@ -7,8 +7,10 @@ import { Camera, Key, Mail, Shield, Upload, X, User as UserIcon, Smartphone, Che
 import { QRCodeSVG } from 'qrcode.react';
 import { formatDistanceToNow } from 'date-fns';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { useTranslation } from 'react-i18next';
 
 export const Profile = () => {
+  const { t } = useTranslation();
     const { user, token, checkAuth } = useAuth();
     const { showToast } = useToast();
     const [uploading, setUploading] = useState(false);
@@ -332,7 +334,7 @@ export const Profile = () => {
                         </div>
                         <form onSubmit={handlePasswordUpdate} className="space-y-4">
                             <div>
-                                <label className="text-sm font-medium mb-1 block">Current Password</label>
+                                <label className="text-sm font-medium mb-1 block">{t('timeline.current_password', 'Current Password')}</label>
                                 <input
                                     type="password"
                                     className="w-full bg-background border border-input rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
@@ -342,7 +344,7 @@ export const Profile = () => {
                                 />
                             </div>
                             <div>
-                                <label className="text-sm font-medium mb-1 block">New Password</label>
+                                <label className="text-sm font-medium mb-1 block">{t('timeline.new_password', 'New Password')}</label>
                                 <input
                                     type="password"
                                     className="w-full bg-background border border-input rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
@@ -352,7 +354,7 @@ export const Profile = () => {
                                 />
                             </div>
                             <div>
-                                <label className="text-sm font-medium mb-1 block">Confirm New Password</label>
+                                <label className="text-sm font-medium mb-1 block">{t('timeline.confirm_new_password', 'Confirm New Password')}</label>
                                 <input
                                     type="password"
                                     className="w-full bg-background border border-input rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
@@ -362,8 +364,8 @@ export const Profile = () => {
                                 />
                             </div>
                             <div className="flex justify-end gap-2 pt-4 border-t border-border mt-4">
-                                <Button type="button" variant="outline" onClick={() => setPwdModalOpen(false)}>Cancel</Button>
-                                <Button type="submit">Update Password</Button>
+                                <Button type="button" variant="outline" onClick={() => setPwdModalOpen(false)}>{t('timeline.cancel', 'Cancel')}</Button>
+                                <Button type="submit">{t('timeline.update_password', 'Update Password')}</Button>
                             </div>
                         </form>
                     </div>
@@ -388,7 +390,7 @@ export const Profile = () => {
                         </div>
                         <form onSubmit={disable2FA} className="space-y-4">
                             <div>
-                                <label className="text-sm font-medium mb-1 block">Current Password</label>
+                                <label className="text-sm font-medium mb-1 block">{t('timeline.current_password', 'Current Password')}</label>
                                 <input
                                     type="password"
                                     className="w-full bg-background border border-input rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
@@ -400,7 +402,7 @@ export const Profile = () => {
                                 />
                             </div>
                             <div className="flex justify-end gap-2 pt-4 border-t border-border mt-4">
-                                <Button type="button" variant="outline" onClick={() => { setDisable2FAModalOpen(false); setDisable2FAPassword(''); }}>Cancel</Button>
+                                <Button type="button" variant="outline" onClick={() => { setDisable2FAModalOpen(false); setDisable2FAPassword(''); }}>{t('timeline.cancel', 'Cancel')}</Button>
                                 <Button type="submit" disabled={disabling2FA} className="bg-red-500 hover:bg-red-600 text-white">
                                     {disabling2FA ? 'Disabling...' : 'Disable 2FA'}
                                 </Button>
@@ -430,7 +432,7 @@ export const Profile = () => {
                             </div>
 
                             <div className="text-center space-y-2">
-                                <p className="text-sm text-muted-foreground">Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)</p>
+                                <p className="text-sm text-muted-foreground">{t('timeline.scan_this_qr_code_with_yo', 'Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)')}</p>
                                 <div className="text-xs font-mono bg-muted p-2 rounded border border-border break-all select-all flex items-center justify-center gap-2">
                                     {setupData.secret}
                                     <button onClick={() => navigator.clipboard.writeText(setupData.secret)} className="hover:text-primary" title="Copy Secret">
@@ -440,7 +442,7 @@ export const Profile = () => {
                             </div>
 
                             <div className="pt-2">
-                                <label className="text-sm font-medium mb-1 block">Enter 6-digit Code</label>
+                                <label className="text-sm font-medium mb-1 block">{t('timeline.enter_6_digit_code', 'Enter 6-digit Code')}</label>
                                 <input
                                     type="text"
                                     className="w-full bg-background border border-input rounded-lg px-3 py-2 text-center text-xl tracking-widest font-mono focus:ring-2 focus:ring-primary/20 outline-none transition-all"
@@ -454,7 +456,7 @@ export const Profile = () => {
                         </div>
 
                         <div className="flex justify-end gap-2 pt-4 border-t border-border">
-                            <Button variant="outline" onClick={() => { setIs2FASetupOpen(false); setSetupCode(''); }}>Cancel</Button>
+                            <Button variant="outline" onClick={() => { setIs2FASetupOpen(false); setSetupCode(''); }}>{t('timeline.cancel', 'Cancel')}</Button>
                             <Button onClick={verifyAndEnable2FA} disabled={verifying2FA}>
                                 {verifying2FA ? 'Verifying...' : 'Enable 2FA'}
                             </Button>
@@ -474,7 +476,7 @@ export const Profile = () => {
                             </h3>
                             <p className="text-sm text-muted-foreground mt-2">
                                 If you lose access to your authenticator app, you can use these backup codes to sign in.
-                                <strong> Each code can only be used once.</strong>
+                                <strong> {t('timeline.each_code_can_only_be_use', 'Each code can only be used once.')}</strong>
                             </p>
                         </div>
 
@@ -505,8 +507,8 @@ export const Profile = () => {
             )}
 
             <div>
-                <h2 className="text-3xl font-bold tracking-tight">My Profile</h2>
-                <p className="text-muted-foreground mt-2">Manage your account settings and preferences.</p>
+                <h2 className="text-3xl font-bold tracking-tight">{t('timeline.my_profile', 'My Profile')}</h2>
+                <p className="text-muted-foreground mt-2">{t('timeline.manage_your_account_setti', 'Manage your account settings and preferences.')}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -542,12 +544,12 @@ export const Profile = () => {
                     <div className="bg-card rounded-xl border border-border shadow-sm p-6 space-y-6">
                         <div className="flex items-center gap-2 pb-4 border-b border-border">
                             <UserIcon className="w-5 h-5 text-primary" />
-                            <h3 className="font-semibold text-lg">Account Information</h3>
+                            <h3 className="font-semibold text-lg">{t('timeline.account_information', 'Account Information')}</h3>
                         </div>
 
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <label className="text-sm font-medium text-muted-foreground">Username</label>
+                                <label className="text-sm font-medium text-muted-foreground">{t('timeline.username', 'Username')}</label>
                                 <div className="p-3 bg-muted/50 rounded-lg border border-border flex items-center gap-3">
                                     <UserIcon className="w-4 h-4 text-muted-foreground" />
                                     <span className="font-medium">{user.username}</span>
@@ -555,7 +557,7 @@ export const Profile = () => {
                             </div>
 
                             <div className="grid gap-2">
-                                <label className="text-sm font-medium text-muted-foreground">Email Address</label>
+                                <label className="text-sm font-medium text-muted-foreground">{t('timeline.email_address', 'Email Address')}</label>
                                 <div className="p-3 bg-muted/50 rounded-lg border border-border flex items-center gap-3">
                                     <Mail className="w-4 h-4 text-muted-foreground" />
                                     <span className="font-medium">{user.email || 'No email set'}</span>
@@ -563,7 +565,7 @@ export const Profile = () => {
                             </div>
 
                             <div className="grid gap-2">
-                                <label className="text-sm font-medium text-muted-foreground">Security</label>
+                                <label className="text-sm font-medium text-muted-foreground">{t('timeline.security', 'Security')}</label>
 
                                 {/* Password Row */}
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted/30 rounded-lg border border-border gap-4">
@@ -572,12 +574,12 @@ export const Profile = () => {
                                             <Key className="w-4 h-4" />
                                         </div>
                                         <div>
-                                            <p className="font-medium">Password</p>
-                                            <p className="text-xs text-muted-foreground">Secure your account</p>
+                                            <p className="font-medium">{t('timeline.password', 'Password')}</p>
+                                            <p className="text-xs text-muted-foreground">{t('timeline.secure_your_account', 'Secure your account')}</p>
                                         </div>
                                     </div>
                                     <Button variant="outline" size="sm" onClick={() => setPwdModalOpen(true)} className="w-full sm:w-auto">
-                                        Change Password
+                                        {t('timeline.change_password', 'Change Password')}
                                     </Button>
                                 </div>
 
@@ -589,15 +591,15 @@ export const Profile = () => {
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <p className="font-medium">Two-Factor Authentication</p>
+                                                <p className="font-medium">{t('timeline.two_factor_authentication', 'Two-Factor Authentication')}</p>
                                                 {user.is_2fa_enabled && (
-                                                    <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold border border-green-200">ENABLED</span>
+                                                    <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold border border-green-200">{t('timeline.enabled', 'ENABLED')}</span>
                                                 )}
                                             </div>
                                             <p className="text-xs text-muted-foreground">
                                                 {user.is_2fa_enabled
                                                     ? 'Your account is secured with 2FA.'
-                                                    : 'Add an extra layer of security.'}
+                                                    : t('timeline.add_an_extra_layer_of_sec', 'Add an extra layer of security.')}
                                             </p>
                                         </div>
                                     </div>
@@ -605,15 +607,15 @@ export const Profile = () => {
                                         {user.is_2fa_enabled ? (
                                             <>
                                                 <Button variant="outline" onClick={handleRegenerateCodes} disabled={regeneratingCodes} className="w-full sm:w-auto px-6 font-semibold">
-                                                    Regenerate Codes
+                                                    {t('timeline.regenerate_codes', 'Regenerate Codes')}
                                                 </Button>
                                                 <Button variant="outline" onClick={handleDisable2FA} className="w-full sm:w-auto px-6 font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-900">
-                                                    Disable 2FA
+                                                    {t('timeline.disable_2fa', 'Disable 2FA')}
                                                 </Button>
                                             </>
                                         ) : (
                                             <Button variant="outline" onClick={start2FASetup} className="w-full sm:w-auto px-6 font-semibold">
-                                                Enable 2FA
+                                                {t('timeline.enable_2fa', 'Enable 2FA')}
                                             </Button>
                                         )}
                                     </div>
@@ -624,13 +626,13 @@ export const Profile = () => {
                                     <div className="pt-4 border-t border-border mt-4">
                                         <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
                                             <Laptop className="w-4 h-4 text-primary" />
-                                            Trusted Devices
+                                            {t('timeline.trusted_devices', 'Trusted Devices')}
                                         </h4>
 
                                         {loadingDevices ? (
-                                            <p className="text-sm text-muted-foreground">Loading devices...</p>
+                                            <p className="text-sm text-muted-foreground">{t('timeline.loading_devices', 'Loading devices...')}</p>
                                         ) : trustedDevices.length === 0 ? (
-                                            <p className="text-sm text-muted-foreground italic">No trusted devices found.</p>
+                                            <p className="text-sm text-muted-foreground italic">{t('timeline.no_trusted_devices_found', 'No trusted devices found.')}</p>
                                         ) : (
                                             <div className="space-y-2">
                                                 {trustedDevices.map(device => (
@@ -640,9 +642,9 @@ export const Profile = () => {
                                                                 <Laptop className="w-4 h-4 text-muted-foreground" />
                                                             </div>
                                                             <div>
-                                                                <p className="font-medium">{device.name || 'Unknown Device'}</p>
+                                                                <p className="font-medium">{device.name || t('timeline.unknown_device', 'Unknown Device')}</p>
                                                                 <p className="text-xs text-muted-foreground">
-                                                                    Last used {formatDistanceToNow(new Date(device.last_used))} ago
+                                                                    {t('timeline.last_used', 'Last used')} {formatDistanceToNow(new Date(device.last_used))} {t('timeline.ago', 'ago')}
                                                                 </p>
                                                             </div>
                                                         </div>

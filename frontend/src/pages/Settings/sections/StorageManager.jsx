@@ -4,6 +4,7 @@ import { Button } from '../../../components/ui/Button';
 import { CollapsibleSection } from '../../../components/ui/CollapsibleSection';
 import { InputField, Toggle } from '../../../components/ui/FormControls';
 import { StorageProfileManager } from '../../../components/StorageProfileManager';
+import { useTranslation } from 'react-i18next';
 
 export const StorageManager = ({
     globalSettings,
@@ -21,11 +22,12 @@ export const StorageManager = ({
     isOpen,
     onToggle
 }) => {
+    const { t } = useTranslation();
     return (
         <CollapsibleSection
             id="storage"
-            title="Storage Management"
-            description="Configure global quotas, cleanup policies, and custom storage profiles."
+            title={t('settings_storage.title', 'Storage Management')}
+            description={t('settings_storage.subtitle', 'Configure global quotas, cleanup policies, and custom storage profiles.')}
             icon={<HardDrive className="w-6 h-6" />}
             isOpen={isOpen}
             onToggle={onToggle}
@@ -34,7 +36,7 @@ export const StorageManager = ({
                 {/* Storage Occupation Display */}
                 <div className="bg-muted/30 rounded-lg p-4 mb-4 border border-border/50">
                     <div className="flex justify-between items-end mb-2">
-                        <span className="text-sm font-medium">Storage Occupation</span>
+                        <span className="text-sm font-medium">{t('settings_forms.storage_occ', 'Storage Occupation')}</span>
                         <span className="text-xs text-muted-foreground">
                             {storageStats.storage?.used_gb} GB / {globalSettings.max_global_storage_gb > 0 ? globalSettings.max_global_storage_gb : storageStats.storage?.total_gb} GB
                             ({Math.round(occupationPercent)}%)
@@ -50,25 +52,25 @@ export const StorageManager = ({
                     </div>
                     <p className="text-xs text-muted-foreground mt-2 italic opacity-70">
                         {globalSettings.max_global_storage_gb > 0
-                            ? 'Currently using ' + storageStats.storage?.used_gb + ' GB of your ' + globalSettings.max_global_storage_gb + ' GB limit.'
-                            : 'Total disk usage. No global limit set.'}
+                            ? t('settings_forms.storage_using', 'Currently using {{used}} GB of your {{max}} GB limit.', {used: storageStats.storage?.used_gb, max: globalSettings.max_global_storage_gb})
+                            : t('settings_forms.storage_no_limit', 'Total disk usage. No global limit set.')}
                     </p>
                     <div className="mt-3 p-2 bg-blue-500/10 border border-blue-500/20 rounded text-[10px] text-blue-600 dark:text-blue-400">
-                        <strong>Note:</strong> Camera-specific quotas are secondary to this global limit. If the global limit is reached, the oldest files across ALL cameras will be cleaned up regardless of individual camera settings.
+                        <strong>{t('settings_forms.note', 'Note:')}</strong> {t('settings_forms.storage_note_desc', 'Camera-specific quotas are secondary to this global limit. If the global limit is reached, the oldest files across ALL cameras will be cleaned up regardless of individual camera settings.')}
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                     <InputField
-                        label="Storage Quota (GB)"
+                        label={t('settings_forms.storage_quota', 'Storage Quota (GB)')}
                         type="number"
-                        help="Total space allowed for recordings. The system will start deleting old recordings when this limit is reached."
+                        help={t('settings_forms.storage_quota_help', 'Total space allowed for recordings. The system will start deleting old recordings when this limit is reached.')}
                         unit="GB"
                         value={globalSettings.max_global_storage_gb}
                         onChange={(val) => setGlobalSettings({ ...globalSettings, max_global_storage_gb: val })}
                     />
                     <div className="space-y-2">
-                        <label className="block text-sm font-medium">Auto-Cleanup Policy</label>
+                        <label className="block text-sm font-medium">{t('settings_forms.storage_policy', 'Auto-Cleanup Policy')}</label>
                         <div className="p-3 bg-muted/50 rounded-lg border border-border/50 text-xs text-muted-foreground">
                             VibeNVR uses a "FIFO" (First In, First Out) cleanup strategy. When quota is exceeded or disk space is low (&lt; 5%), the oldest recordings are automatically removed.
                         </div>
@@ -77,38 +79,38 @@ export const StorageManager = ({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border/50">
                     <div>
-                        <label className="block text-sm font-medium mb-2">Cleanup Interval (Hours)</label>
+                        <label className="block text-sm font-medium mb-2">{t('settings_forms.storage_interval', 'Cleanup Interval (Hours)')}</label>
                         <select
                             value={globalSettings.cleanup_interval_hours}
                             onChange={(e) => setGlobalSettings({ ...globalSettings, cleanup_interval_hours: parseFloat(e.target.value) })}
                             className="w-full max-w-full sm:max-w-xs bg-background border border-input rounded-lg px-3 py-2"
                         >
-                            <option value="0.5">Every 30 Minutes</option>
-                            <option value="1">Every Hour</option>
-                            <option value="6">Every 6 Hours</option>
-                            <option value="12">Every 12 Hours</option>
-                            <option value="24">Every 24 Hours</option>
-                            <option value="48">Every 2 Days</option>
-                            <option value="168">Every Week</option>
+                            <option value="0.5">{t('settings_forms.every_30m', 'Every 30 Minutes')}</option>
+                            <option value="1">{t('settings_forms.every_1h', 'Every Hour')}</option>
+                            <option value="6">{t('settings_forms.every_6h', 'Every 6 Hours')}</option>
+                            <option value="12">{t('settings_forms.every_12h', 'Every 12 Hours')}</option>
+                            <option value="24">{t('settings_forms.every_24h', 'Every 24 Hours')}</option>
+                            <option value="48">{t('settings_forms.every_2d', 'Every 2 Days')}</option>
+                            <option value="168">{t('settings_forms.every_1w', 'Every Week')}</option>
                         </select>
                         <p className="text-xs text-muted-foreground mt-1">
-                            How often to check and clean up old recordings
+                            {t('settings_forms.storage_interval_desc', 'How often to check and clean up old recordings')}
                         </p>
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="block text-sm font-medium">Enable Automatic Cleanup</label>
+                        <label className="block text-sm font-medium">{t('settings_forms.storage_enable_clean', 'Enable Automatic Cleanup')}</label>
                         <div className="flex items-center gap-3">
                             <Toggle
                                 checked={globalSettings.cleanup_enabled}
                                 onChange={(val) => setGlobalSettings({ ...globalSettings, cleanup_enabled: val })}
                             />
                             <span className={`text-xs font-medium ${globalSettings.cleanup_enabled ? 'text-green-500' : 'text-amber-500'}`}>
-                                {globalSettings.cleanup_enabled ? 'ENABLED' : 'DISABLED'}
+                                {globalSettings.cleanup_enabled ? t('settings_forms.enabled', 'ENABLED') : t('settings_forms.disabled', 'DISABLED')}
                             </span>
                         </div>
                         <p className="text-[10px] text-muted-foreground">
-                            When enabled, the system will automatically delete old recordings to respect quotas.
+                            {t('settings_forms.storage_enable_desc', 'When enabled, the system will automatically delete old recordings to respect quotas.')}
                         </p>
                     </div>
                 </div>
@@ -119,22 +121,22 @@ export const StorageManager = ({
 
                 {/* Per-Camera Storage Breakdown */}
                 <div className="pt-4 border-t border-border mt-4">
-                    <h4 className="text-sm font-semibold mb-3">Storage Breakdown by Camera</h4>
+                    <h4 className="text-sm font-semibold mb-3">{t('settings_forms.storage_breakdown', 'Storage Breakdown by Camera')}</h4>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wider">
-                                    <th className="py-2 px-1 font-semibold">Camera</th>
-                                    <th className="py-2 px-1 font-semibold text-right">Movies</th>
-                                    <th className="py-2 px-1 font-semibold text-right">Snapshots</th>
-                                    <th className="py-2 px-1 font-semibold text-right">Actions</th>
+                                    <th className="py-2 px-1 font-semibold">{t('settings_forms.camera', 'Camera')}</th>
+                                    <th className="py-2 px-1 font-semibold text-right">{t('settings_forms.movies', 'Movies')}</th>
+                                    <th className="py-2 px-1 font-semibold text-right">{t('settings_forms.snapshots', 'Snapshots')}</th>
+                                    <th className="py-2 px-1 font-semibold text-right">{t('settings_forms.actions', 'Actions')}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {cameras.length === 0 ? (
                                     <tr>
                                         <td colSpan="4" className="py-8 text-center text-muted-foreground italic">
-                                            No cameras configured yet.
+                                            {t('settings_forms.no_cameras', 'No cameras configured yet.')}
                                         </td>
                                     </tr>
                                 ) : cameras.map(cam => {
@@ -172,7 +174,7 @@ export const StorageManager = ({
                                                 <div className="flex justify-end gap-1">
                                                     <button
                                                         type="button"
-                                                        title="Clean Up Movies"
+                                                        title={t('settings_storagemanager.title', 'Clean Up Movies')}
                                                         className="p-2 hover:bg-blue-500/10 text-blue-500 hover:text-blue-600 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
                                                         onClick={() => {
                                                             setConfirmConfig({
@@ -200,7 +202,7 @@ export const StorageManager = ({
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        title="Clean Up Snapshots"
+                                                        title={t('settings_storagemanager.title', 'Clean Up Snapshots')}
                                                         className="p-2 hover:bg-green-500/10 text-green-500 hover:text-green-600 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
                                                         onClick={() => {
                                                             setConfirmConfig({
@@ -239,7 +241,7 @@ export const StorageManager = ({
                 {/* Maintenance Tools */}
                 <div className="pt-4 border-t border-border mt-4 space-y-6">
                     <div>
-                        <h4 className="text-sm font-semibold mb-3">Maintenance</h4>
+                        <h4 className="text-sm font-semibold mb-3">{t('settings_forms.maintenance', 'Maintenance')}</h4>
                         <div className="flex flex-col sm:flex-row flex-wrap gap-3">
                             <div className="flex-1 min-w-[280px]">
                                 <Button
@@ -268,10 +270,10 @@ export const StorageManager = ({
                                     className="w-full sm:w-auto px-6 py-3 font-bold shadow-sm"
                                 >
                                     <Trash2 className="w-4 h-4 mr-2" />
-                                    <span>Clean Up Storage Now</span>
+                                    <span>{t('settings_forms.clean_now', 'Clean Up Storage Now')}</span>
                                 </Button>
                                 <p className="text-xs text-muted-foreground mt-2">
-                                    This will force an immediate check and deletion of recordings that exceed your storage limits or retention periods.
+                                    {t('settings_forms.clean_now_desc', 'This will force an immediate check and deletion of recordings that exceed your storage limits or retention periods.')}
                                 </p>
                             </div>
 
@@ -311,10 +313,10 @@ export const StorageManager = ({
                                     className={`w-full sm:w-auto px-6 py-3 font-bold shadow-sm ${orphanSyncStatus.isSyncing ? "opacity-75 cursor-not-allowed" : ""}`}
                                 >
                                     <HardDrive className={`w-4 h-4 mr-2 ${orphanSyncStatus.isSyncing ? "animate-pulse" : ""}`} />
-                                    <span>{orphanSyncStatus.isSyncing ? "Scanning..." : "Recover Orphaned Recordings"}</span>
+                                    <span>{orphanSyncStatus.isSyncing ? t('settings_forms.scanning', 'Scanning...') : t('settings_forms.recover_orphans', 'Recover Orphaned Recordings')}</span>
                                 </Button>
                                 <p className="text-xs text-muted-foreground mt-2">
-                                    Scans for video files on disk that aren't in the database and imports them into the timeline.
+                                    {t('settings_forms.recover_desc', 'Scans for video files on disk that aren\'t in the database and imports them into the timeline.')}
                                 </p>
                             </div>
                         </div>
@@ -324,7 +326,7 @@ export const StorageManager = ({
                 {/* Bulk Delete Section */}
                 {currentUser?.role === 'admin' && (
                     <div className="pt-4 border-t border-border mt-4">
-                        <h4 className="text-sm font-semibold mb-3">Bulk Deletion</h4>
+                        <h4 className="text-sm font-semibold mb-3">{t('settings_forms.bulk_del', 'Bulk Deletion')}</h4>
                         <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3">
                             <Button
                                 variant="outline"
@@ -350,7 +352,7 @@ export const StorageManager = ({
                                 })}
                             >
                                 <Trash2 className="w-4 h-4 mr-2 shrink-0" />
-                                <span className="truncate sm:whitespace-normal">Delete All Videos</span>
+                                <span className="truncate sm:whitespace-normal">{t('settings_forms.del_all_vid', 'Delete All Videos')}</span>
                             </Button>
 
                             <Button
@@ -377,7 +379,7 @@ export const StorageManager = ({
                                 })}
                             >
                                 <Trash2 className="w-4 h-4 mr-2 shrink-0" />
-                                <span className="truncate sm:whitespace-normal">Delete All Pictures</span>
+                                <span className="truncate sm:whitespace-normal">{t('settings_forms.del_all_pic', 'Delete All Pictures')}</span>
                             </Button>
                         </div>
                     </div>

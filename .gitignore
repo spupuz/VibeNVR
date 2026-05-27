@@ -44,6 +44,8 @@ frontend/.env
 /scripts/
 engine/scripts/
 backend/scripts/
+frontend/scripts/
+frontend/*.py
 .agents/
 .agents/workflows/
 .roo/
