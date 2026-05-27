@@ -256,14 +256,14 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
             <div className="p-6 border-b border-border bg-muted/5">
                 <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
                     <Globe className="w-5 h-5 text-primary" />
-                    Network Camera Scanner
+                    {t('cameras.network_camera_scanner', 'Network Camera Scanner')}
                 </h3>
                 <form onSubmit={handleScan} className="flex flex-col gap-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div className="md:col-span-1">
                             <InputField
-                                label="IP Range (CIDR or Range)"
-                                placeholder="e.g. 192.168.1.0/24"
+                                label={t('cameras.ip_range', 'IP Range (CIDR or Range)')}
+                                placeholder={t('cameras.ip_range_placeholder', 'e.g. 192.168.1.0/24')}
                                 value={ipRange}
                                 onChange={(val) => setIpRange(val)}
                                 disabled={isScanning}
@@ -271,13 +271,13 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                         </div>
                         <div className="grid grid-cols-2 gap-3 md:col-span-2">
                             <InputField
-                                label="Scanner User"
+                                label={t('cameras.scanner_user', 'Scanner User')}
                                 value={scannerCredentials.user}
                                 onChange={(val) => setScannerCredentials(prev => ({ ...prev, user: val }))}
                                 disabled={isScanning}
                             />
                             <InputField
-                                label="Scanner Password"
+                                label={t('cameras.scanner_password', 'Scanner Password')}
                                 type="password"
                                 value={scannerCredentials.password}
                                 onChange={(val) => setScannerCredentials(prev => ({ ...prev, password: val }))}
@@ -286,7 +286,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                         </div>
                         <div className="grid grid-cols-2 gap-3 md:col-span-3">
                             <InputField
-                                label="Timeout (Seconds)"
+                                label={t('cameras.timeout_seconds', 'Timeout (Seconds)')}
                                 type="number"
                                 min="0.5"
                                 max="10"
@@ -294,10 +294,10 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                                 value={scanTimeout}
                                 onChange={(val) => setScanTimeout(parseFloat(val))}
                                 disabled={isScanning}
-                                helperText="Wait time per port. Increase for slow WiFi."
+                                helperText={t('cameras.timeout_helper', 'Wait time per port. Increase for slow WiFi.')}
                             />
                             <InputField
-                                label="Max Retries"
+                                label={t('cameras.max_retries', 'Max Retries')}
                                 type="number"
                                 min="0"
                                 max="5"
@@ -305,7 +305,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                                 value={maxRetries}
                                 onChange={(val) => setMaxRetries(parseInt(val, 10))}
                                 disabled={isScanning}
-                                helperText="Attempts per port on failure."
+                                helperText={t('cameras.max_retries_helper', 'Attempts per port on failure.')}
                             />
                         </div>
                     </div>
@@ -318,12 +318,12 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                                 onClick={handleStopScan}
                             >
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Stop Scan
+                                {t('cameras.stop_scan', 'Stop Scan')}
                             </Button>
                         ) : (
                             <Button type="submit" className="h-[42px] px-8">
                                 <Search className="w-4 h-4 mr-2" />
-                                Scan Network
+                                {t('cameras.scan_network', 'Scan Network')}
                             </Button>
                         )}
                     </div>
@@ -344,7 +344,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                             <div className="flex items-center gap-2">
                                 <Loader2 className="w-4 h-4 text-primary animate-spin" />
                                 <span className="text-sm font-medium text-foreground">
-                                    Scanning Network...
+                                    {t('cameras.scanning_network', 'Scanning Network...')}
                                 </span>
                             </div>
                             <span className="text-xs font-medium text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full border border-border/50">
@@ -385,7 +385,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                             onClick={() => setShowAllDevices(!showAllDevices)}
                         >
                             <Filter className="w-3.5 h-3.5 mr-1.5" />
-                            {showAllDevices ? "Showing All Devices" : "Show Unverified Devices"}
+                            {showAllDevices ? t('cameras.showing_all', 'Showing All Devices') : t('cameras.show_unverified', 'Show Unverified Devices')}
                         </Button>
                     </div>
                 )}
@@ -439,7 +439,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                                             onClick={() => handleQuickAdd(dev)}
                                         >
                                             <Plus className="w-3.5 h-3.5 mr-1" />
-                                            Add
+                                            {t('cameras.add', 'Add')}
                                         </Button>
                                     )}
                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleProbe(dev)}>
@@ -457,7 +457,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
                     <div className="bg-card border-2 border-border rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
                         <div className="p-6 border-b border-border flex justify-between items-center">
-                            <h4 className="font-semibold text-lg">Probe Device: {probingDevice.ip}</h4>
+                            <h4 className="font-semibold text-lg">{t('cameras.probe_device', 'Probe Device:')} {probingDevice.ip}</h4>
                             <Button variant="ghost" size="icon" onClick={() => setProbingDevice(null)}><X className="w-5 h-5" /></Button>
                         </div>
 
@@ -468,21 +468,21 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
 
                                     {(!probingDevice.manufacturer || probingDevice.status === 'rtsp_only') && (
                                         <InputField
-                                            label="ONVIF Port"
+                                            label={t('cameras.onvif_port', 'ONVIF Port')}
                                             type="number"
                                             value={probingDevice.port}
                                             onChange={(val) => setProbingDevice({ ...probingDevice, port: parseInt(val) || 0 })}
-                                            help="The port used for ONVIF communication (often 80, 8080, 8000, 8899)"
+                                            help={t('cameras.onvif_port_help', 'The port used for ONVIF communication (often 80, 8080, 8000, 8899)')}
                                         />
                                     )}
 
                                     <InputField
-                                        label="Username"
+                                        label={t('cameras.username', 'Username')}
                                         value={credentials.user}
                                         onChange={(val) => setCredentials({ ...credentials, user: val })}
                                     />
                                     <InputField
-                                        label="Password"
+                                        label={t('cameras.password', 'Password')}
                                         type="password"
                                         value={credentials.password}
                                         onChange={(val) => setCredentials({ ...credentials, password: val })}
@@ -505,7 +505,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                                             <CheckCircle2 className="w-5 h-5 text-green-500" />
                                             <span className="font-semibold">{probingDevice.manufacturer} {probingDevice.model}</span>
                                         </div>
-                                        <p className="text-xs text-muted-foreground ml-8">Found {probingDevice.profiles.length} stream profiles.</p>
+                                        <p className="text-xs text-muted-foreground ml-8">{t('cameras.found_profiles', 'Found {{count}} stream profiles.', { count: probingDevice.profiles.length })}</p>
                                     </div>
 
                                     <p className="text-sm font-medium mb-2">{t('cameras.select_a_profile_to_impor', 'Select a profile to import:')}</p>
