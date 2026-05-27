@@ -70,7 +70,8 @@
     "Please enter an ONVIF Host IP": "错误",
     "Network error during probe": "错误",
     "Copied Monday settings to all days": "成功",
-    "cancel": "取消"
+    "cancel": "取消",
+    "done": "完毕"
   },
   "login": {
     "welcome_back": "欢迎回来",
@@ -141,7 +142,15 @@
     "engine_initialized": "引擎已初始化",
     "engine_not_ready": "未准备好",
     "cpu_usage_pct": "CPU使用率%",
-    "memory_mb": "内存（MB）"
+    "memory_mb": "内存（MB）",
+    "event_stats": "事件统计",
+    "storage_stats": "存储统计",
+    "system_stats": "系统统计",
+    "activity_graphs": "活动图",
+    "resource_graph": "资源图",
+    "network_graph": "网络图",
+    "recent_events_widget": "近期活动",
+    "active_cameras_widget": "主动式相机"
   },
   "cameras": {
     "title": "相机",

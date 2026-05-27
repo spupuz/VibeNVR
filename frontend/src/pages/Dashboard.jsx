@@ -676,14 +676,14 @@ export const Dashboard = () => {
                         <h3 className="text-xl font-bold mb-4">{t('dashboard.widgets_title', 'Dashboard Widgets')}</h3>
                         <div className="space-y-3 mb-6">
                             {Object.entries({
-                                videos: 'Event Stats',
-                                storage: 'Storage Stats',
-                                system: 'System Stats',
-                                activityGraph: 'Activity Graphs',
-                                resourceGraph: 'Resource Graph',
-                                networkGraph: 'Network Graph',
-                                recentEvents: 'Recent Events',
-                                cameras: 'Active Cameras'
+                                videos: t('dashboard.event_stats', 'Event Stats'),
+                                storage: t('dashboard.storage_stats', 'Storage Stats'),
+                                system: t('dashboard.system_stats', 'System Stats'),
+                                activityGraph: t('dashboard.activity_graphs', 'Activity Graphs'),
+                                resourceGraph: t('dashboard.resource_graph', 'Resource Graph'),
+                                networkGraph: t('dashboard.network_graph', 'Network Graph'),
+                                recentEvents: t('dashboard.recent_events_widget', 'Recent Events'),
+                                cameras: t('dashboard.active_cameras_widget', 'Active Cameras')
                             }).map(([key, label]) => (
                                 <div key={key} className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-lg">
                                     <span className="text-sm font-medium">{label}</span>
@@ -705,7 +705,7 @@ export const Dashboard = () => {
                                 onClick={() => setShowWidgetModal(false)}
                                 className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
                             >
-                                Done
+                                {t('common.done', 'Done')}
                             </button>
                         </div>
                     </div>

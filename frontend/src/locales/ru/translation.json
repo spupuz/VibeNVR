@@ -70,7 +70,8 @@
     "Please enter an ONVIF Host IP": "ошибка",
     "Network error during probe": "ошибка",
     "Copied Monday settings to all days": "успех",
-    "cancel": "Отмена"
+    "cancel": "Отмена",
+    "done": "Сделанный"
   },
   "login": {
     "welcome_back": "С возвращением",
@@ -141,7 +142,15 @@
     "engine_initialized": "Двигатель инициализирован",
     "engine_not_ready": "Не готов",
     "cpu_usage_pct": "Загрузка ЦП, %",
-    "memory_mb": "Память (МБ)"
+    "memory_mb": "Память (МБ)",
+    "event_stats": "Статистика событий",
+    "storage_stats": "Статистика хранилища",
+    "system_stats": "Системная статистика",
+    "activity_graphs": "Графики активности",
+    "resource_graph": "Граф ресурсов",
+    "network_graph": "Сетевой граф",
+    "recent_events_widget": "Недавние события",
+    "active_cameras_widget": "Активные камеры"
   },
   "cameras": {
     "title": "Камеры",

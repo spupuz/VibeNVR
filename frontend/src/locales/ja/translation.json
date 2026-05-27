@@ -70,7 +70,8 @@
     "Please enter an ONVIF Host IP": "エラー",
     "Network error during probe": "エラー",
     "Copied Monday settings to all days": "成功",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "done": "終わり"
   },
   "login": {
     "welcome_back": "お帰りなさい",
@@ -141,7 +142,15 @@
     "engine_initialized": "エンジンが初期化されました",
     "engine_not_ready": "準備ができていません",
     "cpu_usage_pct": "CPU使用率%",
-    "memory_mb": "メモリ (MB)"
+    "memory_mb": "メモリ (MB)",
+    "event_stats": "イベント統計",
+    "storage_stats": "ストレージ統計",
+    "system_stats": "システム統計",
+    "activity_graphs": "アクティビティグラフ",
+    "resource_graph": "リソースグラフ",
+    "network_graph": "ネットワークグラフ",
+    "recent_events_widget": "最近の出来事",
+    "active_cameras_widget": "アクティブなカメラ"
   },
   "cameras": {
     "title": "カメラ",

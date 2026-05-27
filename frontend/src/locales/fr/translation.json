@@ -70,7 +70,8 @@
     "Please enter an ONVIF Host IP": "erreur",
     "Network error during probe": "erreur",
     "Copied Monday settings to all days": "succès",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "done": "Fait"
   },
   "login": {
     "welcome_back": "Bon retour",
@@ -141,7 +142,15 @@
     "engine_initialized": "Moteur initialisé",
     "engine_not_ready": "Pas prêt",
     "cpu_usage_pct": "% d'utilisation du processeur",
-    "memory_mb": "Mémoire (Mo)"
+    "memory_mb": "Mémoire (Mo)",
+    "event_stats": "Statistiques de l'événement",
+    "storage_stats": "Statistiques de stockage",
+    "system_stats": "Statistiques du système",
+    "activity_graphs": "Graphiques d'activité",
+    "resource_graph": "Graphique des ressources",
+    "network_graph": "Graphique de réseau",
+    "recent_events_widget": "Événements récents",
+    "active_cameras_widget": "Caméras actives"
   },
   "cameras": {
     "title": "Caméras",
