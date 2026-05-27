@@ -761,7 +761,9 @@
   "live": {
     "title": "ライブビュー",
     "cameras": "カメラ",
-    "subtitle": "カメラをリアルタイムで監視します。"
+    "subtitle": "カメラをリアルタイムで監視します。",
+    "group_view": "グループビュー",
+    "group_by_section": "カメラをセクションごとにグループ化する"
   },
   "settings_main": {
     "title": "設定",

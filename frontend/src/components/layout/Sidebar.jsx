@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Camera, Film, History, Settings, LogOut, Moon, Sun, X, Info, FileText } from 'lucide-react';
+import { LayoutDashboard, Camera, Film, History, Settings, LogOut, Moon, Sun, X, Info, FileText, Github, Coffee } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Avatar } from '../ui/Avatar';
 import packageJson from '../../../package.json';
@@ -115,15 +115,35 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                 </button>
 
                 <div className="pt-3 pb-6 lg:pb-1 flex flex-col items-center justify-center space-y-1">
-                    <a
-                        href={`https://github.com/spupuz/VibeNVR/releases/tag/v${packageJson.version}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-muted-foreground hover:text-foreground font-mono tracking-wider transition-colors"
-                        title="View release on GitHub"
-                    >
-                        v{packageJson.version}
-                    </a>
+                    <div className="flex items-center space-x-3 text-muted-foreground mt-1">
+                        <a
+                            href="https://github.com/spupuz/VibeNVR"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:text-foreground transition-colors"
+                            title="GitHub Repository"
+                        >
+                            <Github className="w-4 h-4" />
+                        </a>
+                        <a
+                            href={`https://github.com/spupuz/VibeNVR/releases/tag/v${packageJson.version}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs hover:text-foreground font-mono tracking-wider transition-colors"
+                            title="View release on GitHub"
+                        >
+                            v{packageJson.version}
+                        </a>
+                        <a
+                            href="https://www.buymeacoffee.com/spupuz"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:text-yellow-500 transition-colors"
+                            title="Buy Me a Coffee"
+                        >
+                            <Coffee className="w-4 h-4" />
+                        </a>
+                    </div>
                     {latestVersion && (
                         <a
                             href="https://github.com/spupuz/VibeNVR/releases/latest"

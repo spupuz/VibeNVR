@@ -513,8 +513,8 @@ export const LiveView = () => {
                             <Toggle
                                 checked={isGroupView}
                                 onChange={handleGroupViewToggle}
-                                label="Group View"
-                                help="Group cameras by section"
+                                label={t('live.group_view', 'Group View')}
+                                help={t('live.group_by_section', 'Group cameras by section')}
                             />
                         </div>
                     </div>

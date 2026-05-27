@@ -21,7 +21,7 @@ export const GeneralSettings = ({
             isOpen={isOpen}
             onToggle={onToggle}
         >
-            <div className="max-w-xs">
+            <div className="max-w-md space-y-4">
                 <SelectField
                     label={t('settings_forms.default_landing', 'Default Landing Page')}
                     value={globalSettings.default_landing_page}

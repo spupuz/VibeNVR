@@ -769,7 +769,9 @@
   "live": {
     "title": "Live View",
     "cameras": "cameras",
-    "subtitle": "Monitor your cameras in real-time."
+    "subtitle": "Monitor your cameras in real-time.",
+    "group_view": "Group View",
+    "group_by_section": "Group cameras by section"
   },
   "settings_main": {
     "title": "Settings",

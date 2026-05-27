@@ -760,7 +760,9 @@
   "live": {
     "title": "Live-Ansicht",
     "cameras": "kameras",
-    "subtitle": "Überwachen Sie Ihre Kameras in Echtzeit."
+    "subtitle": "Überwachen Sie Ihre Kameras in Echtzeit.",
+    "group_view": "Gruppenansicht",
+    "group_by_section": "Gruppieren Sie Kameras nach Abschnitt"
   },
   "settings_main": {
     "title": "Einstellungen",

@@ -763,7 +763,9 @@
   "live": {
     "title": "Vue en direct",
     "cameras": "caméras",
-    "subtitle": "Surveillez vos caméras en temps réel."
+    "subtitle": "Surveillez vos caméras en temps réel.",
+    "group_view": "Vue de groupe",
+    "group_by_section": "Regrouper les caméras par section"
   },
   "settings_main": {
     "title": "Paramètres",

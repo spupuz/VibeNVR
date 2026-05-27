@@ -25,7 +25,7 @@ export const LiveViewLayoutSettings = ({
                     label={t('settings_liveviewlayoutsettings.grid_columns', 'Grid Columns')}
                     value={liveViewColumns}
                     onChange={(val) => setLiveViewColumns(val)}
-                    className="max-w-full sm:max-w-xs"
+                    className="max-w-full sm:max-w-md"
                     help={t('settings_liveviewlayoutsettings.grid_columns_help', 'Choose how many columns to display in the Live View grid')}
                     options={[
                         { value: 'auto', label: t('settings_liveviewlayoutsettings.auto_based_on_camera_count', 'Auto (Based on camera count)') },

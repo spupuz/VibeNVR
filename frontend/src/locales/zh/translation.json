@@ -767,7 +767,9 @@
   "live": {
     "title": "实时视图",
     "cameras": "相机",
-    "subtitle": "实时监控您的相机。"
+    "subtitle": "实时监控您的相机。",
+    "group_view": "群组视图",
+    "group_by_section": "按部分对摄像机进行分组"
   },
   "settings_main": {
     "title": "设置",

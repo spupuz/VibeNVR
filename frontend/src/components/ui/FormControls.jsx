@@ -1,26 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { HelpCircle, Eye, EyeOff } from 'lucide-react';
 
-// Tooltip Component
+// Portal Tooltip Component (Immune to overflow clipping)
 export const Tooltip = ({ text, children }) => {
     const [show, setShow] = useState(false);
+    const [coords, setCoords] = useState({ top: 0, left: 0, transform: '-translate-x-1/2 -translate-y-full' });
+    const triggerRef = useRef(null);
+
+    const updateCoords = () => {
+        if (triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            let left = rect.left + rect.width / 2;
+            let transform = '-translate-x-1/2 -translate-y-full';
+
+            // Smart positioning to prevent screen edge clipping on mobile
+            if (window.innerWidth - rect.right < 140) {
+                left = rect.right; // Anchor to right edge of icon
+                transform = '-translate-x-full -translate-y-full';
+            } else if (rect.left < 140) {
+                left = rect.left; // Anchor to left edge of icon
+                transform = '-translate-y-full';
+            }
+
+            setCoords({
+                left,
+                top: rect.top - 8,
+                transform
+            });
+        }
+    };
 
     return (
         <div className="relative inline-flex items-center">
             {children}
             <button
+                ref={triggerRef}
                 type="button"
-                onMouseEnter={() => setShow(true)}
+                onMouseEnter={() => { updateCoords(); setShow(true); }}
                 onMouseLeave={() => setShow(false)}
-                onClick={() => setShow(!show)}
+                onClick={() => { updateCoords(); setShow(!show); }}
                 className="ml-2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
             >
                 <HelpCircle className="w-4 h-4" />
             </button>
-            {show && (
-                <div className="absolute left-full ml-2 z-[160] px-3 py-2 text-xs bg-popover text-popover-foreground border border-border rounded-lg shadow-lg max-w-xs whitespace-normal">
+            {show && createPortal(
+                <div 
+                    className={`fixed z-[9999] px-3 py-2 text-xs bg-popover text-popover-foreground border border-border rounded-lg shadow-lg w-max max-w-[250px] whitespace-normal break-words pointer-events-none ${coords.transform}`}
+                    style={{ left: coords.left, top: coords.top }}
+                >
                     {text}
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
