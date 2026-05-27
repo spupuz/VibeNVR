@@ -496,7 +496,9 @@
     "ptz.hint_home": "Home positions are stored on the camera hardware",
     "ptz.set_home_title": "Set Home Position",
     "ptz.set_home_message": "Set the current camera position as the new Home position? This will overwrite the previous home coordinates.",
-    "ptz.set_home_confirm": "Set Home"
+    "ptz.set_home_confirm": "Set Home",
+    "unknown_location": "Unknown Location",
+    "last_seen": "Last seen:"
   },
   "settings": {
     "general_preferences": "General Preferences",

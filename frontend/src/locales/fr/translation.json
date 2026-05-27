@@ -490,7 +490,9 @@
     "ptz.hint_home": "Les positions d'origine sont stockées sur le matériel de la caméra",
     "ptz.set_home_title": "Définir la position d'origine",
     "ptz.set_home_message": "Définir la position actuelle de la caméra comme nouvelle position d'origine ? Cela écrasera les coordonnées précédentes de la maison.",
-    "ptz.set_home_confirm": "Définir la maison"
+    "ptz.set_home_confirm": "Définir la maison",
+    "unknown_location": "Emplacement inconnu",
+    "last_seen": "Vu pour la dernière fois :"
   },
   "settings": {
     "general_preferences": "Préférences générales",

@@ -488,7 +488,9 @@
     "ptz.hint_home": "Las posiciones de inicio se almacenan en el hardware de la cámara.",
     "ptz.set_home_title": "Establecer posición inicial",
     "ptz.set_home_message": "¿Establecer la posición actual de la cámara como la nueva posición de inicio? Esto sobrescribirá las coordenadas de inicio anteriores.",
-    "ptz.set_home_confirm": "Establecer inicio"
+    "ptz.set_home_confirm": "Establecer inicio",
+    "unknown_location": "Ubicación desconocida",
+    "last_seen": "Visto por última vez:"
   },
   "settings": {
     "general_preferences": "Preferencias generales",

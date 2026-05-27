@@ -489,7 +489,9 @@
     "ptz.hint_home": "As posições iniciais são armazenadas no hardware da câmera",
     "ptz.set_home_title": "Definir posição inicial",
     "ptz.set_home_message": "Definir a posição atual da câmera como a nova posição inicial? Isso substituirá as coordenadas iniciais anteriores.",
-    "ptz.set_home_confirm": "Definir casa"
+    "ptz.set_home_confirm": "Definir casa",
+    "unknown_location": "Localização desconhecida",
+    "last_seen": "Visto pela última vez:"
   },
   "settings": {
     "general_preferences": "Preferências gerais",

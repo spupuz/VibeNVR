@@ -85,13 +85,13 @@ export const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelecte
                     </h3>
                     <div className="flex items-center text-xs text-muted-foreground mt-1">
                         <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
-                        <span className="truncate" title={camera.location}>{camera.location || 'Unknown Location'}</span>
+                        <span className="truncate" title={camera.location}>{camera.location || t('cameras.unknown_location', 'Unknown Location')}</span>
                     </div>
 
                     {camera.status !== 'CONNECTED' && camera.last_seen && (
                         <div className="flex items-center text-[10px] text-muted-foreground mt-1 italic">
                             <Clock className="w-2.5 h-2.5 mr-1" />
-                            <span>Last seen: {new Date(camera.last_seen).toLocaleString()}</span>
+                            <span>{t('cameras.last_seen', 'Last seen:')} {new Date(camera.last_seen).toLocaleString()}</span>
                         </div>
                     )}
                     {camera.storage_profile && (

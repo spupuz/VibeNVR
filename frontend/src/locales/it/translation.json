@@ -489,7 +489,9 @@
     "ptz.hint_home": "Le posizioni iniziali vengono memorizzate sull'hardware della fotocamera",
     "ptz.set_home_title": "Imposta la posizione iniziale",
     "ptz.set_home_message": "Impostare la posizione corrente della telecamera come nuova posizione Home? Ciò sovrascriverà le coordinate di casa precedenti.",
-    "ptz.set_home_confirm": "Imposta casa"
+    "ptz.set_home_confirm": "Imposta casa",
+    "unknown_location": "Posizione sconosciuta",
+    "last_seen": "Visto l'ultima volta:"
   },
   "settings": {
     "general_preferences": "Preferenze Generali",

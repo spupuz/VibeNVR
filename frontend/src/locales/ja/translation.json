@@ -488,7 +488,9 @@
     "ptz.hint_home": "ホームポジションはカメラのハードウェアに保存されます",
     "ptz.set_home_title": "ホームポジションの設定",
     "ptz.set_home_message": "現在のカメラ位置を新しいホーム位置として設定しますか?これにより、以前のホーム座標が上書きされます。",
-    "ptz.set_home_confirm": "ホームに設定"
+    "ptz.set_home_confirm": "ホームに設定",
+    "unknown_location": "不明な場所",
+    "last_seen": "最後に見た:"
   },
   "settings": {
     "general_preferences": "一般設定",

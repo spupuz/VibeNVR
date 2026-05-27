@@ -487,7 +487,9 @@
     "ptz.hint_home": "Home-Positionen werden auf der Kamera-Hardware gespeichert",
     "ptz.set_home_title": "Legen Sie die Ausgangsposition fest",
     "ptz.set_home_message": "Aktuelle Kameraposition als neue Home-Position festlegen? Dadurch werden die vorherigen Heimatkoordinaten überschrieben.",
-    "ptz.set_home_confirm": "Nach Hause gehen"
+    "ptz.set_home_confirm": "Nach Hause gehen",
+    "unknown_location": "Unbekannter Ort",
+    "last_seen": "Zuletzt gesehen:"
   },
   "settings": {
     "general_preferences": "Allgemeine Einstellungen",

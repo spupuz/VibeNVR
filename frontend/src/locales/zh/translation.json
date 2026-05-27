@@ -494,7 +494,9 @@
     "ptz.hint_home": "主位置存储在相机硬件上",
     "ptz.set_home_title": "设置起始位置",
     "ptz.set_home_message": "将当前相机位置设置为新的 Home 位置？这将覆盖以前的起始坐标。",
-    "ptz.set_home_confirm": "设置首页"
+    "ptz.set_home_confirm": "设置首页",
+    "unknown_location": "未知地点",
+    "last_seen": "最后一次见到："
   },
   "settings": {
     "general_preferences": "常规首选项",
