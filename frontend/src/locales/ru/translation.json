@@ -751,7 +751,14 @@
     "disable_2fa": "Отключить 2FA",
     "trusted_devices": "Доверенные устройства",
     "unknown_device": "Неизвестное устройство",
-    "ago": "назад"
+    "ago": "назад",
+    "camera_groups": "Группы камер",
+    "cameras": "камеры",
+    "more": "более",
+    "apply_to_group": "Подать заявку в группу",
+    "groups_selected": "Группа(ы) выбрана",
+    "clear": "Прозрачный",
+    "delete_selected": "Удалить выбранное"
   },
   "live": {
     "title": "Прямой эфир",

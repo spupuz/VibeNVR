@@ -749,7 +749,14 @@
     "disable_2fa": "Désactiver 2FA",
     "trusted_devices": "Appareils de confiance",
     "unknown_device": "Appareil inconnu",
-    "ago": "il y a"
+    "ago": "il y a",
+    "camera_groups": "Groupes de caméras",
+    "cameras": "caméras",
+    "more": "plus",
+    "apply_to_group": "Postuler au groupe",
+    "groups_selected": "Groupe(s) sélectionné(s)",
+    "clear": "Clair",
+    "delete_selected": "Supprimer la sélection"
   },
   "live": {
     "title": "Vue en direct",

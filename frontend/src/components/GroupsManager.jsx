@@ -228,7 +228,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
             <div className="flex justify-between items-center">
                 <h3 className="text-xl font-semibold flex items-center gap-2">
                     <Layers className="w-5 h-5" />
-                    Camera Groups
+                    {t('timeline.camera_groups', 'Camera Groups')}
                 </h3>
                 <div className="flex items-center gap-4">
                     {user?.role === 'admin' && groups.length > 0 && (
@@ -239,7 +239,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                             <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-colors ${selectedGroupIds.length === groups.length ? 'bg-primary border-primary' : 'bg-background border-border'}`}>
                                 {selectedGroupIds.length === groups.length && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={5} d="M5 13l4 4L19 7" /></svg>}
                             </div>
-                            <span>{selectedGroupIds.length === groups.length ? 'Deselect All' : 'Select All'}</span>
+                            <span>{selectedGroupIds.length === groups.length ? t('timeline.deselect_all', 'Deselect All') : t('timeline.select_all', 'Select All')}</span>
                         </button>
                     )}
                     {user?.role === 'admin' && (
@@ -304,7 +304,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                             <div className="mb-4">
                                 <h3 className="font-semibold text-lg">{group.name}</h3>
                                 <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                    {group.cameras.length} cameras
+                                    {group.cameras.length} {t('timeline.cameras', 'cameras')}
                                 </p>
                             </div>
 
@@ -325,7 +325,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                         {cam.name}
                                     </span>
                                 ))}
-                                {group.cameras.length > 5 && <span className="text-xs text-muted-foreground py-1">+{group.cameras.length - 5} more</span>}
+                                {group.cameras.length > 5 && <span className="text-xs text-muted-foreground py-1">+{group.cameras.length - 5} {t('timeline.more', 'more')}</span>}
                             </div>
                         </div>
 
@@ -512,7 +512,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                 disabled={!sourceCameraId || selectedCategories.length === 0}
                                 className="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50 disabled:bg-muted disabled:text-muted-foreground shadow-lg shadow-blue-500/10 transition-all font-medium"
                             >
-                                Apply to Group
+                                {t('timeline.apply_to_group', 'Apply to Group')}
                             </button>
                         </div>
                     </div>
@@ -524,7 +524,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <div className="bg-card/95 backdrop-blur-md border border-primary/20 shadow-2xl rounded-2xl px-6 py-4 flex items-center space-x-6 text-foreground min-w-[320px]">
                             <div className="flex-1">
-                                <p className="font-bold text-sm">{selectedGroupIds.length} Group(s) selected</p>
+                                <p className="font-bold text-sm">{selectedGroupIds.length} {t('timeline.groups_selected', 'Group(s) selected')}</p>
                                 <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{t('timeline.bulk_actions', 'Bulk Actions')}</p>
                             </div>
                             <div className="flex items-center space-x-2">
@@ -532,14 +532,14 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                     onClick={() => setSelectedGroupIds([])}
                                     className="px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 rounded-lg transition-colors"
                                 >
-                                    Clear
+                                    {t('timeline.clear', 'Clear')}
                                 </button>
                                 <button
                                     onClick={handleBulkDeleteGroups}
                                     className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-all flex items-center shadow-lg shadow-red-500/20 active:scale-95"
                                 >
                                     <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                                    Delete Selected
+                                    {t('timeline.delete_selected', 'Delete Selected')}
                                 </button>
                             </div>
                         </div>

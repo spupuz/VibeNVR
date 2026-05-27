@@ -748,7 +748,14 @@
     "disable_2fa": "Desativar 2FA",
     "trusted_devices": "Dispositivos confiáveis",
     "unknown_device": "Dispositivo desconhecido",
-    "ago": "atrás"
+    "ago": "atrás",
+    "camera_groups": "Grupos de câmeras",
+    "cameras": "câmeras",
+    "more": "mais",
+    "apply_to_group": "Inscrever-se no grupo",
+    "groups_selected": "Grupo(s) selecionado(s)",
+    "clear": "Claro",
+    "delete_selected": "Excluir selecionado"
   },
   "live": {
     "title": "Exibição ao vivo",

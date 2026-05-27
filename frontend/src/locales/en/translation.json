@@ -755,7 +755,14 @@
     "disable_2fa": "Disable 2FA",
     "trusted_devices": "Trusted Devices",
     "unknown_device": "Unknown Device",
-    "ago": "ago"
+    "ago": "ago",
+    "camera_groups": "Camera Groups",
+    "cameras": "cameras",
+    "more": "more",
+    "apply_to_group": "Apply to Group",
+    "groups_selected": "Group(s) selected",
+    "clear": "Clear",
+    "delete_selected": "Delete Selected"
   },
   "live": {
     "title": "Live View",

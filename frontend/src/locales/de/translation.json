@@ -746,7 +746,14 @@
     "disable_2fa": "Deaktivieren Sie 2FA",
     "trusted_devices": "Vertrauenswürdige Geräte",
     "unknown_device": "Unbekanntes Gerät",
-    "ago": "vor"
+    "ago": "vor",
+    "camera_groups": "Kameragruppen",
+    "cameras": "Kameras",
+    "more": "mehr",
+    "apply_to_group": "Bewerben Sie sich bei der Gruppe",
+    "groups_selected": "Gruppe(n) ausgewählt",
+    "clear": "Klar",
+    "delete_selected": "Ausgewählte löschen"
   },
   "live": {
     "title": "Live-Ansicht",

@@ -753,7 +753,14 @@
     "disable_2fa": "禁用 2FA",
     "trusted_devices": "可信设备",
     "unknown_device": "未知设备",
-    "ago": "前"
+    "ago": "前",
+    "camera_groups": "摄像机组",
+    "cameras": "相机",
+    "more": "更多的",
+    "apply_to_group": "申请加入集团",
+    "groups_selected": "选定的组",
+    "clear": "清除",
+    "delete_selected": "删除所选内容"
   },
   "live": {
     "title": "实时视图",

@@ -747,7 +747,14 @@
     "disable_2fa": "2FA を無効にする",
     "trusted_devices": "信頼できるデバイス",
     "unknown_device": "不明なデバイス",
-    "ago": "前"
+    "ago": "前",
+    "camera_groups": "カメラグループ",
+    "cameras": "カメラ",
+    "more": "もっと",
+    "apply_to_group": "グループに申し込む",
+    "groups_selected": "選択されたグループ",
+    "clear": "クリア",
+    "delete_selected": "選択したものを削除"
   },
   "live": {
     "title": "ライブビュー",

@@ -748,7 +748,14 @@
     "disable_2fa": "Disabilita 2FA",
     "trusted_devices": "Dispositivi attendibili",
     "unknown_device": "Dispositivo sconosciuto",
-    "ago": "fa"
+    "ago": "fa",
+    "camera_groups": "Gruppi di telecamere",
+    "cameras": "telecamere",
+    "more": "Di più",
+    "apply_to_group": "Applica al gruppo",
+    "groups_selected": "Gruppo/i selezionato/i",
+    "clear": "Chiaro",
+    "delete_selected": "Elimina selezionato"
   },
   "live": {
     "title": "Vista Live",
