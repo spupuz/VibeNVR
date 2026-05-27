@@ -69,13 +69,13 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
             });
             const data = await res.json();
             if (res.ok) {
-                showToast("Moving to Home position...", "success");
+                showToast(t('cameras.ptz.moving_to_home', "Moving to Home position..."), "success");
             } else {
-                showToast(data.detail || "Failed to trigger Home navigation", "error");
+                showToast(data.detail || t('cameras.ptz.home_failed', "Failed to trigger Home navigation"), "error");
             }
         } catch (err) {
             console.error('PTZ GotoHome failed', err);
-            showToast("Network error while triggering Home", "error");
+            showToast(t('cameras.ptz.home_network_error', "Network error while triggering Home"), "error");
         } finally {
             setIsGoingHome(false);
         }
@@ -95,13 +95,13 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
             });
             const data = await res.json();
             if (res.ok) {
-                showToast("New Home position saved to camera memory", "success");
+                showToast(t('cameras.ptz.home_saved', "New Home position saved to camera memory"), "success");
             } else {
-                showToast(data.detail || "Failed to save Home position", "error");
+                showToast(data.detail || t('cameras.ptz.save_home_failed', "Failed to save Home position"), "error");
             }
         } catch (err) {
             console.error('PTZ SetHome failed', err);
-            showToast("Network error while saving Home position", "error");
+            showToast(t('cameras.ptz.save_home_network_error', "Network error while saving Home position"), "error");
         } finally {
             setIsSettingHome(false);
         }
@@ -142,14 +142,14 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
                 body: JSON.stringify({ preset_token: presetToken })
             });
             if (res.ok) {
-                showToast(`Moving to preset: ${presetName}...`, "success");
+                showToast(`${t('cameras.ptz.moving_to_preset', "Moving to preset:")} ${presetName}...`, "success");
             } else {
                 const data = await res.json();
-                showToast(data.detail || "Failed to trigger preset navigation", "error");
+                showToast(data.detail || t('cameras.ptz.preset_failed', "Failed to trigger preset navigation"), "error");
             }
         } catch (err) {
             console.error('PTZ GotoPreset failed', err);
-            showToast("Network error while triggering preset", "error");
+            showToast(t('cameras.ptz.preset_network_error', "Network error while triggering preset"), "error");
         } finally {
             setActivePreset(null);
         }
@@ -206,8 +206,8 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
                                     : 'bg-background/80 hover:bg-muted border-border text-muted-foreground active:scale-95'
                             }`}
                         title={!isWebCodecPlayback 
-                            ? "Audio requires WebCodecs playback" 
-                            : isAuditing ? "Stop Auditing" : "Listen Live"
+                            ? t('cameras.ptz.audio_requires_webcodecs', "Audio requires WebCodecs playback") 
+                            : isAuditing ? t('cameras.ptz.stop_auditing', "Stop Auditing") : t('cameras.ptz.listen_live', "Listen Live")
                         }
                     >
                         {isAuditing ? <Volume2 className="w-5 h-5 animate-pulse" /> : <VolumeX className="w-5 h-5" />}
@@ -221,7 +221,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
                     onClick={onClose}
                     onContextMenu={(e) => e.preventDefault()}
                     className="absolute top-2 right-2 z-[110] p-2 bg-background/80 hover:bg-red-500 hover:text-white rounded-full border border-border shadow-xl pointer-events-auto transition-all active:scale-90"
-                    title="Close PTZ Controls"
+                    title={t('cameras.ptz.close_controls', "Close PTZ Controls")}
                 >
                     <X className="w-5 h-5" />
                 </button>
@@ -245,7 +245,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
                                     onClick={stopPTZ}
                                     onContextMenu={(e) => e.preventDefault()}
                                     className="p-3 rounded-full bg-red-500 text-white shadow-xl hover:bg-red-600 transition-colors select-none flex items-center justify-center"
-                                    title="Emergency Stop"
+                                    title={t('cameras.ptz.emergency_stop', "Emergency Stop")}
                                 >
                                     {activeAction ? (
                                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -299,7 +299,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
                                             ? 'bg-primary text-primary-foreground border-primary' 
                                             : 'bg-background/80 hover:bg-muted border-border'
                                         }`}
-                                    title="Camera Presets"
+                                    title={t('cameras.ptz.camera_presets', "Camera Presets")}
                                 >
                                     <Bookmark className="w-4 h-4" />
                                 </button>
@@ -336,7 +336,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
                                     disabled={isGoingHome}
                                     onContextMenu={(e) => e.preventDefault()}
                                     className="p-2 rounded-full bg-background/80 hover:bg-indigo-500 hover:text-white border border-border shadow-lg transition-all active:scale-95 flex items-center justify-center"
-                                    title="Go to Home Position"
+                                    title={t('cameras.ptz.go_to_home', "Go to Home Position")}
                                 >
                                     {isGoingHome ? <Loader2 className="w-4 h-4 animate-spin" /> : <Home className="w-4 h-4" />}
                                 </button>
@@ -345,7 +345,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
                                     disabled={isSettingHome || isGoingHome}
                                     onContextMenu={(e) => e.preventDefault()}
                                     className="p-2 rounded-full bg-background/80 hover:bg-green-600 hover:text-white border border-border shadow-lg transition-all active:scale-95 flex items-center justify-center"
-                                    title="Set Current as Home"
+                                    title={t('cameras.ptz.set_current_as_home', "Set Current as Home")}
                                 >
                                     {isSettingHome ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                 </button>
@@ -374,10 +374,10 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
                     {/* Hint overlay - Moved higher to avoid overlapping buttons */}
                     <div className="absolute top-2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                         <div className="bg-black/60 text-white text-[10px] px-3 py-1 rounded-full border border-white/20 backdrop-blur-md">
-                            Press and hold to move • Release to stop
+                            {t('cameras.ptz.hint_move', 'Press and hold to move • Release to stop')}
                         </div>
                         <div className="text-[8px] text-white/40 italic">
-                            Home positions are stored on the camera hardware
+                            {t('cameras.ptz.hint_home', 'Home positions are stored on the camera hardware')}
                         </div>
                     </div>
                 </>
@@ -385,9 +385,9 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
 
             <ConfirmModal
                 isOpen={showSetHomeConfirm}
-                title="Set Home Position"
-                message="Set the current camera position as the new Home position? This will overwrite the previous home coordinates."
-                confirmText="Set Home"
+                title={t('cameras.ptz.set_home_title', "Set Home Position")}
+                message={t('cameras.ptz.set_home_message', "Set the current camera position as the new Home position? This will overwrite the previous home coordinates.")}
+                confirmText={t('cameras.ptz.set_home_confirm', "Set Home")}
                 onConfirm={handleConfirmSetHome}
                 onCancel={() => setShowSetHomeConfirm(false)}
                 variant="primary"
