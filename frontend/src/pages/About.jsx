@@ -38,7 +38,7 @@ export const About = () => {
                     </div>
                     <h2 className="text-2xl font-bold mb-4">{t('timeline.why_vibenvr', 'Why VibeNVR?')}</h2>
                     <p className="text-muted-foreground leading-relaxed mb-4">
-                        {t('about.paragraph1', 'I built VibeNVR because existing open-source solutions like MotionEye felt outdated, clunky, and hard to integrate with modern home automation stacks.')}
+                        {t('about.paragraph1', 'I built VibeNVR because existing open-source solutions felt outdated, clunky, and hard to integrate with modern home automation stacks.')}
                     </p>
                     <p className="text-muted-foreground leading-relaxed">
                         {t('about.paragraph2', "VibeNVR bridges the gap between powerful features and beautiful design. It's built with a modern stack (React, Python FastAPI, OpenCV) to be lightweight, fast, and a joy to use every day.")}

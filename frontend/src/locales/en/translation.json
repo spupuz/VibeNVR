@@ -915,7 +915,7 @@
   },
   "about": {
     "subtitle": "The Modern, Performant, and Elegant Network Video Recorder",
-    "paragraph1": "I built VibeNVR because existing open-source solutions like MotionEye felt outdated, clunky, and hard to integrate with modern home automation stacks.",
+    "paragraph1": "I built VibeNVR because existing open-source solutions felt outdated, clunky, and hard to integrate with modern home automation stacks.",
     "paragraph2": "VibeNVR bridges the gap between powerful features and beautiful design. It's built with a modern stack (React, Python FastAPI, OpenCV) to be lightweight, fast, and a joy to use every day.",
     "support_text": "If you love VibeNVR, consider giving it a Star on GitHub or buying me a coffee! Your support keeps the updates coming."
   },
