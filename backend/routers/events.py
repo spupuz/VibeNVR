@@ -213,7 +213,15 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                     # Connect and send
                     server = smtplib.SMTP(smtp_server, smtp_port)
                     server.set_debuglevel(0)
-                    server.starttls()
+                    server.ehlo()
+                    if server.has_extn('starttls'):
+                        import ssl
+                        context = ssl.create_default_context()
+                        context.check_hostname = False
+                        context.verify_mode = ssl.CERT_NONE
+                        server.starttls(context=context)
+                        server.ehlo()
+                        
                     if smtp_user and smtp_pass:
                         server.login(smtp_user, smtp_pass)
                     server.send_message(msg)

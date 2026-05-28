@@ -713,7 +713,14 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
                     server = smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=10)
                 else:
                     server = smtplib.SMTP(smtp_server, smtp_port, timeout=10)
-                    server.starttls()
+                    server.ehlo()
+                    if server.has_extn('starttls'):
+                        import ssl
+                        context = ssl.create_default_context()
+                        context.check_hostname = False
+                        context.verify_mode = ssl.CERT_NONE
+                        server.starttls(context=context)
+                        server.ehlo()
                 
                 with server:
                     if smtp_user and smtp_pass:
@@ -723,10 +730,10 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
                             raise ValueError("Authentication failed: Incorrect Username or Password.")
                     
                     server.send_message(msg)
-            except (socket.timeout, ConnectionRefusedError, OSError) as e:
-                 raise ValueError(f"Connection failed: Unable to connect to {smtp_server}:{smtp_port}. ({str(e)})")
             except smtplib.SMTPException as e:
                  raise ValueError(f"SMTP Error: {str(e)}")
+            except (socket.timeout, ConnectionRefusedError, OSError) as e:
+                 raise ValueError(f"Connection failed: Unable to connect to {smtp_server}:{smtp_port}. ({str(e)})")
                  
             return {"status": "success", "message": f"Test email sent to {recipient}"}
             
