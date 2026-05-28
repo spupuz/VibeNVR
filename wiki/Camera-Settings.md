@@ -18,6 +18,7 @@ These fields are specific to each hardware device or system-managed and are **ne
 *   **ONVIF Configuration**: Host, Port, Username, Password, and Profile Tokens.
 *   **Capabilities**: Hardware-detected flags for PTZ (Pan/Tilt/Zoom) and ONVIF Event support.
 *   **Relations**: Group assignments and assigned Storage Profiles.
+*   **Layout**: Visual Sort Order (Drag-and-drop position).
 
 ### ✅ What IS copied (Categories)
 Users can selectively pick which categories of settings to propagate. The available categories are:
