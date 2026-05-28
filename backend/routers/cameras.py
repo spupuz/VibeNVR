@@ -307,6 +307,14 @@ def bulk_delete_cameras(camera_ids: List[int], db: Session = Depends(database.ge
     motion_service.generate_motion_config(db)
     return {"message": f"Successfully deleted {deleted_count} camera(s)", "count": deleted_count}
 
+@router.post("/reorder")
+def reorder_cameras(request: schemas.CameraReorderRequest, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """Reorder cameras in the database"""
+    for index, cam_id in enumerate(request.camera_ids):
+        db.query(models.Camera).filter(models.Camera.id == cam_id).update({models.Camera.sort_order: index}, synchronize_session=False)
+    db.commit()
+    return {"message": "Cameras reordered successfully"}
+
 from fastapi.responses import StreamingResponse, Response
 import httpx
 

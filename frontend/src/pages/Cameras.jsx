@@ -11,6 +11,9 @@ import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { Button } from '../components/ui/Button';
 import { CameraCard } from '../components/Cameras/CameraCard';
+import { SortableCameraCard } from '../components/Cameras/SortableCameraCard';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CameraAddEditModal } from '../components/Cameras/AddEditModal/CameraAddEditModal';
 import { CopySettingsModal } from '../components/Cameras/CopySettingsModal';
 import { parseRtspUrl } from '../utils/cameraUtils';
@@ -52,6 +55,35 @@ export const Cameras = () => {
     const [confirmConfig, setConfirmConfig] = useState({ isOpen: false });
 
     const [searchParams, setSearchParams] = useSearchParams();
+
+    // DND Sensors
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+
+    const handleDragEnd = async (event) => {
+        const { active, over } = event;
+        if (active.id !== over?.id) {
+            setCameras((items) => {
+                const oldIndex = items.findIndex(c => c.id === active.id);
+                const newIndex = items.findIndex(c => c.id === over.id);
+                const newOrder = arrayMove(items, oldIndex, newIndex);
+                
+                // Call API immediately to persist order
+                fetch('/api/cameras/reorder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ camera_ids: newOrder.map(c => c.id) })
+                });
+                
+                return newOrder;
+            });
+        }
+    };
 
     // Fetch Cameras & Periodic Polling
     useEffect(() => {
@@ -765,19 +797,27 @@ export const Cameras = () => {
                                                                 </button>
                                                             )}
                                                         </h3>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                            {grouped[groupName].map(cam => (
-                                                                <CameraCard
-                                                                    key={`${groupName}-${cam.id}`}
-                                                                    camera={cam}
-                                                                    onDelete={handleDelete}
-                                                                    onEdit={handleEdit}
-                                                                    onToggleActive={handleToggleActive}
-                                                                    isSelected={selectedCameraIds.includes(cam.id)}
-                                                                    onSelect={handleSelectCamera}
-                                                                />
-                                                            ))}
-                                                        </div>
+                                                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                                            <SortableContext items={groupCamIds} strategy={rectSortingStrategy}>
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                                    {grouped[groupName].map(cam => (
+                                                                        <SortableCameraCard
+                                                                            key={`${groupName}-${cam.id}`}
+                                                                            camera={cam}
+                                                                            onDelete={handleDelete}
+                                                                            onEdit={handleEdit}
+                                                                            onToggleActive={handleToggleActive}
+                                                                            isSelected={selectedCameraIds.includes(cam.id)}
+                                                                            onSelect={handleSelectCamera}
+                                                                            handleCleanup={handleCleanup}
+                                                                            setShowCopyModal={setShowCopyModal}
+                                                                            globalSettings={globalSettings}
+                                                                            isSortable={user?.role === 'admin'}
+                                                                        />
+                                                                    ))}
+                                                                </div>
+                                                            </SortableContext>
+                                                        </DndContext>
                                                     </div>
                                                 );
                                             })}
@@ -800,19 +840,27 @@ export const Cameras = () => {
                                                             )}
                                                         </h3>
                                                     )}
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                        {ungrouped.map(cam => (
-                                                            <CameraCard
-                                                                key={cam.id}
-                                                                camera={cam}
-                                                                onDelete={handleDelete}
-                                                                onEdit={handleEdit}
-                                                                onToggleActive={handleToggleActive}
-                                                                isSelected={selectedCameraIds.includes(cam.id)}
-                                                                onSelect={handleSelectCamera}
-                                                            />
-                                                        ))}
-                                                    </div>
+                                                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                                        <SortableContext items={ungrouped.map(c => c.id)} strategy={rectSortingStrategy}>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                                {ungrouped.map(cam => (
+                                                                    <SortableCameraCard
+                                                                        key={cam.id}
+                                                                        camera={cam}
+                                                                        onDelete={handleDelete}
+                                                                        onEdit={handleEdit}
+                                                                        onToggleActive={handleToggleActive}
+                                                                        isSelected={selectedCameraIds.includes(cam.id)}
+                                                                        onSelect={handleSelectCamera}
+                                                                        handleCleanup={handleCleanup}
+                                                                        setShowCopyModal={setShowCopyModal}
+                                                                        globalSettings={globalSettings}
+                                                                        isSortable={user?.role === 'admin'}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        </SortableContext>
+                                                    </DndContext>
                                                 </div>
                                             )}
                                         </>
@@ -820,22 +868,27 @@ export const Cameras = () => {
                                 })()}
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {cameras.map(cam => (
-                                    <CameraCard
-                                        key={cam.id}
-                                        camera={cam}
-                                        onDelete={handleDelete}
-                                        onEdit={handleEdit}
-                                        onToggleActive={handleToggleActive}
-                                        isSelected={selectedCameraIds.includes(cam.id)}
-                                        onSelect={handleSelectCamera}
-                                        handleCleanup={handleCleanup}
-                                        setShowCopyModal={setShowCopyModal}
-                                        globalSettings={globalSettings}
-                                    />
-                                ))}
-                            </div>
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                <SortableContext items={cameras.map(c => c.id)} strategy={rectSortingStrategy}>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {cameras.map(cam => (
+                                            <SortableCameraCard
+                                                key={cam.id}
+                                                camera={cam}
+                                                onDelete={handleDelete}
+                                                onEdit={handleEdit}
+                                                onToggleActive={handleToggleActive}
+                                                isSelected={selectedCameraIds.includes(cam.id)}
+                                                onSelect={handleSelectCamera}
+                                                handleCleanup={handleCleanup}
+                                                setShowCopyModal={setShowCopyModal}
+                                                globalSettings={globalSettings}
+                                                isSortable={user?.role === 'admin'}
+                                            />
+                                        ))}
+                                    </div>
+                                </SortableContext>
+                            </DndContext>
                         )}
 
                         {cameras.length === 0 && (

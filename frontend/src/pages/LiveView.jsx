@@ -7,6 +7,9 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '../contexts/ToastContext';
 import { WebCodecsPlayer } from '../components/WebCodecsPlayer';
 import { PTZControls } from '../components/Cameras/PTZControls';
+import { SortableVideoPlayerWrapper } from '../components/Cameras/SortableVideoPlayerWrapper';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
 
 const API_BASE = `/api`;
 
@@ -365,7 +368,7 @@ const VideoPlayer = ({
 
 
 export const LiveView = () => {
-    const { token } = useAuth();
+    const { token, user } = useAuth();
     const { t } = useTranslation();
     const { showToast } = useToast();
     const navigate = useNavigate();
@@ -378,6 +381,34 @@ export const LiveView = () => {
     const [columnSetting, setColumnSetting] = useState(() => {
         return localStorage.getItem('liveViewColumns') || 'auto';
     });
+    
+    // DND Sensors
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+
+    const handleDragEnd = async (event) => {
+        const { active, over } = event;
+        if (active.id !== over?.id) {
+            setCameras((items) => {
+                const oldIndex = items.findIndex(c => c.id === active.id);
+                const newIndex = items.findIndex(c => c.id === over.id);
+                const newOrder = arrayMove(items, oldIndex, newIndex);
+                
+                fetch('/api/cameras/reorder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ camera_ids: newOrder.map(c => c.id) })
+                });
+                
+                return newOrder;
+            });
+        }
+    };
 
     const fetchCameras = () => {
         fetch(`${API_BASE}/cameras`, {
@@ -587,33 +618,38 @@ export const LiveView = () => {
                                                 </span>
                                                 {groupName}
                                             </h3>
-                                            <div className={`grid gap-2 sm:gap-4 ${columnSetting === 'auto' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
-                                                columnSetting === '1' ? 'grid-cols-1' :
-                                                    columnSetting === '2' ? 'grid-cols-1 sm:grid-cols-2' :
-                                                        columnSetting === '3' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
-                                                            'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
-                                                }`}>
-                                                {grouped[groupName].map((cam, i) => (
-                                                    <VideoPlayer
-                                                        key={cam.id}
-                                                        index={i}
-                                                        camera={cam}
-                                                        onFocus={toggleFocus}
-                                                        isFocused={focusCameraId === cam.id}
-                                                        onToggleActive={handleToggleActive}
-                                                        onToggleRecording={handleToggleRecording}
-                                                        isRecording={activeMotionIds.includes(cam.id)}
-                                                        isLiveMotion={!!liveMotion[cam.id]}
-                                                        liveMotionData={liveMotion[cam.id]}
+                                                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                                    <SortableContext items={grouped[groupName].map(c => c.id)} strategy={rectSortingStrategy}>
+                                                        <div className={`grid gap-2 sm:gap-4 ${columnSetting === 'auto' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
+                                                            columnSetting === '1' ? 'grid-cols-1' :
+                                                                columnSetting === '2' ? 'grid-cols-1 sm:grid-cols-2' :
+                                                                    columnSetting === '3' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
+                                                                        'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+                                                            }`}>
+                                                            {grouped[groupName].map((cam, i) => (
+                                                                <SortableVideoPlayerWrapper key={cam.id} camera={cam} isSortable={user?.role === 'admin' && !focusCameraId}>
+                                                                    <VideoPlayer
+                                                                        index={i}
+                                                                        camera={cam}
+                                                                        onFocus={toggleFocus}
+                                                                        isFocused={focusCameraId === cam.id}
+                                                                        onToggleActive={handleToggleActive}
+                                                                        onToggleRecording={handleToggleRecording}
+                                                                        isRecording={activeMotionIds.includes(cam.id)}
+                                                                        isLiveMotion={!!liveMotion[cam.id]}
+                                                                        liveMotionData={liveMotion[cam.id]}
 
-                                                        healthStatus={cameraHealth[String(cam.id)]}
-                                                        isAuditing={auditingCameraId === cam.id}
-                                                        onToggleAudio={handleToggleAudio}
-                                                    />
-                                                ))}
+                                                                        healthStatus={cameraHealth[String(cam.id)]}
+                                                                        isAuditing={auditingCameraId === cam.id}
+                                                                        onToggleAudio={handleToggleAudio}
+                                                                    />
+                                                                </SortableVideoPlayerWrapper>
+                                                            ))}
+                                                        </div>
+                                                    </SortableContext>
+                                                </DndContext>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
 
                                     {ungrouped.length > 0 && (
                                         <div>
@@ -625,31 +661,36 @@ export const LiveView = () => {
                                                     Ungrouped
                                                 </h3>
                                             )}
-                                            <div className={`grid gap-2 sm:gap-4 ${columnSetting === 'auto' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
-                                                columnSetting === '1' ? 'grid-cols-1' :
-                                                    columnSetting === '2' ? 'grid-cols-1 sm:grid-cols-2' :
-                                                        columnSetting === '3' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
-                                                            'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
-                                                }`}>
-                                                {ungrouped.map((cam, i) => (
-                                                    <VideoPlayer
-                                                        key={cam.id}
-                                                        index={i}
-                                                        camera={cam}
-                                                        onFocus={toggleFocus}
-                                                        isFocused={focusCameraId === cam.id}
-                                                        onToggleActive={handleToggleActive}
-                                                        onToggleRecording={handleToggleRecording}
-                                                        isRecording={activeMotionIds.includes(cam.id)}
-                                                        isLiveMotion={!!liveMotion[cam.id]}
-                                                        liveMotionData={liveMotion[cam.id]}
+                                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                                <SortableContext items={ungrouped.map(c => c.id)} strategy={rectSortingStrategy}>
+                                                    <div className={`grid gap-2 sm:gap-4 ${columnSetting === 'auto' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
+                                                        columnSetting === '1' ? 'grid-cols-1' :
+                                                            columnSetting === '2' ? 'grid-cols-1 sm:grid-cols-2' :
+                                                                columnSetting === '3' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
+                                                                    'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+                                                        }`}>
+                                                        {ungrouped.map((cam, i) => (
+                                                            <SortableVideoPlayerWrapper key={cam.id} camera={cam} isSortable={user?.role === 'admin' && !focusCameraId}>
+                                                                <VideoPlayer
+                                                                    index={i}
+                                                                    camera={cam}
+                                                                    onFocus={toggleFocus}
+                                                                    isFocused={focusCameraId === cam.id}
+                                                                    onToggleActive={handleToggleActive}
+                                                                    onToggleRecording={handleToggleRecording}
+                                                                    isRecording={activeMotionIds.includes(cam.id)}
+                                                                    isLiveMotion={!!liveMotion[cam.id]}
+                                                                    liveMotionData={liveMotion[cam.id]}
 
-                                                        healthStatus={cameraHealth[String(cam.id)]}
-                                                        isAuditing={auditingCameraId === cam.id}
-                                                        onToggleAudio={handleToggleAudio}
-                                                    />
-                                                ))}
-                                            </div>
+                                                                    healthStatus={cameraHealth[String(cam.id)]}
+                                                                    isAuditing={auditingCameraId === cam.id}
+                                                                    onToggleAudio={handleToggleAudio}
+                                                                />
+                                                            </SortableVideoPlayerWrapper>
+                                                        ))}
+                                                    </div>
+                                                </SortableContext>
+                                            </DndContext>
                                         </div>
                                     )}
                                 </>
@@ -657,36 +698,41 @@ export const LiveView = () => {
                         })()}
                     </div>
                 ) : (
-                    <div className={`grid gap-2 sm:gap-4 flex-1 min-h-0 pr-2 ${focusCameraId ? 'grid-cols-1' :
-                        columnSetting === 'auto' ? (
-                            cameras.length <= 1 ? 'grid-cols-1' :
-                                cameras.length <= 4 ? 'grid-cols-1 sm:grid-cols-2' :
-                                    'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
-                        ) : (
-                            columnSetting === '1' ? 'grid-cols-1' :
-                                columnSetting === '2' ? 'grid-cols-1 sm:grid-cols-2' :
-                                    columnSetting === '3' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
-                                        columnSetting === '4' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
-                        )
-                        }`}>
-                        {displayCameras.map((cam, i) => (
-                            <VideoPlayer
-                                key={cam.id}
-                                index={i}
-                                camera={cam}
-                                onFocus={toggleFocus}
-                                isFocused={focusCameraId === cam.id}
-                                onToggleActive={handleToggleActive}
-                                onToggleRecording={handleToggleRecording}
-                                isRecording={activeMotionIds.includes(cam.id)}
-                                isLiveMotion={!!liveMotion[cam.id]}
-                                liveMotionData={liveMotion[cam.id]}
-                                healthStatus={cameraHealth[String(cam.id)]}
-                                isAuditing={auditingCameraId === cam.id}
-                                onToggleAudio={handleToggleAudio}
-                            />
-                        ))}
-                    </div>
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                        <SortableContext items={displayCameras.map(c => c.id)} strategy={rectSortingStrategy}>
+                            <div className={`grid gap-2 sm:gap-4 flex-1 min-h-0 pr-2 ${focusCameraId ? 'grid-cols-1' :
+                                columnSetting === 'auto' ? (
+                                    cameras.length <= 1 ? 'grid-cols-1' :
+                                        cameras.length <= 4 ? 'grid-cols-1 sm:grid-cols-2' :
+                                            'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+                                ) : (
+                                    columnSetting === '1' ? 'grid-cols-1' :
+                                        columnSetting === '2' ? 'grid-cols-1 sm:grid-cols-2' :
+                                            columnSetting === '3' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
+                                                columnSetting === '4' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+                                )
+                                }`}>
+                                {displayCameras.map((cam, i) => (
+                                    <SortableVideoPlayerWrapper key={cam.id} camera={cam} isSortable={user?.role === 'admin' && !focusCameraId}>
+                                        <VideoPlayer
+                                            index={i}
+                                            camera={cam}
+                                            onFocus={toggleFocus}
+                                            isFocused={focusCameraId === cam.id}
+                                            onToggleActive={handleToggleActive}
+                                            onToggleRecording={handleToggleRecording}
+                                            isRecording={activeMotionIds.includes(cam.id)}
+                                            isLiveMotion={!!liveMotion[cam.id]}
+                                            liveMotionData={liveMotion[cam.id]}
+                                            healthStatus={cameraHealth[String(cam.id)]}
+                                            isAuditing={auditingCameraId === cam.id}
+                                            onToggleAudio={handleToggleAudio}
+                                        />
+                                    </SortableVideoPlayerWrapper>
+                                ))}
+                            </div>
+                        </SortableContext>
+                    </DndContext>
                 )
             }
 

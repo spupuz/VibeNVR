@@ -50,6 +50,7 @@ class CameraBase(BaseModel):
     storage_profile_id: Optional[int] = None
     status: Optional[str] = "STARTING"
     last_seen: Optional[datetime] = None
+    sort_order: Optional[int] = 0
 
     # Audio Capabilities
     audio_enabled: bool = False
@@ -426,6 +427,9 @@ class Camera(CameraBase):
     created_at: datetime
     groups: list[CameraGroupBase] = []
     storage_profile: Optional["StorageProfile"] = None
+
+class CameraReorderRequest(BaseModel):
+    camera_ids: List[int]
 
 class EventBase(BaseModel):
     camera_id: int

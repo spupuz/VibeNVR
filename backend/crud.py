@@ -6,7 +6,7 @@ def get_camera(db: Session, camera_id: int):
     return db.query(models.Camera).filter(models.Camera.id == camera_id).first()
 
 def get_cameras(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Camera).offset(skip).limit(limit).all()
+    return db.query(models.Camera).order_by(models.Camera.sort_order.asc(), models.Camera.id.asc()).offset(skip).limit(limit).all()
 
 def get_camera_by_rtsp_url(db: Session, rtsp_url: str):
     return db.query(models.Camera).filter(models.Camera.rtsp_url == rtsp_url).first()

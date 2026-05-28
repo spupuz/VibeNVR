@@ -114,7 +114,7 @@ def perform_group_action(group_id: int, action: schemas.GroupAction, db: Session
         excluded = [
             'id', 'name', 'rtsp_url', 'sub_rtsp_url', 'stream_url', 'location', 
             'is_active', 'created_at', 'groups', 'status', 'last_seen',
-            '_sa_instance_state', 'previous_recording_mode',
+            '_sa_instance_state', 'previous_recording_mode', 'sort_order',
             'resolution_width', 'resolution_height', 'auto_resolution',
             'storage_profile_id',
             'onvif_host', 'onvif_port', 'onvif_username', 'onvif_password', 'onvif_profile_token',

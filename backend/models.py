@@ -158,6 +158,7 @@ class Camera(Base):
     ai_threshold = Column(Float, default=0.5)
     ai_tracking_enabled = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    sort_order = Column(Integer, default=0)
 
     events = relationship("Event", back_populates="camera", cascade="all, delete-orphan")
     

@@ -62,6 +62,7 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "live_view_mode", "VARCHAR", "auto")
     add_column_if_not_exists(engine, "cameras", "status", "VARCHAR", "STARTING")
     add_column_if_not_exists(engine, "cameras", "last_seen", "TIMESTAMP WITH TIME ZONE")
+    add_column_if_not_exists(engine, "cameras", "sort_order", "INTEGER", 0)
     
     # Audio Capabilities
     add_column_if_not_exists(engine, "cameras", "audio_enabled", "BOOLEAN", False)
