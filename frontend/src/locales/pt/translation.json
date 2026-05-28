@@ -831,7 +831,8 @@
     "global_webhook_url": "URL global do webhook",
     "webhook_help": "Padrão Global. Usado se uma câmera não especificar um webhook.",
     "attach_snapshot_email": "Anexar instantâneo ao e-mail (global)",
-    "attach_snapshot_telegram": "Anexar instantâneo ao telegrama (global)"
+    "attach_snapshot_telegram": "Anexar instantâneo ao telegrama (global)",
+    "smtp_verify_cert": "Verifique rigorosamente o certificado SMTP (desative para servidores locais/autoassinados)"
   },
   "settings_mqttsettings": {
     "title": "Integração MQTT",

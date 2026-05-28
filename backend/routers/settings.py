@@ -693,6 +693,7 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
             smtp_user = get_conf("smtp_username")
             smtp_pass = get_conf("smtp_password")
             smtp_from = get_conf("smtp_from_email")
+            smtp_verify_cert = str(get_conf("smtp_verify_cert")).lower() != "false"
             
             # Recipient priority: Payload 'recipient' -> DB 'notify_email_recipient'
             recipient = settings.get("recipient") 
@@ -717,8 +718,9 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
                     if server.has_extn('starttls'):
                         import ssl
                         context = ssl.create_default_context()
-                        context.check_hostname = False
-                        context.verify_mode = ssl.CERT_NONE
+                        if not smtp_verify_cert:
+                            context.check_hostname = False
+                            context.verify_mode = ssl.CERT_NONE
                         server.starttls(context=context)
                         server.ehlo()
                 

@@ -43,6 +43,7 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
             smtp_user = get_conf("smtp_username")
             smtp_pass = get_conf("smtp_password")
             smtp_from = get_conf("smtp_from_email")
+            smtp_verify_cert = get_conf("smtp_verify_cert") != "false" # Default to True unless explicitly "false"
             
             global_tg_token = get_conf("telegram_bot_token")
             global_tg_chat = get_conf("telegram_chat_id")
@@ -217,8 +218,9 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                     if server.has_extn('starttls'):
                         import ssl
                         context = ssl.create_default_context()
-                        context.check_hostname = False
-                        context.verify_mode = ssl.CERT_NONE
+                        if not smtp_verify_cert:
+                            context.check_hostname = False
+                            context.verify_mode = ssl.CERT_NONE
                         server.starttls(context=context)
                         server.ehlo()
                         

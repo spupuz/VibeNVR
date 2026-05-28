@@ -829,7 +829,8 @@
     "global_webhook_url": "Globale Webhook-URL",
     "webhook_help": "Globaler Standard. Wird verwendet, wenn eine Kamera keinen Webhook angibt.",
     "attach_snapshot_email": "Snapshot an E-Mail anhängen (global)",
-    "attach_snapshot_telegram": "Schnappschuss an Telegramm anhängen (global)"
+    "attach_snapshot_telegram": "Schnappschuss an Telegramm anhängen (global)",
+    "smtp_verify_cert": "SMTP-Zertifikat unbedingt überprüfen (für lokale/selbstsignierte Server deaktivieren)"
   },
   "settings_mqttsettings": {
     "title": "MQTT-Integration",

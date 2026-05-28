@@ -834,7 +834,8 @@
     "global_webhook_url": "URL-адрес глобального веб-перехватчика",
     "webhook_help": "Глобальное значение по умолчанию. Используется, если камера не указывает вебхук.",
     "attach_snapshot_email": "Прикрепить снимок к электронной почте (глобально)",
-    "attach_snapshot_telegram": "Прикрепите снимок к Telegram (глобально)"
+    "attach_snapshot_telegram": "Прикрепите снимок к Telegram (глобально)",
+    "smtp_verify_cert": "Строго проверять сертификат SMTP (отключить для локальных/самозаверяющих серверов)"
   },
   "settings_mqttsettings": {
     "title": "Интеграция MQTT",

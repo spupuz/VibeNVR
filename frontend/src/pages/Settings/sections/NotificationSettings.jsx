@@ -82,6 +82,13 @@ export const NotificationSettings = ({
                             onChange={(val) => setGlobalSettings({ ...globalSettings, notify_email_recipient: val })}
                         />
                     </div>
+                    <div className="mt-4">
+                        <Toggle
+                            label={t('settings_notificationsettings.smtp_verify_cert', 'Strictly verify SMTP certificate (disable for local/self-signed servers)')}
+                            checked={globalSettings.smtp_verify_cert !== false}
+                            onChange={(val) => setGlobalSettings({ ...globalSettings, smtp_verify_cert: val })}
+                        />
+                    </div>
                 </div>
 
                 {/* Telegram Section */}

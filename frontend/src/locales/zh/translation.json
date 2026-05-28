@@ -836,7 +836,8 @@
     "global_webhook_url": "全局 Webhook URL",
     "webhook_help": "全局默认。如果相机未指定 Webhook，则使用。",
     "attach_snapshot_email": "将快照附加到电子邮件（全局）",
-    "attach_snapshot_telegram": "将快照附加到 Telegram（全球）"
+    "attach_snapshot_telegram": "将快照附加到 Telegram（全球）",
+    "smtp_verify_cert": "严格验证 SMTP 证书（本地/自签名服务器禁用）"
   },
   "settings_mqttsettings": {
     "title": "MQTT 集成",
