@@ -29,6 +29,7 @@ const VideoPlayer = ({
 }) => {
     const { token, user } = useAuth();
     const { showToast } = useToast();
+    const { t } = useTranslation();
     const [loadState, setLoadState] = useState('loading');
     const [frameSrc, setFrameSrc] = useState('');
     const navigate = useNavigate();
