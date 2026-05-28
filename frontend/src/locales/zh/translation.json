@@ -1183,7 +1183,8 @@
     "Please enter an ONVIF Host IP first": "错误",
     "Network error during port probe": "错误",
     "Please enter an ONVIF Host IP": "错误",
-    "Network error during probe": "错误"
+    "Network error during probe": "错误",
+    "dragToReorder": "拖动以重新排序"
   },
   "profile": {
     "display_language": "显示语言"

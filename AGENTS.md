@@ -364,6 +364,11 @@ logger.info(f"Connecting to {safe_url}")
   docker compose down && docker compose up -d --build && docker compose logs --tail 100
   ```
 - **Commits**: Always run local tests (`/run-tests.md` or manual pytest) AND perform manual verification (human UX check) after a full rebuild before committing. Never commit failing code or unverified UI changes. **Wait for explicit USER confirmation after manual verification before committing.**
+- **Automated Tests (New Features)**: If you implement a new feature or functionality, **you MUST explicitly write new automated test scripts** (in `scripts/security_tests/` or `scripts/tests/`) to verify it. The tests must cover:
+  1. **Security** (RBAC, missing auth, exposed data)
+  2. **Regression** (ensure existing logic is not broken)
+  3. **Functioning** (verify the new logic works as expected)
+  All scripts must implement safe cleanup logic.
 - **Pushes**: Do NOT push to remote repositories unless explicitly requested by the USER.
 - **Documentation**: Keep documentation synced with code changes.
 - **Code Size Policy**: 

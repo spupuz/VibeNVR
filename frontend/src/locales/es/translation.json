@@ -1135,7 +1135,8 @@
     "Token deleted": "éxito",
     "Token copied to clipboard": "éxito",
     "Camera settings exported successfully": "éxito",
-    "New Home position saved to camera memory": "éxito"
+    "New Home position saved to camera memory": "éxito",
+    "dragToReorder": "Arrastra para reordenar"
   },
   "profile": {
     "display_language": "Idioma de visualización"

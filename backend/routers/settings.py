@@ -140,6 +140,7 @@ DEFAULT_SETTINGS = {
     "smtp_username": {"value": "", "description": "SMTP Username"},
     "smtp_password": {"value": "", "description": "SMTP Password"},
     "smtp_from_email": {"value": "", "description": "Email Sender Address"},
+    "smtp_verify_cert": {"value": "true", "description": "Verify SMTP Server Certificate (SSL/TLS)"},
     "telegram_bot_token": {"value": "", "description": "Telegram Bot Token for global notifications"},
     "telegram_chat_id": {"value": "", "description": "Telegram Chat ID for global notifications"},
     "notify_email_recipient": {"value": "", "description": "Default recipient for email notifications"},

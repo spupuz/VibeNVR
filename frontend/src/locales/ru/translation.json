@@ -1181,7 +1181,8 @@
     "Please enter an ONVIF Host IP first": "ошибка",
     "Network error during port probe": "ошибка",
     "Please enter an ONVIF Host IP": "ошибка",
-    "Network error during probe": "ошибка"
+    "Network error during probe": "ошибка",
+    "dragToReorder": "Перетащите, чтобы изменить порядок"
   },
   "profile": {
     "display_language": "Язык дисплея"

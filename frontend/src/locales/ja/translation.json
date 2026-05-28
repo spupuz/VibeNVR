@@ -1177,7 +1177,8 @@
     "Please enter an ONVIF Host IP first": "エラー",
     "Network error during port probe": "エラー",
     "Please enter an ONVIF Host IP": "エラー",
-    "Network error during probe": "エラー"
+    "Network error during probe": "エラー",
+    "dragToReorder": "ドラッグして並べ替えます"
   },
   "profile": {
     "display_language": "表示言語"
