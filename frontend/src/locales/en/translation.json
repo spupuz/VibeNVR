@@ -839,7 +839,12 @@
     "webhook_help": "Global Default. Used if a camera doesn\\'t specify a webhook.",
     "attach_snapshot_email": "Attach Snapshot to Email (Global)",
     "attach_snapshot_telegram": "Attach Snapshot to Telegram (Global)",
-    "smtp_verify_cert": "Strictly verify SMTP certificate (disable for local/self-signed servers)"
+    "smtp_verify_cert": "Strictly verify SMTP certificate (disable for local/self-signed servers)",
+    "enable_telegram_proxy": "Enable SOCKS/HTTPS Proxy for Telegram",
+    "telegram_proxy_url": "Telegram Proxy URL",
+    "telegram_proxy_help": "Format: socks5://... or http://...",
+    "telegram_proxy_retries": "Max Retries",
+    "telegram_proxy_retry_delay": "Retry Delay (s)"
   },
   "settings_mqttsettings": {
     "title": "MQTT Service",

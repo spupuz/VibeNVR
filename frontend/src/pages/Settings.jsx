@@ -46,6 +46,10 @@ export const Settings = () => {
         smtp_from_email: '',
         telegram_bot_token: '',
         telegram_chat_id: '',
+        telegram_proxy_enabled: 'false',
+        telegram_proxy_url: '',
+        telegram_proxy_retries: '3',
+        telegram_proxy_retry_delay: '2',
         notify_email_recipient: '',
         notify_webhook_url: '',
         default_landing_page: 'live',
@@ -169,6 +173,10 @@ export const Settings = () => {
                     smtp_from_email: data.smtp_from_email?.value || prev.smtp_from_email,
                     telegram_bot_token: data.telegram_bot_token?.value || prev.telegram_bot_token,
                     telegram_chat_id: data.telegram_chat_id?.value || prev.telegram_chat_id,
+                    telegram_proxy_enabled: data.telegram_proxy_enabled?.value !== undefined ? data.telegram_proxy_enabled.value : prev.telegram_proxy_enabled,
+                    telegram_proxy_url: data.telegram_proxy_url?.value || prev.telegram_proxy_url,
+                    telegram_proxy_retries: data.telegram_proxy_retries?.value || prev.telegram_proxy_retries,
+                    telegram_proxy_retry_delay: data.telegram_proxy_retry_delay?.value || prev.telegram_proxy_retry_delay,
                     notify_email_recipient: data.notify_email_recipient?.value || prev.notify_email_recipient,
                     notify_webhook_url: data.notify_webhook_url?.value || prev.notify_webhook_url,
                     default_landing_page: data.default_landing_page?.value || prev.default_landing_page,
@@ -240,8 +248,12 @@ export const Settings = () => {
                     smtp_username: globalSettings.smtp_username,
                     smtp_password: globalSettings.smtp_password,
                     smtp_from_email: globalSettings.smtp_from_email,
-                    telegram_bot_token: globalSettings.telegram_bot_token,
-                    telegram_chat_id: globalSettings.telegram_chat_id,
+                    telegram_bot_token: globalSettings.telegram_bot_token || '',
+                    telegram_chat_id: globalSettings.telegram_chat_id || '',
+                    telegram_proxy_enabled: (globalSettings.telegram_proxy_enabled || 'false').toString(),
+                    telegram_proxy_url: globalSettings.telegram_proxy_url || '',
+                    telegram_proxy_retries: (globalSettings.telegram_proxy_retries || '3').toString(),
+                    telegram_proxy_retry_delay: (globalSettings.telegram_proxy_retry_delay || '2').toString(),
                     notify_email_recipient: globalSettings.notify_email_recipient,
                     notify_webhook_url: globalSettings.notify_webhook_url,
 
@@ -376,8 +388,12 @@ export const Settings = () => {
             };
         } else if (channel === 'telegram') {
             payload.settings = {
-                telegram_bot_token: globalSettings.telegram_bot_token,
-                telegram_chat_id: globalSettings.telegram_chat_id
+                telegram_bot_token: globalSettings.telegram_bot_token || '',
+                telegram_chat_id: globalSettings.telegram_chat_id || '',
+                telegram_proxy_enabled: (globalSettings.telegram_proxy_enabled || 'false').toString(),
+                telegram_proxy_url: globalSettings.telegram_proxy_url || '',
+                telegram_proxy_retries: (globalSettings.telegram_proxy_retries || '3').toString(),
+                telegram_proxy_retry_delay: (globalSettings.telegram_proxy_retry_delay || '2').toString()
             };
         } else if (channel === 'webhook') {
             payload.settings = {

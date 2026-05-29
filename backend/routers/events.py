@@ -47,6 +47,10 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
             
             global_tg_token = get_conf("telegram_bot_token")
             global_tg_chat = get_conf("telegram_chat_id")
+            global_tg_proxy_enabled = str(get_conf("telegram_proxy_enabled")).lower() == "true"
+            global_tg_proxy_url = get_conf("telegram_proxy_url")
+            global_tg_proxy_retries = int(get_conf("telegram_proxy_retries") or "3")
+            global_tg_proxy_retry_delay = int(get_conf("telegram_proxy_retry_delay") or "2")
             global_email_recipient = get_conf("notify_email_recipient")
             global_webhook_url = get_conf("notify_webhook_url")
             
@@ -156,24 +160,45 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                     else:
                         caption = html.escape(caption)
 
+                    # Setup Proxy if enabled globally
+                    proxies = None
+                    if global_tg_proxy_enabled and global_tg_proxy_url:
+                        proxies = {"http": global_tg_proxy_url, "https": global_tg_proxy_url}
+
                     # Check both Camera setting AND Global setting (Master switch logic)
-                    if image_path and camera.notify_attach_image_telegram and global_attach_telegram:
-                        # Send Photo
-                        url = f"https://api.telegram.org/bot{tg_token}/sendPhoto"
-                        with open(image_path, 'rb') as f:
-                            files = {'photo': f}
-                            data = {'chat_id': tg_chat, 'caption': caption, 'parse_mode': 'HTML'}
-                            requests.post(url, data=data, files=files, timeout=10)
-                    else:
-                        # Send Text
-                        url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
-                        requests.post(url, json={
-                            "chat_id": tg_chat,
-                            "text": caption,
-                            "parse_mode": "HTML"
-                        }, timeout=5)
+                    last_err = None
+                    import time
+                    for attempt in range(max(1, global_tg_proxy_retries)):
+                        try:
+                            if image_path and camera.notify_attach_image_telegram and global_attach_telegram:
+                                # Send Photo
+                                url = f"https://api.telegram.org/bot{tg_token}/sendPhoto"
+                                with open(image_path, 'rb') as f:
+                                    files = {'photo': f}
+                                    data = {'chat_id': tg_chat, 'caption': caption, 'parse_mode': 'HTML'}
+                                    resp = requests.post(url, data=data, files=files, proxies=proxies, timeout=10)
+                                    resp.raise_for_status()
+                            else:
+                                # Send Text
+                                url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
+                                resp = requests.post(url, json={
+                                    "chat_id": tg_chat,
+                                    "text": caption,
+                                    "parse_mode": "HTML"
+                                }, proxies=proxies, timeout=5)
+                                resp.raise_for_status()
+                            
+                            # If we succeed, break the retry loop
+                            break
+                        except Exception as e:
+                            last_err = e
+                            if attempt < max(1, global_tg_proxy_retries) - 1:
+                                logger.warning(f"[NOTIFY] Telegram attempt {attempt+1} failed ({e}), retrying in {global_tg_proxy_retry_delay}s...")
+                                time.sleep(global_tg_proxy_retry_delay)
+                            else:
+                                logger.error(f"[NOTIFY] Telegram failed after {global_tg_proxy_retries} attempts: {e}")
                 except Exception as e:
-                    logger.error(f"[NOTIFY] Telegram failed: {e}")
+                    logger.error(f"[NOTIFY] Telegram unexpected error: {e}")
 
             # ---------------------------------------------------------
             # 2. Email Notification

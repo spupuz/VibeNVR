@@ -835,7 +835,12 @@
     "webhook_help": "Глобальное значение по умолчанию. Используется, если камера не указывает вебхук.",
     "attach_snapshot_email": "Прикрепить снимок к электронной почте (глобально)",
     "attach_snapshot_telegram": "Прикрепите снимок к Telegram (глобально)",
-    "smtp_verify_cert": "Строго проверять сертификат SMTP (отключить для локальных/самозаверяющих серверов)"
+    "smtp_verify_cert": "Строго проверять сертификат SMTP (отключить для локальных/самозаверяющих серверов)",
+    "enable_telegram_proxy": "Включить SOCKS/HTTPS-прокси для Telegram",
+    "telegram_proxy_url": "URL-адрес прокси-сервера Telegram",
+    "telegram_proxy_help": "Формат: socks5://... или http://...",
+    "telegram_proxy_retries": "Макс. повторов",
+    "telegram_proxy_retry_delay": "Задержка повтора (с)"
   },
   "settings_mqttsettings": {
     "title": "Интеграция MQTT",

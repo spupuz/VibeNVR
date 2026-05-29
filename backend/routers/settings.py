@@ -143,6 +143,10 @@ DEFAULT_SETTINGS = {
     "smtp_verify_cert": {"value": "true", "description": "Verify SMTP Server Certificate (SSL/TLS)"},
     "telegram_bot_token": {"value": "", "description": "Telegram Bot Token for global notifications"},
     "telegram_chat_id": {"value": "", "description": "Telegram Chat ID for global notifications"},
+    "telegram_proxy_enabled": {"value": "false", "description": "Enable SOCKS/HTTPS Proxy for Telegram"},
+    "telegram_proxy_url": {"value": "", "description": "Telegram Proxy URL (e.g. socks5://user:pass@host:port)"},
+    "telegram_proxy_retries": {"value": "3", "description": "Maximum retries if proxy fails"},
+    "telegram_proxy_retry_delay": {"value": "2", "description": "Seconds to wait between retries"},
     "notify_email_recipient": {"value": "", "description": "Default recipient for email notifications"},
     "notify_webhook_url": {"value": "", "description": "Global Webhook URL for notifications"},
     "default_landing_page": {"value": "live", "description": "Default page when opening the app (dashboard, timeline, live)"},
@@ -744,6 +748,16 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
             token = get_conf("telegram_bot_token")
             chat_id = settings.get("telegram_chat_id") or get_conf("telegram_chat_id")
             
+            proxy_enabled = settings.get("telegram_proxy_enabled")
+            if proxy_enabled is None:
+                proxy_enabled = str(get_conf("telegram_proxy_enabled")).lower() == "true"
+            else:
+                proxy_enabled = str(proxy_enabled).lower() == "true"
+            
+            proxy_url = settings.get("telegram_proxy_url")
+            if proxy_url is None:
+                proxy_url = get_conf("telegram_proxy_url")
+            
             if not token or not chat_id:
                 raise ValueError("Missing Telegram Token or Chat ID. Configure them in Global Settings first.")
                 
@@ -753,11 +767,28 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
                 "text": "🔔 VibeNVR Test Notification\n\nSucccess! Your Telegram bot is configured correctly."
             }
             
-            resp = requests.post(api_url, json=payload, timeout=10)
-            if not resp.ok:
-                raise ValueError(f"Telegram API Error: {resp.text}")
-                
-            return {"status": "success", "message": "Test Telegram message sent"}
+            proxies = None
+            if proxy_enabled and proxy_url:
+                proxies = {"http": proxy_url, "https": proxy_url}
+            
+            retries = int(settings.get("telegram_proxy_retries", get_conf("telegram_proxy_retries")) or 3)
+            delay = int(settings.get("telegram_proxy_retry_delay", get_conf("telegram_proxy_retry_delay")) or 2)
+            
+            last_err = None
+            import time
+            for attempt in range(max(1, retries)):
+                try:
+                    resp = requests.post(api_url, json=payload, proxies=proxies, timeout=10)
+                    if not resp.ok:
+                        raise ValueError(f"Telegram API Error: {resp.text}")
+                    return {"status": "success", "message": "Test Telegram message sent"}
+                except Exception as e:
+                    last_err = e
+                    if attempt < max(1, retries) - 1:
+                        logger.warning(f"Telegram Test attempt {attempt+1} failed, retrying in {delay}s...")
+                        time.sleep(delay)
+            
+            raise ValueError(str(last_err))
             
         elif channel == "webhook":
             url = settings.get("notify_webhook_url") or get_conf("notify_webhook_url")

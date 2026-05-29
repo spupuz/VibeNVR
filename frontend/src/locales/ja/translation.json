@@ -831,7 +831,12 @@
     "attach_snapshot_email": "スナップショットを電子メールに添付 (グローバル)",
     "attach_snapshot_telegram": "スナップショットをテレグラムに添付 (グローバル)",
     "note_desc": "これらのグローバル認証情報は、カメラが独自の設定で特別にオーバーライドしない限り、すべてのカメラに使用されます。",
-    "smtp_verify_cert": "SMTP 証明書を厳密に検証します (ローカル/自己署名サーバーでは無効)"
+    "smtp_verify_cert": "SMTP 証明書を厳密に検証します (ローカル/自己署名サーバーでは無効)",
+    "enable_telegram_proxy": "テレグラムの SOCKS/HTTPS プロキシを有効にする",
+    "telegram_proxy_url": "テレグラムプロキシURL",
+    "telegram_proxy_help": "形式：socks5://... または http://...",
+    "telegram_proxy_retries": "最大再試行回数",
+    "telegram_proxy_retry_delay": "再試行遅延 (秒)"
   },
   "settings_mqttsettings": {
     "title": "MQTT統合",

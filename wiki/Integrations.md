@@ -70,6 +70,11 @@ For more details, see the **[MQTT Integration Guide](MQTT-Integration.md)**.
 +3. Get your **Chat ID** (using bots like `@userinfobot`).
 +4. Configure these in **Settings -> Notifications**.
 +
++### 🌍 SOCKS/HTTPS Proxy & Auto-Retry
++If your NVR is on a restricted network or Telegram is blocked in your region, VibeNVR natively supports routing notifications through a proxy.
++- **Format**: `socks5://user:pass@host:port` or `http://...`
++- **Auto-Retry**: Since free public proxies are often unstable, VibeNVR implements an intelligent background retry mechanism. You can configure the **Max Retries** and **Retry Delay** in the Settings UI. If a proxy drops the connection, VibeNVR will silently retry sending the notification without crashing or blocking the recording engine.
++
 +---
 
 ---

@@ -121,6 +121,40 @@ export const NotificationSettings = ({
                             onChange={(val) => setGlobalSettings({ ...globalSettings, telegram_chat_id: val })}
                             help={t('settings_notificationsettings.telegram_chat_help', 'Default destination for all cameras. Specific cameras can override this.')}
                         />
+                        <div className="pt-2">
+                            <Toggle
+                                label={t('settings_notificationsettings.enable_telegram_proxy', 'Enable SOCKS/HTTPS Proxy for Telegram')}
+                                checked={globalSettings.telegram_proxy_enabled === 'true' || globalSettings.telegram_proxy_enabled === true}
+                                onChange={(val) => setGlobalSettings({ ...globalSettings, telegram_proxy_enabled: val })}
+                            />
+                        </div>
+                        {(globalSettings.telegram_proxy_enabled === 'true' || globalSettings.telegram_proxy_enabled === true) && (
+                            <>
+                                <InputField
+                                    label={t('settings_notificationsettings.telegram_proxy_url', 'Telegram Proxy URL')}
+                                    placeholder="socks5://user:pass@host:port"
+                                    value={globalSettings.telegram_proxy_url || ''}
+                                    onChange={(val) => setGlobalSettings({ ...globalSettings, telegram_proxy_url: val })}
+                                    help={t('settings_notificationsettings.telegram_proxy_help', 'Format: socks5://... or http://...')}
+                                />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                                    <InputField
+                                        label={t('settings_notificationsettings.telegram_proxy_retries', 'Max Retries')}
+                                        type="number"
+                                        placeholder="3"
+                                        value={globalSettings.telegram_proxy_retries || '3'}
+                                        onChange={(val) => setGlobalSettings({ ...globalSettings, telegram_proxy_retries: val })}
+                                    />
+                                    <InputField
+                                        label={t('settings_notificationsettings.telegram_proxy_retry_delay', 'Retry Delay (s)')}
+                                        type="number"
+                                        placeholder="2"
+                                        value={globalSettings.telegram_proxy_retry_delay || '2'}
+                                        onChange={(val) => setGlobalSettings({ ...globalSettings, telegram_proxy_retry_delay: val })}
+                                    />
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
 

@@ -3,7 +3,7 @@ uvicorn
 sqlalchemy
 psycopg2-binary
 pydantic
-requests
+requests[socks]
 httpx
 python-multipart
 pyotp
