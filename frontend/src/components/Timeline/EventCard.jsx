@@ -15,7 +15,7 @@ import { useAuth } from '../../contexts/AuthContext';
  * @param {Function} props.onDelete - Handler for single event deletion
  */
 export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected, onToggleSelect, getMediaUrl, onDelete }) => {
-    const { user } = useAuth();
+    const { user, token } = useAuth();
     const [imgError, setImgError] = useState(false);
     const time = new Date(event.timestamp_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const date = new Date(event.timestamp_start).toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -75,7 +75,7 @@ export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected,
                 <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-90 transition-opacity z-10">
                     {/* Download */}
                     <a
-                        href={`/api/events/${event.id}/download`}
+                        href={`/api/events/${event.id}/download${token ? `?token=${token}` : ""}`}
                         download
                         onClick={(e) => e.stopPropagation()}
                         className="p-1 bg-black/50 hover:bg-black/70 text-white rounded backdrop-blur-sm transition-colors"

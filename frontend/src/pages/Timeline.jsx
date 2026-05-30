@@ -116,7 +116,7 @@ export const Timeline = () => {
         let relative = path;
         const prefixes = ['/var/lib/motion/', '/var/lib/vibe/recordings/'];
         prefixes.forEach(p => { if (relative.startsWith(p)) relative = relative.replace(p, ''); });
-        return `${API_BASE}/media/${relative}`;
+        return `${API_BASE}/media/${relative}${token ? `?token=${token}` : ""}`;
     };
 
     const handleDelete = async (id) => {
