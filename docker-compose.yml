@@ -46,7 +46,7 @@ services:
       - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
       - WEBHOOK_SECRET=${WEBHOOK_SECRET:-vibe_secure_key_9823748923748923_change_in_prod}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
-      - COOKIE_SECURE=${COOKIE_SECURE:-true}
+      - COOKIE_SECURE=${COOKIE_SECURE:-auto}
     entrypoint: [ "/bin/sh", "./entrypoint.sh" ]
     stop_grace_period: 30s
     labels:
