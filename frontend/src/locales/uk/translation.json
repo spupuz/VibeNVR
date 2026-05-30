@@ -262,7 +262,7 @@
     "overlay": "Накладення",
     "edit_camera": "Редагувати камеру",
     "add_new_camera": "Додати нову камеру",
-    "configuring_camera": "Налаштування {{name}}', { name: newCamera.name }) : t('cameras.connect_configure', 'Підключіть та налаштуйте вашу RTSP-камеру",
+    "configuring_camera": "Налаштування {{name}}",
     "connect_configure": "Підключіть та налаштуйте вашу RTSP-камеру",
     "start_fresh": "-- Почати заново --",
     "privacy_masking": "Маскування конфіденційності",

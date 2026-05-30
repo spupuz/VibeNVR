@@ -261,7 +261,7 @@
     "overlay": "Cubrir",
     "edit_camera": "Editar cámara",
     "add_new_camera": "Agregar nueva cámara",
-    "configuring_camera": "Configurando {{nombre}}",
+    "configuring_camera": "Configurando {{name}}",
     "connect_configure": "Conecte y configure su cámara RTSP",
     "start_fresh": "-- Empezar de nuevo --",
     "privacy_masking": "Enmascaramiento de privacidad",

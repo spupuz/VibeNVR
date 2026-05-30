@@ -262,7 +262,7 @@
     "overlay": "Overlay",
     "edit_camera": "Edit Camera",
     "add_new_camera": "Add New Camera",
-    "configuring_camera": "Configuring {{name}}', { name: newCamera.name }) : t('cameras.connect_configure', 'Connect and configure your RTSP camera",
+    "configuring_camera": "Configuring {{name}}",
     "connect_configure": "Connect and configure your RTSP camera",
     "start_fresh": "-- Start Fresh --",
     "privacy_masking": "Privacy Masking",

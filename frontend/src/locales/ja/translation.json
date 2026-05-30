@@ -262,7 +262,7 @@
     "overlay": "かぶせる",
     "edit_camera": "カメラの編集",
     "add_new_camera": "新しいカメラを追加",
-    "configuring_camera": "{{名前}}を構成しています",
+    "configuring_camera": "{{name}}を構成しています",
     "connect_configure": "RTSP カメラを接続して設定する",
     "start_fresh": "-- 新たに始める --",
     "privacy_masking": "プライバシーマスキング",

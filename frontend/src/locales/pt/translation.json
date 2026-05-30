@@ -262,7 +262,7 @@
     "overlay": "Sobreposição",
     "edit_camera": "Editar câmera",
     "add_new_camera": "Adicionar nova câmera",
-    "configuring_camera": "Configurando {{nome}}",
+    "configuring_camera": "Configurando {{name}}",
     "connect_configure": "Conecte e configure sua câmera RTSP",
     "start_fresh": "- Comece do zero -",
     "privacy_masking": "Mascaramento de privacidade",
