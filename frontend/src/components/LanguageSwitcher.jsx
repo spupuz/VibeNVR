@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SelectField } from './ui/FormControls';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,6 +14,7 @@ export const LanguageSwitcher = ({ className = '' }) => {
         { value: 'de', label: 'Deutsch' },
         { value: 'es', label: 'Español' },
         { value: 'ru', label: 'Русский' },
+        { value: 'uk', label: 'Українська' },
         { value: 'zh', label: '中文 (Simplified)' },
         { value: 'pt', label: 'Português' },
         { value: 'ja', label: '日本語' }
