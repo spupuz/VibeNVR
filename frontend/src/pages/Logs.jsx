@@ -257,6 +257,7 @@ export const Logs = () => {
 
 // Sub-component for Settings Modal
 const LogSettingsModal = ({ isOpen, onClose, token, showToast }) => {
+    const { t } = useTranslation();
     const [settings, setSettings] = useState({
         log_max_size_mb: '50',
         log_backup_count: '5',
