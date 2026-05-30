@@ -150,7 +150,10 @@
     "resource_graph": "资源图",
     "network_graph": "网络图",
     "recent_events_widget": "近期活动",
-    "active_cameras_widget": "主动式相机"
+    "active_cameras_widget": "主动式相机",
+    "video_accel_error": "加速错误",
+    "accel_rec_tooltip": "录音：硬件加速",
+    "accel_live_tooltip": "实时解码：CPU（架构限制）"
   },
   "cameras": {
     "title": "相机",

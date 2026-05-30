@@ -150,7 +150,10 @@
     "resource_graph": "Resource Graph",
     "network_graph": "Network Graph",
     "recent_events_widget": "Recent Events",
-    "active_cameras_widget": "Active Cameras"
+    "active_cameras_widget": "Active Cameras",
+    "video_accel_error": "ACCEL ERROR",
+    "accel_rec_tooltip": "Recording: Hardware Accelerated",
+    "accel_live_tooltip": "Live Decoding: CPU (Architecture Limitation)"
   },
   "cameras": {
     "title": "Cameras",
@@ -262,7 +265,7 @@
     "overlay": "Overlay",
     "edit_camera": "Edit Camera",
     "add_new_camera": "Add New Camera",
-    "configuring_camera": "Configuring {{name}}",
+    "configuring_camera": "Configuring {{name}}', { name: newCamera.name }) : t('cameras.connect_configure', 'Connect and configure your RTSP camera",
     "connect_configure": "Connect and configure your RTSP camera",
     "start_fresh": "-- Start Fresh --",
     "privacy_masking": "Privacy Masking",

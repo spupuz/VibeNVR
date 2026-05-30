@@ -150,7 +150,10 @@
     "resource_graph": "Граф ресурсов",
     "network_graph": "Сетевой граф",
     "recent_events_widget": "Недавние события",
-    "active_cameras_widget": "Активные камеры"
+    "active_cameras_widget": "Активные камеры",
+    "video_accel_error": "ОШИБКА УСКОРЕНИЯ",
+    "accel_rec_tooltip": "Запись: аппаратное ускорение",
+    "accel_live_tooltip": "Живое декодирование: ЦП (ограничение архитектуры)"
   },
   "cameras": {
     "title": "Камеры",

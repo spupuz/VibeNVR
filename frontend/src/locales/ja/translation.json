@@ -150,7 +150,10 @@
     "resource_graph": "リソースグラフ",
     "network_graph": "ネットワークグラフ",
     "recent_events_widget": "最近の出来事",
-    "active_cameras_widget": "アクティブなカメラ"
+    "active_cameras_widget": "アクティブなカメラ",
+    "video_accel_error": "アクセルエラー",
+    "accel_rec_tooltip": "録音: ハードウェアアクセラレーション",
+    "accel_live_tooltip": "ライブ デコーディング: CPU (アーキテクチャの制限)"
   },
   "cameras": {
     "title": "カメラ",

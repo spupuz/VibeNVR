@@ -150,7 +150,10 @@
     "resource_graph": "Ressourcendiagramm",
     "network_graph": "Netzwerkdiagramm",
     "recent_events_widget": "Aktuelle Ereignisse",
-    "active_cameras_widget": "Aktive Kameras"
+    "active_cameras_widget": "Aktive Kameras",
+    "video_accel_error": "BESCHLEUNIGUNGSFEHLER",
+    "accel_rec_tooltip": "Aufnahme: Hardwarebeschleunigt",
+    "accel_live_tooltip": "Live-Dekodierung: CPU (Architekturbeschränkung)"
   },
   "cameras": {
     "title": "Kameras",

@@ -9,6 +9,7 @@ RUN echo "deb http://deb.debian.org/debian bullseye main contrib non-free" > /et
 # Install system dependencies including Python and OpenCV
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     python3 \
+    python3-dev \
     python3-pip \
     python3-opencv \
     python-is-python3 \
@@ -21,7 +22,15 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     ca-certificates \
     tzdata \
     procps \
-    gnupg
+    gnupg \
+    libavformat-dev \
+    libavcodec-dev \
+    libavdevice-dev \
+    libavutil-dev \
+    libswscale-dev \
+    libavfilter-dev \
+    pkg-config \
+    build-essential
 
 RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/coral-edgetpu.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/coral-edgetpu.gpg] https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
@@ -33,8 +42,10 @@ WORKDIR /app
 
 # Install Python dependencies
 COPY requirements.txt .
+ENV PYAV_BUILD_USE_SYSTEM_FFMPEG=1
 RUN pip3 install --no-cache-dir --upgrade pip wheel && \
-    pip3 install --no-cache-dir "numpy<2.0.0" && \
+    pip3 install --no-cache-dir "numpy<2.0.0" "Cython<3" && \
+    pip3 install --no-cache-dir --no-binary av --no-build-isolation "av<10.0.0" && \
     pip3 install --no-cache-dir --extra-index-url https://google-coral.github.io/py-repo/ -r requirements.txt
 
 # Suppress annoying FFmpeg/OpenCV logs

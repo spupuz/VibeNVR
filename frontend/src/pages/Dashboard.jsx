@@ -408,12 +408,27 @@ export const Dashboard = () => {
                     <p className="text-3xl font-bold">{stats.system_status === 'Healthy' ? t('dashboard.status_healthy', 'Healthy') : stats.system_status === 'Issues Detected' ? t('dashboard.status_issues', 'Issues Detected') : t('dashboard.status_unknown', 'Unknown')}</p>
                     <div className="flex flex-col gap-1 mt-1">
                         <p className="text-xs text-green-500">{t('dashboard.uptime', 'Uptime')}: {stats.uptime}</p>
-                        {stats.hw_accel?.enabled && (
+                        {stats.hw_accel?.enabled && stats.hw_accel.status !== 'disabled' && stats.hw_accel.status !== 'INACTIVE' && (
                             <div className="flex items-center gap-2 mt-2">
-                                <span className="text-[10px] px-2 py-0.5 rounded font-medium border bg-orange-500/10 text-orange-500 border-orange-500/20 flex items-center gap-1">
-                                    <Zap className="w-2.5 h-2.5 fill-current" />
-                                    {t('dashboard.video_accel', 'VIDEO ACCEL')}: {stats.hw_accel.type.toUpperCase()}
-                                </span>
+                                {stats.hw_accel.status === 'unsupported_backend' || stats.hw_accel.status === 'error' ? (
+                                    <span 
+                                        className="text-[10px] px-2 py-0.5 rounded font-medium border bg-red-500/10 text-red-500 border-red-500/20 flex items-center gap-1 cursor-help"
+                                        title={stats.hw_accel.status === 'unsupported_backend' 
+                                            ? "HW_ACCEL enabled but PyAV build has no support for this backend. Install av with PYAV_BUILD_USE_SYSTEM_FFMPEG=1"
+                                            : "HW_ACCEL enabled but hardware device or system encoders are missing/unavailable"}
+                                    >
+                                        <ShieldAlert className="w-2.5 h-2.5" />
+                                        {t('dashboard.video_accel_error', 'ACCEL ERROR')}: {stats.hw_accel.type.toUpperCase()}
+                                    </span>
+                                ) : (
+                                    <span 
+                                        className="text-[10px] px-2 py-0.5 rounded font-medium border bg-green-500/10 text-green-500 border-green-500/20 flex items-center gap-1 cursor-help"
+                                        title={t('dashboard.rec_accel_tooltip', 'Hardware acceleration is active and used for video recording encoding.')}
+                                    >
+                                        <Zap className="w-2.5 h-2.5 fill-current" />
+                                        {t('dashboard.rec_accel', 'REC ACCEL')}: {stats.hw_accel.type.toUpperCase()}
+                                    </span>
+                                )}
                             </div>
                         )}
                     </div>

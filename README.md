@@ -57,7 +57,7 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | 🛡️ **System Integrity Audit** | Integrated security and consistency audits verify RBAC isolation, path sanitization, and **Self-Healing Configuration Synchronization** (e.g., recursive JSON recovery). |
 | 📊 **Standardized Logging** | Unified timestamping and formatting across all containers. Includes **Automatic Redaction** of sensitive credentials (RTSP, tokens) and binary noise filtering. |
 | 🐳 **Docker-Native** | Zero-dependency deployment with **Tag-Driven CI/CD**. Images are ultra-lean (~1GB) and protected by recursive `.dockerignore` policies to prevent artifact leakage. |
-| 🌍 **Multi-Language Support** | Full internationalization (i18n) covering 9 languages (EN, IT, FR, DE, ES, PT, RU, ZH, JA) across the entire UI. |
+| 🌍 **Multi-Language Support** | Full internationalization (i18n) covering 10 languages (EN, IT, FR, DE, ES, PT, RU, ZH, JA, UK) across the entire UI. |
 
 ---
 

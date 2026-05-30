@@ -150,7 +150,10 @@
     "resource_graph": "Graphique des ressources",
     "network_graph": "Graphique de réseau",
     "recent_events_widget": "Événements récents",
-    "active_cameras_widget": "Caméras actives"
+    "active_cameras_widget": "Caméras actives",
+    "video_accel_error": "ERREUR D'ACCEL",
+    "accel_rec_tooltip": "Enregistrement : accéléré par le matériel",
+    "accel_live_tooltip": "Décodage en direct : CPU (limitation de l'architecture)"
   },
   "cameras": {
     "title": "Caméras",

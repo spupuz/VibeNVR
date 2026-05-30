@@ -3,7 +3,7 @@
 VibeNVR supports multiple languages natively through `react-i18next`. All user-facing strings in the React frontend are wrapped in the `t()` hook and mapped to localized JSON dictionaries.
 
 ## Supported Languages
-Currently, VibeNVR ships with 9 supported languages:
+Currently, VibeNVR ships with 10 supported languages:
 - English (EN) - Default
 - Italian (IT)
 - French (FR)
@@ -13,6 +13,7 @@ Currently, VibeNVR ships with 9 supported languages:
 - Russian (RU)
 - Chinese (ZH)
 - Japanese (JA)
+- Ukrainian (UK)
 
 ## For Developers: Adding New Strings
 When building new React components, **never** hardcode English text directly into the JSX. Always use the `t()` translation hook:
@@ -34,7 +35,7 @@ function MyComponent() {
 The second argument acts as the English fallback. This ensures the codebase remains readable even without looking at the JSON dictionaries.
 
 ## Automated Translation Tools
-To avoid manually maintaining 9 different language JSON files, VibeNVR provides two Python scripts located in `frontend/scripts/`.
+To avoid manually maintaining 10 different language JSON files, VibeNVR provides two Python scripts located in `frontend/scripts/`.
 
 ### 1. `update_locales.py`
 This script scans all `.jsx` and `.js` files in the `src/` directory, extracts every string wrapped in `t('key', 'Default Value')`, and builds a comprehensive `en/translation.json` file. It automatically merges new keys, updates changed fallbacks, and cleans up orphaned keys.
@@ -45,7 +46,7 @@ python3 scripts/update_locales.py
 ```
 
 ### 2. `auto_translate.py`
-Once the English dictionary is up-to-date, this script uses Google Translate's API to automatically translate all missing strings across the other 8 language dictionaries. It includes intelligent skipping for technical terms (e.g., "WebCodecs", "ONVIF Edge") and system badges (e.g., "ENABLED").
+Once the English dictionary is up-to-date, this script uses Google Translate's API to automatically translate all missing strings across the other 9 language dictionaries. It includes intelligent skipping for technical terms (e.g., "WebCodecs", "ONVIF Edge") and system badges (e.g., "ENABLED").
 
 ```bash
 cd frontend

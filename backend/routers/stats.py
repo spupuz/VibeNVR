@@ -448,7 +448,7 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
         "hw_accel": {
             "enabled": engine_stats.get("hw_accel", False) if engine_stats else False,
             "type": engine_stats.get("hw_accel_type", "N/A") if engine_stats else "N/A",
-            "status": "ACTIVE" if (engine_stats and engine_stats.get("hw_accel")) else "INACTIVE"
+            "status": engine_stats.get("hw_accel_status", "INACTIVE") if engine_stats else "INACTIVE"
         }
     }
 

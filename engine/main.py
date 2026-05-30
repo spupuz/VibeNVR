@@ -343,6 +343,38 @@ def _check_vaapi_capabilities():
         logger.error(f"Failed to check VAAPI capabilities: {e}")
         return False
 
+_PYAV_VAAPI_CACHE = None
+def _pyav_supports_vaapi():
+    global _PYAV_VAAPI_CACHE
+    if _PYAV_VAAPI_CACHE is not None:
+        return _PYAV_VAAPI_CACHE
+    try:
+        import av
+        codec = av.codec.codec.Codec('h264', 'r')
+        if hasattr(codec, 'hardware_configs'):
+            _PYAV_VAAPI_CACHE = any('vaapi' in str(h.device_type).lower() for h in codec.hardware_configs)
+        else:
+            _PYAV_VAAPI_CACHE = 'h264_vaapi' in av.codecs_available or 'hevc_vaapi' in av.codecs_available
+        return _PYAV_VAAPI_CACHE
+    except Exception:
+        return False
+
+_PYAV_CUDA_CACHE = None
+def _pyav_supports_cuda():
+    global _PYAV_CUDA_CACHE
+    if _PYAV_CUDA_CACHE is not None:
+        return _PYAV_CUDA_CACHE
+    try:
+        import av
+        codec = av.codec.codec.Codec('h264', 'r')
+        if hasattr(codec, 'hardware_configs'):
+            _PYAV_CUDA_CACHE = any('cuda' in str(h.device_type).lower() for h in codec.hardware_configs)
+        else:
+            _PYAV_CUDA_CACHE = 'h264_cuvid' in av.codecs_available or 'hevc_cuvid' in av.codecs_available
+        return _PYAV_CUDA_CACHE
+    except Exception:
+        return False
+
 def _check_nvidia_usage():
     """Helper to check NVIDIA GPU usage"""
     try:
@@ -393,7 +425,7 @@ def _check_dri_usage():
     return False
 
 def _get_hw_accel_status(accel_type):
-    """Return HW accel status: 'disabled', 'ready', 'active', or 'error'"""
+    """Return HW accel status: 'disabled', 'ready', 'active', 'error', or 'unsupported_backend'"""
     if not os.environ.get("HW_ACCEL", "false").lower() == "true":
         return "disabled"
     
@@ -409,11 +441,17 @@ def _get_hw_accel_status(accel_type):
             if not _check_vaapi_capabilities():
                 logger.warning("HW Accel: /dev/dri exists but VAAPI encoders not available in FFmpeg")
                 return "error"
+            if not _pyav_supports_vaapi():
+                logger.warning("HW Accel: /dev/dri exists but PyAV was built without VAAPI support")
+                return "unsupported_backend"
     elif accel_type == "nvidia":
         try:
             import subprocess
             result = subprocess.run(["nvidia-smi"], capture_output=True, timeout=1)
             device_exists = result.returncode == 0
+            if device_exists and not _pyav_supports_cuda():
+                logger.warning("HW Accel: nvidia-smi succeeded but PyAV was built without CUDA/NVDEC support")
+                return "unsupported_backend"
         except:
             device_exists = False
     
