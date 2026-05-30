@@ -70,16 +70,33 @@ These settings are applied in real-time when the camera configuration is saved.
 
 ## Edge Motion & AI Motion Visual Feedback
 
-VibeNVR supports three detection engines, each with dedicated Live View feedback:
+VibeNVR supports three detection engines, each with dedicated Live View feedback. The live camera tile displays a color-coded badge that reflects the full recording lifecycle:
 
-| Engine | Badge Label | Description |
-|--------|-------------|-------------|
-| **OpenCV** | `MOTION` | Classical background subtraction (MOG2). Fast, no hardware required. |
-| **ONVIF Edge** | `EDGE MOTION` | Motion events triggered by the camera hardware via ONVIF protocol. |
-| **AI** | `AI MOTION` | TFLite object recognition (YOLOv8 or MobileNet SSD) on CPU or Coral TPU. Core model and hardware are managed globally in System Settings. |
+### Detection Badges (Active Motion)
 
-- **Dynamic Labeling**: The red pulsing badge in Live View automatically reflects the active engine.
-- **Noise Reduction**: The static indigo `EDGE` indicator is suppressed in Live View to provide a cleaner monitoring experience when ONVIF edge detection is active.
+| Engine | Badge | Color | Description |
+|--------|-------|-------|-------------|
+| **OpenCV** | `MOTION` | 🔴 Pulsing Red | Classical background subtraction (MOG2). Fast, no hardware required. |
+| **ONVIF Edge** | `EDGE MOTION` | 🔴 Pulsing Red | Motion events triggered by the camera hardware via ONVIF protocol. |
+| **AI Engine** | `AI: PERSON` (or detected label) | 🔴 Pulsing Red | TFLite object recognition (YOLOv8 or MobileNet SSD). The badge shows the actual detected class name(s). |
+
+### Lifecycle Badges (Post-Motion)
+
+| State | Badge | Color | Description |
+|-------|-------|-------|-------------|
+| **Saving Recording** | `SAVING REC` | 🟠 Solid Orange | Motion has ended, but the post-capture buffer is still writing the video file to disk. The border also turns solid orange (non-pulsing) to distinguish this from an active alarm. |
+| **Continuous Mode** | `CONTINUOUS` | 🔵 Solid Blue | The camera is in Always-on recording mode. No motion trigger is needed. |
+
+> [!NOTE]
+> The complete recording lifecycle transition is: **`AI: PERSON`** (motion active) → **`SAVING REC`** (post-capture buffer finalizing) → *(badge disappears)* (file written to disk).
+
+### Motion State Reliability (v1.29.6)
+
+The backend maintains an in-memory live motion registry (`LIVE_MOTION`). Three safeguards ensure badges never get stuck:
+
+- **Instant Cleanup on Stop**: Disabling a camera immediately clears its motion state. The badge disappears the moment you toggle the camera off.
+- **60-Second TTL**: If the engine crashes mid-event and a `motion_end` signal is never sent, the badge automatically expires after 60 seconds.
+- **Engine Switch Reset**: If you change the detection engine (e.g., from OpenCV to AI) while a motion event is active, the system fires a synthetic `motion_end` before handing off to the new engine — preventing stale state carry-over.
 
 > [!TIP]
 > For full documentation on setting up **AI detection** with a **Google Coral Edge TPU**, including Docker Compose configuration and Proxmox LXC USB passthrough, see the dedicated **[AI Object Detection Guide](AI-Detection.md)**.

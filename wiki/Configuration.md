@@ -114,12 +114,18 @@ HW_ACCEL_TYPE=nvidia
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `TZ` | `Europe/Rome` | Sets the timezone for all containers. This ensures that logs, schedules, and recording timestamps are consistent. Use standard TZ database names (e.g., `America/New_York`). |
+| `TZ` | `Europe/Rome` | Sets the timezone for **all containers** (backend, engine, frontend, db). This ensures that frame overlays, timeline entries, logs, schedules, and recording filenames are all stamped in the correct local time. Use standard TZ database names. |
 
 ```env
 # Example: Set to New York time
 TZ=America/New_York
+
+# Example: Set to UTC
+TZ=UTC
 ```
+
+> [!NOTE]
+> As of **v1.29.6**, the `TZ` variable is applied uniformly to every service. Previously, the `backend` and `engine` containers had hardcoded `TZ=Europe/Rome`, silently ignoring this setting for users outside Italy. No migration is needed — simply set `TZ` in your `.env` and rebuild.
 
 ---
 
