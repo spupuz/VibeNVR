@@ -6,6 +6,7 @@ import crud, schemas, database, os, requests, threading, models, subprocess, aut
 from sqlalchemy.exc import IntegrityError
 import datetime
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -390,6 +391,13 @@ def get_motion_status(auth_info: tuple[models.User, bool] = Depends(auth_service
     from health_service import HEALTH_CACHE
     
     active_ids = list(ACTIVE_CAMERAS.keys())
+    
+    # TTL Check for LIVE_MOTION to prevent stuck badges if motion_off is missed
+    now_ts = time.time()
+    for cid in list(LIVE_MOTION.keys()):
+        if now_ts - LIVE_MOTION[cid].get("_updated_at", now_ts) > 60:
+            LIVE_MOTION.pop(cid, None)
+            
     live_motion = dict(LIVE_MOTION)
     health = dict(HEALTH_CACHE)
     
@@ -513,7 +521,8 @@ async def webhook_event(
         LIVE_MOTION[camera_id] = {
             "timestamp": payload.get("timestamp"),
             "source": payload.get("source", "standard"),
-            "ai_metadata": payload.get("ai_metadata")
+            "ai_metadata": payload.get("ai_metadata"),
+            "_updated_at": time.time()
         }
         return {"status": "motion_on_captured"}
 

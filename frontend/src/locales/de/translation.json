@@ -153,7 +153,8 @@
     "active_cameras_widget": "Aktive Kameras",
     "video_accel_error": "BESCHLEUNIGUNGSFEHLER",
     "accel_rec_tooltip": "Aufnahme: Hardwarebeschleunigt",
-    "accel_live_tooltip": "Live-Dekodierung: CPU (Architekturbeschränkung)"
+    "accel_live_tooltip": "Live-Dekodierung: CPU (Architekturbeschränkung)",
+    "rec_accel_tooltip": "Die Hardwarebeschleunigung ist aktiv und wird für die Kodierung der Videoaufzeichnung verwendet."
   },
   "cameras": {
     "title": "Kameras",
@@ -758,7 +759,8 @@
     "apply_to_group": "Bewerben Sie sich bei der Gruppe",
     "groups_selected": "Gruppe(n) ausgewählt",
     "clear": "Klar",
-    "delete_selected": "Ausgewählte löschen"
+    "delete_selected": "Ausgewählte löschen",
+    "saving_rec": "AUFZEICHNUNG SPEICHERN"
   },
   "live": {
     "title": "Live-Ansicht",

@@ -299,11 +299,19 @@ def trigger_snapshot(camera_id: int):
         return False
 
 def stop_camera(camera_id: int):
-    """Stop a camera in VibeEngine"""
+    """Stop a camera in VibeEngine and clear its motion state"""
     try:
         url = f"{ENGINE_BASE_URL}/cameras/{camera_id}/stop"
         requests.post(url, timeout=20)
         logger.info(f"Stopped camera {camera_id}")
+        
+        # Instantly clear stale motion state in backend
+        try:
+            from routers.events import LIVE_MOTION
+            LIVE_MOTION.pop(camera_id, None)
+        except Exception:
+            pass
+            
         return True
     except Exception as e:
         logger.error(f"Error stopping camera {camera_id}: {e}")

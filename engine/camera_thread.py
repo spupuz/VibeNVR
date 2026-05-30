@@ -452,11 +452,20 @@ class CameraThread(threading.Thread):
     def update_config(self, new_config):
         old_passthrough = self.config.get('movie_passthrough', False)
         old_masks = (self.config.get('privacy_masks', '[]'), self.config.get('motion_masks', '[]'))
+        old_engine = self.config.get('detect_engine', 'OpenCV')
         
         self.config.update(new_config)
         self.motion_detector.config = self.config
         self.recording_manager.config = self.config
         self.ai_detector.config = self.config
+        
+        new_engine = self.config.get('detect_engine', 'OpenCV')
+        if old_engine != new_engine:
+            if self.motion_detector.motion_detected:
+                logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Engine changed {old_engine}->{new_engine}, resetting motion state")
+                self.motion_detector.motion_detected = False
+                if self.event_callback:
+                    self.event_callback(self.camera_id, 'motion_end')
         
         if old_masks != (self.config.get('privacy_masks', '[]'), self.config.get('motion_masks', '[]')):
             self._update_masks()

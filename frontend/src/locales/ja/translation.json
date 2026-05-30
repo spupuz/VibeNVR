@@ -153,7 +153,9 @@
     "active_cameras_widget": "アクティブなカメラ",
     "video_accel_error": "アクセルエラー",
     "accel_rec_tooltip": "録音: ハードウェアアクセラレーション",
-    "accel_live_tooltip": "ライブ デコーディング: CPU (アーキテクチャの制限)"
+    "accel_live_tooltip": "ライブ デコーディング: CPU (アーキテクチャの制限)",
+    "rec_accel_tooltip": "ハードウェア アクセラレーションがアクティブであり、ビデオ録画のエンコードに使用されます。",
+    "rec_accel": "RECアクセル"
   },
   "cameras": {
     "title": "カメラ",
@@ -759,7 +761,8 @@
     "apply_to_group": "グループに申し込む",
     "groups_selected": "選択されたグループ",
     "clear": "クリア",
-    "delete_selected": "選択したものを削除"
+    "delete_selected": "選択したものを削除",
+    "saving_rec": "録音の保存"
   },
   "live": {
     "title": "ライブビュー",

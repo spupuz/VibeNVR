@@ -179,8 +179,10 @@ const VideoPlayer = ({
             {/* VIBRANT INTERNAL BORDER */}
             <div className={`absolute inset-0 rounded-xl pointer-events-none z-50 transition-all duration-300 ${(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous')
                 ? 'border-[4px] border-blue-600 shadow-[inset_0_0_20px_rgba(37,99,235,0.3)]'
-                : (isLiveMotion || isRecording)
+                : isLiveMotion
                     ? 'border-[4px] border-red-600 shadow-[inset_0_0_20px_rgba(220,38,38,0.4)]'
+                : isRecording
+                    ? 'border-[4px] border-orange-500 shadow-[inset_0_0_20px_rgba(249,115,22,0.4)]'
                     : 'border border-white/10'
                 }`}
             />
@@ -203,20 +205,23 @@ const VideoPlayer = ({
                         <span className="text-[10px] font-black text-white tracking-widest uppercase">{t('timeline.continuous', 'CONTINUOUS')}</span>
                     </div>
                 ) : (isLiveMotion || isRecording) ? (
-                    <div className="flex items-center space-x-2 bg-red-600 px-2 py-1 rounded shadow-2xl animate-pulse ring-1 ring-white/40 w-fit">
-                        <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_white]" />
+                    <div className={`flex items-center space-x-2 px-2 py-1 rounded shadow-2xl ring-1 ring-white/40 w-fit ${isLiveMotion ? 'bg-red-600 animate-pulse' : 'bg-orange-500'}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full bg-white ${isLiveMotion ? 'shadow-[0_0_8px_white]' : ''}`} />
                         <span className="text-[10px] font-black text-white tracking-widest uppercase">
                             {(() => {
-                                if (camera.detect_engine === 'ONVIF Edge') return 'EDGE MOTION';
-                                if (liveMotionData?.source?.includes('AI Engine')) {
-                                    const aiMeta = liveMotionData?.ai_metadata;
-                                    if (aiMeta && Array.isArray(aiMeta) && aiMeta.length > 0) {
-                                        const labels = [...new Set(aiMeta.map(r => String(r.label).toUpperCase()))];
-                                        return `AI: ${labels.join(', ')}`;
+                                if (isLiveMotion) {
+                                    if (camera.detect_engine === 'ONVIF Edge') return 'EDGE MOTION';
+                                    if (liveMotionData?.source?.includes('AI Engine')) {
+                                        const aiMeta = liveMotionData?.ai_metadata;
+                                        if (aiMeta && Array.isArray(aiMeta) && aiMeta.length > 0) {
+                                            const labels = [...new Set(aiMeta.map(r => String(r.label).toUpperCase()))];
+                                            return `AI: ${labels.join(', ')}`;
+                                        }
+                                        return 'AI MOTION';
                                     }
-                                    return 'AI MOTION';
+                                    return 'MOTION';
                                 }
-                                return 'MOTION';
+                                return t('timeline.saving_rec', 'SAVING REC');
                             })()}
                         </span>
                     </div>

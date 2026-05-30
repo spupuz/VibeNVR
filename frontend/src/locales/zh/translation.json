@@ -153,7 +153,9 @@
     "active_cameras_widget": "主动式相机",
     "video_accel_error": "加速错误",
     "accel_rec_tooltip": "录音：硬件加速",
-    "accel_live_tooltip": "实时解码：CPU（架构限制）"
+    "accel_live_tooltip": "实时解码：CPU（架构限制）",
+    "rec_accel_tooltip": "硬件加速处于活动状态并用于视频录制编码。",
+    "rec_accel": "录音加速"
   },
   "cameras": {
     "title": "相机",
@@ -765,7 +767,8 @@
     "apply_to_group": "申请加入集团",
     "groups_selected": "选定的组",
     "clear": "清除",
-    "delete_selected": "删除所选内容"
+    "delete_selected": "删除所选内容",
+    "saving_rec": "保存记录"
   },
   "live": {
     "title": "实时视图",

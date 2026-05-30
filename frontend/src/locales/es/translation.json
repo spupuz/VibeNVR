@@ -153,7 +153,9 @@
     "active_cameras_widget": "Cámaras activas",
     "video_accel_error": "ERROR DE ACELERACIÓN",
     "accel_rec_tooltip": "Grabación: acelerada por hardware",
-    "accel_live_tooltip": "Decodificación en vivo: CPU (limitación de arquitectura)"
+    "accel_live_tooltip": "Decodificación en vivo: CPU (limitación de arquitectura)",
+    "rec_accel_tooltip": "La aceleración de hardware está activa y se utiliza para la codificación de grabaciones de vídeo.",
+    "rec_accel": "ACELERACIÓN GRAB."
   },
   "cameras": {
     "title": "Cámaras",
@@ -758,7 +760,8 @@
     "apply_to_group": "Aplicar al grupo",
     "groups_selected": "Grupo(s) seleccionado(s)",
     "clear": "Claro",
-    "delete_selected": "Eliminar seleccionado"
+    "delete_selected": "Eliminar seleccionado",
+    "saving_rec": "GUARDAR GRABACIÓN"
   },
   "live": {
     "title": "Vista en vivo",

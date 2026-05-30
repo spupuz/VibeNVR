@@ -153,7 +153,8 @@
     "active_cameras_widget": "Telecamere attive",
     "video_accel_error": "ERRORE ACCEL",
     "accel_rec_tooltip": "Registrazione: hardware accelerato",
-    "accel_live_tooltip": "Decodifica live: CPU (limitazione dell'architettura)"
+    "accel_live_tooltip": "Decodifica live: CPU (limitazione dell'architettura)",
+    "rec_accel_tooltip": "L'accelerazione hardware è attiva e utilizzata per la codifica della registrazione video."
   },
   "cameras": {
     "title": "Telecamere",
@@ -760,7 +761,8 @@
     "apply_to_group": "Applica al gruppo",
     "groups_selected": "Gruppo/i selezionato/i",
     "clear": "Chiaro",
-    "delete_selected": "Elimina selezionato"
+    "delete_selected": "Elimina selezionato",
+    "saving_rec": "SALVATAGGIO REG"
   },
   "live": {
     "title": "Vista Live",

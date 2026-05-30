@@ -153,7 +153,9 @@
     "active_cameras_widget": "Caméras actives",
     "video_accel_error": "ERREUR D'ACCEL",
     "accel_rec_tooltip": "Enregistrement : accéléré par le matériel",
-    "accel_live_tooltip": "Décodage en direct : CPU (limitation de l'architecture)"
+    "accel_live_tooltip": "Décodage en direct : CPU (limitation de l'architecture)",
+    "rec_accel_tooltip": "L'accélération matérielle est active et utilisée pour l'encodage de l'enregistrement vidéo.",
+    "rec_accel": "ENR. ACCÉL."
   },
   "cameras": {
     "title": "Caméras",
@@ -761,7 +763,8 @@
     "apply_to_group": "Postuler au groupe",
     "groups_selected": "Groupe(s) sélectionné(s)",
     "clear": "Clair",
-    "delete_selected": "Supprimer la sélection"
+    "delete_selected": "Supprimer la sélection",
+    "saving_rec": "SAUVEGARDE D'ENREGISTREMENT"
   },
   "live": {
     "title": "Vue en direct",

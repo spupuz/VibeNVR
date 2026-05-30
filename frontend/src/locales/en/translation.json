@@ -153,7 +153,9 @@
     "active_cameras_widget": "Active Cameras",
     "video_accel_error": "ACCEL ERROR",
     "accel_rec_tooltip": "Recording: Hardware Accelerated",
-    "accel_live_tooltip": "Live Decoding: CPU (Architecture Limitation)"
+    "accel_live_tooltip": "Live Decoding: CPU (Architecture Limitation)",
+    "rec_accel_tooltip": "Hardware acceleration is active and used for video recording encoding.",
+    "rec_accel": "REC ACCEL"
   },
   "cameras": {
     "title": "Cameras",
@@ -767,7 +769,8 @@
     "apply_to_group": "Apply to Group",
     "groups_selected": "Group(s) selected",
     "clear": "Clear",
-    "delete_selected": "Delete Selected"
+    "delete_selected": "Delete Selected",
+    "saving_rec": "SAVING REC"
   },
   "live": {
     "title": "Live View",
