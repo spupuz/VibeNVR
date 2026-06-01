@@ -305,10 +305,12 @@ def stop_camera(camera_id: int):
         requests.post(url, timeout=20)
         logger.info(f"Stopped camera {camera_id}")
         
-        # Instantly clear stale motion state in backend
+        # Instantly clear stale motion and health state in backend
         try:
             from routers.events import LIVE_MOTION
+            from health_service import HEALTH_CACHE
             LIVE_MOTION.pop(camera_id, None)
+            HEALTH_CACHE.pop(camera_id, None)
         except Exception:
             pass
             
