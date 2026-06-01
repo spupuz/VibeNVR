@@ -13,7 +13,6 @@ def cleanup_db():
     with engine.connect() as connection:
         # Columns to drop from 'cameras'
         columns_to_drop = [
-            "stream_url",
             "storage_path",
             "root_directory",
             "stream_quality",

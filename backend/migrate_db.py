@@ -96,7 +96,6 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "root_directory", "VARCHAR")
 
     # Streaming
-    add_column_if_not_exists(engine, "cameras", "stream_url", "VARCHAR") 
     add_column_if_not_exists(engine, "cameras", "stream_quality", "INTEGER", 75)
     add_column_if_not_exists(engine, "cameras", "stream_max_rate", "INTEGER", 15)
     add_column_if_not_exists(engine, "cameras", "stream_port", "INTEGER")

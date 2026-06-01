@@ -1,7 +1,6 @@
 export const DEFAULT_CAMERA_STATE = {
     name: '',
     rtsp_url: '',
-    stream_url: '',
     location: '',
     resolution_width: 800,
     resolution_height: 600,

@@ -112,7 +112,7 @@ def perform_group_action(group_id: int, action: schemas.GroupAction, db: Session
         
         # Fields to ALWAYS exclude (identity/system fields)
         excluded = [
-            'id', 'name', 'rtsp_url', 'sub_rtsp_url', 'stream_url', 'location', 
+            'id', 'name', 'rtsp_url', 'sub_rtsp_url', 'location', 
             'is_active', 'created_at', 'groups', 'status', 'last_seen',
             '_sa_instance_state', 'previous_recording_mode', 'sort_order',
             'resolution_width', 'resolution_height', 'auto_resolution',

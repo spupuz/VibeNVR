@@ -27,21 +27,36 @@ class CameraThread(threading.Thread):
         self.running = False
         
         # Modular Components
+        sub_url = self.config.get('sub_rtsp_url')
+        main_url = self.config['rtsp_url']
+        is_passthrough = self.config.get('movie_passthrough', False)
+        
+        # CPU Optimization: If Passthrough is enabled, we don't need to decode the High-Res stream in Python.
+        # We can route the Sub-Stream to the primary stream_reader to drive AI, Motion, and UI at near-zero CPU cost.
+        # The RecordingManager will still pull the High-Res main_url directly via ffmpeg subprocess.
+        if sub_url and isinstance(sub_url, str) and sub_url.strip() and is_passthrough:
+            primary_url = sub_url
+            primary_transport = self.config.get('sub_rtsp_transport', 'tcp')
+            secondary_url = None # We don't need a second reader since the primary is already low-res
+        else:
+            primary_url = main_url
+            primary_transport = self.config.get('rtsp_transport', 'tcp')
+            secondary_url = sub_url
+
         self.stream_reader = StreamReader(
             self.camera_id, 
-            self.config['rtsp_url'], 
+            primary_url, 
             self.config.get('name', str(camera_id)), 
             event_callback=self.event_callback,
-            rtsp_transport=self.config.get('rtsp_transport', 'tcp')
+            rtsp_transport=primary_transport
         )
 
-        sub_url = self.config.get('sub_rtsp_url')
         self.sub_stream_reader = None
-        if sub_url and isinstance(sub_url, str) and sub_url.strip():
+        if secondary_url and isinstance(secondary_url, str) and secondary_url.strip():
             logger.info(f"Camera {self.camera_id}: Initializing Sub-Stream Reader")
             self.sub_stream_reader = StreamReader(
                 f"{self.camera_id}_sub", 
-                sub_url, 
+                secondary_url, 
                 f"{self.config.get('name', str(camera_id))} (Sub)", 
                 event_callback=self.event_callback,
                 rtsp_transport=self.config.get('sub_rtsp_transport', 'tcp')
@@ -470,6 +485,9 @@ class CameraThread(threading.Thread):
         if old_masks != (self.config.get('privacy_masks', '[]'), self.config.get('motion_masks', '[]')):
             self._update_masks()
         
+        old_rtsp_url = self.config.get('rtsp_url')
+        old_sub_rtsp_url = self.config.get('sub_rtsp_url')
+        
         if 'movie_passthrough' in new_config and old_passthrough != new_config['movie_passthrough']:
             self.recording_manager.passthrough_error_count = 0
             if self.recording_manager.is_recording and self.recording_manager.passthrough_active:
@@ -477,27 +495,40 @@ class CameraThread(threading.Thread):
             self.recording_manager.passthrough_active = new_config['movie_passthrough']
             self.stream_reader.force_reconnect()
         
-        if 'rtsp_url' in new_config:
-            self.stream_reader.update_url(new_config['rtsp_url'])
+        # Check if routing needs reconfiguration
+        new_passthrough = self.config.get('movie_passthrough', False)
+        new_rtsp_url = self.config.get('rtsp_url')
+        new_sub_rtsp_url = self.config.get('sub_rtsp_url')
+        
+        needs_reader_reconfig = (old_passthrough != new_passthrough) or (old_rtsp_url != new_rtsp_url) or (old_sub_rtsp_url != new_sub_rtsp_url)
+        
+        if needs_reader_reconfig:
+            logger.info(f"Camera {self.camera_id}: Routing changed, reconfiguring stream readers")
+            if new_sub_rtsp_url and isinstance(new_sub_rtsp_url, str) and new_sub_rtsp_url.strip() and new_passthrough:
+                primary_url = new_sub_rtsp_url
+                secondary_url = None
+            else:
+                primary_url = new_rtsp_url
+                secondary_url = new_sub_rtsp_url
+                
+            self.stream_reader.update_url(primary_url)
             
-        sub_url_changed = 'sub_rtsp_url' in new_config and self.config.get('sub_rtsp_url') != new_config.get('sub_rtsp_url')
-        if sub_url_changed:
-            sub_url = new_config.get('sub_rtsp_url')
-            if self.sub_stream_reader:
-                if not sub_url:
+            if secondary_url and isinstance(secondary_url, str) and secondary_url.strip():
+                if self.sub_stream_reader:
+                    self.sub_stream_reader.update_url(secondary_url)
+                else:
+                    self.sub_stream_reader = StreamReader(
+                        f"{self.camera_id}_sub", 
+                        secondary_url, 
+                        f"{self.config.get('name', str(self.camera_id))} (Sub)", 
+                        event_callback=self.event_callback,
+                        rtsp_transport=self.config.get('sub_rtsp_transport', 'tcp')
+                    )
+                    self.sub_stream_reader.start()
+            else:
+                if self.sub_stream_reader:
                     self.sub_stream_reader.stop()
                     self.sub_stream_reader = None
-                else:
-                    self.sub_stream_reader.update_url(sub_url)
-            elif sub_url:
-                self.sub_stream_reader = StreamReader(
-                    f"{self.camera_id}_sub", 
-                    sub_url, 
-                    f"{self.config.get('name', str(self.camera_id))} (Sub)", 
-                    event_callback=self.event_callback,
-                    rtsp_transport=self.config.get('sub_rtsp_transport', 'tcp')
-                )
-                self.sub_stream_reader.start()
 
         pre_cap = self.config.get('pre_capture', 0)
         if pre_cap > 0 and self.pre_buffer.maxlen != pre_cap:

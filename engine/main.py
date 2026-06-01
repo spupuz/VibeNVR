@@ -152,7 +152,6 @@ class CameraConfig(BaseModel):
     id: int
     name: str
     rtsp_url: str
-    stream_url: Optional[str] = None
     width: int = 1920
     height: int = 1080
     framerate: int = 15
