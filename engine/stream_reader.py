@@ -125,6 +125,7 @@ class StreamReader(threading.Thread):
                 except Exception as e:
                     self.consecutive_failures += 1
                     err_str = str(e).lower()
+                    masked_e = mask_url(str(e))
                     if container is not None:
                         try:
                             container.close()
@@ -163,13 +164,13 @@ class StreamReader(threading.Thread):
                             self.health_status = "UNREACHABLE"
                             self.latest_frame = None
                         logger.warning(
-                            f"StreamReader ({self.camera_name}): Connection refused/reset/timeout ({e}). "
+                            f"StreamReader ({self.camera_name}): Connection refused/reset/timeout ({masked_e}). "
                             f"Retrying shortly..."
                         )
                         self._maybe_send_health_callback(
                             "UNREACHABLE",
                             "📡 Camera Offline",
-                            f"Camera connection failed: {e}. Check network, power, or RTSP firmware status."
+                            f"Camera connection failed: {masked_e}. Check network, power, or RTSP firmware status."
                         )
                         retry_delay = min(60, 10 * self.consecutive_failures)
                         for _ in range(retry_delay):
@@ -181,11 +182,11 @@ class StreamReader(threading.Thread):
                     with self.lock:
                         self.health_status = "UNREACHABLE"
                         self.latest_frame = None
-                    logger.warning(f"StreamReader ({self.camera_name}): Connection failed: {e}")
+                    logger.warning(f"StreamReader ({self.camera_name}): Connection failed: {masked_e}")
                     self._maybe_send_health_callback(
                         "UNREACHABLE",
                         "📡 Camera Offline",
-                        f"Camera is unreachable: {e}"
+                        f"Camera is unreachable: {masked_e}"
                     )
                     retry_delay = min(60, 5 * (2 ** max(0, self.consecutive_failures - 1)))
                     for _ in range(retry_delay):
@@ -304,7 +305,8 @@ class StreamReader(threading.Thread):
                         self.latest_frame = None
                         self.connected = False
                 else:
-                    logger.error(f"StreamReader ({self.camera_name}): Unexpected error: {e}")
+                    masked_e = mask_url(str(e))
+                    logger.error(f"StreamReader ({self.camera_name}): Unexpected error: {masked_e}")
                     with self.lock:
                         self.latest_frame = None
                         self.connected = False
