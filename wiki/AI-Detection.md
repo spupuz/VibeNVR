@@ -71,19 +71,27 @@ Navigate to **Cameras → Edit → AI & Tracking Tab** to configure per-camera d
 
 ## 🤖 Coral Edge TPU Setup
 
-The Coral USB Accelerator dramatically speeds up inference (~10–15ms vs ~300ms CPU). It appears as a USB device and must be passed through to the Docker engine container.
+VibeNVR supports both the **USB** and **M.2 (PCIe)** versions of the Google Coral Edge TPU. The TPU dramatically speeds up inference (~10–15ms vs ~300ms CPU) and must be passed through from the host to the Docker container.
 
-### Prerequisites
-
+### USB Accelerator (Default)
+The USB version is our default configuration.
 1. The Coral USB Accelerator must be **plugged into a USB 3.0 port** on the host.
 2. Verify it is detected: `lsusb | grep Google` should show `18d1:9302` or similar.
 3. The engine Docker image already installs `libedgetpu1-std` and downloads the `_edgetpu.tflite` model at build time.
+
+### M.2 (PCIe) Accelerator
+To use the M.2/PCIe version, the TPU communicates via the PCIe bus rather than USB.
+1. Install the `gasket-dkms` and `gasket-sys` drivers on your **host machine** (the physical server or hypervisor) so the OS recognizes the device.
+2. Verify it is detected: `ls /dev/apex_0` should return the device node.
+3. You will need to modify the `docker-compose.yml` file to pass this PCIe device to the container instead of the USB bus (see the Docker Compose section below).
 
 ---
 
 ## 🐳 Docker Compose Configuration
 
-The `docker-compose.yml` already includes the necessary `privileged: true` flag and `/dev/bus/usb` volume mount for Coral support. Verify the `engine` service contains:
+### For USB TPU (Default)
+
+The `docker-compose.yml` already includes the necessary `privileged: true` flag and `/dev/bus/usb` volume mount for Coral USB support. Verify the `engine` service contains:
 
 ```yaml
 services:
@@ -110,6 +118,22 @@ services:
 
 > [!NOTE]
 > The device path (`/dev/bus/usb/001/002`) can change after each reboot. Using `privileged: true` is more robust for Coral USB on consumer hardware.
+
+### For M.2 (PCIe) TPU
+
+If you are using the M.2 PCIe version, the TPU is exposed as a `/dev/apex_0` device instead of a USB bus. Modify your `docker-compose.yml` to pass this device using the `devices:` block, and remove the USB volume:
+
+```yaml
+services:
+  engine:
+    # ...
+    devices:
+      - /dev/apex_0:/dev/apex_0           # Required for Coral M.2 (PCIe) access
+      - /dev/dri:/dev/dri                 # Keep for GPU/VAAPI (optional)
+    
+    # You can safely remove the /dev/bus/usb volume and privileged: true 
+    # if you are only using the M.2 TPU and don't need other privileged access.
+```
 
 ---
 
