@@ -62,13 +62,14 @@ export const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelecte
                         <div className="flex items-center gap-2 flex-shrink-0">
                             {/* Status Badge */}
                             <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border
-                                ${camera.status === 'CONNECTED' ? 'bg-green-500/10 text-green-600 border-green-500/20' : 
+                                ${!camera.is_active ? 'bg-muted text-muted-foreground border-border' :
+                                  camera.status === 'CONNECTED' ? 'bg-green-500/10 text-green-600 border-green-500/20' : 
                                   camera.status === 'UNAUTHORIZED' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' : 
                                   camera.status === 'UNREACHABLE' ? 'bg-red-500/10 text-red-600 border-red-500/20' : 
                                   'bg-muted text-muted-foreground border-border'}
                             `}>
-                                <Activity className={`w-3 h-3 ${camera.status === 'CONNECTED' ? 'animate-pulse' : ''}`} />
-                                <span>{camera.status || 'OFFLINE'}</span>
+                                <Activity className={`w-3 h-3 ${camera.is_active && camera.status === 'CONNECTED' ? 'animate-pulse' : ''}`} />
+                                <span>{!camera.is_active ? t('cameras.disabled', 'DISABLED') : (camera.status || 'OFFLINE')}</span>
                             </div>
 
                             {camera.detect_engine === 'ONVIF Edge' && (
