@@ -68,7 +68,7 @@ class StreamReader(threading.Thread):
     def _build_av_options(self):
         opts = {
             'rtsp_transport': self.rtsp_transport,
-            'stimeout': '8000000', # Increased to 8s for flaky cameras like Wyze
+            'stimeout': '30000000', # Increased to 30s for flaky cameras or VPN links
             'flags': 'low_delay',
             'allowed_media_types': 'video', # We mostly care about video for motion/UI
             'buffer_size': '1024000', # 1MB buffer to handle I-frame spikes
@@ -117,7 +117,7 @@ class StreamReader(threading.Thread):
                     container = av.open(
                         target_url,
                         options=self._build_av_options(),
-                        timeout=10.0 # Increased timeout
+                        timeout=32.0 # Allow slightly more than stimeout
                     )
                     if container.streams.video is None or len(container.streams.video) == 0:
                         raise Exception("No video stream found in container")
