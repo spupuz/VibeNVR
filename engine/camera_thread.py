@@ -73,7 +73,9 @@ class CameraThread(threading.Thread):
         self.last_external_motion_source = "none"
         self.latest_ai_results = []
         self.last_ai_update_time = 0.0
+        self._sw_recording_started_at = 0.0  # Tracks SW encode start for libx264 startup skip
         self.lock = threading.Lock()
+        self.last_motion_on_webhook_time = 0.0  # Track last motion_on webhook to refresh UI badge
         
         # Shared processing state
         self.pre_buffer_counter = 0
@@ -128,9 +130,16 @@ class CameraThread(threading.Thread):
         if self.sub_stream_reader:
             self.sub_stream_reader.start()
         
+        last_heartbeat_time = 0.0
         while self.running:
             loop_start_time = time.time()
             try:
+                # Diagnostic heartbeat every 5 seconds
+                if time.time() - last_heartbeat_time > 5.0:
+                    last_heartbeat_time = time.time()
+                    age = time.time() - self.stream_reader.last_read_time if self.stream_reader.last_read_time else -1
+                    logger.debug(f"[HB] Cam {self.camera_id}: health={self.stream_reader.health_status}, recording={self.recording_manager.is_recording}, frame_age={age:.1f}s")
+
                 frame, read_time = self.stream_reader.get_latest()
                 if frame is None or read_time == self.last_processed_read_time:
                     time.sleep(0.01)
@@ -171,10 +180,35 @@ class CameraThread(threading.Thread):
                 motion_active = False
                 
                 if detect_engine == 'AI':
-                    # AI-Primary Mode: Run AI directly (subject to throttle)
                     ai_throttle = max(1, self.config.get('opt_motion_fps_throttle', 3))
+                    
                     if self.live_view_counter % ai_throttle == 0:
-                        raw_ai_results = self.ai_detector.detect(frame, camera_id=self.camera_id, config=self.config)
+                        ai_detect_frame = frame
+                        if self.sub_stream_reader:
+                            sf, _ = self.sub_stream_reader.get_latest()
+                            if sf is not None:
+                                ai_detect_frame = sf
+
+                        # Delay first AI detection after stream connection (PyAV I-frame burst)
+                        conn_time = getattr(self.stream_reader, 'connection_time', 0)
+                        
+                        # Skip AI during libx264 startup burst (first 20s after non-passthrough recording begins).
+                        # The first recording also runs the VAAPI probe (subprocess.run, up to 3s) before
+                        # FFmpeg even starts, so the effective libx264 startup window is 3s + ~2s burst = 5s.
+                        # A 20s skip gives a safe margin regardless of probe delay or system load.
+                        sw_recording_skip = (
+                            self.recording_manager.is_recording and
+                            not self.recording_manager.passthrough_active and
+                            (time.time() - self._sw_recording_started_at) < 20.0
+                        )
+                        
+                        if self.stream_reader.connected and (time.time() - conn_time) < 5.0:
+                            raw_ai_results = []
+                        elif sw_recording_skip:
+                            raw_ai_results = getattr(self, 'latest_ai_results', [])  # Freeze AI results to keep UI active
+                        else:
+                            raw_ai_results = self.ai_detector.detect(ai_detect_frame, camera_id=self.camera_id, config=self.config)
+                            
                         # Filter results by motion zones (Exclusion zones)
                         ai_results = self._filter_ai_results_by_zones(raw_ai_results)
                         
@@ -182,6 +216,7 @@ class CameraThread(threading.Thread):
                             self.latest_ai_results = ai_results
                             self.last_ai_update_time = time.time()
                             self.last_external_motion_time = self.last_ai_update_time
+                            self.motion_detector.last_motion_time = self.last_ai_update_time  # FIX: Ensure motion state persists
                             hw_label = self.ai_detector.hardware.upper()
                             self.last_external_motion_source = f"AI Engine [{hw_label}]"
                             # Sync with motion detector so handle_recording knows it's active
@@ -199,16 +234,33 @@ class CameraThread(threading.Thread):
                                         'file_path': snap_path,
                                         'ai_metadata': ai_results
                                     })
+                                self.last_motion_on_webhook_time = time.time()
+                            else:
+                                # Motion was already detected: re-send motion_on webhook every 20s
+                                # to keep the live motion badge alive in the UI (LIVE_MOTION TTL is 60s)
+                                if time.time() - self.last_motion_on_webhook_time > 20:
+                                    if self.event_callback:
+                                        self.event_callback(self.camera_id, 'motion_on', {
+                                            'source': f'AI Engine [{hw_label}]',
+                                            'ai_metadata': ai_results
+                                        })
+                                    self.last_motion_on_webhook_time = time.time()
                             
                             self.motion_detector.last_motion_time = self.last_external_motion_time
                             
                             # Broadcast AI metadata to WebCodecs clients
                             self.stream_reader.broadcast_metadata(ai_results)
                     
-                    # Persistence: If ai_results is empty (throttled frame or no detections in this frame), 
-                    # use latest results if they are fresh (< 1.0s) to avoid UI flashing
-                    if not ai_results and (time.time() - self.last_ai_update_time < 1.0):
-                        ai_results = self.latest_ai_results
+                    # Persistence: reuse latest AI results while motion is still considered active.
+                    # - If motion_detected=True: keep the box visible for up to motion_gap seconds
+                    #   (capped at 10s) so the tracking box doesn't flicker between AI inference frames.
+                    # - Otherwise (motion already ended or never started): only persist for 1s to
+                    #   avoid showing stale ghost boxes on a still scene.
+                    if not ai_results and self.latest_ai_results:
+                        motion_gap = self.config.get('motion_gap', 10)
+                        persist_window = min(motion_gap, 10.0) if self.motion_detector.motion_detected else 1.0
+                        if (time.time() - self.last_ai_update_time) < persist_window:
+                            ai_results = self.latest_ai_results
                     
                     # Handle Motion End for AI
                     motion_gap = self.config.get('motion_gap', 10)
@@ -242,12 +294,21 @@ class CameraThread(threading.Thread):
                 draw_overlay(frame, self.config)
                 
                 # Recording Management
+                current_recording_start = getattr(self.recording_manager, 'recording_start_time', 0)
                 trigger_source = self.last_external_motion_source if motion_active else None
                 self.recording_manager.handle_recording(
                     frame, motion_active, self.motion_detector.last_motion_time, self.stop_recording,
                     trigger_source=trigger_source,
-                    ai_results=ai_results
+                    ai_results=ai_results,
+                    pre_buffer_frames=list(self.pre_buffer) if not self.config.get('movie_passthrough', False) else None
                 )
+                
+                # Detect transition into a NEW SW recording (even during back-to-back file splits)
+                new_recording_start = getattr(self.recording_manager, 'recording_start_time', 0)
+                if new_recording_start != getattr(self, '_last_recording_start', 0) and self.recording_manager.is_recording and not self.recording_manager.passthrough_active:
+                    self._sw_recording_started_at = time.time()
+                    self._last_recording_start = new_recording_start
+                    logger.info(f"[RECORD] SW encoding started — pausing TPU invoke() for 20s to allow libx264 startup burst to settle")
                 
                 # Pre-capture buffer (Only if passthrough is disabled, as passthrough doesn't support pre-capture)
                 if not self.config.get('movie_passthrough', False):
@@ -282,19 +343,22 @@ class CameraThread(threading.Thread):
     def _update_ui_frame(self, frame, is_raw=False, ai_results=None):
         try:
             target_frame = frame
+            is_sub_stream = False
             # Use Sub-Stream frame for the non-raw UI grid if available
             if not is_raw and self.sub_stream_reader:
                 sub_frame, _ = self.sub_stream_reader.get_latest()
                 if sub_frame is not None:
                     target_frame = sub_frame.copy()
+                    is_sub_stream = True
 
             lv_max_h = self.config.get('opt_live_view_height_limit', 720)
             if target_frame.shape[0] > lv_max_h:
                 scale = lv_max_h / target_frame.shape[0]
                 target_frame = cv2.resize(target_frame, (int(target_frame.shape[1] * scale), lv_max_h), interpolation=cv2.INTER_NEAREST)
-            
-            # Draw AI boxes on the final UI frame (scaled correctly)
-            if ai_results:
+                
+            # Draw AI boxes on the final UI frame ONLY if we used a fresh sub-stream frame
+            # (If we used 'frame', the boxes are already drawn on it in the main loop)
+            if ai_results and is_sub_stream:
                 self._draw_ai_boxes(target_frame, ai_results)
 
             lv_qual = self.config.get('opt_live_view_quality', 60)
@@ -394,8 +458,9 @@ class CameraThread(threading.Thread):
                 
                 # Draw Label
                 text = f"{label.capitalize()} {int(conf * 100)}%"
-                font_scale = 0.6
-                thickness = 2
+                # Dynamically scale font based on frame width (e.g., 0.6 for 640px, 1.2 for 1920px)
+                font_scale = max(0.6, w / 1500.0)
+                thickness = max(2, int(w / 1000))
                 
                 (tw, th), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
                 
@@ -489,7 +554,6 @@ class CameraThread(threading.Thread):
         old_sub_rtsp_url = self.config.get('sub_rtsp_url')
         
         if 'movie_passthrough' in new_config and old_passthrough != new_config['movie_passthrough']:
-            self.recording_manager.passthrough_error_count = 0
             if self.recording_manager.is_recording and self.recording_manager.passthrough_active:
                 self.stop_recording()
             self.recording_manager.passthrough_active = new_config['movie_passthrough']

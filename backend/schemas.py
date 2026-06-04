@@ -410,7 +410,11 @@ class CameraBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class CameraCreate(CameraBase):
-    pass
+    @model_validator(mode='after')
+    def validate_ai_passthrough(self) -> 'CameraCreate':
+        if self.detect_engine == "AI" and not self.movie_passthrough:
+            raise ValueError('AI Object Detection requires movie_passthrough to be True.')
+        return self
 
 # Groups
 class CameraGroupBase(BaseModel):

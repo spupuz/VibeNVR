@@ -350,17 +350,24 @@ async def websocket_camera_stream(websocket: WebSocket, camera_id: int):
     # Connect to Engine WS
     engine_ws_url = f"ws://engine:8000/cameras/{camera_id}/ws"
     try:
-        async with websockets.connect(engine_ws_url) as engine_ws:
+        async with websockets.connect(engine_ws_url, ping_interval=60.0, ping_timeout=60.0) as engine_ws:
             logging.info(f"WS Proxy connected to Engine SDK for camera {camera_id}")
             async for message in engine_ws:
                 await websocket.send_bytes(message)
     except websockets.exceptions.ConnectionClosed:
         logging.info(f"Engine WS closed for camera {camera_id}")
+    except (ConnectionResetError, websockets.exceptions.ConnectionClosedError, WebSocketDisconnect):
+        logging.info(f"WS Client gracefully disconnected from camera {camera_id}")
     except Exception as e:
-        logging.error(f"WS Proxy error for camera {camera_id}: {e}")
+        if "104" in str(e) or "reset by peer" in str(e).lower():
+            logging.info(f"WS Client abruptly disconnected from camera {camera_id}")
+        else:
+            logging.error(f"WS Proxy error for camera {camera_id} ({type(e).__name__}): {e}")
     finally:
         try:
             await websocket.close()
+        except Exception:
+            pass
         except:
             pass
 

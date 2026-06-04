@@ -181,7 +181,11 @@ export const SelectField = ({ value, onChange, label, options = [], className = 
             className="w-full bg-background border border-input rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent transition-all cursor-pointer"
         >
             {options.map((opt, i) => (
-                <option key={i} value={typeof opt === 'string' ? opt : opt.value}>
+                <option 
+                    key={i} 
+                    value={typeof opt === 'string' ? opt : opt.value}
+                    disabled={typeof opt === 'object' && opt.disabled}
+                >
                     {typeof opt === 'string' ? opt : opt.label}
                 </option>
             ))}

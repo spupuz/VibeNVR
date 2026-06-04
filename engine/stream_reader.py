@@ -204,6 +204,7 @@ class StreamReader(threading.Thread):
                 with self.lock:
                     self.health_status = "CONNECTED"
                     self.connected = True
+                    self.connection_time = time.time()
                 self.consecutive_failures = 0
 
                 for packet in container.demux():
@@ -294,6 +295,10 @@ class StreamReader(threading.Thread):
                                 self.latest_frame = img
                                 self.last_read_time = time.time()
                                 self.health_status = "CONNECTED"
+                        
+                        # YIELD CPU: Prevent PyAV from starving the EdgeTPU USB driver during RTSP burst/I-frame decoding.
+                        # This fixes the TPU freezing at the "first check" when passthrough is disabled.
+                        time.sleep(0.002)
 
             except Exception as e:
                 if isinstance(e, av.error.FFmpegError) or "av.error" in str(type(e)):

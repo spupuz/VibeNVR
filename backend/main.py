@@ -235,6 +235,21 @@ async def lifespan(app: FastAPI):
                 # Auto-migrate captured_before (Frames -> Seconds)
                 import migrate_captured_before
                 migrate_captured_before.migrate_frames_to_seconds()
+                
+                # Sanitize AI Passthrough (Downgrade to OpenCV if passthrough is missing)
+                db = database.SessionLocal()
+                try:
+                    cameras = db.query(models.Camera).all()
+                    sanitized_count = 0
+                    for cam in cameras:
+                        if cam.detect_engine == "AI" and not cam.movie_passthrough:
+                            cam.detect_engine = "OpenCV"
+                            sanitized_count += 1
+                    if sanitized_count > 0:
+                        db.commit()
+                        logger.info(f"Sanitized {sanitized_count} camera(s): Downgraded AI to OpenCV due to disabled Passthrough.")
+                finally:
+                    db.close()
             except Exception as e:
                 logger.warning(f"Migration warning: {e}")
                 

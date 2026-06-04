@@ -8,6 +8,7 @@ import psutil
 import os
 import sys
 import re
+import time
 from utils import mask_url
 
 # 1. IMMEDIATE LOGGING CONFIGURATION
@@ -244,37 +245,38 @@ def update_config(config: dict):
     global GLOBAL_CONFIG
     logger.info(f"Updating global config: {config}")
     
+    # Track what changed for AI
+    ai_enabled_changed = "ai_enabled" in config and config["ai_enabled"] != GLOBAL_CONFIG.get("ai_enabled")
+    ai_model_changed = "ai_model" in config and config["ai_model"] != GLOBAL_CONFIG.get("ai_model")
+    ai_hardware_changed = "ai_hardware" in config and config["ai_hardware"] != GLOBAL_CONFIG.get("ai_hardware")
+    
+    # 1. Update all dictionary values first
     for key, value in config.items():
         if key in GLOBAL_CONFIG:
             GLOBAL_CONFIG[key] = value
             manager.global_config[key] = value
             
-            # Actionable settings
+            # Actionable settings that don't depend on other keys
             if key == "opt_verbose_engine_logs":
                 set_engine_log_level(value)
-            
-            if key == "ai_enabled":
-                from ai_detector import AIDetector
-                ai = AIDetector()
-                if hasattr(ai, 'set_enabled'):
-                    ai.set_enabled(value)
-            
-            if key == "ai_model":
-                from ai_detector import AIDetector
-                # Notify the singleton to reload if model changed
-                ai = AIDetector()
-                if hasattr(ai, 'update_model'):
-                    ai.update_model(value)
-            
-            if key == "ai_hardware":
-                from ai_detector import AIDetector
-                ai = AIDetector()
-                if hasattr(ai, 'update_hardware'):
-                    ai.update_hardware(value)
         
         # Handle specialized config keys
         if "mqtt" in config:
             mqtt_service.update_config(config["mqtt"])
+
+    # 2. Now apply AI changes with the fully updated config
+    from ai_detector import AIDetector
+    ai = AIDetector()
+    
+    # If it was just enabled/disabled, set_enabled will handle loading with the new model/hardware
+    if ai_enabled_changed and hasattr(ai, 'set_enabled'):
+        ai.set_enabled(GLOBAL_CONFIG["ai_enabled"])
+    # If it was already enabled and stays enabled, but model or hardware changed, update them
+    elif GLOBAL_CONFIG.get("ai_enabled"):
+        if ai_model_changed and hasattr(ai, 'update_model'):
+            ai.update_model(GLOBAL_CONFIG["ai_model"])
+        if ai_hardware_changed and hasattr(ai, 'update_hardware'):
+            ai.update_hardware(GLOBAL_CONFIG["ai_hardware"])
                 
     return {"status": "success", "config": GLOBAL_CONFIG}
 
@@ -326,12 +328,15 @@ def _check_vaapi_capabilities():
         
     try:
         import subprocess
-        result = subprocess.run(
-            ['ffmpeg', '-hide_banner', '-encoders'],
-            capture_output=True,
-            text=True,
-            timeout=2
-        )
+        from ai_detector import AIDetector
+        ai_lock = AIDetector().inference_lock
+        with ai_lock:
+            result = subprocess.run(
+                ['ffmpeg', '-hide_banner', '-encoders'],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
         output = result.stdout
         has_h264_vaapi = 'h264_vaapi' in output
         has_hevc_vaapi = 'hevc_vaapi' in output
@@ -378,13 +383,15 @@ def _check_nvidia_usage():
     """Helper to check NVIDIA GPU usage"""
     try:
         import subprocess
-        # nvidia-smi --query-compute-apps=pid --format=csv,noheader
-        res = subprocess.run(
-            ["nvidia-smi", "--query-compute-apps=pid", "--format=csv,noheader"], 
-            stdout=subprocess.PIPE, 
-            stderr=subprocess.DEVNULL, # Suppress stderr (usually 'command not found')
-            text=True
-        )
+        from ai_detector import AIDetector
+        ai_lock = AIDetector().inference_lock
+        with ai_lock:
+            res = subprocess.run(
+                ["nvidia-smi", "--query-compute-apps=pid", "--format=csv,noheader"], 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.DEVNULL, # Suppress stderr (usually 'command not found')
+                text=True
+            )
         if res.returncode == 0:
             my_pid = str(os.getpid())
             # Check if our PID is in the list of processes using GPU
@@ -446,7 +453,10 @@ def _get_hw_accel_status(accel_type):
     elif accel_type == "nvidia":
         try:
             import subprocess
-            result = subprocess.run(["nvidia-smi"], capture_output=True, timeout=1)
+            from ai_detector import AIDetector
+            ai_lock = AIDetector().inference_lock
+            with ai_lock:
+                result = subprocess.run(["nvidia-smi"], capture_output=True, timeout=1)
             device_exists = result.returncode == 0
             if device_exists and not _pyav_supports_cuda():
                 logger.warning("HW Accel: nvidia-smi succeeded but PyAV was built without CUDA/NVDEC support")

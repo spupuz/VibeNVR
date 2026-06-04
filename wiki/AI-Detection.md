@@ -65,7 +65,19 @@ Navigate to **Cameras → Edit → AI & Tracking Tab** to configure per-camera d
 > Setting confidence too low (e.g., 33%) can cause false positives from spinning objects, reflections, or camera noise. **70%+ is recommended** for stable production use.
 
 > [!IMPORTANT]
-> When the AI engine is active, `Passthrough Recording` is automatically incompatible and must be disabled, as the engine needs to process frames to apply detection and motion triggers.
+> When the AI engine is active, `Passthrough Recording` **must be enabled** (the UI enforces this). This ensures the CPU is not overloaded by running video compression (`libx264`) and neural networks simultaneously.
+
+## 🛡️ Emergency Software Fallback
+
+Even though AI requires Passthrough to be enabled, VibeNVR has a backend safety mechanism: if the camera stream drops packets and causes FFmpeg to crash (broken pipe), the Engine will automatically disable Passthrough for that recording chunk and fall back to software encoding (`libx264`) to prevent data loss.
+
+When this emergency fallback occurs, a **20-second Resource Protection Pause** is triggered at the start of the recording chunk:
+- The `libx264` video encoder causes a massive "startup burst" as it analyzes and compresses the initial frames.
+- During this 20-second window, **AI detection is temporarily paused**.
+- This guarantees that the server's CPU is not simultaneously hammered by both emergency video encoding and neural network inference, preventing a total system crash.
+
+> [!NOTE]
+> Under normal conditions (Passthrough is healthy), this 20-second pause **never happens** and AI runs continuously. You will only experience this "AI blind spot" if your camera's stream becomes unstable and triggers the software encoding fallback.
 
 ---
 

@@ -44,7 +44,14 @@ export const MoviesTab = ({ editingId, newCamera, setNewCamera, stats, handleCle
                 <Toggle
                     label={t('cameras.passthrough_recording_cpu', 'Passthrough Recording (CPU Saver)')}
                     checked={hasPrivacyMasks ? false : !!newCamera.movie_passthrough}
-                    onChange={(val) => setNewCamera({ ...newCamera, movie_passthrough: val })}
+                    onChange={(val) => {
+                        setNewCamera(prev => ({ 
+                            ...prev, 
+                            movie_passthrough: val,
+                            // Automatically downgrade AI to OpenCV if passthrough is disabled
+                            detect_engine: (!val && prev.detect_engine === 'AI') ? 'OpenCV' : prev.detect_engine 
+                        }));
+                    }}
                     disabled={hasPrivacyMasks}
                 />
                 <p className="mt-1 text-muted-foreground ml-1">

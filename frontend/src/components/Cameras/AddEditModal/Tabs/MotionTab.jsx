@@ -11,6 +11,19 @@ export const MotionTab = ({ newCamera, setNewCamera, setActiveTab, globalSetting
     const isAiEnabledGlobally = globalSettings?.ai_enabled?.value === 'true' || globalSettings?.ai_enabled === true || globalSettings?.ai_enabled === "true";
     const isAiDisabledGlobally = !isAiEnabledGlobally;
 
+    const hasPrivacyMasks = (() => {
+        try {
+            const masks = typeof newCamera.privacy_masks === 'string'
+                ? JSON.parse(newCamera.privacy_masks)
+                : newCamera.privacy_masks;
+            return Array.isArray(masks) && masks.length > 0;
+        } catch (e) {
+            return false;
+        }
+    })();
+    // Safely evaluate if passthrough is active across boolean, int, and string types, overriding if masks are present
+    const isPassthroughActive = hasPrivacyMasks ? false : (newCamera.movie_passthrough === true || newCamera.movie_passthrough === 'true' || newCamera.movie_passthrough === 1);
+
     return (
         <div className="space-y-6">
             <SectionHeader title={t('cameras.detection_source', 'Detection Source')} description={t('cameras.how_should_motion_be_de', 'How should motion be detected?')} />
@@ -22,8 +35,10 @@ export const MotionTab = ({ newCamera, setNewCamera, setActiveTab, globalSetting
                     { value: 'OpenCV', label: t('cameras.opencv_server_image_ana', 'OpenCV (Server Image Analysis)') },
                     { 
                         value: 'AI', 
-                        label: t('cameras.ai_object_detection_tpu_cpu', 'AI (Object Detection - TPU/CPU)') + (isAiDisabledGlobally ? ` ${t('cameras.disabled_globally_label', '(DISABLED GLOBALLY)')}` : ''),
-                        disabled: isAiDisabledGlobally 
+                        label: t('cameras.ai_object_detection_tpu_cpu', 'AI (Object Detection - TPU/CPU)') + 
+                              (isAiDisabledGlobally ? ` ${t('cameras.disabled_globally_label', '(DISABLED GLOBALLY)')}` : 
+                              (!isPassthroughActive ? ` ${t('cameras.requires_passthrough', '(REQUIRES PASSTHROUGH)')}` : '')),
+                        disabled: isAiDisabledGlobally || !isPassthroughActive
                     },
                     ...(newCamera.onvif_host && newCamera.onvif_can_events ? [{ value: 'ONVIF Edge', label: t('cameras.onvif_edge_camera_side', 'ONVIF Edge (Camera-side Hardware)') }] : [])
                 ]}
@@ -36,6 +51,17 @@ export const MotionTab = ({ newCamera, setNewCamera, setActiveTab, globalSetting
                         <p className="mt-1">
                             AI is currently <strong>{t('cameras.disabled_globally', 'disabled globally')}</strong> in system settings. 
                             This camera will use <strong>{t('cameras.opencv', 'OpenCV')}</strong> as a fallback until AI is re-enabled.
+                        </p>
+                    </div>
+                </div>
+            )}
+            {!isAiDisabledGlobally && newCamera.detect_engine === 'AI' && !isPassthroughActive && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-[11px] text-red-600 dark:text-red-400 flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+                    <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                    <div>
+                        <p className="font-bold">{t('cameras.ai_requires_passthrough', 'AI Requires Passthrough')}</p>
+                        <p className="mt-1">
+                            {t('cameras.ai_passthrough_desc', 'AI Object Detection requires Movie Passthrough to be enabled in the Recording tab to prevent CPU spikes and TPU crashes. Please enable Passthrough or switch to OpenCV.')}
                         </p>
                     </div>
                 </div>

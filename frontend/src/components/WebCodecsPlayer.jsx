@@ -79,6 +79,9 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
     const latestMetadataRef = useRef([]);
     const metadataTimeRef = useRef(0);
 
+    // Metadata-only mode (insecure HTTP): WebSocket stays open for AI boxes, video via MJPEG
+    const metadataOnlyRef = useRef(false);
+
     // Audio Refs
     const audioCtxRef = useRef(null);
     const audioStartTimeRef = useRef(0);
@@ -229,6 +232,22 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
                 return;
             }
             const canvas = canvasRef.current;
+            const isMetadataOnly = metadataOnlyRef.current;
+
+            if (isMetadataOnly) {
+                // Metadata-only mode: no video frames, just AI boxes overlay on MJPEG img
+                const parent = canvas.parentElement;
+                if (parent) {
+                    canvas.width = parent.clientWidth || 640;
+                    canvas.height = parent.clientHeight || 480;
+                }
+                const ctx = canvas.getContext('2d', { alpha: true });
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawAIBoxes(ctx, canvas.width, canvas.height);
+                drawOverlay(ctx, canvas.width, canvas.height);
+                return;
+            }
+
             const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
             const frames = pendingFramesRef.current;
             if (frames.length === 0) return;
@@ -443,14 +462,24 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
         if (!isMountedRef.current) return;
         if (!cameraId) return;
 
+        metadataOnlyRef.current = false;
+
+        const isInsecureHTTP = !window.isSecureContext && window.location.protocol !== 'https:';
+
         if (videoEnabled && !('VideoDecoder' in window)) {
-            if (!window.isSecureContext) {
-                console.warn('[WebCodecs] VideoDecoder is not available in insecure contexts (HTTP). Please use HTTPS or localhost for WebCodecs support.');
+            if (isInsecureHTTP) {
+                console.warn('[WebCodecs] VideoDecoder unavailable in HTTP. Entering metadata-only mode (AI boxes via WS, video via MJPEG).');
+                metadataOnlyRef.current = true;
+                setStatus('metadata-only');
             } else {
                 console.warn('[WebCodecs] VideoDecoder API not available.');
+                setStatus('unsupported');
+                return;
             }
-            setStatus('unsupported');
-            return;
+        } else if (videoEnabled && isInsecureHTTP) {
+            console.warn('[WebCodecs] Insecure context (HTTP). Entering metadata-only mode (AI boxes via WS, video via MJPEG).');
+            metadataOnlyRef.current = true;
+            setStatus('metadata-only');
         }
 
         closeWS();
@@ -479,7 +508,7 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
         ws.onmessage = (event) => {
             if (!isMountedRef.current) return;
 
-            const watchdogTimeout = 10000;
+            const watchdogTimeout = 30000;
             if (watchdogTimerRef.current) clearTimeout(watchdogTimerRef.current);
             watchdogTimerRef.current = setTimeout(() => {
                 if (isMountedRef.current && status === 'loaded') {
@@ -499,6 +528,8 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
                 const tsUs = Math.floor(tsSec * 1_000_000);
                 
                 if (pType === 0) { // VIDEO
+                    if (metadataOnlyRef.current) return; // Skip video frames in metadata-only mode
+
                     const naluBytes = new Uint8Array(buffer, 10);
 
                     if (!isReadyRef.current) {
@@ -528,6 +559,8 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
                         duration: 0,
                     }));
                 } else if (pType === 1) { // AUDIO
+                    if (metadataOnlyRef.current) return; // Skip audio in metadata-only mode
+
                     const pcmALaw = new Uint8Array(buffer, 10);
                     const pcmLinear = new Float32Array(pcmALaw.length);
                     for (let i = 0; i < pcmALaw.length; i++) {
@@ -545,6 +578,9 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
                         const metadata = JSON.parse(jsonStr);
                         latestMetadataRef.current = metadata;
                         metadataTimeRef.current = Date.now();
+                        if (metadataOnlyRef.current) {
+                            scheduleRender(); // Trigger canvas redraw for AI boxes even without video
+                        }
                     } catch (jsonErr) {
                         console.warn('[WebCodecs] Failed to parse metadata:', jsonErr);
                     }
@@ -566,6 +602,14 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
 
             if (e.code === 1008) {
                 setStatus('unauthorized');
+                return;
+            }
+
+            // Metadata-only mode: reconnect immediately (no exponential backoff)
+            if (metadataOnlyRef.current) {
+                retryTimerRef.current = setTimeout(() => {
+                    if (isMountedRef.current) connect();
+                }, 2000);
                 return;
             }
 
@@ -606,14 +650,16 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
         if (onStateChange) onStateChange(status);
     }, [status, onStateChange]);
 
+    const showCanvas = videoEnabled || metadataOnlyRef.current;
+
     return (
-        <div className="absolute inset-0">
-            {videoEnabled && (
+        <div className={`absolute inset-0 ${metadataOnlyRef.current ? 'z-10 pointer-events-none' : ''}`}>
+            {showCanvas && (
                 <canvas
                     ref={canvasRef}
                     className="absolute inset-0 w-full h-full object-contain"
                     style={{
-                        display: status === 'loaded' ? 'block' : 'none'
+                        display: (status === 'loaded' || status === 'metadata-only') ? 'block' : 'none'
                     }}
                 />
             )}

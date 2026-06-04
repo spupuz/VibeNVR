@@ -29,7 +29,10 @@ WebCodecs strictly requires a **Secure Context**:
 1. Access via **`http://localhost:8080`**.
 2. Access via **`https://...`** (Reverse Proxy).
 
-Insecure local IP access (`http://192.168.x.x`) will fall back to JPEG polling.
+Insecure local IP access (`http://192.168.x.x`) will fall back to **Metadata-Only Mode**:
+- **Video** falls back to MJPEG/JPEG polling.
+- **AI Tracking Boxes** continue to be streamed via WebSockets and rendered on the canvas.
+- A warning banner will indicate that the browser restricted hardware decoding.
 
 ---
 

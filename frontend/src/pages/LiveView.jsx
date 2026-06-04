@@ -47,10 +47,13 @@ const VideoPlayer = ({
         if (preferred === 'mjpeg') return 'fallback';
         if (preferred === 'webcodecs') return 'webcodecs';
 
-        // 'auto' logic
-        return hasWebCodecs ? 'webcodecs' : 'fallback';
+        // 'auto' logic: skip WebCodecs in insecure HTTP (AI metadata-only mode handled by player)
+        const isInsecureHTTP = !window.isSecureContext && window.location.protocol !== 'https:';
+        return (hasWebCodecs && !isInsecureHTTP) ? 'webcodecs' : 'fallback';
     });
     const useWebCodecs = streamMode === 'webcodecs';
+    const [useMetadataOnly, setUseMetadataOnly] = useState(false);
+    const mayNeedMetadataOnly = !window.isSecureContext && window.location.protocol !== 'https:';
 
     // JPEG Polling Fallback Logic
     useEffect(() => {
@@ -124,7 +127,11 @@ const VideoPlayer = ({
     }, [camera.id, token, index, isFocused, useWebCodecs]);
 
     const handleWebCodecsState = (status) => {
-        if (status === 'unsupported') {
+        if (status === 'metadata-only') {
+            console.log(`[LiveView] Camera ${camera.id}: Metadata-only mode. WS open for AI boxes, video via MJPEG.`);
+            setUseMetadataOnly(true);
+            setLoadState('loaded');
+        } else if (status === 'unsupported') {
             // Hard fail: VideoDecoder not supported in this browser — switch permanently
             console.warn(`[LiveView] VideoDecoder unsupported for Camera ${camera.id}. Switching to JPEG polling.`);
             if (!window.isSecureContext) {
@@ -334,20 +341,20 @@ const VideoPlayer = ({
                 <img src="/no-signal.png" alt="No Signal" className="absolute inset-0 w-full h-full object-cover" />
             ) : (
                 <>
-                    {(useWebCodecs || camera.audio_enabled) && (
+                    {(useWebCodecs || camera.audio_enabled || useMetadataOnly || mayNeedMetadataOnly) && (
                         <WebCodecsPlayer
                             camera={camera}
                             onStateChange={handleWebCodecsState}
-                            videoEnabled={useWebCodecs}
+                            videoEnabled={useWebCodecs && !useMetadataOnly}
                             isAuditing={isAuditing}
                         />
                     )}
 
-                    {(!useWebCodecs && frameSrc) && (
+                    {(!useWebCodecs || useMetadataOnly) && frameSrc && (
                         <img
                             src={frameSrc}
                             alt={camera.name}
-                            className={`absolute inset-0 w-full h-full object-contain`}
+                            className={`absolute inset-0 w-full h-full object-contain ${useMetadataOnly ? 'z-0' : ''}`}
                         />
                     )}
 
