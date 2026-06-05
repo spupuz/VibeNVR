@@ -138,7 +138,7 @@ class RecordingManager:
             # This ensures the MP4 is always valid and playable even if FFmpeg is terminated
             # mid-recording (unlike +faststart which requires a final mux pass at the end).
             command = [
-                'ffmpeg', '-y', '-rtsp_transport', 'tcp', '-hide_banner', '-loglevel', 'error',
+                'ffmpeg', '-y', '-rtsp_transport', self.config.get('rtsp_transport', 'tcp'), '-hide_banner', '-loglevel', 'error',
                 '-i', self.config['rtsp_url'], '-c:v', 'copy', *audio_args, '-f', 'mp4',
                 '-movflags', '+frag_keyframe+empty_moov+default_base_moof', full_path
             ]

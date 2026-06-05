@@ -62,7 +62,7 @@ In the **Groups Manager**, each group has a "Copy Settings" button.
 ## Advanced Engine Sync
 Certain critical settings are automatically synchronized with the recording engine to ensure streaming stability and correct rendering:
 
-- **RTSP Transport**: Whether to use TCP or UDP for the main stream.
+- **RTSP Transport**: Whether to use TCP or UDP for the main stream (fully supported in both Re-encode and Passthrough modes).
 - **Sub RTSP Transport**: Independent transport setting for the sub-stream.
 - **Live View Mode**: Global preference for WebCodecs (WebSocket/H.264) vs MJPEG fallback.
 
