@@ -544,9 +544,9 @@ export const LiveView = () => {
                                     value={selectedGroup}
                                     onChange={(e) => setSelectedGroup(e.target.value)}
                                 >
-                                    <option value="all">{t('timeline.all', 'All')}</option>
+                                    <option value="all" className="bg-card text-foreground">{t('timeline.all', 'All')}</option>
                                     {availableGroups.map(g => (
-                                        <option key={g} value={g}>{g}</option>
+                                        <option key={g} value={g} className="bg-card text-foreground">{g}</option>
                                     ))}
                                 </select>
                             </div>
@@ -575,11 +575,11 @@ export const LiveView = () => {
                                 localStorage.setItem('liveViewColumns', val);
                             }}
                         >
-                            <option value="auto">{t('timeline.auto', 'Auto')}</option>
-                            <option value="1">{t('timeline.1_col', '1 Col')}</option>
-                            <option value="2">{t('timeline.2_cols', '2 Cols')}</option>
-                            <option value="3">{t('timeline.3_cols', '3 Cols')}</option>
-                            <option value="4">{t('timeline.4_cols', '4 Cols')}</option>
+                            <option value="auto" className="bg-card text-foreground">{t('timeline.auto', 'Auto')}</option>
+                            <option value="1" className="bg-card text-foreground">{t('timeline.1_col', '1 Col')}</option>
+                            <option value="2" className="bg-card text-foreground">{t('timeline.2_cols', '2 Cols')}</option>
+                            <option value="3" className="bg-card text-foreground">{t('timeline.3_cols', '3 Cols')}</option>
+                            <option value="4" className="bg-card text-foreground">{t('timeline.4_cols', '4 Cols')}</option>
                         </select>
                     </div>
 
