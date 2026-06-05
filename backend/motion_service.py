@@ -40,7 +40,10 @@ def _parse_ai_object_types(v: Any) -> list[str]:
                     return [str(item) for item in data]
             except:
                 pass
-        
+        # Handle PostgreSQL array syntax '{item1,item2}'
+        if v_sanitized.startswith('{') and v_sanitized.endswith('}'):
+            v_sanitized = v_sanitized[1:-1]
+            
         if "," in v_sanitized:
             return [item.strip() for item in v_sanitized.split(",") if item.strip()]
         return [v_sanitized]

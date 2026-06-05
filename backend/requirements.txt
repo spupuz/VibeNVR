@@ -3,12 +3,12 @@ uvicorn
 sqlalchemy
 psycopg2-binary
 pydantic
-requests[socks]
+requests[socks]>=2.33.0
 httpx
-python-multipart
+python-multipart>=0.0.27
 pyotp
 passlib[argon2]
-PyJWT[crypto]
+PyJWT[crypto]>=2.13.0
 psutil
 slowapi
 python-magic
@@ -16,3 +16,6 @@ onvif-zeep
 zeep
 sse-starlette
 websockets
+urllib3>=2.6.3
+cryptography>=46.0.7
+aiohttp>=3.14.0
