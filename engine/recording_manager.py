@@ -87,6 +87,12 @@ class RecordingManager:
                  return True
 
         if self.is_recording and self.recording_process and not self.passthrough_active:
+            if self.recording_process.poll() is not None:
+                 logger.error(f"Camera {self.camera_name}: Transcoded recording process died unexpectedly. Attempting to restart recording.")
+                 self.stop_recording(None, frame.shape[1], frame.shape[0])
+                 self.start_recording(frame.shape[1], frame.shape[0], None, event_callback=self.last_event_callback, reason="Restart", trigger_source=trigger_source)
+                 return True
+
             if hasattr(self, 'frame_queue'):
                 try:
                     # Pass the numpy array reference instead of converting to bytes immediately
