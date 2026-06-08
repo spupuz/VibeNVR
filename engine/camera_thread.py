@@ -454,13 +454,15 @@ class CameraThread(threading.Thread):
                 x2 = int(xmax * w)
                 y2 = int(ymax * h)
                 
-                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+                # Dynamically scale font and thickness strictly based on frame width
+                # so that boxes look identical across different camera resolutions in the UI
+                font_scale = max(0.4, w / 1000.0)
+                thickness = max(1, int(w / 600))
+
+                cv2.rectangle(frame, (x1, y1), (x2, y2), color, thickness)
                 
                 # Draw Label
                 text = f"{label.capitalize()} {int(conf * 100)}%"
-                # Dynamically scale font based on frame width (e.g., 0.6 for 640px, 1.2 for 1920px)
-                font_scale = max(0.6, w / 1500.0)
-                thickness = max(2, int(w / 1000))
                 
                 (tw, th), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
                 

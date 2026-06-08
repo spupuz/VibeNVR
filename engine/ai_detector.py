@@ -364,39 +364,48 @@ class AIDetector:
             logger.error(f"Camera {camera_id}: AI pre-process error: {e}")
             return []
 
-        # Submit to inference thread (non-blocking — drop if busy)
-        import queue as _queue
-        request_q = _queue.Queue(maxsize=1)
-        try:
-            try:
-                self._infer_queue.get_nowait()   # discard stale entry
-            except Exception:
-                pass
-            self._infer_queue.put_nowait((input_data, camera_id, request_q))
-        except Exception:
-            return []  # Thread busy with previous frame
-
-        # Block on result (timeout prevents hanging the camera thread if TPU crashes)
-        try:
-            raw = request_q.get(timeout=6.0)
-        except _queue.Empty:
-            logger.warning(f"AI: invoke() timed out (6s) on {self.hardware} — reloading model.")
-            self._tpu_fail_count += 1
-            self._last_tpu_fail = time.time()
-            self.interpreter = None
-            self.hardware = "resetting"
-            if hasattr(self, '_infer_thread_alive'):
-                self._infer_thread_alive.clear()
-            if getattr(self, '_infer_queue', None):
-                try: self._infer_queue.get_nowait()
-                except Exception: pass
+        # Use a submit lock to ensure only one camera is waiting on the inference thread at a time.
+        # This prevents the 6s watchdog from firing due to queue wait time, measuring only actual invoke() time.
+        if not getattr(self, '_submit_lock', None):
+            self._submit_lock = threading.Lock()
             
-            # Allow TPU to retry up to 3 times before forcing CPU fallback.
-            # The EdgeTPU USB driver can crash during libx264 high-CPU bursts.
-            # Re-loading the model after the burst settles usually recovers it.
-            force_cpu = self._tpu_fail_count > 3
-            threading.Thread(target=self._load_model, kwargs={'force_cpu': force_cpu}, daemon=True).start()
-            return []
+        # Wait up to 200ms for the AI to become free. This drastically improves the detection 
+        # hit rate for multi-camera setups without blocking the video stream for too long.
+        if not self._submit_lock.acquire(timeout=0.2):
+            return []  # AI is heavily loaded, drop frame
+
+        try:
+            # Submit to inference thread
+            import queue as _queue
+            request_q = _queue.Queue(maxsize=1)
+            try:
+                self._infer_queue.put_nowait((input_data, camera_id, request_q))
+            except Exception:
+                return []
+
+            # Block on result (timeout prevents hanging the camera thread if TPU crashes)
+            try:
+                raw = request_q.get(timeout=6.0)
+            except _queue.Empty:
+                logger.warning(f"AI: invoke() timed out (6s) on {self.hardware} — reloading model.")
+                self._tpu_fail_count += 1
+                self._last_tpu_fail = time.time()
+                self.interpreter = None
+                self.hardware = "resetting"
+                if hasattr(self, '_infer_thread_alive'):
+                    self._infer_thread_alive.clear()
+                if getattr(self, '_infer_queue', None):
+                    try: self._infer_queue.get_nowait()
+                    except Exception: pass
+                
+                # Allow TPU to retry up to 3 times before forcing CPU fallback.
+                # The EdgeTPU USB driver can crash during libx264 high-CPU bursts.
+                # Re-loading the model after the burst settles usually recovers it.
+                force_cpu = self._tpu_fail_count > 3
+                threading.Thread(target=self._load_model, kwargs={'force_cpu': force_cpu}, daemon=True).start()
+                return []
+        finally:
+            self._submit_lock.release()
 
         if not isinstance(raw, dict):
             return []  # Error sentinel from inference thread
