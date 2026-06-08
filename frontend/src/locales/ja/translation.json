@@ -495,7 +495,16 @@
     "ptz.set_home_message": "現在のカメラ位置を新しいホーム位置として設定しますか?これにより、以前のホーム座標が上書きされます。",
     "ptz.set_home_confirm": "ホームに設定",
     "unknown_location": "不明な場所",
-    "last_seen": "最後に見た:"
+    "last_seen": "最後に見た:",
+    "group_view": "グループビュー",
+    "import_selection_title": "インポートするカメラを選択してください",
+    "import_selection_desc": "ファイルからインポートするカメラを選択します。",
+    "selected": "選択済み",
+    "unknown": "不明なカメラ",
+    "import_selected": "選択したものをインポート",
+    "requires_passthrough": "(パススルーが必要)",
+    "ai_requires_passthrough": "AI にはパススルーが必要です",
+    "ai_passthrough_desc": "AI オブジェクト検出では、CPU のスパイクや TPU のクラッシュを防ぐために、[録画] タブでムービー パススルーを有効にする必要があります。パススルーを有効にするか、OpenCV に切り替えてください。"
   },
   "settings": {
     "general_preferences": "一般設定",
@@ -1189,7 +1198,11 @@
     "Network error during port probe": "エラー",
     "Please enter an ONVIF Host IP": "エラー",
     "Network error during probe": "エラー",
-    "dragToReorder": "ドラッグして並べ替えます"
+    "dragToReorder": "ドラッグして並べ替えます",
+    "Selected cameras exported successfully": "成功",
+    "Failed to export selected cameras": "エラー",
+    "No cameras found in file": "警告",
+    "No cameras found in MotionEye backup": "警告"
   },
   "profile": {
     "display_language": "表示言語"

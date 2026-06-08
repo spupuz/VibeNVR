@@ -501,7 +501,16 @@
     "ptz.set_home_message": "将当前相机位置设置为新的 Home 位置？这将覆盖以前的起始坐标。",
     "ptz.set_home_confirm": "设置首页",
     "unknown_location": "未知地点",
-    "last_seen": "最后一次见到："
+    "last_seen": "最后一次见到：",
+    "group_view": "群组视图",
+    "import_selection_title": "选择要导入的相机",
+    "import_selection_desc": "选择要从文件导入的摄像机。",
+    "selected": "已选择",
+    "unknown": "未知相机",
+    "import_selected": "导入所选内容",
+    "requires_passthrough": "（需要直通）",
+    "ai_requires_passthrough": "AI需要直通",
+    "ai_passthrough_desc": "AI 对象检测需要在“录制”选项卡中启用“电影直通”，以防止 CPU 峰值和 TPU 崩溃。请启用 Passthrough 或切换到 OpenCV。"
   },
   "settings": {
     "general_preferences": "常规首选项",
@@ -1195,7 +1204,11 @@
     "Network error during port probe": "错误",
     "Please enter an ONVIF Host IP": "错误",
     "Network error during probe": "错误",
-    "dragToReorder": "拖动以重新排序"
+    "dragToReorder": "拖动以重新排序",
+    "Selected cameras exported successfully": "成功",
+    "Failed to export selected cameras": "错误",
+    "No cameras found in file": "警告",
+    "No cameras found in MotionEye backup": "警告"
   },
   "profile": {
     "display_language": "显示语言"

@@ -503,7 +503,16 @@
     "ptz.set_home_message": "Set the current camera position as the new Home position? This will overwrite the previous home coordinates.",
     "ptz.set_home_confirm": "Set Home",
     "unknown_location": "Unknown Location",
-    "last_seen": "Last seen:"
+    "last_seen": "Last seen:",
+    "group_view": "Group View",
+    "import_selection_title": "Select Cameras to Import",
+    "import_selection_desc": "Choose which cameras you want to import from the file.",
+    "selected": "Selected",
+    "unknown": "Unknown Camera",
+    "import_selected": "Import Selected",
+    "requires_passthrough": "(REQUIRES PASSTHROUGH)",
+    "ai_requires_passthrough": "AI Requires Passthrough",
+    "ai_passthrough_desc": "AI Object Detection requires Movie Passthrough to be enabled in the Recording tab to prevent CPU spikes and TPU crashes. Please enable Passthrough or switch to OpenCV."
   },
   "settings": {
     "general_preferences": "General Preferences",
@@ -1197,7 +1206,11 @@
     "Network error during port probe": "error",
     "Please enter an ONVIF Host IP": "error",
     "Network error during probe": "error",
-    "dragToReorder": "Drag to reorder"
+    "dragToReorder": "Drag to reorder",
+    "Selected cameras exported successfully": "success",
+    "Failed to export selected cameras": "error",
+    "No cameras found in file": "warning",
+    "No cameras found in MotionEye backup": "warning"
   },
   "profile": {
     "display_language": "Display Language"

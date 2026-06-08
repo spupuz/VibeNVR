@@ -499,7 +499,16 @@
     "ptz.set_home_message": "Установить текущее положение камеры в качестве нового исходного положения? Это перезапишет предыдущие координаты дома.",
     "ptz.set_home_confirm": "Установить Домой",
     "unknown_location": "Неизвестное местоположение",
-    "last_seen": "Последний раз видели:"
+    "last_seen": "Последний раз видели:",
+    "group_view": "Групповой просмотр",
+    "import_selection_title": "Выберите камеры для импорта",
+    "import_selection_desc": "Выберите, какие камеры вы хотите импортировать из файла.",
+    "selected": "Выбрано",
+    "unknown": "Неизвестная камера",
+    "import_selected": "Импортировать выбранное",
+    "requires_passthrough": "(ТРЕБУЕТСЯ ПРОХОД)",
+    "ai_requires_passthrough": "ИИ требует сквозной передачи",
+    "ai_passthrough_desc": "Для обнаружения объектов AI требуется, чтобы на вкладке «Запись» была включена функция «Пропуск фильма», чтобы предотвратить скачки нагрузки на процессор и сбои TPU. Пожалуйста, включите Passthrough или переключитесь на OpenCV."
   },
   "settings": {
     "general_preferences": "Общие настройки",
@@ -1193,7 +1202,11 @@
     "Network error during port probe": "ошибка",
     "Please enter an ONVIF Host IP": "ошибка",
     "Network error during probe": "ошибка",
-    "dragToReorder": "Перетащите, чтобы изменить порядок"
+    "dragToReorder": "Перетащите, чтобы изменить порядок",
+    "Selected cameras exported successfully": "успех",
+    "Failed to export selected cameras": "ошибка",
+    "No cameras found in file": "предупреждение",
+    "No cameras found in MotionEye backup": "предупреждение"
   },
   "profile": {
     "display_language": "Язык дисплея"

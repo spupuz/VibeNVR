@@ -162,6 +162,7 @@ export const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelecte
                             className="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40"
                             title="Export Camera Settings"
                         >
+                            <Download className="w-5 h-5" />
                         </Button>
                         <Button
                             variant="ghost"

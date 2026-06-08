@@ -495,7 +495,16 @@
     "ptz.set_home_message": "¿Establecer la posición actual de la cámara como la nueva posición de inicio? Esto sobrescribirá las coordenadas de inicio anteriores.",
     "ptz.set_home_confirm": "Establecer inicio",
     "unknown_location": "Ubicación desconocida",
-    "last_seen": "Visto por última vez:"
+    "last_seen": "Visto por última vez:",
+    "group_view": "Vista de grupo",
+    "import_selection_title": "Seleccione cámaras para importar",
+    "import_selection_desc": "Elija qué cámaras desea importar del archivo.",
+    "selected": "Seleccionado",
+    "unknown": "Cámara desconocida",
+    "import_selected": "Importar seleccionado",
+    "requires_passthrough": "(REQUIERE PASO)",
+    "ai_requires_passthrough": "La IA requiere transferencia",
+    "ai_passthrough_desc": "La detección de objetos AI requiere que Movie Passthrough esté habilitado en la pestaña Grabación para evitar picos de CPU y fallas de TPU. Habilite Passthrough o cambie a OpenCV."
   },
   "settings": {
     "general_preferences": "Preferencias generales",
@@ -1147,7 +1156,10 @@
     "Token copied to clipboard": "éxito",
     "Camera settings exported successfully": "éxito",
     "New Home position saved to camera memory": "éxito",
-    "dragToReorder": "Arrastra para reordenar"
+    "dragToReorder": "Arrastra para reordenar",
+    "Selected cameras exported successfully": "éxito",
+    "No cameras found in file": "advertencia",
+    "No cameras found in MotionEye backup": "advertencia"
   },
   "profile": {
     "display_language": "Idioma de visualización"

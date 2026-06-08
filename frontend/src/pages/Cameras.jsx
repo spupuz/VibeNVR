@@ -21,7 +21,7 @@ import { DEFAULT_CAMERA_STATE } from '../constants/cameraDefaults';
 import { CATEGORY_FIELD_MAP, EXCLUDED_FIELDS } from '../utils/cameraSettingsMapping';
 import { BulkActionsBar } from '../components/Cameras/BulkActionsBar';
 import { ProcessingOverlay } from '../components/Cameras/ProcessingOverlay';
-
+import { ImportSelectionModal } from '../components/Cameras/ImportSelectionModal';
 
 export const Cameras = () => {
     const { user, token } = useAuth();
@@ -53,6 +53,8 @@ export const Cameras = () => {
     const [processingMessage, setProcessingMessage] = useState({ title: 'Processing', text: 'Please wait...' });
     const [selectedCameraIds, setSelectedCameraIds] = useState([]);
     const [confirmConfig, setConfirmConfig] = useState({ isOpen: false });
+    const [importCandidates, setImportCandidates] = useState([]);
+    const [showImportModal, setShowImportModal] = useState(false);
 
     const [searchParams, setSearchParams] = useSearchParams();
 
@@ -259,6 +261,77 @@ export const Cameras = () => {
             },
             onCancel: () => setConfirmConfig({ isOpen: false })
         });
+    };
+
+    const handleConfirmImport = async (selectedCameras) => {
+        setShowImportModal(false);
+        setProcessingMessage({ title: 'Importing Cameras', text: 'Saving selected cameras...' });
+        setIsProcessing(true);
+        
+        try {
+            // Generate a JSON blob mimicking VibeNVR export format
+            const jsonBlob = new Blob([JSON.stringify({ cameras: selectedCameras, version: "1.1" })], { type: 'application/json' });
+            const formData = new FormData();
+            formData.append('file', jsonBlob, 'import.json');
+
+            const res = await fetch('/api/cameras/import', {
+                method: 'POST',
+                body: formData,
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                showToast(data.message, 'success');
+                fetchCameras();
+            } else {
+                const err = await res.json();
+                showToast('Import failed: ' + (err.detail || 'Unknown error'), 'error');
+            }
+        } catch (err) {
+            showToast('Import failed: ' + err.message, 'error');
+        } finally {
+            setIsProcessing(false);
+            setImportCandidates([]);
+        }
+    };
+
+    const handleBulkExport = async () => {
+        if (selectedCameraIds.length === 0) return;
+
+        try {
+            const res = await fetch('/api/cameras/export/bulk', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(selectedCameraIds)
+            });
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+
+                const disposition = res.headers.get('Content-Disposition');
+                let filename = `vibenvr_cameras_export_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.json`;
+                if (disposition && disposition.includes('filename=')) {
+                    filename = disposition.split('filename=')[1].replace(/"/g, '');
+                }
+                a.download = filename;
+
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                showToast("Selected cameras exported successfully", "success");
+            } else {
+                showToast('Failed to export selected cameras', 'error');
+            }
+        } catch (err) {
+            showToast('Export error: ' + err.message, 'error');
+        }
     };
 
     const handleSelectCamera = (id) => {
@@ -507,23 +580,25 @@ export const Cameras = () => {
                     <h2 className="text-3xl font-bold tracking-tight">{t('cameras.title', 'Cameras')}</h2>
                     <p className="text-muted-foreground mt-2">{t('cameras.subtitle', 'Manage your video sources.')}</p>
                 </div>
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 w-full sm:w-auto overflow-hidden">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 w-full sm:w-auto">
                     {/* Group View Toggle - visible to all users */}
                     {view === 'cameras' && (
-                        <div className="flex items-center gap-4">
-                            <Toggle
-                                checked={isGroupView}
-                                onChange={handleGroupViewToggle}
-                                label="Group View"
-                                help="Group cameras by assigned groups"
-                            />
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 w-full sm:w-auto">
+                            <div className="flex items-center justify-between bg-card border border-border rounded-lg px-4 py-2 shadow-sm min-h-[40px] w-full sm:w-auto">
+                                <Toggle
+                                    checked={isGroupView}
+                                    onChange={handleGroupViewToggle}
+                                    label={t('cameras.group_view', 'Group View')}
+                                    help="Group cameras by assigned groups"
+                                />
+                            </div>
                             {user?.role === 'admin' && cameras.length > 0 && (
                                 <button
                                     onClick={() => handleSelectAll(cameras.map(c => c.id))}
-                                    className="flex items-center justify-center space-x-2 bg-muted hover:bg-secondary text-foreground px-3 h-8 rounded-lg transition-all whitespace-nowrap text-xs font-bold border border-border shadow-sm active:scale-95"
+                                    className="flex items-center justify-center space-x-2 bg-card hover:bg-muted text-foreground px-4 py-2 rounded-lg transition-all whitespace-nowrap text-sm font-bold border border-border shadow-sm active:scale-95 min-h-[40px] w-full sm:w-auto"
                                 >
-                                    <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-colors ${cameras.every(c => selectedCameraIds.includes(c.id)) ? 'bg-primary border-primary' : 'bg-background border-border'}`}>
-                                        {cameras.every(c => selectedCameraIds.includes(c.id)) && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={5} d="M5 13l4 4L19 7" /></svg>}
+                                    <div className={`w-4 h-4 rounded-sm border flex items-center justify-center transition-colors ${cameras.every(c => selectedCameraIds.includes(c.id)) ? 'bg-primary border-primary' : 'bg-background border-border'}`}>
+                                        {cameras.every(c => selectedCameraIds.includes(c.id)) && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
                                     </div>
                                     <span>{cameras.every(c => selectedCameraIds.includes(c.id)) ? t('cameras.deselect_all', 'Deselect All') : t('cameras.select_all', 'Select All')}</span>
                                 </button>
@@ -599,30 +674,33 @@ export const Cameras = () => {
                                     className="hidden"
                                     ref={fileInputRef}
                                     disabled={isProcessing}
-                                    onChange={async (e) => {
+                                        onChange={async (e) => {
                                         const file = e.target.files?.[0];
                                         if (!file) return;
-                                        setProcessingMessage({ title: 'Importing Cameras', text: 'Uploading and processing VibeNVR configuration...' });
+                                        setProcessingMessage({ title: 'Analyzing Import', text: 'Parsing VibeNVR configuration...' });
                                         setIsProcessing(true);
-                                        showToast('Importing cameras...', 'info');
                                         const formData = new FormData();
                                         formData.append('file', file);
                                         try {
-                                            const res = await fetch('/api/cameras/import', {
+                                            const res = await fetch('/api/cameras/import?analyze_only=true', {
                                                 method: 'POST',
                                                 body: formData,
                                                 headers: { Authorization: `Bearer ${token}` }
                                             });
                                             if (res.ok) {
                                                 const data = await res.json();
-                                                showToast(data.message, 'success');
-                                                fetchCameras();
+                                                if (data.cameras && data.cameras.length > 0) {
+                                                    setImportCandidates(data.cameras);
+                                                    setShowImportModal(true);
+                                                } else {
+                                                    showToast('No cameras found in file', 'warning');
+                                                }
                                             } else {
                                                 const err = await res.json();
-                                                showToast('Import failed: ' + (err.detail || 'Unknown error'), 'error');
+                                                showToast('Analysis failed: ' + (err.detail || 'Unknown error'), 'error');
                                             }
                                         } catch (err) {
-                                            showToast('Import failed: ' + err.message, 'error');
+                                            showToast('Analysis error: ' + err.message, 'error');
                                         } finally {
                                             setIsProcessing(false);
                                         }
@@ -635,30 +713,33 @@ export const Cameras = () => {
                                     className="hidden"
                                     ref={motionEyeInputRef}
                                     disabled={isProcessing}
-                                    onChange={async (e) => {
+                                        onChange={async (e) => {
                                         const file = e.target.files?.[0];
                                         if (!file) return;
-                                        setProcessingMessage({ title: 'MotionEye Import', text: 'Extracting backup and configuring cameras...' });
+                                        setProcessingMessage({ title: 'MotionEye Import', text: 'Analyzing backup and parsing cameras...' });
                                         setIsProcessing(true);
-                                        showToast('Importing from MotionEye...', 'info');
                                         const formData = new FormData();
                                         formData.append('file', file);
                                         try {
-                                            const res = await fetch('/api/cameras/import/motioneye', {
+                                            const res = await fetch('/api/cameras/import/motioneye?analyze_only=true', {
                                                 method: 'POST',
                                                 body: formData,
                                                 headers: { Authorization: `Bearer ${token}` }
                                             });
                                             if (res.ok) {
                                                 const data = await res.json();
-                                                showToast(data.message, 'success');
-                                                fetchCameras();
+                                                if (data.cameras && data.cameras.length > 0) {
+                                                    setImportCandidates(data.cameras);
+                                                    setShowImportModal(true);
+                                                } else {
+                                                    showToast('No cameras found in MotionEye backup', 'warning');
+                                                }
                                             } else {
                                                 const err = await res.json();
-                                                showToast('MotionEye Import failed: ' + (err.detail || 'Unknown error'), 'error');
+                                                showToast('MotionEye Analysis failed: ' + (err.detail || 'Unknown error'), 'error');
                                             }
                                         } catch (err) {
-                                            showToast('Import error: ' + err.message, 'error');
+                                            showToast('Analysis error: ' + err.message, 'error');
                                         } finally {
                                             setIsProcessing(false);
                                         }
@@ -935,9 +1016,17 @@ export const Cameras = () => {
                 <BulkActionsBar 
                     selectedCameraIds={selectedCameraIds} 
                     setSelectedCameraIds={setSelectedCameraIds} 
-                    handleBulkDelete={handleBulkDelete} 
+                    handleBulkDelete={handleBulkDelete}
+                    handleBulkExport={handleBulkExport}
                 />
             )}
+
+            <ImportSelectionModal
+                showModal={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                onConfirm={handleConfirmImport}
+                cameras={importCandidates}
+            />
 
             {/* Global Processing Overlay */}
             {isProcessing && <ProcessingOverlay isProcessing={isProcessing} processingMessage={processingMessage} />}

@@ -496,7 +496,16 @@
     "ptz.set_home_message": "Definir a posição atual da câmera como a nova posição inicial? Isso substituirá as coordenadas iniciais anteriores.",
     "ptz.set_home_confirm": "Definir casa",
     "unknown_location": "Localização desconhecida",
-    "last_seen": "Visto pela última vez:"
+    "last_seen": "Visto pela última vez:",
+    "group_view": "Visualização de grupo",
+    "import_selection_title": "Selecione câmeras para importar",
+    "import_selection_desc": "Escolha quais câmeras você deseja importar do arquivo.",
+    "selected": "Selecionado",
+    "unknown": "Câmera desconhecida",
+    "import_selected": "Importar selecionado",
+    "requires_passthrough": "(REQUER PASSAGEM)",
+    "ai_requires_passthrough": "IA requer passagem",
+    "ai_passthrough_desc": "A detecção de objetos AI requer que o Movie Passthrough esteja ativado na guia Gravação para evitar picos de CPU e travamentos de TPU. Ative o Passthrough ou mude para OpenCV."
   },
   "settings": {
     "general_preferences": "Preferências gerais",
@@ -1190,7 +1199,11 @@
     "Network error during port probe": "erro",
     "Please enter an ONVIF Host IP": "erro",
     "Network error during probe": "erro",
-    "dragToReorder": "Arraste para reordenar"
+    "dragToReorder": "Arraste para reordenar",
+    "Selected cameras exported successfully": "sucesso",
+    "Failed to export selected cameras": "erro",
+    "No cameras found in file": "aviso",
+    "No cameras found in MotionEye backup": "aviso"
   },
   "profile": {
     "display_language": "Idioma de exibição"

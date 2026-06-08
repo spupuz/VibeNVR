@@ -534,13 +534,13 @@ export const LiveView = () => {
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         {/* Group Selector */}
                         {availableGroups.length > 0 && (
-                            <div className="flex items-center space-x-1 bg-card border border-border rounded-lg p-1">
-                                <span className="text-xs text-muted-foreground ml-2 font-medium">{t('timeline.group', 'Group:')}</span>
+                            <div className="flex items-center space-x-1 bg-card border border-border rounded-lg px-3 py-1.5 shadow-sm min-h-[40px]">
+                                <span className="text-sm text-muted-foreground font-medium">{t('timeline.group', 'Group:')}</span>
                                 <select
-                                    className="bg-transparent text-sm border-none focus:ring-0 cursor-pointer py-1 pr-8 pl-1 max-w-[100px] sm:max-w-none"
+                                    className="bg-transparent text-sm font-medium border-none focus:ring-0 cursor-pointer py-1 pr-6 pl-1 outline-none"
                                     value={selectedGroup}
                                     onChange={(e) => setSelectedGroup(e.target.value)}
                                 >
@@ -553,7 +553,7 @@ export const LiveView = () => {
                         )}
 
                         {/* Group/List Toggle */}
-                        <div className="flex items-center px-2">
+                        <div className="flex items-center bg-card border border-border rounded-lg px-4 py-2 shadow-sm min-h-[40px]">
                             <Toggle
                                 checked={isGroupView}
                                 onChange={handleGroupViewToggle}

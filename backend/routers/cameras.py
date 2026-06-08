@@ -519,6 +519,27 @@ def export_all_cameras(db: Session = Depends(database.get_db), current_user: mod
         headers={"Content-Disposition": f"attachment; filename=vibenvr_cameras_export_{timestamp}.json"}
     )
 
+@router.post("/export/bulk")
+def export_bulk_cameras(camera_ids: List[int], db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """Export selected cameras settings as JSON"""
+    export_data = []
+    
+    for cam_id in camera_ids:
+        cam = crud.get_camera(db, cam_id)
+        if cam is not None:
+            cam_data = jsonable_encoder(schemas.CameraCreate.model_validate(cam))
+            cam_data["groups"] = [g.name for g in cam.groups]
+            if cam.storage_profile:
+                cam_data["storage_profile_name"] = cam.storage_profile.name
+            export_data.append(cam_data)
+    
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    return Response(
+        content=json.dumps({"cameras": export_data, "version": "1.1"}, indent=2),
+        media_type="application/json",
+        headers={"Content-Disposition": f"attachment; filename=vibenvr_cameras_export_{timestamp}.json"}
+    )
+
 @router.get("/{camera_id}/export")
 def export_single_camera(camera_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Export single camera settings as JSON"""
@@ -543,7 +564,7 @@ def export_single_camera(camera_id: int, db: Session = Depends(database.get_db),
     )
 
 @router.post("/import")
-async def import_cameras(file: UploadFile = File(...), db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+async def import_cameras(file: UploadFile = File(...), analyze_only: bool = False, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Import cameras from JSON file"""
     try:
         content = await file.read(MAX_IMPORT_SIZE + 1)
@@ -558,6 +579,8 @@ async def import_cameras(file: UploadFile = File(...), db: Session = Depends(dat
         imported_count: int = 0
         skipped_count: int = 0
         cameras_data = data.get("cameras", [data.get("camera")]) if "cameras" in data else [data.get("camera")]
+        
+        parsed_cameras = []
         
         for cam_data in cameras_data:
             if cam_data is None:
@@ -583,6 +606,13 @@ async def import_cameras(file: UploadFile = File(...), db: Session = Depends(dat
             
             # Create new camera with imported settings
             new_camera = schemas.CameraCreate(**cam_data)
+            
+            if analyze_only:
+                parsed_cameras.append(jsonable_encoder(new_camera))
+                count: int = int(imported_count)
+                imported_count = count + 1
+                continue
+
             db_camera = crud.create_camera(db, new_camera)
             
             # Handle storage profile matching by name
@@ -592,21 +622,25 @@ async def import_cameras(file: UploadFile = File(...), db: Session = Depends(dat
                     db_camera.storage_profile_id = db_profile.id
             db.commit()
 
-            # Handle group associations
-            for g_name in group_names:
-                db_group = db.query(models.CameraGroup).filter(models.CameraGroup.name == g_name).first()
-                if not db_group:
-                    db_group = models.CameraGroup(name=g_name)
-                    db.add(db_group)
-                    db.flush()
-                
-                # Double check association
-                if db_camera not in db_group.cameras:
-                    db_group.cameras.append(db_camera)
+            if not analyze_only:
+                # Handle group associations
+                for g_name in group_names:
+                    db_group = db.query(models.CameraGroup).filter(models.CameraGroup.name == g_name).first()
+                    if not db_group:
+                        db_group = models.CameraGroup(name=g_name)
+                        db.add(db_group)
+                        db.flush()
+                    
+                    # Double check association
+                    if db_camera not in db_group.cameras:
+                        db_group.cameras.append(db_camera)
             
             count: int = int(imported_count)
             imported_count = count + 1
         
+        if analyze_only:
+            return {"message": "Analysis complete", "cameras": parsed_cameras, "count": imported_count, "skipped": skipped_count}
+
         motion_service.generate_motion_config(db)
         
         msg = f"Successfully imported {imported_count} camera(s)"
@@ -624,7 +658,7 @@ async def import_cameras(file: UploadFile = File(...), db: Session = Depends(dat
         raise HTTPException(status_code=400, detail=f"Import failed: {str(e)}")
 
 @router.post("/import/motioneye")
-async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+async def import_motioneye_cameras(file: UploadFile = File(...), analyze_only: bool = False, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Import cameras from MotionEye backup (.tar.gz)"""
     if not file.filename.endswith('.tar.gz'):
         raise HTTPException(status_code=400, detail="File must be a .tar.gz backup from MotionEye")
@@ -636,6 +670,7 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
         tar_stream = io.BytesIO(content)
         imported_count: int = 0
         skipped_count: int = 0
+        parsed_cameras = []
         
         with tarfile.open(fileobj=tar_stream, mode='r:gz') as tar:
             members = tar.getmembers()
@@ -721,15 +756,24 @@ async def import_motioneye_cameras(file: UploadFile = File(...), db: Session = D
                         try:
                             # Re-validate created object through schema
                             validated_cam = schemas.CameraCreate.model_validate(new_cam)
-                            crud.create_camera(db, validated_cam)
-                            count: int = int(imported_count)
-                            imported_count = count + 1
+                            if analyze_only:
+                                parsed_cameras.append(jsonable_encoder(validated_cam))
+                                count: int = int(imported_count)
+                                imported_count = count + 1
+                            else:
+                                crud.create_camera(db, validated_cam)
+                                count: int = int(imported_count)
+                                imported_count = count + 1
                         except Exception as e:
                              print(f"[IMPORT] Security/Validation Error for {filename}: {e}", flush=True)
                              continue
         
         final_imported: int = int(imported_count)
         print(f"[IMPORT] Total imported: {final_imported}", flush=True)
+        
+        if analyze_only:
+            return {"message": "Analysis complete", "cameras": parsed_cameras, "count": final_imported, "skipped": skipped_count}
+
         motion_service.generate_motion_config(db)
         
         final_imported: int = int(imported_count)
