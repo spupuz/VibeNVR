@@ -596,8 +596,10 @@ def process_webhook_file_event(camera_id: int, event_type: str, payload: dict, i
                         ]
                         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=10)
                         if result.returncode == 0:
-                            duration_sec = float(result.stdout.strip())
-                            event_data.timestamp_end = ts + datetime.timedelta(seconds=duration_sec)
+                            duration_str = result.stdout.strip()
+                            if duration_str and duration_str != "N/A":
+                                duration_sec = float(duration_str)
+                                event_data.timestamp_end = ts + datetime.timedelta(seconds=duration_sec)
                     except Exception as e:
                         logger.error(f"[BG-WORK] ffprobe failed: {e}")
 
