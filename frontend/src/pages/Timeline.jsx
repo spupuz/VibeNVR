@@ -61,6 +61,16 @@ export const Timeline = () => {
         if (urlDate) setSelectedDate(urlDate);
     }, [urlDate]);
 
+    // Keep the filter dropdowns in sync with the URL (e.g. when navigating
+    // from Live View via /timeline?camera=<id>&type=video)
+    useEffect(() => {
+        setSelectedCameraFilter(cameraId || 'all');
+    }, [cameraId]);
+
+    useEffect(() => {
+        setSelectedTypeFilter(type || 'all');
+    }, [type]);
+
     const fetchEvents = useCallback(() => {
         let url = `${API_BASE}/events`;
         const params = new URLSearchParams();
