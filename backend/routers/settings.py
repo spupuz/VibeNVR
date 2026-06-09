@@ -68,13 +68,27 @@ def get_setting_by_key(key: str, db: Session = Depends(database.get_db), current
 def update_setting(key: str, value: str, description: str = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Update or create a setting"""
     setting = set_setting(db, key, value, description)
-    if key.startswith("opt_") or key.startswith("mqtt_") or key.startswith("ai_"):
+    if key == "go2rtc_enabled":
+        # Toggling the gateway changes every camera's effective URL, so restart
+        # all camera threads and do a full re-sync (also (de)registers go2rtc streams).
+        motion_service.stop_all_engines()
+        motion_service.generate_motion_config(db)
+    elif key.startswith("opt_") or key.startswith("mqtt_") or key.startswith("ai_"):
         motion_service.sync_global_config(db)
     return {"key": setting.key, "value": setting.value, "description": setting.description}
 
 @router.post("/bulk")
 def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Update multiple settings at once"""
+    # Detect an actual change of the go2rtc toggle (not merely its presence in
+    # the payload) so we only restart cameras when the gateway is flipped.
+    go2rtc_changed = False
+    if "go2rtc_enabled" in settings:
+        existing = db.query(models.SystemSettings).filter(models.SystemSettings.key == "go2rtc_enabled").first()
+        old_val = (existing.value if existing else "false").lower() == "true"
+        new_val = str(settings["go2rtc_enabled"]).lower() == "true"
+        go2rtc_changed = old_val != new_val
+
     for key, value in settings.items():
         # Validation for known numeric keys
         numeric_keys = [
@@ -95,10 +109,14 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
 
         set_setting(db, key, str(value))
     
-    # Sync global config if any opt_, mqtt_, or ai_ settings were updated
-    if any(k.startswith("opt_") or k.startswith("mqtt_") or k.startswith("ai_") for k in settings.keys()):
+    # A go2rtc toggle changes every camera's effective URL → full restart + re-sync.
+    if go2rtc_changed:
+        motion_service.stop_all_engines()
+        motion_service.generate_motion_config(db)
+    # Otherwise sync global config if any opt_, mqtt_, or ai_ settings were updated
+    elif any(k.startswith("opt_") or k.startswith("mqtt_") or k.startswith("ai_") for k in settings.keys()):
         motion_service.sync_global_config(db)
-        
+
     return {"message": "Settings updated successfully", "count": len(settings)}
 
 @router.post("/cleanup")
@@ -155,7 +173,10 @@ DEFAULT_SETTINGS = {
     "ai_enabled": {"value": "false", "description": "Enable Global AI Detection Engine"},
     "ai_model": {"value": "mobilenet_ssd_v2", "description": "Global AI Model architecture (mobilenet_ssd_v2, yolo_v8)"},
     "ai_hardware": {"value": "auto", "description": "Global AI Hardware Accelerator (auto, cpu, tpu)"},
-    
+
+    # go2rtc Stream Gateway
+    "go2rtc_enabled": {"value": "false", "description": "Route all cameras through the internal go2rtc gateway for stability with flaky cameras (no exposed ports)"},
+
     # Log Settings
     "log_max_size_mb": {"value": "50", "description": "Maximum size of a log file before rotation (MB)"},
     "log_backup_count": {"value": "5", "description": "Number of rotated log files to keep"},
