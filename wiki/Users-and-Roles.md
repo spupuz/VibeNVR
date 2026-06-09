@@ -25,17 +25,23 @@ The `viewer` role is designed for standard monitoring purposes and is strictly *
 
 ---
 
-## Restricted Viewer Access
+## Granular Restricted Viewer Access
 
-By default, Viewers can see all cameras configured in the system. However, Admins can explicitly restrict a Viewer's access to a specific subset of cameras or groups. This is ideal for scenarios where certain users (e.g., specific staff members, tenants) should only have visibility into specific areas.
+By default, Viewers can see all cameras configured in the system. However, Admins can explicitly restrict a Viewer's access using a granular permissions model per Camera or per Group.
+
+### Granular Permissions
+
+When restricting a user, you can assign three specific levels of access per camera or group:
+- **VIEW**: The user can see the live stream (Live View, Dashboard, Groups).
+- **REPLAY**: The user can access the Event Timeline, view past recordings, and download media for this camera.
+- **CONTROL (PTZ)**: The user is allowed to execute Pan-Tilt-Zoom commands and trigger manual snapshots.
 
 ### How it Works
 
 When a Viewer is restricted:
-- **UI Masking**: The Live View, Dashboard, and Camera Groups interfaces will only display the cameras/groups they have been explicitly granted access to.
-- **Timeline Filtering**: The Event Timeline will silently filter out recordings and motion events originating from unauthorized cameras.
-- **API Security**: The restriction is enforced at the core API level. Even if a restricted user attempts to manually request a frame, stream, or websocket connection using an unauthorized camera ID, the backend will proactively drop the connection and return a `403 Forbidden` error.
-- **API Tokens**: If a restricted Viewer generates an API token for a 3rd party integration, that token inherits the same camera restrictions as the user.
+- **UI Masking**: Interfaces will dynamically hide cameras or features based on the assigned permissions. If a user lacks `REPLAY` access for a camera, it won't appear in their Timeline. If they lack `CONTROL`, the PTZ and snapshot buttons are hidden.
+- **API Security**: Restrictions are strictly enforced at the core API level. Any direct attempt to access unauthorized media endpoints (`/frame`, `/events`) or execute state-altering commands (`/ptz`) for an unauthorized camera ID will result in a `403 Forbidden` error.
+- **API Tokens**: If a restricted Viewer generates an API token for a 3rd party integration, that token inherits the exact granular restrictions assigned to the user.
 
 ### Configuration
 
@@ -44,8 +50,8 @@ To restrict a viewer's access:
 2. Navigate to **Settings** -> **Users**.
 3. Click the **Edit** (pencil) icon next to the target Viewer account.
 4. Toggle the **Restrict Camera Access** switch to **ON**.
-5. Use the provided checklist to select the specific **Cameras** and/or **Camera Groups** the user is allowed to view.
-   > **Note:** Granting access to a Camera Group automatically grants the user access to all cameras currently assigned to that group.
+5. Use the provided interface to toggle **VIEW**, **REPLAY**, and **CONTROL** checkboxes for specific **Cameras** and/or **Camera Groups**.
+   > **Note:** Granting access to a Camera Group automatically cascades those specific permissions to all cameras currently assigned to that group.
 6. Click **Save Changes**. The restrictions take effect immediately.
 
 ### Best Practices

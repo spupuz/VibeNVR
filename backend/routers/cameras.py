@@ -127,7 +127,7 @@ def read_cameras(skip: int = 0, limit: int = 100, db: Session = Depends(database
     cameras = crud.get_cameras(db, skip=skip, limit=limit)
     
     if user.role == "viewer" and user.restrict_camera_access:
-        allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
+        allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id, permission="view")
         if allowed_ids is not None:
             cameras = [c for c in cameras if c.id in allowed_ids]
 
@@ -144,7 +144,7 @@ def read_camera(camera_id: int, db: Session = Depends(database.get_db), auth_inf
         raise HTTPException(status_code=404, detail="Camera not found")
         
     if user.role == "viewer" and user.restrict_camera_access:
-        allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
+        allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id, permission="view")
         if allowed_ids is not None and camera_id not in allowed_ids:
             raise HTTPException(status_code=403, detail="Not authorized to view this camera")
     
@@ -338,7 +338,7 @@ async def websocket_camera_stream(websocket: WebSocket, camera_id: int):
                 await websocket.close(code=1008)
                 return
             if user.role == "viewer" and user.restrict_camera_access:
-                allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
+                allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id, permission="view")
                 if allowed_ids is not None and camera_id not in allowed_ids:
                     await websocket.close(code=1008)
                     return
@@ -392,7 +392,7 @@ async def get_camera_frame(camera_id: int, request: Request, token: Optional[str
             raise HTTPException(status_code=404, detail="Camera not found")
             
         if user.role == "viewer" and user.restrict_camera_access:
-            allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
+            allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id, permission="view")
             if allowed_ids is not None and camera_id not in allowed_ids:
                 raise HTTPException(status_code=403, detail="Not authorized to view this camera")
             
@@ -444,7 +444,7 @@ async def stream_camera(camera_id: int, request: Request, token: Optional[str] =
                 raise HTTPException(status_code=404, detail="Camera not found")
             
             if user.role == "viewer" and user.restrict_camera_access:
-                allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
+                allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id, permission="view")
                 if allowed_ids is not None and camera_id not in allowed_ids:
                     raise HTTPException(status_code=403, detail="Not authorized to view this camera")
     except HTTPException:

@@ -771,7 +771,9 @@
     "groups_selected": "選択されたグループ",
     "clear": "クリア",
     "delete_selected": "選択したものを削除",
-    "saving_rec": "録音の保存"
+    "saving_rec": "録音の保存",
+    "camera_permissions": "カメラの許可",
+    "group_permissions": "グループ権限"
   },
   "live": {
     "title": "ライブビュー",

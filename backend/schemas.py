@@ -476,19 +476,32 @@ class TOTPSetupResponse(BaseModel):
 class TOTPVerify(BaseModel):
     code: str
 
+class AccessConfig(BaseModel):
+    id: int
+    can_view: bool = True
+    can_replay: bool = True
+    can_control: bool = False
+
 class UserCreate(UserBase):
     password: str
-    allowed_camera_ids: Optional[List[int]] = []
-    allowed_group_ids: Optional[List[int]] = []
+    allowed_camera_ids: Optional[List[int]] = [] # Deprecated
+    allowed_group_ids: Optional[List[int]] = [] # Deprecated
+    camera_accesses: Optional[List[AccessConfig]] = []
+    group_accesses: Optional[List[AccessConfig]] = []
 
 class UserUpdate(UserBase):
     password: Optional[str] = None
-    allowed_camera_ids: Optional[List[int]] = None
-    allowed_group_ids: Optional[List[int]] = None
+    allowed_camera_ids: Optional[List[int]] = None # Deprecated
+    allowed_group_ids: Optional[List[int]] = None # Deprecated
+    camera_accesses: Optional[List[AccessConfig]] = None
+    group_accesses: Optional[List[AccessConfig]] = None
 
 class AllowedResource(BaseModel):
     id: int
     name: str
+    can_view: bool = True
+    can_replay: bool = True
+    can_control: bool = False
     model_config = ConfigDict(from_attributes=True)
 
 class User(UserBase):
@@ -496,8 +509,8 @@ class User(UserBase):
     is_active: bool = True # inherited logic? No model has active.
     avatar_path: Optional[str] = None
     created_at: datetime
-    allowed_cameras: List[AllowedResource] = []
-    allowed_groups: List[AllowedResource] = []
+    camera_accesses: List[AllowedResource] = []
+    group_accesses: List[AllowedResource] = []
 
     model_config = ConfigDict(from_attributes=True)
 

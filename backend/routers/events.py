@@ -373,8 +373,10 @@ def read_events(
     events = crud.get_events(db, skip=skip, limit=limit, camera_id=camera_id, type=type, date=date)
     
     if user.role == "viewer" and user.restrict_camera_access:
-        allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
+        allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id, permission="replay")
         if allowed_ids is not None:
+            if camera_id is not None and camera_id not in allowed_ids:
+                raise HTTPException(status_code=403, detail="Not authorized to replay events for this camera")
             events = [e for e in events if e.camera_id in allowed_ids]
             
     return events
@@ -670,7 +672,7 @@ async def download_event(event_id: int, request: Request, token: Optional[str] =
             raise HTTPException(status_code=404, detail="Event not found")
         
         if user.role == "viewer" and user.restrict_camera_access:
-            allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
+            allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id, permission="replay")
             if allowed_ids is not None and event.camera_id not in allowed_ids:
                 raise HTTPException(status_code=403, detail="Not authorized to download this event")
         

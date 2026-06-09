@@ -9,6 +9,7 @@ import auth_service
 from sqlalchemy.orm import Session
 import database
 import crud
+import models
 
 router = APIRouter(prefix="/onvif", tags=["onvif"])
 
@@ -179,7 +180,7 @@ async def ptz_move(
     camera_id: int, 
     req: schemas.PTZMoveRequest,
     db: Session = Depends(database.get_db),
-    current_user: schemas.User = Depends(auth_service.get_current_active_admin)
+    current_user: models.User = Depends(auth_service.check_camera_control)
 ):
     """Trigger continuous PTZ movement."""
     camera = crud.get_camera(db, camera_id)
@@ -195,7 +196,7 @@ async def ptz_move(
 async def ptz_stop(
     camera_id: int,
     db: Session = Depends(database.get_db),
-    current_user: schemas.User = Depends(auth_service.get_current_active_admin)
+    current_user: models.User = Depends(auth_service.check_camera_control)
 ):
     """Stop PTZ movement."""
     camera = crud.get_camera(db, camera_id)
@@ -211,7 +212,7 @@ async def ptz_stop(
 async def ptz_set_home(
     camera_id: int,
     db: Session = Depends(database.get_db),
-    current_user: schemas.User = Depends(auth_service.get_current_active_admin)
+    current_user: models.User = Depends(auth_service.check_camera_control)
 ):
     """Set the current position as the home position."""
     camera = crud.get_camera(db, camera_id)
@@ -230,7 +231,7 @@ async def ptz_set_home(
 async def ptz_goto_home(
     camera_id: int,
     db: Session = Depends(database.get_db),
-    current_user: schemas.User = Depends(auth_service.get_current_active_admin)
+    current_user: models.User = Depends(auth_service.check_camera_control)
 ):
     """Go to the configured home position."""
     camera = crud.get_camera(db, camera_id)
@@ -250,7 +251,7 @@ async def ptz_goto_preset(
     camera_id: int,
     req: schemas.PTZGotoPresetRequest,
     db: Session = Depends(database.get_db),
-    current_user: schemas.User = Depends(auth_service.get_current_active_admin)
+    current_user: models.User = Depends(auth_service.check_camera_control)
 ):
     """Go to a specific PTZ preset."""
     camera = crud.get_camera(db, camera_id)
@@ -266,7 +267,7 @@ async def ptz_goto_preset(
 async def get_ptz_presets(
     camera_id: int,
     db: Session = Depends(database.get_db),
-    current_user: schemas.User = Depends(auth_service.get_current_active_admin)
+    current_user: models.User = Depends(auth_service.check_camera_control)
 ):
     """Get list of PTZ presets."""
     camera = crud.get_camera(db, camera_id)

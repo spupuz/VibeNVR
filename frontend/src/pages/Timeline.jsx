@@ -16,7 +16,7 @@ import { EventPreview } from '../components/Timeline/EventPreview';
 const API_BASE = `/api`;
 
 export const Timeline = () => {
-    const { token, user } = useAuth();
+    const { token, user, hasPermission } = useAuth();
     const { t } = useTranslation();
     const [events, setEvents] = useState([]);
     const [selectedEvent, setSelectedEvent] = useState(null);
@@ -93,11 +93,12 @@ export const Timeline = () => {
         fetch(`${API_BASE}/cameras`, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => res.json())
             .then(data => {
-                setCameras(data);
+                const replayCameras = data.filter(cam => hasPermission(cam, 'can_replay'));
+                setCameras(replayCameras);
                 setCameraMap(data.reduce((acc, cam) => ({ ...acc, [cam.id]: cam }), {}));
             })
             .catch(err => console.error(err));
-    }, [token]);
+    }, [token, hasPermission]);
 
     useEffect(() => {
         if (token) {

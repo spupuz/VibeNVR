@@ -200,6 +200,14 @@ def migrate():
     add_column_if_not_exists(engine, "users", "language", "VARCHAR", "en")
     
     # Granular User Access associations
+    add_column_if_not_exists(engine, "user_camera_access", "can_view", "BOOLEAN", True)
+    add_column_if_not_exists(engine, "user_camera_access", "can_replay", "BOOLEAN", True)
+    add_column_if_not_exists(engine, "user_camera_access", "can_control", "BOOLEAN", False)
+
+    add_column_if_not_exists(engine, "user_group_access", "can_view", "BOOLEAN", True)
+    add_column_if_not_exists(engine, "user_group_access", "can_replay", "BOOLEAN", True)
+    add_column_if_not_exists(engine, "user_group_access", "can_control", "BOOLEAN", False)
+    
     with engine.connect() as conn:
         try:
             conn.execute(text("SELECT 1 FROM user_camera_access LIMIT 1"))

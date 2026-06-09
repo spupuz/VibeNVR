@@ -135,11 +135,35 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const hasPermission = React.useCallback((camera, permType) => {
+        if (!user || user.role === 'admin') return true;
+        
+        // If restrict_camera_access is false, users still might not have control/replay unless specified, 
+        // wait! In the backend `restrict_camera_access` completely bypasses view checks, but NOT control checks!
+        // To be safe and keep UI in sync, we assume if restrict_camera_access is false, they have VIEW and REPLAY, but NOT CONTROL.
+        if (!user.restrict_camera_access) {
+            if (permType === 'can_view' || permType === 'can_replay') return true;
+        }
+
+        // Direct camera access check
+        const directAccess = user.camera_accesses?.find(a => a.id === camera.id);
+        if (directAccess && directAccess[permType]) return true;
+
+        // Group access check
+        if (camera.groups) {
+            for (const group of camera.groups) {
+                const groupAccess = user.group_accesses?.find(a => a.id === group.id);
+                if (groupAccess && groupAccess[permType]) return true;
+            }
+        }
+        return false;
+    }, [user]);
+
     return (
         <AuthContext.Provider value={{
             token, user, login, logout, checkAuth, loading,
             isBackendReady, healthDetails, checkBackendHealth,
-            isAuthenticated: !!user
+            isAuthenticated: !!user, hasPermission
         }}>
             {children}
         </AuthContext.Provider>

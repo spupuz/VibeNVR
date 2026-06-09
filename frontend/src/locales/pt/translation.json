@@ -772,7 +772,9 @@
     "groups_selected": "Grupo(s) selecionado(s)",
     "clear": "Claro",
     "delete_selected": "Excluir selecionado",
-    "saving_rec": "SALVANDO REC"
+    "saving_rec": "SALVANDO REC",
+    "camera_permissions": "Permissões da câmera",
+    "group_permissions": "Permissões de grupo"
   },
   "live": {
     "title": "Exibição ao vivo",

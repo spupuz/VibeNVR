@@ -771,7 +771,9 @@
     "groups_selected": "Gruppo/i selezionato/i",
     "clear": "Chiaro",
     "delete_selected": "Elimina selezionato",
-    "saving_rec": "SALVATAGGIO REG"
+    "saving_rec": "SALVATAGGIO REG",
+    "camera_permissions": "Autorizzazioni della fotocamera",
+    "group_permissions": "Autorizzazioni di gruppo"
   },
   "live": {
     "title": "Vista Live",

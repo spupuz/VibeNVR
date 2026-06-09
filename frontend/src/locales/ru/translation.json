@@ -775,7 +775,9 @@
     "groups_selected": "Группа(ы) выбрана",
     "clear": "Прозрачный",
     "delete_selected": "Удалить выбранное",
-    "saving_rec": "СОХРАНЕНИЕ ЗАПИСИ"
+    "saving_rec": "СОХРАНЕНИЕ ЗАПИСИ",
+    "camera_permissions": "Разрешения камеры",
+    "group_permissions": "Разрешения группы"
   },
   "live": {
     "title": "Прямой эфир",

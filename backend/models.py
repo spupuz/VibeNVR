@@ -237,18 +237,47 @@ class User(Base):
     language = Column(String, default="en")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    allowed_cameras = relationship("Camera", secondary="user_camera_access", backref="allowed_users")
-    allowed_groups = relationship("CameraGroup", secondary="user_group_access", backref="allowed_users")
+    allowed_cameras = relationship("Camera", secondary="user_camera_access", backref="allowed_users", viewonly=True)
+    allowed_groups = relationship("CameraGroup", secondary="user_group_access", backref="allowed_users", viewonly=True)
+    
+    camera_accesses = relationship("UserCameraAccess", backref="user", cascade="all, delete-orphan")
+    group_accesses = relationship("UserGroupAccess", backref="user", cascade="all, delete-orphan")
 
 class UserCameraAccess(Base):
     __tablename__ = "user_camera_access"
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     camera_id = Column(Integer, ForeignKey("cameras.id", ondelete="CASCADE"), primary_key=True)
+    can_view = Column(Boolean, default=True)
+    can_replay = Column(Boolean, default=True)
+    can_control = Column(Boolean, default=False)
+    
+    camera = relationship("Camera", viewonly=True)
+
+    @property
+    def id(self):
+        return self.camera_id
+
+    @property
+    def name(self):
+        return self.camera.name if self.camera else ""
 
 class UserGroupAccess(Base):
     __tablename__ = "user_group_access"
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     group_id = Column(Integer, ForeignKey("camera_groups.id", ondelete="CASCADE"), primary_key=True)
+    can_view = Column(Boolean, default=True)
+    can_replay = Column(Boolean, default=True)
+    can_control = Column(Boolean, default=False)
+    
+    group = relationship("CameraGroup", viewonly=True)
+
+    @property
+    def id(self):
+        return self.group_id
+
+    @property
+    def name(self):
+        return self.group.name if self.group else ""
 
 class ApiToken(Base):
     __tablename__ = "api_tokens"

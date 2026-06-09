@@ -777,7 +777,9 @@
     "groups_selected": "选定的组",
     "clear": "清除",
     "delete_selected": "删除所选内容",
-    "saving_rec": "保存记录"
+    "saving_rec": "保存记录",
+    "camera_permissions": "相机权限",
+    "group_permissions": "群组权限"
   },
   "live": {
     "title": "实时视图",

@@ -773,7 +773,9 @@
     "groups_selected": "Groupe(s) sélectionné(s)",
     "clear": "Clair",
     "delete_selected": "Supprimer la sélection",
-    "saving_rec": "SAUVEGARDE D'ENREGISTREMENT"
+    "saving_rec": "SAUVEGARDE D'ENREGISTREMENT",
+    "camera_permissions": "Autorisations de la caméra",
+    "group_permissions": "Autorisations de groupe"
   },
   "live": {
     "title": "Vue en direct",

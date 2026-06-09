@@ -769,7 +769,9 @@
     "groups_selected": "Gruppe(n) ausgewählt",
     "clear": "Klar",
     "delete_selected": "Ausgewählte löschen",
-    "saving_rec": "AUFZEICHNUNG SPEICHERN"
+    "saving_rec": "AUFZEICHNUNG SPEICHERN",
+    "camera_permissions": "Kameraberechtigungen",
+    "group_permissions": "Gruppenberechtigungen"
   },
   "live": {
     "title": "Live-Ansicht",

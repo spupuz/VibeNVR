@@ -770,7 +770,9 @@
     "groups_selected": "Grupo(s) seleccionado(s)",
     "clear": "Claro",
     "delete_selected": "Eliminar seleccionado",
-    "saving_rec": "GUARDAR GRABACIÓN"
+    "saving_rec": "GUARDAR GRABACIÓN",
+    "camera_permissions": "Permisos de cámara",
+    "group_permissions": "Permisos de grupo"
   },
   "live": {
     "title": "Vista en vivo",

@@ -245,3 +245,46 @@ async def get_current_user_or_token(
         detail="Not authenticated",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+class CheckCameraAccess:
+    def __init__(self, required_permission: str):
+        self.required_permission = required_permission
+        
+    async def __call__(
+        self,
+        camera_id: int,
+        current_user: models.User = Depends(get_current_user_mixed),
+        db: Session = Depends(database.get_db)
+    ) -> models.User:
+        if current_user.role == "admin" or not current_user.restrict_camera_access:
+            return current_user
+            
+        has_permission = False
+        
+        # 1. Direct camera access
+        for acc in current_user.camera_accesses:
+            if acc.camera_id == camera_id:
+                if getattr(acc, f"can_{self.required_permission}", False):
+                    has_permission = True
+                    break
+        
+        # 2. Group camera access
+        if not has_permission:
+            for acc in current_user.group_accesses:
+                if getattr(acc, f"can_{self.required_permission}", False):
+                    # Check if camera_id is in this group
+                    if acc.group and any(c.id == camera_id for c in acc.group.cameras):
+                        has_permission = True
+                        break
+                        
+        if not has_permission:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, 
+                detail=f"Permission denied. Requires '{self.required_permission}' access to this camera."
+            )
+            
+        return current_user
+
+check_camera_view = CheckCameraAccess("view")
+check_camera_replay = CheckCameraAccess("replay")
+check_camera_control = CheckCameraAccess("control")

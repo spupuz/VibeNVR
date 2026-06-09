@@ -779,7 +779,9 @@
     "groups_selected": "Group(s) selected",
     "clear": "Clear",
     "delete_selected": "Delete Selected",
-    "saving_rec": "SAVING REC"
+    "saving_rec": "SAVING REC",
+    "camera_permissions": "Camera Permissions",
+    "group_permissions": "Group Permissions"
   },
   "live": {
     "title": "Live View",

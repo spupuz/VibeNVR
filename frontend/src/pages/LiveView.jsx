@@ -37,6 +37,7 @@ const VideoPlayer = ({
     const containerRef = useRef(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [showPTZ, setShowPTZ] = useState(false);
+    const { hasPermission } = useAuth();
 
     // 'webcodecs' = primary path (VideoDecoder available)
     // 'fallback'  = JPEG polling (VideoDecoder unavailable or hard fail)
@@ -283,52 +284,64 @@ const VideoPlayer = ({
                             <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </button>
 
-                        <div className="w-px h-4 bg-white/10 mx-0.5 self-center shrink-0" />
-
-                        <button onClick={() => {
-                            fetch(`${API_BASE}/cameras/${camera.id}/snapshot`, {
-                                method: 'POST',
-                                headers: { Authorization: `Bearer ${token}` }
-                            }).then(res => { if (res.ok) showToast(`Snapshot saved`, 'success'); });
-                        }} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Take Photo">
-                            <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        </button>
-                        <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=snapshot`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Gallery">
-                            <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        </button>
-                        <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=video`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Videos">
-                            <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        </button>
-
-                        <div className="w-px h-4 bg-white/10 mx-0.5 self-center shrink-0" />
-
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onToggleRecording(camera);
-                            }}
-                            className={`p-1 rounded-md transition-all shrink-0 ${(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? 'bg-red-600 text-white animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]' : 'text-white hover:bg-red-600/50'}`}
-                            title={(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? "Stop Recording" : "Start Continuous Recording"}
-                        >
-                            <Disc className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        </button>
+                        {(user?.role === 'admin' || hasPermission(camera, 'can_replay')) && (
+                            <div className="w-px h-4 bg-white/10 mx-0.5 self-center shrink-0" />
+                        )}
 
                         {user?.role === 'admin' && (
+                            <button onClick={() => {
+                                fetch(`${API_BASE}/cameras/${camera.id}/snapshot`, {
+                                    method: 'POST',
+                                    headers: { Authorization: `Bearer ${token}` }
+                                }).then(res => { if (res.ok) showToast(`Snapshot saved`, 'success'); });
+                            }} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Take Photo">
+                                <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            </button>
+                        )}
+                        {hasPermission(camera, 'can_replay') && (
                             <>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setShowPTZ(!showPTZ);
-                                    }}
-                                    className={`p-1 rounded-md transition-all shrink-0 ${showPTZ ? 'bg-primary text-white shadow-[0_0_10px_rgba(var(--primary),0.5)]' : 'text-white hover:bg-primary/50'}`}
-                                    title={showPTZ ? "Hide PTZ Controls" : "Show PTZ Controls"}
-                                >
-                                    <Move className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=snapshot`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Gallery">
+                                    <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                 </button>
-                                <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1 text-primary-foreground bg-primary hover:bg-primary/80 rounded-md transition-all shrink-0" title="Settings">
-                                    <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=video`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Videos">
+                                    <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                 </button>
                             </>
+                        )}
+
+                        {(user?.role === 'admin' || hasPermission(camera, 'can_control')) && (
+                            <div className="w-px h-4 bg-white/10 mx-0.5 self-center shrink-0" />
+                        )}
+
+                        {user?.role === 'admin' && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onToggleRecording(camera);
+                                }}
+                                className={`p-1 rounded-md transition-all shrink-0 ${(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? 'bg-red-600 text-white animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]' : 'text-white hover:bg-red-600/50'}`}
+                                title={(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? "Stop Recording" : "Start Continuous Recording"}
+                            >
+                                <Disc className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            </button>
+                        )}
+
+                        {hasPermission(camera, 'can_control') && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowPTZ(!showPTZ);
+                                }}
+                                className={`p-1 rounded-md transition-all shrink-0 ${showPTZ ? 'bg-primary text-white shadow-[0_0_10px_rgba(var(--primary),0.5)]' : 'text-white hover:bg-primary/50'}`}
+                                title={showPTZ ? "Hide PTZ Controls" : "Show PTZ Controls"}
+                            >
+                                <Move className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            </button>
+                        )}
+                        {user?.role === 'admin' && (
+                            <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1 text-primary-foreground bg-primary hover:bg-primary/80 rounded-md transition-all shrink-0" title="Settings">
+                                <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            </button>
                         )}
                     </div>
                 </div>

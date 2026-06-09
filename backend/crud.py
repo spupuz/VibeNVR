@@ -117,12 +117,29 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.add(db_user)
     db.commit()
     
-    if user.allowed_camera_ids:
+    if user.camera_accesses is not None:
+        db_user.camera_accesses = []
+        for acc in user.camera_accesses:
+            db_user.camera_accesses.append(models.UserCameraAccess(
+                camera_id=acc.id, can_view=acc.can_view, can_replay=acc.can_replay, can_control=acc.can_control
+            ))
+    elif user.allowed_camera_ids:
+        db_user.camera_accesses = []
         cameras = db.query(models.Camera).filter(models.Camera.id.in_(user.allowed_camera_ids)).all()
-        db_user.allowed_cameras = cameras
-    if user.allowed_group_ids:
+        for c in cameras:
+            db_user.camera_accesses.append(models.UserCameraAccess(camera_id=c.id))
+            
+    if user.group_accesses is not None:
+        db_user.group_accesses = []
+        for acc in user.group_accesses:
+            db_user.group_accesses.append(models.UserGroupAccess(
+                group_id=acc.id, can_view=acc.can_view, can_replay=acc.can_replay, can_control=acc.can_control
+            ))
+    elif user.allowed_group_ids:
+        db_user.group_accesses = []
         groups = db.query(models.CameraGroup).filter(models.CameraGroup.id.in_(user.allowed_group_ids)).all()
-        db_user.allowed_groups = groups
+        for g in groups:
+            db_user.group_accesses.append(models.UserGroupAccess(group_id=g.id))
         
     db.commit()
     db.refresh(db_user)
@@ -144,29 +161,52 @@ def update_user(db: Session, user_id: int, user: schemas.UserUpdate):
         db_user.hashed_password = auth_service.get_password_hash(user.password)
         
     # Update relations
-    if user.allowed_camera_ids is not None:
+    if user.camera_accesses is not None:
+        db_user.camera_accesses = []
+        for acc in user.camera_accesses:
+            db_user.camera_accesses.append(models.UserCameraAccess(
+                camera_id=acc.id, can_view=acc.can_view, can_replay=acc.can_replay, can_control=acc.can_control
+            ))
+    elif user.allowed_camera_ids is not None:
+        db_user.camera_accesses = []
         cameras = db.query(models.Camera).filter(models.Camera.id.in_(user.allowed_camera_ids)).all()
-        db_user.allowed_cameras = cameras
-    if user.allowed_group_ids is not None:
+        for c in cameras:
+            db_user.camera_accesses.append(models.UserCameraAccess(camera_id=c.id))
+            
+    if user.group_accesses is not None:
+        db_user.group_accesses = []
+        for acc in user.group_accesses:
+            db_user.group_accesses.append(models.UserGroupAccess(
+                group_id=acc.id, can_view=acc.can_view, can_replay=acc.can_replay, can_control=acc.can_control
+            ))
+    elif user.allowed_group_ids is not None:
+        db_user.group_accesses = []
         groups = db.query(models.CameraGroup).filter(models.CameraGroup.id.in_(user.allowed_group_ids)).all()
-        db_user.allowed_groups = groups
+        for g in groups:
+            db_user.group_accesses.append(models.UserGroupAccess(group_id=g.id))
         
     db.commit()
     db.refresh(db_user)
     return db_user
 
-def get_allowed_camera_ids_for_user(db: Session, user_id: int) -> list[int] | None:
-    """Returns a list of camera IDs the user is allowed to access, or None if they have full access."""
+def get_allowed_camera_ids_for_user(db: Session, user_id: int, permission: str = "view") -> list[int] | None:
+    """Returns a list of camera IDs the user is allowed to access with the required permission, or None if they have full access."""
     user = get_user(db, user_id)
     if not user or user.role == "admin" or not user.restrict_camera_access:
         return None
     
-    # Collect explicit camera IDs
-    camera_ids = {c.id for c in user.allowed_cameras}
-    # Collect camera IDs from explicit groups
-    for group in user.allowed_groups:
-        for c in group.cameras:
-            camera_ids.add(c.id)
+    # Collect explicit camera IDs with the required permission
+    camera_ids = set()
+    for acc in user.camera_accesses:
+        if getattr(acc, f"can_{permission}", False):
+            camera_ids.add(acc.camera_id)
+            
+    # Collect camera IDs from groups with the required permission
+    for acc in user.group_accesses:
+        if getattr(acc, f"can_{permission}", False):
+            if acc.group:
+                for c in acc.group.cameras:
+                    camera_ids.add(c.id)
             
     return list(camera_ids)
 
