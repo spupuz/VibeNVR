@@ -49,9 +49,14 @@
     --ring: 221.2 83.2% 53.3%;
 
     --radius: 0.5rem;
+
+    /* Make native widgets (date picker indicator, scrollbars, etc.) follow the theme */
+    color-scheme: light;
   }
 
   .dark {
+    color-scheme: dark;
+
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
