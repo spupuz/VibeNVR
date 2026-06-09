@@ -877,6 +877,10 @@
     "topic_prefix": "Topic Prefix",
     "topic_structure": "Topic Structure"
   },
+  "settings_go2rtc": {
+    "activation": "Use go2rtc Gateway",
+    "activation_help": "Route all cameras through the internal go2rtc gateway instead of connecting directly. Improves stability with flaky/cheap IP cameras (broken streams, slow handshakes, session limits) and lowers CPU. Toggling this restarts all camera streams."
+  },
   "settings_aisettings": {
     "title": "AI Detection Engine",
     "subtitle": "Configure the global AI model architecture and performance."

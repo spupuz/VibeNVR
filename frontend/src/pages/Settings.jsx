@@ -77,7 +77,8 @@ export const Settings = () => {
         mqtt_topic_prefix: 'vibenvr',
         ai_model: 'mobilenet_ssd_v2',
         ai_hardware: 'auto',
-        ai_enabled: false
+        ai_enabled: false,
+        go2rtc_enabled: false
     });
 
     const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0 });
@@ -205,7 +206,8 @@ export const Settings = () => {
                     mqtt_topic_prefix: data.mqtt_topic_prefix?.value || prev.mqtt_topic_prefix,
                     ai_model: data.ai_model?.value || prev.ai_model,
                     ai_hardware: data.ai_hardware?.value || prev.ai_hardware,
-                    ai_enabled: data.ai_enabled?.value !== undefined ? data.ai_enabled.value === 'true' : prev.ai_enabled
+                    ai_enabled: data.ai_enabled?.value !== undefined ? data.ai_enabled.value === 'true' : prev.ai_enabled,
+                    go2rtc_enabled: data.go2rtc_enabled?.value !== undefined ? data.go2rtc_enabled.value === 'true' : prev.go2rtc_enabled
                 }));
             }
         } catch (err) {
@@ -283,7 +285,8 @@ export const Settings = () => {
                     mqtt_topic_prefix: globalSettings.mqtt_topic_prefix,
                     ai_model: globalSettings.ai_model,
                     ai_hardware: globalSettings.ai_hardware,
-                    ai_enabled: globalSettings.ai_enabled.toString()
+                    ai_enabled: globalSettings.ai_enabled.toString(),
+                    go2rtc_enabled: globalSettings.go2rtc_enabled.toString()
                 })
             });
             showToast('Settings saved successfully!', 'success');

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { CollapsibleSection } from '../../../components/ui/CollapsibleSection';
-import { SelectField } from '../../../components/ui/FormControls';
+import { SelectField, Toggle } from '../../../components/ui/FormControls';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '../../../components/LanguageSwitcher';
 
@@ -46,6 +46,15 @@ export const GeneralSettings = ({
                     ]}
                 />
                 
+                <div className="pt-2 border-t border-border/50">
+                    <Toggle
+                        label={t('settings_go2rtc.activation', 'Use go2rtc Gateway')}
+                        help={t('settings_go2rtc.activation_help', 'Route all cameras through the internal go2rtc gateway instead of connecting directly. Improves stability with flaky/cheap IP cameras (broken streams, slow handshakes, session limits) and lowers CPU. Toggling this restarts all camera streams.')}
+                        checked={globalSettings.go2rtc_enabled === true || globalSettings.go2rtc_enabled === "true"}
+                        onChange={(val) => setGlobalSettings({ ...globalSettings, go2rtc_enabled: val })}
+                    />
+                </div>
+
                 <div className="mt-4">
                     <LanguageSwitcher />
                 </div>

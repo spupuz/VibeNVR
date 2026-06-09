@@ -31,6 +31,19 @@ else
     log "Warning: download_models.py not found in current directory."
 fi
 
+# 1d. Start the go2rtc stream gateway in the background (restarting it if it
+# ever exits). It listens on 1984 (API) / 8554 (RTSP) inside the container
+# only and is used when the global "go2rtc_enabled" setting is on.
+if [ -x /usr/local/bin/go2rtc ]; then
+    (
+        while true; do
+            /usr/local/bin/go2rtc
+            log "go2rtc exited, restarting in 3s..."
+            sleep 3
+        done
+    ) &
+fi
+
 # 2. Start the engine and pipe through a sanitizing filter.
 # We use a named pipe (FIFO) to allow capturing the Python PID for signal trapping
 # while still filtering the output before it hits stdout/tee.

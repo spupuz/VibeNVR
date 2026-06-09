@@ -38,6 +38,20 @@ RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -
     apt-get install -y --no-install-recommends libedgetpu1-std && \
     rm -rf /var/lib/apt/lists/*
 
+# go2rtc stream gateway (single static binary, runs alongside the engine).
+# Listens on 1984 (API) / 8554 (RTSP) inside the container; nothing is exposed
+# on the host. Used only when the "go2rtc_enabled" setting is on.
+ARG GO2RTC_VERSION=1.9.14
+RUN arch="$(dpkg --print-architecture)" && \
+    case "$arch" in \
+      amd64|arm64|i386) go2rtc_arch="$arch" ;; \
+      armhf) go2rtc_arch="arm" ;; \
+      *) echo "Unsupported architecture for go2rtc: $arch" && exit 1 ;; \
+    esac && \
+    curl -fsSL -o /usr/local/bin/go2rtc \
+      "https://github.com/AlexxIT/go2rtc/releases/download/v${GO2RTC_VERSION}/go2rtc_linux_${go2rtc_arch}" && \
+    chmod +x /usr/local/bin/go2rtc
+
 WORKDIR /app
 
 # Install Python dependencies

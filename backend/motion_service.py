@@ -12,7 +12,22 @@ import logging
 # VibeEngine Control URL
 ENGINE_BASE_URL = "http://engine:8000"
 
+# go2rtc stream gateway. It runs inside the engine container (started by
+# engine/start.sh) and listens only on the internal docker network — no exposed
+# ports. When the global 'go2rtc_enabled' setting is on, the engine reads each
+# camera through go2rtc instead of talking to the camera directly. go2rtc
+# absorbs flaky-camera quirks (broken bitstreams, slow handshakes, session
+# limits). The engine consumes the restream over localhost within its own
+# container.
+GO2RTC_API_URL = "http://engine:1984"
+GO2RTC_RTSP_HOST = "127.0.0.1:8554"
+
 logger = logging.getLogger(__name__)
+
+
+def go2rtc_stream_name(camera_id) -> str:
+    """Stable go2rtc stream name for a camera (survives renames)."""
+    return f"cam_{camera_id}"
 
 # Global lock for camera synchronization
 sync_lock = threading.Lock()
@@ -65,7 +80,8 @@ def get_optimization_settings(db: Session) -> dict:
         "opt_verbose_engine_logs": False,
         "ai_enabled": False,
         "ai_model": "mobilenet_ssd_v2",
-        "ai_hardware": "auto"
+        "ai_hardware": "auto",
+        "go2rtc_enabled": False
     }
     
     try:
@@ -82,11 +98,11 @@ def get_optimization_settings(db: Session) -> dict:
                 except:
                     pass # Keep default if invalid
         
-        # Also fetch ai_enabled, ai_model and ai_hardware separately (not opt_ keys)
-        for key in ["ai_enabled", "ai_model", "ai_hardware"]:
+        # Also fetch ai_enabled, ai_model, ai_hardware and go2rtc_enabled separately (not opt_ keys)
+        for key in ["ai_enabled", "ai_model", "ai_hardware", "go2rtc_enabled"]:
             setting = db.query(SystemSettings).filter(SystemSettings.key == key).first()
             if setting:
-                if key == "ai_enabled":
+                if key in ("ai_enabled", "go2rtc_enabled"):
                     defaults[key] = setting.value.lower() == "true"
                 else:
                     defaults[key] = setting.value
@@ -149,7 +165,21 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
     # Inject Global Optimizations
     # These keys must match what engine/camera_thread.py expects
     config.update(opt_settings)
-    
+
+    # go2rtc routing: when enabled, the engine reads the camera through the
+    # internal go2rtc gateway instead of the camera directly. The real camera
+    # URL stays in the DB (and the UI) untouched — only the URL handed to the
+    # engine is rewritten to the go2rtc proxy. go2rtc itself is fed the real
+    # URLs via generate_go2rtc_config().
+    if opt_settings.get("go2rtc_enabled"):
+        stream = go2rtc_stream_name(cam.id)
+        config["rtsp_url"] = f"rtsp://{GO2RTC_RTSP_HOST}/{stream}"
+        # go2rtc republishes over TCP RTSP; force tcp for the engine hop.
+        config["rtsp_transport"] = "tcp"
+        # The proxied stream is already the single source; drop sub-stream
+        # routing so the engine doesn't try to reach the camera directly.
+        config["sub_rtsp_url"] = None
+
     return config
 
 def generate_motion_config(db: Session):
@@ -176,6 +206,10 @@ def generate_motion_config(db: Session):
 
     # Sync global config first
     sync_global_config(db)
+
+    # Register camera streams in go2rtc (real URLs) before the engine connects
+    # to the proxied streams. No-op when go2rtc is disabled.
+    generate_go2rtc_config(db)
 
     # Fetch global optimizations once
     opt_settings = get_optimization_settings(db)
@@ -248,6 +282,67 @@ def sync_global_config(db: Session):
         logger.error(f"Error syncing global config: {e}")
         return False
 
+def _go2rtc_put_stream(camera) -> bool:
+    """Register/update a single camera's REAL url as a go2rtc stream via its API.
+    Idempotent — go2rtc replaces the source if the stream name already exists."""
+    src = camera.rtsp_url
+    if not src:
+        return False
+    # #timeout=15 makes go2rtc auto-reconnect if the camera stops sending data.
+    src_with_opts = f"{src}#timeout=15"
+    name = go2rtc_stream_name(camera.id)
+    try:
+        # go2rtc's PUT /api/streams ADDS a source; calling it again for an
+        # existing (especially actively-consumed) stream returns 400 and leaves
+        # the old source in place. So we DELETE first (best-effort) to guarantee
+        # the source is replaced when a camera's URL is edited. DELETE on a
+        # non-existent stream is harmless (we ignore its result).
+        # Note: go2rtc also validates the source on PUT and returns 400 if the
+        # camera is unreachable at that moment — that's expected and just logged.
+        try:
+            requests.delete(f"{GO2RTC_API_URL}/api/streams", params={"name": name}, timeout=10)
+        except Exception:
+            pass
+        resp = requests.put(
+            f"{GO2RTC_API_URL}/api/streams",
+            params={"name": name, "src": src_with_opts},
+            timeout=10,
+        )
+        if resp.status_code in (200, 201):
+            return True
+        logger.error(f"go2rtc: failed to register stream {name}: {resp.status_code} {resp.text}")
+        return False
+    except Exception as e:
+        logger.error(f"go2rtc: error registering stream {name}: {e}")
+        return False
+
+
+def generate_go2rtc_config(db: Session):
+    """Push all active cameras' real RTSP URLs into go2rtc as named streams.
+    Called before syncing cameras to the engine so the proxied streams exist
+    before the engine connects to them. No-op if go2rtc is disabled."""
+    opt_settings = get_optimization_settings(db)
+    if not opt_settings.get("go2rtc_enabled"):
+        return
+
+    # Wait for go2rtc to be reachable (it may still be starting).
+    import time
+    for attempt in range(1, 7):
+        try:
+            requests.get(f"{GO2RTC_API_URL}/api/streams", timeout=3)
+            break
+        except Exception:
+            logger.info(f"Waiting for go2rtc gateway... (attempt {attempt})")
+            time.sleep(5)
+
+    cameras = db.query(Camera).filter(Camera.is_active == True).all()
+    ok = 0
+    for cam in cameras:
+        if _go2rtc_put_stream(cam):
+            ok += 1
+    logger.info(f"go2rtc: registered {ok}/{len(cameras)} camera streams")
+
+
 def stop_all_engines():
     """Stop all running camera threads in the engine"""
     try:
@@ -269,7 +364,15 @@ def update_camera_runtime(camera: Camera):
             opt_settings = get_optimization_settings(db)
     except Exception:
         pass # Fallback to defaults or nothing
-        
+
+    # Keep go2rtc's stream for this camera in sync with the (possibly edited) real URL.
+    # go2rtc won't replace a stream's source while it has an active consumer, so we
+    # stop the engine camera first (releases the consumer), re-register the source,
+    # then let the /start below reconnect. Brief recording gap on edit is acceptable.
+    if opt_settings.get("go2rtc_enabled"):
+        stop_camera(camera.id)
+        _go2rtc_put_stream(camera)
+
     config = camera_to_config(camera, opt_settings)
     try:
         resp = requests.post(f"{ENGINE_BASE_URL}/cameras/{camera.id}/start", json=config, timeout=20)
