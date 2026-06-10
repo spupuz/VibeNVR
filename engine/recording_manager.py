@@ -4,6 +4,7 @@ import time
 import logging
 import threading
 import queue
+import cv2
 from datetime import datetime
 from utils import mask_url
 
