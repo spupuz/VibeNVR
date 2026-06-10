@@ -132,6 +132,16 @@ class CameraManager:
                 else:
                     data["file_path"] = payload
 
+        elif event_type == "motion_on":
+            webhook_type = "motion_on"
+            if payload:
+                if isinstance(payload, dict):
+                    data["file_path"] = payload.get("file_path")
+                    data["source"] = payload.get("source")
+                    data["ai_metadata"] = payload.get("ai_metadata")
+                else:
+                    data["file_path"] = payload
+
         elif event_type == "motion_end":
             webhook_type = "motion_off"
 

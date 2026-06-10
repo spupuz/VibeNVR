@@ -173,6 +173,7 @@ class AIDetector:
             if pref_hw != 'cpu':
                 fallback_chain.append(('mobilenet_ssd_v2', 'tpu'))
             fallback_chain.append(('mobilenet_ssd_v2', 'cpu'))
+        else:
             if pref_hw != 'cpu':
                 fallback_chain.append(('mobilenet_ssd_v2', 'tpu'))
             fallback_chain.append(('mobilenet_ssd_v2', 'cpu'))
@@ -267,13 +268,14 @@ class AIDetector:
         if os.path.exists(labels_path):
             try:
                 with open(labels_path, 'r') as f:
-                    for line in f:
+                    for i, line in enumerate(f):
                         line = line.strip()
                         if not line: continue
                         pair = line.split(maxsplit=1)
                         if len(pair) == 2 and pair[0].isdigit():
                             self.labels[int(pair[0])] = pair[1]
-                            self.labels[len(self.labels)] = line
+                        else:
+                            self.labels[i] = line
             except Exception as e:
                 logger.warning(f"AI: Error reading labels {labels_path}: {e}")
         
@@ -281,7 +283,8 @@ class AIDetector:
             # Hardcoded fallbacks if file missing or empty
             if self.model_type == 'yolo_v8':
                 self.labels = {0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck', 16: 'dog', 15: 'cat'}
-                self.labels = {1: 'person', 2: 'bicycle', 3: 'car', 4: 'motorcycle', 6: 'bus', 8: 'truck', 18: 'dog', 17: 'cat'}
+            else:
+                self.labels = {0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck', 16: 'cat', 17: 'dog'}
 
     def _start_inference_thread(self):
         """Start a dedicated background thread that owns all interpreter.invoke() calls.

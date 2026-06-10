@@ -217,7 +217,7 @@ class CameraThread(threading.Thread):
                             self.last_ai_update_time = time.time()
                             self.last_external_motion_time = self.last_ai_update_time
                             self.motion_detector.last_motion_time = self.last_ai_update_time  # FIX: Ensure motion state persists
-                            hw_label = self.ai_detector.hardware.upper()
+                            hw_label = f"{self.ai_detector.hardware.upper()} - {self.ai_detector.model_type}"
                             self.last_external_motion_source = f"AI Engine [{hw_label}]"
                             # Sync with motion detector so handle_recording knows it's active
                             if not self.motion_detector.motion_detected:
@@ -266,7 +266,7 @@ class CameraThread(threading.Thread):
                     motion_gap = self.config.get('motion_gap', 10)
                     if self.motion_detector.motion_detected and (time.time() - self.motion_detector.last_motion_time > motion_gap):
                         self.motion_detector.motion_detected = False
-                        hw_label = self.ai_detector.hardware.upper()
+                        hw_label = f"{self.ai_detector.hardware.upper()} - {self.ai_detector.model_type}"
                         logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Motion END (AI Engine [{hw_label}])")
                         if self.event_callback:
                             self.event_callback(self.camera_id, 'motion_end')
