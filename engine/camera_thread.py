@@ -227,7 +227,16 @@ class CameraThread(threading.Thread):
                                 detected_items = ", ".join([f"{r.get('label')} ({r.get('confidence', 0)*100:.0f}%)" for r in ai_results])
                                 logger.info(f"[AI DETECT] Camera {self.config.get('name')} (ID: {self.camera_id}): Motion START. Found: {detected_items}")
                                 
-                                snap_path = self.save_snapshot(frame, is_temp=True)
+                                # Honor "Motion Triggered" picture mode the same way the
+                                # OpenCV path does (motion_detector.py): save a permanent
+                                # snapshot with the AI boxes drawn on it. Otherwise keep
+                                # the temporary snapshot used only for notifications.
+                                if self.config.get('picture_recording_mode', 'Manual') == 'Motion Triggered':
+                                    snap_frame = frame.copy()
+                                    self._draw_ai_boxes(snap_frame, ai_results)
+                                    snap_path = self.save_snapshot(snap_frame, is_temp=False)
+                                else:
+                                    snap_path = self.save_snapshot(frame, is_temp=True)
                                 if self.event_callback:
                                     self.event_callback(self.camera_id, 'motion_start', {
                                         'source': f'AI Engine [{hw_label}]', 
