@@ -1206,5 +1206,9 @@
   },
   "profile": {
     "display_language": "Anzeigesprache"
+  },
+  "settings_go2rtc": {
+    "activation": "Verwenden Sie das go2rtc-Gateway",
+    "activation_help": "Leiten Sie alle Kameras über das interne go2rtc-Gateway, anstatt eine direkte Verbindung herzustellen. Verbessert die Stabilität bei instabilen/billigen IP-Kameras (unterbrochene Streams, langsame Handshakes, Sitzungslimits) und senkt die CPU. Toggling this restarts all camera streams."
   }
 }

@@ -110,8 +110,9 @@ class StreamReader(threading.Thread):
                     time.sleep(2.0)
                     continue
 
+                connection_mode = "(via go2rtc proxy)" if "127.0.0.1" in target_url or "localhost" in target_url else "(Direct connection)"
                 safe_url = mask_url(target_url)
-                logger.info(f"StreamReader ({self.camera_name}): Connecting → {safe_url}")
+                logger.info(f"StreamReader ({self.camera_name}): Connecting {connection_mode} → {safe_url}")
 
                 try:
                     container = av.open(

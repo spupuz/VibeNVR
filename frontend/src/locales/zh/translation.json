@@ -1214,5 +1214,9 @@
   },
   "profile": {
     "display_language": "显示语言"
+  },
+  "settings_go2rtc": {
+    "activation": "使用go2rtc网关",
+    "activation_help": "通过内部 go2rtc 网关路由所有摄像机，而不是直接连接。提高不稳定/廉价 IP 摄像机的稳定性（数据流中断、握手缓慢、会话限制）并降低 CPU 性能。切换此选项会重新启动所有摄像机流。"
   }
 }

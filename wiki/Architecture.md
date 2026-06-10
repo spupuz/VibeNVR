@@ -19,7 +19,7 @@ The central logic hub powered by **FastAPI (Python)**.
 
 ### 3. VibeEngine (Custom Python Engine)
 The dedicated video processing service. This is the "heavy lifter" of the system:
-- **Stream Ingestion**: Uses **PyAV** (native FFmpeg bindings) for robust RTSP connection management and packet demuxing.
+- **Stream Ingestion**: Uses **PyAV** (native FFmpeg bindings) for robust RTSP connection management and packet demuxing. Optionally routes connections through an internal **go2rtc Gateway** (`127.0.0.1:8554`) to stabilize flaky consumer IP cameras and prevent IP bans.
 - **Image Processing**: Leverages **OpenCV (cv2)** for motion detection analysis, text overlays, and dynamic JPEG encoding for legacy previews.
 - **Modular Design**: The engine core is highly modularized (`stream_reader`, `motion_detector`, `recording_manager`, `mask_handler`, `overlay_handler`) for maximum stability.
 - **Security**: Communicates via internal Docker networks and requires a shared `WEBHOOK_SECRET` for backend interaction.

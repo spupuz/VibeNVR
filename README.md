@@ -45,7 +45,7 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | 🕙 **Timezone Synchronization** | Full ISO 8601 support ensures perfect timing between engine, backend, and UI. |
 | 📊 **Real-time Monitoring** | Native **WebCodecs H.264** low-latency WebSocket streaming, with selectable modes and adaptive JPEG polling fallback. |
 | 🔊 **Audio Recording & Live** | Support for **AAC audio recording** and high-performance G.711 live streaming via WebCodecs. |
-| 🛡️ **IP Ban Protection** | Automated `ffprobe` pre-flight checks and per-camera **RTSP Transport** selection (TCP/UDP). Support for **Secure RTSP (RSTSPS/RTSPS)** with automated certificate handling. |
+| 🛡️ **IP Ban Protection** | Automated `ffprobe` pre-flight checks and per-camera **RTSP Transport** selection (TCP/UDP). Support for **Secure RTSP (RSTSPS/RTSPS)** with automated certificate handling. **NEW**: Internal **go2rtc Gateway** to stabilize flaky streams and prevent IP bans. |
 | 🔀 **Dual-Stream Support** | Render ultra-lightweight UI grids using low-res sub-streams, while dedicating high-res main streams entirely to motion recording. |
 | 🔄 **Selective Settings** | Rapidly propagate Recording, Motion, or Alert settings across cameras or groups without overwriting unique hardware identities. |
 | 👯 **Camera Cloning** | Instant device provisioning via the 'Clone Settings' dropdown during initial camera creation. |

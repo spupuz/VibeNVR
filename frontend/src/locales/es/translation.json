@@ -1165,5 +1165,9 @@
   },
   "profile": {
     "display_language": "Idioma de visualización"
+  },
+  "settings_go2rtc": {
+    "activation": "Utilice la puerta de enlace go2rtc",
+    "activation_help": "Enrute todas las cámaras a través de la puerta de enlace interna go2rtc en lugar de conectarse directamente. Mejora la estabilidad con cámaras IP poco fiables o baratas (transmisiones interrumpidas, apretones de manos lentos, límites de sesión) y reduce la CPU. Al alternar esto se reinician todas las transmisiones de la cámara."
   }
 }

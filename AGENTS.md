@@ -190,6 +190,7 @@ To prevent cameras from banning the host IP due to rapid authentication retries 
 
 - **Rule**: A 401/403 result from `av.open` must enter a **5-minute backoff period**.
 - **Rule**: Connection refused/reset errors should trigger a longer backoff (60-300s).
+- **Rule**: If the internal **go2rtc Gateway** is enabled globally, the stream URL is dynamically rewritten by the Backend to point to `127.0.0.1:8554` to proxy the connection. The Engine logs this explicit proxy path.
 - **Rule**: If a Sub-Stream is configured, the system initializes an independent `sub_stream_reader`. The `CameraThread` prioritizes frames from the sub-stream for the UI grid view to optimize bandwidth.
 
 ```python

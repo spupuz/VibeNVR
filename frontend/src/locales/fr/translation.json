@@ -1210,5 +1210,9 @@
   },
   "profile": {
     "display_language": "Langue d'affichage"
+  },
+  "settings_go2rtc": {
+    "activation": "Utiliser la passerelle go2rtc",
+    "activation_help": "Acheminez toutes les caméras via la passerelle go2rtc interne au lieu de vous connecter directement. Améliore la stabilité avec les caméras IP fragiles/bon marché (flux interrompus, poignées de main lentes, limites de session) et réduit le processeur. Cette option redémarre tous les flux de caméra."
   }
 }

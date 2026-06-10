@@ -1206,5 +1206,9 @@
   },
   "profile": {
     "display_language": "Lingua di visualizzazione"
+  },
+  "settings_go2rtc": {
+    "activation": "Proxy di Rete (Gateway go2rtc)",
+    "activation_help": "Instrada tutte le telecamere attraverso il gateway go2rtc interno invece di collegarle direttamente. Migliora la stabilità con telecamere IP instabili/economiche (flussi interrotti, handshake lenti, limiti di sessione) e riduce la CPU. Attivando questa opzione si riavviano tutti i flussi della telecamera."
   }
 }

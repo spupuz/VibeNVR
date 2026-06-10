@@ -56,6 +56,19 @@ If you expose VibeNVR to the internet or your LAN via an **external reverse prox
 
 ---
 
+## 🎥 Internal Streaming Gateway (go2rtc)
+
+VibeNVR integrates an internal **go2rtc** gateway to handle flaky IP cameras and mitigate IP bans.
+
+- **Role:** When enabled globally in Settings, the Backend registers all active cameras with the internal go2rtc service.
+- **RTSP Proxy:** The Engine (VibeEngine) connects to the internal gateway (`127.0.0.1:8554`) instead of connecting directly to the camera hardware.
+- **Benefits:**
+  - Dramatically improves connection stability for cheap/battery cameras (e.g., Wyze, Tapo).
+  - Absorbs dropped packets and reconnects invisibly.
+  - Mitigates aggressive IP-banning behavior from consumer cameras if multiple clients try to connect simultaneously.
+
+---
+
 ## 🔒 Browser Security Headers
 
 VibeNVR includes standard browser security headers served by the internal Nginx frontend. These provide an extra layer of defense against common web vulnerabilities.

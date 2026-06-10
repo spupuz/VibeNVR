@@ -1209,5 +1209,9 @@
   },
   "profile": {
     "display_language": "Idioma de exibição"
+  },
+  "settings_go2rtc": {
+    "activation": "Use o gateway go2rtc",
+    "activation_help": "Roteie todas as câmeras através do gateway go2rtc interno em vez de conectar diretamente. Melhora a estabilidade com câmeras IP instáveis/baratas (streams interrompidos, handshakes lentos, limites de sessão) e reduz a CPU. Alternar isso reinicia todos os fluxos de câmera."
   }
 }
