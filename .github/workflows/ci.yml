@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend Lint & Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Lint
+        run: npm run lint
+        
+      - name: Build
+        run: npm run build
+
+  backend-e2e:
+    name: Backend & E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Setup npm for backend tests
+        run: npm install -g npm@latest
+        
+      - name: Install frontend dependencies for E2E
+        working-directory: frontend
+        run: npm ci
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Lint Backend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/Dockerfile
+          failure-threshold: error
+
+      - name: Lint Frontend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: frontend/Dockerfile
+          failure-threshold: error
+
+      - name: Lint Engine Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: engine/Dockerfile
+          failure-threshold: error
+
+      - name: Install Linting & Security Tools
+        run: pip install flake8 bandit requests mypy pytest
+
+      - name: Python Syntax & Undefined Names Check (Flake8)
+        run: |
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. Default configuration.
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Python Type Checking (mypy)
+        run: |
+          # Run mypy type checker (non-blocking for now to avoid false positives)
+          mypy backend/ engine/ --ignore-missing-imports || true
+
+      - name: Code Size Policy Check (AGENTS.md)
+        run: python3 .github/scripts/check_effective_loc.py
+
+      - name: Python Security Audit (Bandit)
+        run: |
+          # Run bandit on backend and engine, ignoring tests/scripts folders
+          bandit -r backend/ engine/ -x "**/scripts/**,**/tests/**,**/security_tests/**" -ll
+
+      - name: Install test dependencies
+        run: pip install requests
+        
+      - name: Prepare environment
+        run: cp .env.example .env
+        
+      - name: Build and Start Docker Stack
+        run: docker compose up -d --build
+        
+      - name: Wait for containers to be ready
+        run: |
+          echo "Waiting for containers to initialize..."
+          sleep 15
+          docker compose logs --tail=50
+          
+      - name: Run CI Basic Integration Tests
+        run: python3 .github/scripts/ci_integration_test.py
