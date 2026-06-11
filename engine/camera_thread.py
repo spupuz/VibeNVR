@@ -303,7 +303,7 @@ class CameraThread(threading.Thread):
                 draw_overlay(frame, self.config)
                 
                 # Recording Management
-                current_recording_start = getattr(self.recording_manager, 'recording_start_time', 0)
+                # current_recording_start = getattr(self.recording_manager, 'recording_start_time', 0)
                 trigger_source = self.last_external_motion_source if motion_active else None
                 self.recording_manager.handle_recording(
                     frame, motion_active, self.motion_detector.last_motion_time, self.stop_recording,
@@ -317,7 +317,7 @@ class CameraThread(threading.Thread):
                 if new_recording_start != getattr(self, '_last_recording_start', 0) and self.recording_manager.is_recording and not self.recording_manager.passthrough_active:
                     self._sw_recording_started_at = time.time()
                     self._last_recording_start = new_recording_start
-                    logger.info(f"[RECORD] SW encoding started — pausing TPU invoke() for 20s to allow libx264 startup burst to settle")
+                    logger.info("[RECORD] SW encoding started — pausing TPU invoke() for 20s to allow libx264 startup burst to settle")
                 
                 # Pre-capture buffer (Only if passthrough is disabled, as passthrough doesn't support pre-capture)
                 if not self.config.get('movie_passthrough', False):

@@ -33,7 +33,7 @@ def download_file(url, filename):
     with open(path, "wb") as f:
         for chunk in response.iter_content(chunk_size=8192):
             f.write(chunk)
-    logger.info(f"Done.")
+    logger.info("Done.")
 
 if __name__ == "__main__":
     os.makedirs(MODELS_DIR, exist_ok=True)

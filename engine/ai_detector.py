@@ -1,10 +1,9 @@
-import contextlib
+import contextlib  # noqa: F401
 import os
 import sys
 import time
 import logging
 import threading
-import contextlib
 import numpy as np
 import cv2
 from typing import List, Dict, Any
@@ -56,7 +55,7 @@ def _suppress_native_output():
         os.close(saved_stdout)
         os.close(saved_stderr)
 
-import contextlib
+import contextlib  # noqa: F401
 
 @contextlib.contextmanager
 def non_blocking_lock(lock):

@@ -1,13 +1,11 @@
-from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.responses import StreamingResponse
 import asyncio
 from pydantic import BaseModel, field_validator
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Any
 import logging
 import psutil
 import os
-import sys
-import re
 import time
 from utils import mask_url
 
@@ -242,7 +240,7 @@ def health_check():
 @app.post("/config")
 def update_config(config: dict):
     """Update global engine configuration from backend"""
-    global GLOBAL_CONFIG
+#    global GLOBAL_CONFIG
     logger.info(f"Updating global config: {config}")
     
     # Track what changed for AI
@@ -398,7 +396,7 @@ def _check_nvidia_usage():
             pid_list = [p.strip() for p in res.stdout.split('\n') if p.strip()]
             if my_pid in pid_list:
                 return True
-    except Exception as e:
+    except Exception:
         pass
     return False
 
@@ -499,7 +497,7 @@ def stop_all_cameras():
     return {"status": "all_stopped"}
 
 @app.put("/cameras/{camera_id}/config")
-def update_config(camera_id: int, config: CameraConfig):
+def update_camera_config(camera_id: int, config: CameraConfig):
     manager.update_camera(camera_id, config.model_dump())
     return {"status": "updated", "camera_id": camera_id}
 
@@ -589,7 +587,6 @@ def get_single_frame(camera_id: int, raw: bool = False):
 @app.get("/cameras/{camera_id}/stream")
 def get_stream(camera_id: int):
     def frame_generator():
-        import time
         wait_time = 0
         sleep_time = 0.05 # Default start value
         

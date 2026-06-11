@@ -19,6 +19,16 @@ START_TIME = time.time()
 RESOURCE_HISTORY = deque(maxlen=60)
 RESOURCE_HISTORY_LOCK = threading.Lock()
 
+def fetch_engine_stats():
+    """Helper to fetch stats from the engine."""
+    try:
+        engine_resp = requests.get("http://engine:8000/stats", timeout=2)
+        if engine_resp.status_code == 200:
+            return engine_resp.json()
+    except Exception:
+        pass
+    return None
+
 def collect_resource_stats(last_net_recv=None, last_net_sent=None, check_duration_sec=60):
     """Collect CPU/RAM/Net stats and store in history. Called every minute."""
     try:
@@ -32,16 +42,12 @@ def collect_resource_stats(last_net_recv=None, last_net_sent=None, check_duratio
         engine_mem_mb = 0
         engine_net_recv = 0
         engine_net_sent = 0
-        try:
-            engine_resp = requests.get("http://engine:8000/stats", timeout=2)
-            if engine_resp.status_code == 200:
-                engine_data = engine_resp.json()
-                engine_cpu = engine_data.get("cpu_percent", 0)
-                engine_mem_mb = engine_data.get("memory_mb", 0)
-                engine_net_recv = engine_data.get("network_recv", 0)
-                engine_net_sent = engine_data.get("network_sent", 0)
-        except:
-            pass
+        engine_data = fetch_engine_stats()
+        if engine_data:
+            engine_cpu = engine_data.get("cpu_percent", 0)
+            engine_mem_mb = engine_data.get("memory_mb", 0)
+            engine_net_recv = engine_data.get("network_recv", 0)
+            engine_net_sent = engine_data.get("network_sent", 0)
         
         # Network stats (Global system-wide = Backend + Engine)
         net_io = psutil.net_io_counters()
@@ -342,17 +348,12 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
     backend_mem_mb = backend_process.memory_info().rss / (1024 * 1024)
     
     # Engine stats (from its /stats endpoint)
-    engine_stats = None
+    engine_stats = fetch_engine_stats()
     engine_cpu = 0
     engine_mem_mb = 0
-    try:
-        engine_resp = requests.get("http://engine:8000/stats", timeout=2)
-        if engine_resp.status_code == 200:
-            engine_stats = engine_resp.json()
-            engine_cpu = engine_stats.get("cpu_percent", 0)
-            engine_mem_mb = engine_stats.get("memory_mb", 0)
-    except:
-        pass  # Engine unreachable
+    if engine_stats:
+        engine_cpu = engine_stats.get("cpu_percent", 0)
+        engine_mem_mb = engine_stats.get("memory_mb", 0)
 
     # Total app resources
     total_cpu = round(backend_cpu + engine_cpu, 1)
