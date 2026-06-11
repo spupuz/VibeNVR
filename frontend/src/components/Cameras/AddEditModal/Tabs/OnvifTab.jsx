@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { InputField, SectionHeader } from '../../../ui/FormControls';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useToast } from '../../../../contexts/ToastContext';
-import { Settings, ShieldCheck, ShieldAlert, Loader2, Crosshair } from 'lucide-react';
+import { Settings, ShieldCheck, ShieldAlert, Loader2, Crosshair, Wand2 } from 'lucide-react';
 import { Button } from '../../../ui/Button';
 import { parseRtspUrl } from '../../../../utils/cameraUtils';
 import { useTranslation } from 'react-i18next';
@@ -95,6 +95,47 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
         } finally {
             setProbingPort(false);
         }
+    };
+
+    // Inject user:pass@ into an RTSP URL that lacks credentials. ONVIF
+    // GetStreamUri usually returns URLs without usable credentials (Dahua omits
+    // them entirely; some cameras embed a path-only token), so we reuse the
+    // credentials already configured for this camera.
+    const injectCreds = (url, user, pass) => {
+        if (!url || !user) return url;
+        const m = url.match(/^([a-z0-9]+:\/\/)(.*)$/i);
+        if (!m || m[2].includes('@')) return url; // unparseable or already has creds
+        const cred = pass
+            ? `${encodeURIComponent(user)}:${encodeURIComponent(pass)}`
+            : encodeURIComponent(user);
+        return `${m[1]}${cred}@${m[2]}`;
+    };
+
+    // Auto-fill the main + sub RTSP URLs from the detected ONVIF profiles.
+    // Convention across cameras: first profile = main (highest res), second = sub.
+    const handleUseStreams = () => {
+        const profiles = probeResult?.profiles || [];
+        if (profiles.length === 0) return;
+
+        // Credentials: prefer the ones already in the main RTSP URL, else ONVIF login.
+        const existing = parseRtspUrl(newCamera.rtsp_url);
+        const user = existing.user || newCamera.onvif_username || '';
+        const pass = existing.pass || newCamera.onvif_password || '';
+
+        const mainUrl = injectCreds(profiles[0].url, user, pass);
+        const subUrl = profiles.length > 1 ? injectCreds(profiles[1].url, user, pass) : null;
+
+        setNewCamera(prev => ({
+            ...prev,
+            rtsp_url: mainUrl,
+            ...(subUrl ? { sub_rtsp_url: subUrl } : {})
+        }));
+        showToast(
+            subUrl
+                ? t('cameras.streams_filled_both', 'Filled main and sub-stream from ONVIF')
+                : t('cameras.streams_filled_main', 'Filled main stream from ONVIF'),
+            'success'
+        );
     };
 
     const handleProbe = async () => {
@@ -330,12 +371,24 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
 
                     {probeResult?.profiles?.length > 0 && (
                         <div className="p-4 bg-muted/20 rounded-lg border border-border">
-                            <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">{t('cameras.detected_stream_profiles', 'Detected Stream Profiles')}</h5>
+                            <div className="flex items-center justify-between mb-3 gap-2">
+                                <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground m-0">{t('cameras.detected_stream_profiles', 'Detected Stream Profiles')}</h5>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleUseStreams}
+                                    className="h-7 px-2.5 text-[11px] shrink-0"
+                                    title={t('cameras.use_streams_help', 'Fill the main and sub-stream URLs from these profiles (credentials are reused from the current URL)')}
+                                >
+                                    <Wand2 className="w-3.5 h-3.5 mr-1.5" />
+                                    {t('cameras.use_these_streams', 'Use these streams')}
+                                </Button>
+                            </div>
                             <div className="space-y-2">
                                 {probeResult.profiles.map((profile, idx) => (
                                     <div key={idx} className="flex flex-col gap-1 p-2 bg-background/50 rounded border border-border/50">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-[10px] font-bold">{profile.name}</span>
+                                            <span className="text-[10px] font-bold">{profile.name}{idx === 0 ? ` · ${t('cameras.main_label', 'main')}` : idx === 1 ? ` · ${t('cameras.sub_label', 'sub')}` : ''}</span>
                                             <span className="text-[9px] text-muted-foreground opacity-50 font-mono">{profile.token}</span>
                                         </div>
                                         <div className="text-[9px] text-muted-foreground truncate font-mono bg-muted/30 p-1 rounded">
