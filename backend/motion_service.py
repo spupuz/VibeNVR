@@ -29,6 +29,13 @@ def go2rtc_stream_name(camera_id) -> str:
     """Stable go2rtc stream name for a camera (survives renames)."""
     return f"cam_{camera_id}"
 
+
+def go2rtc_substream_name(camera_id) -> str:
+    """Stable go2rtc stream name for a camera's low-res sub-stream.
+    Registered separately so the engine can read it for AI inference while
+    recording/live still use the full-resolution main stream."""
+    return f"cam_{camera_id}_sub"
+
 # Global lock for camera synchronization
 sync_lock = threading.Lock()
 
@@ -176,9 +183,17 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
         config["rtsp_url"] = f"rtsp://{GO2RTC_RTSP_HOST}/{stream}"
         # go2rtc republishes over TCP RTSP; force tcp for the engine hop.
         config["rtsp_transport"] = "tcp"
-        # The proxied stream is already the single source; drop sub-stream
-        # routing so the engine doesn't try to reach the camera directly.
-        config["sub_rtsp_url"] = None
+        # If the camera has a sub-stream, route it through go2rtc too (as a
+        # separate proxied stream) so the engine keeps reading the low-res
+        # sub-stream for AI inference instead of the camera directly. The
+        # engine never reaches the camera — both hops stay inside go2rtc.
+        # Without a sub-stream there is nothing to proxy, so drop it.
+        if cam.sub_rtsp_url and cam.sub_rtsp_url.strip():
+            sub_stream = go2rtc_substream_name(cam.id)
+            config["sub_rtsp_url"] = f"rtsp://{GO2RTC_RTSP_HOST}/{sub_stream}"
+            config["sub_rtsp_transport"] = "tcp"
+        else:
+            config["sub_rtsp_url"] = None
 
     return config
 
@@ -282,15 +297,11 @@ def sync_global_config(db: Session):
         logger.error(f"Error syncing global config: {e}")
         return False
 
-def _go2rtc_put_stream(camera) -> bool:
-    """Register/update a single camera's REAL url as a go2rtc stream via its API.
+def _go2rtc_put_one(name: str, src: str) -> bool:
+    """Register/update a single named go2rtc stream from a source URL.
     Idempotent — go2rtc replaces the source if the stream name already exists."""
-    src = camera.rtsp_url
-    if not src:
-        return False
-    # #timeout=15 makes go2rtc auto-reconnect if the camera stops sending data.
+    # #timeout=15 makes go2rtc auto-reconnect if the source stops sending data.
     src_with_opts = f"{src}#timeout=15"
-    name = go2rtc_stream_name(camera.id)
     try:
         # go2rtc's PUT /api/streams ADDS a source; calling it again for an
         # existing (especially actively-consumed) stream returns 400 and leaves
@@ -315,6 +326,18 @@ def _go2rtc_put_stream(camera) -> bool:
     except Exception as e:
         logger.error(f"go2rtc: error registering stream {name}: {e}")
         return False
+
+
+def _go2rtc_put_stream(camera) -> bool:
+    """Register a camera's main stream — and its sub-stream, if any — in go2rtc.
+    The sub-stream is published under a separate name so the engine can consume
+    it for AI inference while the main stream serves recording and live view."""
+    if not camera.rtsp_url:
+        return False
+    ok = _go2rtc_put_one(go2rtc_stream_name(camera.id), camera.rtsp_url)
+    if camera.sub_rtsp_url and camera.sub_rtsp_url.strip():
+        _go2rtc_put_one(go2rtc_substream_name(camera.id), camera.sub_rtsp_url.strip())
+    return ok
 
 
 def generate_go2rtc_config(db: Session):

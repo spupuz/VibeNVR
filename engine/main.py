@@ -205,6 +205,7 @@ class CameraConfig(BaseModel):
     detect_motion_mode: str = "Always"
     detect_engine: str = "OpenCV"
     rtsp_transport: str = "tcp"
+    sub_rtsp_url: Optional[str] = None
     sub_rtsp_transport: str = "tcp"
     live_view_mode: str = "auto"
     audio_enabled: bool = False
