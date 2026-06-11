@@ -2,7 +2,6 @@ import paho.mqtt.client as mqtt
 import json
 import logging
 import threading
-import time
 
 logger = logging.getLogger("MQTTService")
 
