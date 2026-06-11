@@ -242,7 +242,7 @@ def health_check():
 @app.post("/config")
 def update_config(config: dict):
     """Update global engine configuration from backend"""
-    global GLOBAL_CONFIG
+#    global GLOBAL_CONFIG
     logger.info(f"Updating global config: {config}")
     
     # Track what changed for AI
