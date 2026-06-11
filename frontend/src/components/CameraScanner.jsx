@@ -14,7 +14,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
     const [isScanning, setIsScanning] = useState(false);
     const [results, setResults] = useState([]);
     const [probingDevice, setProbingDevice] = useState(null);
-    const [isDeepScanning, setIsDeepScanning] = useState(false);
+
     const [credentials, setCredentials] = useState({ user: 'admin', password: '' });
     const [scannerCredentials, setScannerCredentials] = useState({ user: 'admin', password: '' });
     const [deepScanningIps, setDeepScanningIps] = useState(new Set());
@@ -137,7 +137,6 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
     };
 
     const handleDeepScan = async (device) => {
-        setIsDeepScanning(true);
         showToast(`Scanning extended ports for ${device.ip}...`, "info");
         try {
             const response = await fetch('/api/onvif/deep-scan', {
@@ -175,8 +174,6 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
         } catch (err) {
             showToast("Deep scan failed: " + err.message, "error");
             setResults(prev => prev.map(d => d.ip === device.ip ? { ...d, deepScanDone: true } : d));
-        } finally {
-            setIsDeepScanning(false);
         }
     };
 
@@ -216,7 +213,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                 // If the error response is JSON, extract the detail
                 const errorObj = JSON.parse(err.message);
                 if (errorObj.detail) msg = errorObj.detail;
-            } catch (e) { }
+            } catch (_e) { /* ignore */ }
 
             showToast("Probe failed: " + msg, "error");
             setProbingDevice(prev => ({ ...prev, step: 'credentials' }));

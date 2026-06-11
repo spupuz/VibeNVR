@@ -124,7 +124,7 @@ export const GeneralTab = ({ newCamera, setNewCamera, storageProfiles }) => {
                     icon={newCamera.sub_rtsp_url?.startsWith('rstsps') || newCamera.sub_rtsp_url?.startsWith('rtsps') ? Shield : null}
                     onChange={(val) => {
                         if (val.includes('://') && val.includes('@')) {
-                            const { user, pass, host, protocol } = parseRtspUrl(val);
+                            const { user, pass } = parseRtspUrl(val);
                             setNewCamera({ 
                                 ...newCamera, 
                                 rtsp_username: user, 

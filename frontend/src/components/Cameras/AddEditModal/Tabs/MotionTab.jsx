@@ -17,7 +17,7 @@ export const MotionTab = ({ newCamera, setNewCamera, setActiveTab, globalSetting
                 ? JSON.parse(newCamera.privacy_masks)
                 : newCamera.privacy_masks;
             return Array.isArray(masks) && masks.length > 0;
-        } catch (e) {
+        } catch (_e) {
             return false;
         }
     })();

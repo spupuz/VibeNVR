@@ -86,7 +86,6 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
     const audioCtxRef = useRef(null);
     const audioStartTimeRef = useRef(0);
     const isAuditingRef = useRef(isAuditing); // Use ref to avoid stale closure in WS handler
-    const [isMuted, setIsMuted] = useState(true);
 
     // Sync ref with prop
     useEffect(() => {

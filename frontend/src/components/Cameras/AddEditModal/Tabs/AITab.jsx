@@ -26,7 +26,7 @@ export const AITab = ({ newCamera, setNewCamera, globalSettings }) => {
     React.useEffect(() => {
         let current = newCamera.ai_object_types;
         if (typeof current === 'string') {
-            try { current = JSON.parse(current); } catch (e) { current = []; }
+            try { current = JSON.parse(current); } catch (_e) { current = []; }
         }
         if (Array.isArray(current)) {
             const sanitized = current.filter(l => validObjectIds.includes(l));
@@ -43,7 +43,7 @@ export const AITab = ({ newCamera, setNewCamera, globalSettings }) => {
         if (typeof current === 'string') {
             try {
                 current = JSON.parse(current);
-            } catch (e) {
+            } catch (_e) {
                 current = [];
             }
         }
