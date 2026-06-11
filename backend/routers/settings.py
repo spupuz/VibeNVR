@@ -634,7 +634,7 @@ def sync_orphan_recordings(
     Runs in background.
     """
     import time
-    global _last_orphan_sync_time, _sync_state
+    global _last_orphan_sync_time
     
     # Rate limit: 5 minutes between runs
     if _last_orphan_sync_time:
@@ -661,7 +661,6 @@ def sync_orphan_recordings(
     _sync_state["completed_at"] = None
     
     def run_sync_task():
-        global _sync_state
         try:
             import sync_recordings
             print(f"[Admin] User {current_user.username} triggered orphan sync (Background Task Started)", flush=True)

@@ -7,6 +7,7 @@ from onvif import ONVIFCamera
 import zeep
 from zeep.transports import Transport
 from requests import Session
+import models
 
 logger = logging.getLogger("VibeOnvif")
 logger.setLevel(logging.DEBUG)
