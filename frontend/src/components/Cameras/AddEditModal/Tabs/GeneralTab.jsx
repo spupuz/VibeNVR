@@ -123,6 +123,10 @@ export const GeneralTab = ({ newCamera, setNewCamera, storageProfiles }) => {
                     })()}
                     icon={newCamera.sub_rtsp_url?.startsWith('rstsps') || newCamera.sub_rtsp_url?.startsWith('rtsps') ? Shield : null}
                     onChange={(val) => {
+                        if (!val || val.trim() === '') {
+                            setNewCamera({ ...newCamera, sub_rtsp_url: '' });
+                            return;
+                        }
                         if (val.includes('://') && val.includes('@')) {
                             const { user, pass } = parseRtspUrl(val);
                             setNewCamera({ 

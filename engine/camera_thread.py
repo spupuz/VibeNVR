@@ -545,6 +545,8 @@ class CameraThread(threading.Thread):
         old_passthrough = self.config.get('movie_passthrough', False)
         old_masks = (self.config.get('privacy_masks', '[]'), self.config.get('motion_masks', '[]'))
         old_engine = self.config.get('detect_engine', 'OpenCV')
+        old_rtsp_url = self.config.get('rtsp_url')
+        old_sub_rtsp_url = self.config.get('sub_rtsp_url')
         
         self.config.update(new_config)
         self.motion_detector.config = self.config
@@ -562,8 +564,6 @@ class CameraThread(threading.Thread):
         if old_masks != (self.config.get('privacy_masks', '[]'), self.config.get('motion_masks', '[]')):
             self._update_masks()
         
-        old_rtsp_url = self.config.get('rtsp_url')
-        old_sub_rtsp_url = self.config.get('sub_rtsp_url')
         
         if 'movie_passthrough' in new_config and old_passthrough != new_config['movie_passthrough']:
             if self.recording_manager.is_recording and self.recording_manager.passthrough_active:

@@ -22,6 +22,8 @@ class TestNotificationConfig(BaseModel):
                     if not parsed.scheme or not parsed.netloc:
                         raise ValueError('Invalid URL format')
                     host = parsed.hostname
+                    if not host:
+                        raise ValueError('Invalid URL format: missing host')
                     try:
                         ip_addr = ipaddress.ip_address(host)
                     except ValueError:
@@ -361,6 +363,11 @@ class CameraBase(BaseModel):
                 raise ValueError('URL must start with rtsp://, rtsps://, http://, or https://')
             if 'localhost' in v_lower or '127.0.0.1' in v_lower or '::1' in v_lower:
                 raise ValueError('Localhost access is not allowed')
+                
+            from urllib.parse import urlparse
+            parsed = urlparse(v)
+            if not parsed.hostname:
+                raise ValueError('Invalid URL format: missing host')
         return v
 
     @field_validator('notify_webhook_url')

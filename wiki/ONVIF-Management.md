@@ -9,7 +9,7 @@ VibeNVR supports advanced camera management via the **ONVIF (Open Network Video 
 - **Real-time PTZ**: Control Pan, Tilt, Zoom, and **Home Positions** directly from the Live View.
 - **ONVIF Edge Motion**: Offload detection logic to camera hardware to save server resources.
 - **Advanced PTZ Home**: Native support for `SetHomePosition` and `GotoHomePosition` with intelligent software fallbacks for restrictive hardware.
-- **Probing**: Automatically discover camera details (Manufacturer, Model, RTSP profiles, and hardware capabilities) as visual badges.
+- **Probing & Auto-Completion**: Automatically discover camera details (Manufacturer, Model, and hardware capabilities) as visual badges. Instantly discover all available **RTSP Stream Profiles** and auto-fill your Main and Sub-stream configurations with a single click.
 - **Credential Fallback**: Automatically attempts to use RTSP streaming credentials if management credentials are not explicitly set.
 - **Network Discovery**: Securely scan your local network for ONVIF and RTSP devices using an optimized SSE (Server-Sent Events) stream.
 
@@ -71,6 +71,19 @@ VibeNVR does not simply "guess" if your camera supports PTZ based on the presenc
 5.  **Exit**: Click the **X** in the top-right of the overlay or toggle the Move icon again to hide the controls.
 
 ---
+
+## 🚀 Stream Auto-Completion
+
+VibeNVR significantly simplifies the process of configuring camera streams by integrating directly with the ONVIF media service.
+
+1.  Navigate to the **ONVIF** tab in the camera settings modal.
+2.  Click **"Test ONVIF Connection"**.
+3.  Once the connection is verified, scroll down to the **"Detected Stream Profiles"** section.
+4.  The system will list all available streaming profiles provided by the camera (e.g., `mainStream`, `minorStream`, `profile1`).
+5.  Click the **"Use these streams"** button next to a profile to instantly auto-fill the RTSP URL fields in the **General** tab.
+
+> [!TIP]
+> If your camera requires credentials for the RTSP stream, VibeNVR will automatically construct the complete URL using the username and password you provided in the ONVIF or General tab, ensuring a ready-to-use stream.
 
 ## 🛡️ Security & Privacy
 
