@@ -64,11 +64,13 @@ export const AuthProvider = ({ children }) => {
                 credentials: 'include'
             });
             if (res.ok) {
+                if (res.status === 204) {
+                    return; // No session, expected state, do nothing.
+                }
                 const { user: userData, access_token } = await res.json();
                 setUser(userData);
                 setToken(access_token);
             }
-            // 401 = no valid cookie, user needs to log in — that's expected, no error
         } catch (err) {
             console.error("Cookie bootstrap failed", err);
         }

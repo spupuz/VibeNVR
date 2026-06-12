@@ -312,8 +312,16 @@ async def me_from_cookie(request: Request, response: Response, db: Session = Dep
     """
     token = request.cookies.get("auth_token")
     if not token:
-        raise HTTPException(status_code=401, detail="No session cookie")
-    user = await auth_service.get_user_from_token(token, db)
+        # Return 204 No Content to avoid browser console 401 errors for expected unauthenticated state
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+        
+    try:
+        user = await auth_service.get_user_from_token(token, db)
+    except HTTPException:
+        # Token is invalid or expired
+        response.delete_cookie("auth_token", path="/")
+        response.delete_cookie("media_token", path="/")
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     # Always re-set media_token so it is present regardless of how the session
     # was originally established (e.g. previous HTTPS login, or expired cookie).
