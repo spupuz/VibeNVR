@@ -59,7 +59,7 @@ def test_path_traversal():
     try:
         # Note: If the route is not defined, we might get a 404, which is also fine.
         # But if there's a file reading endpoint (like logs or avatars), we test that.
-        res = requests.get(f"{BASE_URL}/api/logs?file=../../../etc/passwd", timeout=5)
+        res = requests.get(f"{BASE_URL}/api/logs/?file=../../../etc/passwd", timeout=5, allow_redirects=False)
         # It should NOT be a 200 with the file contents.
         if res.status_code in (400, 401, 403, 404, 422):
             print(f"  [OK] Path traversal blocked (Status: {res.status_code}).")
