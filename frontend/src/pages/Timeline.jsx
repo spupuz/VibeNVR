@@ -23,9 +23,11 @@ export const Timeline = () => {
     const [cameraMap, setCameraMap] = useState({});
     const [searchParams, setSearchParams] = useSearchParams();
     const [cameras, setCameras] = useState([]);
-    const [selectedCameraFilter, setSelectedCameraFilter] = useState('all');
+    // Initialize the filter dropdowns from the URL so navigating in from Live
+    // View (/timeline?camera=<id>&type=video) shows the right selection on mount.
+    const [selectedCameraFilter, setSelectedCameraFilter] = useState(searchParams.get('camera') || 'all');
     const [selectedHour, setSelectedHour] = useState(null);
-    const [selectedTypeFilter, setSelectedTypeFilter] = useState('all');
+    const [selectedTypeFilter, setSelectedTypeFilter] = useState(searchParams.get('type') || 'all');
     const [selectedObjectFilter, setSelectedObjectFilter] = useState('all');
     const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA'));
     const { showToast } = useToast();
@@ -60,16 +62,6 @@ export const Timeline = () => {
     useEffect(() => {
         if (urlDate) setSelectedDate(urlDate);
     }, [urlDate]);
-
-    // Keep the filter dropdowns in sync with the URL (e.g. when navigating
-    // from Live View via /timeline?camera=<id>&type=video)
-    useEffect(() => {
-        setSelectedCameraFilter(cameraId || 'all');
-    }, [cameraId]);
-
-    useEffect(() => {
-        setSelectedTypeFilter(type || 'all');
-    }, [type]);
 
     const fetchEvents = useCallback(() => {
         let url = `${API_BASE}/events`;
