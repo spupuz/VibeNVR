@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Video, Image as ImageIcon, Download, Trash2, Camera, HardDrive, Brain } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -15,6 +16,7 @@ import { useAuth } from '../../contexts/AuthContext';
  * @param {Function} props.onDelete - Handler for single event deletion
  */
 export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected, onToggleSelect, getMediaUrl, onDelete }) => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const [imgError, setImgError] = useState(false);
     const time = new Date(event.timestamp_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -79,7 +81,8 @@ export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected,
                         download
                         onClick={(e) => e.stopPropagation()}
                         className="p-1 bg-black/50 hover:bg-black/70 text-white rounded backdrop-blur-sm transition-colors"
-                        title="Download"
+                        title={t('timeline.download', 'Download')}
+                        aria-label={t('timeline.download', 'Download')}
                     >
                         <Download className="w-3 h-3" />
                     </a>
@@ -92,7 +95,8 @@ export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected,
                                 onDelete(event.id);
                             }}
                             className="p-1 bg-black/50 hover:bg-red-500/80 text-white rounded backdrop-blur-sm transition-colors"
-                            title="Delete"
+                            title={t('timeline.delete', 'Delete')}
+                            aria-label={t('timeline.delete', 'Delete')}
                         >
                             <Trash2 className="w-3 h-3" />
                         </button>

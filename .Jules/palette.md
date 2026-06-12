@@ -1,3 +1,3 @@
-## 2025-02-23 - Accessibility Issues
-**Learning:** Found several buttons in 'frontend/src/components/StorageProfileManager.jsx' and 'frontend/src/components/CameraScanner.jsx' that only contain icons and no `aria-label`. These include buttons for editing, deleting, or cancelling operations.
-**Action:** Always include `aria-label` for icon-only buttons to ensure they are accessible to screen reader users.
+## 2024-06-12 - Added ARIA labels to Timeline Event Preview and Card
+**Learning:** Icon-only buttons without `aria-label` or `title` attributes are prevalent, specifically missing translations and accessibility hints. Found missing localizations in `EventCard.jsx` which required adding `useTranslation` hook.
+**Action:** When working on components featuring unlabelled buttons/links, especially those that only render an icon, remember to use the `useTranslation` hook to provide a localized accessible name (`aria-label`) and tooltip (`title`).
