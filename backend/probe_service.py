@@ -5,6 +5,26 @@ from utils import mask_url
 
 logger = logging.getLogger(__name__)
 
+def _parse_probe_output(stdout: str):
+    """
+    Parses the JSON output from ffprobe to extract stream resolution.
+    """
+    data = json.loads(stdout)
+    streams = data.get("streams", [])
+    if not streams:
+        logger.error("No streams found in ffprobe output")
+        return None
+
+    stream = streams[0]
+    width = stream.get("width")
+    height = stream.get("height")
+
+    if width and height:
+        return {"width": int(width), "height": int(height)}
+    else:
+        logger.error(f"Could not find width/height in stream info: {stream}")
+        return None
+
 def probe_stream(rtsp_url: str, rtsp_transport: str = "tcp"):
     """
     Probes the RTSP stream using ffprobe to detect resolution.
@@ -40,21 +60,7 @@ def probe_stream(rtsp_url: str, rtsp_transport: str = "tcp"):
             logger.error(f"ffprobe failed: {masked_stderr}")
             return None
 
-        data = json.loads(result.stdout)
-        streams = data.get("streams", [])
-        if not streams:
-            logger.error("No streams found in ffprobe output")
-            return None
-
-        stream = streams[0]
-        width = stream.get("width")
-        height = stream.get("height")
-
-        if width and height:
-            return {"width": int(width), "height": int(height)}
-        else:
-            logger.error(f"Could not find width/height in stream info: {stream}")
-            return None
+        return _parse_probe_output(result.stdout)
 
     except subprocess.TimeoutExpired:
         logger.error("ffprobe timed out")
