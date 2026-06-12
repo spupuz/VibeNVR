@@ -29,7 +29,7 @@ def wait_for_service(name, url, timeout=10, retries=6):
 def test_backend_auth():
     print("[*] Testing API Auth Security (/api/cameras)...")
     try:
-        res = requests.get(f"{BACKEND_URL}/api/cameras", timeout=5)
+        res = requests.get(f"{BASE_URL}/api/cameras", timeout=5)
         if res.status_code == 401:
             print("  [OK] Unauthenticated access blocked as expected (401).")
             return True
@@ -43,7 +43,7 @@ def test_backend_auth():
 def test_login_security():
     print("[*] Testing Login Security with bad credentials...")
     try:
-        res = requests.post(f"{BACKEND_URL}/api/auth/login", data={"username": "admin", "password": "wrong_password_123"}, timeout=5)
+        res = requests.post(f"{BASE_URL}/api/auth/login", data={"username": "admin", "password": "wrong_password_123"}, timeout=5)
         if res.status_code in (401, 400):
             print("  [OK] Bad credentials rejected (401/400).")
             return True
@@ -59,7 +59,7 @@ def test_path_traversal():
     try:
         # Note: If the route is not defined, we might get a 404, which is also fine.
         # But if there's a file reading endpoint (like logs or avatars), we test that.
-        res = requests.get(f"{BACKEND_URL}/api/logs?file=../../../etc/passwd", timeout=5)
+        res = requests.get(f"{BASE_URL}/api/logs?file=../../../etc/passwd", timeout=5)
         # It should NOT be a 200 with the file contents.
         if res.status_code in (400, 401, 403, 404, 422):
             print(f"  [OK] Path traversal blocked (Status: {res.status_code}).")
