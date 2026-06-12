@@ -1,7 +1,7 @@
 {
   "name": "vibenvr-frontend",
   "private": true,
-  "version": "1.30.3",
+  "version": "1.30.4",
   "type": "module",
   "license": "MIT",
   "scripts": {
