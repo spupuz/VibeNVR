@@ -189,10 +189,10 @@ export const StorageProfileManager = () => {
                             {p.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{p.description}</p>}
                         </div>
                         <div className="flex items-center gap-1 sm:opacity-0 group-hover:opacity-100 transition-opacity self-end sm:self-auto">
-                            <Button variant="ghost" size="sm" onClick={() => handleEdit(p)} className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
+                            <Button variant="ghost" size="sm" onClick={() => handleEdit(p)} className="h-8 w-8 p-0 text-muted-foreground hover:text-primary" title={t('actions.edit', 'Edit')} aria-label={t('actions.edit', 'Edit')}>
                                 <Edit className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="h-8 w-8 p-0 text-red-400 hover:text-red-500 hover:bg-red-50">
+                            <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="h-8 w-8 p-0 text-red-400 hover:text-red-500 hover:bg-red-50" title={t('actions.delete', 'Delete')} aria-label={t('actions.delete', 'Delete')}>
                                 <Trash2 className="w-4 h-4" />
                             </Button>
                         </div>
