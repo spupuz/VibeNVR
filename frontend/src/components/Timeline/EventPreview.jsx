@@ -94,6 +94,8 @@ export const EventPreview = ({
                         <button
                             onClick={() => setSelectedEvent(null)}
                             className="p-1 hover:bg-accent rounded-lg text-muted-foreground transition-colors"
+                            title={t('common.close', 'Close')}
+                            aria-label={t('common.close', 'Close')}
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -201,6 +203,8 @@ export const EventPreview = ({
                         href={`/api/events/${selectedEvent.id}/download`}
                         download
                         className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                        title={t('timeline.download', 'Download')}
+                        aria-label={t('timeline.download', 'Download')}
                     >
                         <Download className="w-4 h-4" />
                     </a>
@@ -208,6 +212,8 @@ export const EventPreview = ({
                         <button
                             onClick={() => handleDelete(selectedEvent.id)}
                             className="p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-lg transition-colors"
+                            title={t('timeline.delete', 'Delete')}
+                            aria-label={t('timeline.delete', 'Delete')}
                         >
                             <Trash2 className="w-4 h-4" />
                         </button>
