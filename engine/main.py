@@ -428,14 +428,10 @@ def _check_dri_usage():
         pass
     return False
 
-def _get_hw_accel_status(accel_type):
-    """Return HW accel status: 'disabled', 'ready', 'active', 'error', or 'unsupported_backend'"""
-    if not os.environ.get("HW_ACCEL", "false").lower() == "true":
-        return "disabled"
-    
-    accel_type = accel_type.lower()
-    
-    # 1. Check if device/driver exists
+def _check_device_exists(accel_type):
+    """Check if the hardware acceleration device exists and is supported.
+    Returns: 'ok', 'error', or 'unsupported_backend'.
+    """
     device_exists = False
     
     if accel_type in ["intel", "amd", "vaapi", "auto"]:
@@ -465,6 +461,20 @@ def _get_hw_accel_status(accel_type):
     if not device_exists:
         logger.warning(f"HW Accel: Device not found for type '{accel_type}'")
         return "error"
+
+    return "ok"
+
+def _get_hw_accel_status(accel_type):
+    """Return HW accel status: 'disabled', 'ready', 'active', 'error', or 'unsupported_backend'"""
+    if not os.environ.get("HW_ACCEL", "false").lower() == "true":
+        return "disabled"
+
+    accel_type = accel_type.lower()
+
+    # 1. Check if device/driver exists
+    status = _check_device_exists(accel_type)
+    if status != "ok":
+        return status
     
     # 2. Check if actively in use (file descriptors)
     actively_used = False
