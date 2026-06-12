@@ -38,6 +38,7 @@ class CameraThread(threading.Thread):
             primary_url = sub_url
             primary_transport = self.config.get('sub_rtsp_transport', 'tcp')
             secondary_url = None # We don't need a second reader since the primary is already low-res
+            logger.info(f"Camera {self.config.get('name', str(camera_id))} (ID: {self.camera_id}): Using Sub-Stream for Engine Processing (Passthrough active)")
         else:
             primary_url = main_url
             primary_transport = self.config.get('rtsp_transport', 'tcp')
@@ -582,6 +583,7 @@ class CameraThread(threading.Thread):
             if new_sub_rtsp_url and isinstance(new_sub_rtsp_url, str) and new_sub_rtsp_url.strip() and new_passthrough:
                 primary_url = new_sub_rtsp_url
                 secondary_url = None
+                logger.info(f"Camera {self.config.get('name', str(self.camera_id))} (ID: {self.camera_id}): Switching to Sub-Stream for Engine Processing")
             else:
                 primary_url = new_rtsp_url
                 secondary_url = new_sub_rtsp_url
