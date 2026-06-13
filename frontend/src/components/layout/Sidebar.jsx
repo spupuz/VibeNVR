@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     <button
         onClick={onClick}
+        aria-current={active ? 'page' : undefined}
         className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group
       ${active
                 ? 'bg-primary/10 text-primary'
@@ -67,6 +68,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                 <button
                     onClick={onClose}
                     className="lg:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-accent"
+                    aria-label={t('layout.close_menu', 'Close menu')}
                 >
                     <X className="w-5 h-5" />
                 </button>
