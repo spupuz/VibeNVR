@@ -541,36 +541,7 @@ class CameraThread(threading.Thread):
                 
         return filtered
 
-    def update_config(self, new_config):
-        old_passthrough = self.config.get('movie_passthrough', False)
-        old_masks = (self.config.get('privacy_masks', '[]'), self.config.get('motion_masks', '[]'))
-        old_engine = self.config.get('detect_engine', 'OpenCV')
-        old_rtsp_url = self.config.get('rtsp_url')
-        old_sub_rtsp_url = self.config.get('sub_rtsp_url')
-        
-        self.config.update(new_config)
-        self.motion_detector.config = self.config
-        self.recording_manager.config = self.config
-        self.ai_detector.config = self.config
-        
-        new_engine = self.config.get('detect_engine', 'OpenCV')
-        if old_engine != new_engine:
-            if self.motion_detector.motion_detected:
-                logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Engine changed {old_engine}->{new_engine}, resetting motion state")
-                self.motion_detector.motion_detected = False
-                if self.event_callback:
-                    self.event_callback(self.camera_id, 'motion_end')
-        
-        if old_masks != (self.config.get('privacy_masks', '[]'), self.config.get('motion_masks', '[]')):
-            self._update_masks()
-        
-        
-        if 'movie_passthrough' in new_config and old_passthrough != new_config['movie_passthrough']:
-            if self.recording_manager.is_recording and self.recording_manager.passthrough_active:
-                self.stop_recording()
-            self.recording_manager.passthrough_active = new_config['movie_passthrough']
-            self.stream_reader.force_reconnect()
-        
+    def _reconfigure_routing(self, old_passthrough, old_rtsp_url, old_sub_rtsp_url):
         # Check if routing needs reconfiguration
         new_passthrough = self.config.get('movie_passthrough', False)
         new_rtsp_url = self.config.get('rtsp_url')
@@ -606,6 +577,38 @@ class CameraThread(threading.Thread):
                 if self.sub_stream_reader:
                     self.sub_stream_reader.stop()
                     self.sub_stream_reader = None
+
+    def update_config(self, new_config):
+        old_passthrough = self.config.get('movie_passthrough', False)
+        old_masks = (self.config.get('privacy_masks', '[]'), self.config.get('motion_masks', '[]'))
+        old_engine = self.config.get('detect_engine', 'OpenCV')
+        old_rtsp_url = self.config.get('rtsp_url')
+        old_sub_rtsp_url = self.config.get('sub_rtsp_url')
+
+        self.config.update(new_config)
+        self.motion_detector.config = self.config
+        self.recording_manager.config = self.config
+        self.ai_detector.config = self.config
+
+        new_engine = self.config.get('detect_engine', 'OpenCV')
+        if old_engine != new_engine:
+            if self.motion_detector.motion_detected:
+                logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Engine changed {old_engine}->{new_engine}, resetting motion state")
+                self.motion_detector.motion_detected = False
+                if self.event_callback:
+                    self.event_callback(self.camera_id, 'motion_end')
+
+        if old_masks != (self.config.get('privacy_masks', '[]'), self.config.get('motion_masks', '[]')):
+            self._update_masks()
+
+
+        if 'movie_passthrough' in new_config and old_passthrough != new_config['movie_passthrough']:
+            if self.recording_manager.is_recording and self.recording_manager.passthrough_active:
+                self.stop_recording()
+            self.recording_manager.passthrough_active = new_config['movie_passthrough']
+            self.stream_reader.force_reconnect()
+
+        self._reconfigure_routing(old_passthrough, old_rtsp_url, old_sub_rtsp_url)
 
         pre_cap = self.config.get('pre_capture', 0)
         if pre_cap > 0 and self.pre_buffer.maxlen != pre_cap:
