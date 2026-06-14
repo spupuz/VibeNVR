@@ -16,6 +16,60 @@ logger = logging.getLogger(__name__)
 
 BACKUP_DIR = "/data/backups"
 
+def _generate_backup_data(db: Session) -> dict:
+    """Helper function to collect and format all database entities for backup"""
+    return {
+        "timestamp": datetime.datetime.now().isoformat(),
+        "version": "1.0",
+        "settings": jsonable_encoder(db.query(models.SystemSettings).all()),
+        "cameras": jsonable_encoder([schemas.Camera.model_validate(c) for c in db.query(models.Camera).all()]),
+        "groups": jsonable_encoder([schemas.CameraGroup.model_validate(g) for g in db.query(models.CameraGroup).all()]),
+        "storage_profiles": [
+            {
+                "id": p.id,
+                "name": p.name,
+                "path": p.path,
+                "description": p.description,
+                "max_size_gb": p.max_size_gb
+            } for p in db.query(models.StorageProfile).all()
+        ],
+        "associations": [{"camera_id": a.camera_id, "group_id": a.group_id} for a in db.query(models.CameraGroupAssociation).all()],
+        "users": [{
+            "username": u.username,
+            "email": u.email,
+            "hashed_password": u.hashed_password,
+            "role": u.role,
+            "is_2fa_enabled": u.is_2fa_enabled,
+            "totp_secret": u.totp_secret,
+            "avatar_path": u.avatar_path,
+            "restrict_camera_access": u.restrict_camera_access,
+            "allowed_camera_ids": [c.id for c in u.allowed_cameras],
+            "allowed_group_ids": [g.id for g in u.allowed_groups]
+        } for u in db.query(models.User).all()],
+        "api_tokens": [{
+            "name": t.name,
+            "token_hash": t.token_hash,
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+            "last_used_at": t.last_used_at.isoformat() if t.last_used_at else None,
+            "expires_at": t.expires_at.isoformat() if t.expires_at else None,
+            "is_active": t.is_active,
+            "username": t.created_by.username if t.created_by else None
+        } for t in db.query(models.ApiToken).all()],
+        "recovery_codes": [{
+            "username": r.user.username,
+            "code_hash": r.code_hash,
+            "created_at": r.created_at.isoformat() if r.created_at else None
+        } for r in db.query(models.RecoveryCode).all()],
+        "trusted_devices": [{
+            "username": d.user.username,
+            "token": d.token,
+            "name": d.name,
+            "last_used": d.last_used.isoformat() if d.last_used else None,
+            "expires_at": d.expires_at.isoformat() if d.expires_at else None,
+            "created_at": d.created_at.isoformat() if d.created_at else None
+        } for d in db.query(models.TrustedDevice).all()]
+    }
+
 def run_backup(is_manual: bool = False):
     """Generate a configuration backup and save it to the backup folder"""
     try:
@@ -25,57 +79,7 @@ def run_backup(is_manual: bool = False):
         with database.get_db_ctx() as db:
             logger.info(f"Starting {'manual' if is_manual else 'automatic'} configuration backup...")
             
-            data = {
-                "timestamp": datetime.datetime.now().isoformat(),
-                "version": "1.0",
-                "settings": jsonable_encoder(db.query(models.SystemSettings).all()),
-                "cameras": jsonable_encoder([schemas.Camera.model_validate(c) for c in db.query(models.Camera).all()]),
-                "groups": jsonable_encoder([schemas.CameraGroup.model_validate(g) for g in db.query(models.CameraGroup).all()]),
-                "storage_profiles": [
-                    {
-                        "id": p.id,
-                        "name": p.name,
-                        "path": p.path,
-                        "description": p.description,
-                        "max_size_gb": p.max_size_gb
-                    } for p in db.query(models.StorageProfile).all()
-                ],
-                "associations": [{"camera_id": a.camera_id, "group_id": a.group_id} for a in db.query(models.CameraGroupAssociation).all()],
-                "users": [{
-                    "username": u.username,
-                    "email": u.email,
-                    "hashed_password": u.hashed_password,
-                    "role": u.role,
-                    "is_2fa_enabled": u.is_2fa_enabled,
-                    "totp_secret": u.totp_secret,
-                    "avatar_path": u.avatar_path,
-                    "restrict_camera_access": u.restrict_camera_access,
-                    "allowed_camera_ids": [c.id for c in u.allowed_cameras],
-                    "allowed_group_ids": [g.id for g in u.allowed_groups]
-                } for u in db.query(models.User).all()],
-                "api_tokens": [{
-                    "name": t.name,
-                    "token_hash": t.token_hash,
-                    "created_at": t.created_at.isoformat() if t.created_at else None,
-                    "last_used_at": t.last_used_at.isoformat() if t.last_used_at else None,
-                    "expires_at": t.expires_at.isoformat() if t.expires_at else None,
-                    "is_active": t.is_active,
-                    "username": t.created_by.username if t.created_by else None
-                } for t in db.query(models.ApiToken).all()],
-                "recovery_codes": [{
-                    "username": r.user.username,
-                    "code_hash": r.code_hash,
-                    "created_at": r.created_at.isoformat() if r.created_at else None
-                } for r in db.query(models.RecoveryCode).all()],
-                "trusted_devices": [{
-                    "username": d.user.username,
-                    "token": d.token,
-                    "name": d.name,
-                    "last_used": d.last_used.isoformat() if d.last_used else None,
-                    "expires_at": d.expires_at.isoformat() if d.expires_at else None,
-                    "created_at": d.created_at.isoformat() if d.created_at else None
-                } for d in db.query(models.TrustedDevice).all()]
-            }
+            data = _generate_backup_data(db)
 
             prefix = "manual" if is_manual else "auto"
             filename = f"vibe_backup_{prefix}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
