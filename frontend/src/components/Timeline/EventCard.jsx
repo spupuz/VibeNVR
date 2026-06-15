@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Video, Image as ImageIcon, Download, Trash2, Camera, HardDrive, Brain } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Individual Event Card Component
@@ -16,6 +17,7 @@ import { useAuth } from '../../contexts/AuthContext';
  */
 export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected, onToggleSelect, getMediaUrl, onDelete }) => {
     const { user } = useAuth();
+    const { t } = useTranslation();
     const [imgError, setImgError] = useState(false);
     const time = new Date(event.timestamp_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const date = new Date(event.timestamp_start).toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -23,11 +25,26 @@ export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected,
     return (
         <div
             id={`event-${event.id}`}
-            className={`flex items-stretch bg-card border rounded-xl overflow-hidden cursor-pointer transition-all hover:shadow-lg group
+            className={`flex items-stretch bg-card border rounded-xl overflow-hidden cursor-pointer transition-all hover:shadow-lg group focus-within:ring-2 focus-within:ring-ring
                 ${isSelected ? 'ring-2 ring-primary border-primary' : 'border-border hover:border-primary/50'}
             `}
             onClick={() => onClick(event)}
         >
+            {/* Visually hidden but accessible primary action for screen readers */}
+            <button
+                className="sr-only"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onClick(event);
+                }}
+                aria-label={t('timeline.event_card_label', 'View {{type}} event from {{camera}} at {{time}}', {
+                    type: event.type,
+                    camera: camera?.name || `Camera ${event.camera_id}`,
+                    time: time
+                })}
+            >
+                View Event
+            </button>
             {/* Thumbnail */}
             <div className="w-24 sm:w-32 h-20 bg-black/10 flex-shrink-0 relative overflow-hidden">
                 {event.thumbnail_path && !imgError ? (
@@ -54,8 +71,11 @@ export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected,
 
                 {/* Selection Checkbox (Visible on hover or if multi-selected for Admins only) */}
                 {user?.role === 'admin' && (
-                    <div 
-                        className={`absolute top-2 left-2 z-20 transition-all cursor-pointer ${isMultiSelected ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-100'}`}
+                    <button
+                        role="checkbox"
+                        aria-checked={isMultiSelected}
+                        aria-label={t('timeline.select_event', 'Select event')}
+                        className={`absolute top-2 left-2 z-20 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-black/50 rounded-md ${isMultiSelected ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'}`}
                         onClick={(e) => {
                             e.stopPropagation();
                             onToggleSelect(event.id, e.shiftKey);
@@ -68,7 +88,7 @@ export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected,
                         }`}>
                             {isMultiSelected && <div className="w-2.5 h-2.5 bg-current rounded-sm" />}
                         </div>
-                    </div>
+                    </button>
                 )}
 
                 {/* Overlaid Actions (Visible on Hover) */}
@@ -78,8 +98,9 @@ export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected,
                         href={`/api/events/${event.id}/download`}
                         download
                         onClick={(e) => e.stopPropagation()}
-                        className="p-1 bg-black/50 hover:bg-black/70 text-white rounded backdrop-blur-sm transition-colors"
-                        title="Download"
+                        className="p-1 bg-black/50 hover:bg-black/70 text-white rounded backdrop-blur-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-black/50"
+                        title={t('actions.download', 'Download')}
+                        aria-label={t('actions.download', 'Download')}
                     >
                         <Download className="w-3 h-3" />
                     </a>
@@ -91,8 +112,9 @@ export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected,
                                 e.stopPropagation();
                                 onDelete(event.id);
                             }}
-                            className="p-1 bg-black/50 hover:bg-red-500/80 text-white rounded backdrop-blur-sm transition-colors"
-                            title="Delete"
+                            className="p-1 bg-black/50 hover:bg-red-500/80 text-white rounded backdrop-blur-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1 focus-visible:ring-offset-black/50"
+                            title={t('actions.delete', 'Delete')}
+                            aria-label={t('actions.delete', 'Delete')}
                         >
                             <Trash2 className="w-3 h-3" />
                         </button>

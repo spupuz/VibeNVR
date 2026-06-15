@@ -1,3 +1,7 @@
 ## 2025-02-23 - Accessibility Issues
 **Learning:** Found several buttons in 'frontend/src/components/StorageProfileManager.jsx' and 'frontend/src/components/CameraScanner.jsx' that only contain icons and no `aria-label`. These include buttons for editing, deleting, or cancelling operations.
 **Action:** Always include `aria-label` for icon-only buttons to ensure they are accessible to screen reader users.
+
+## 2024-05-18 - Timeline Event Card Accessibility Improvements
+**Learning:** Found an accessibility issue pattern specific to interactive event cards that heavily rely on standard div tags with `onClick` without native keyboard interactions. Utilizing standard `button` or `a` elements when possible is better, but when complex div structures are required for cards with multiple sub-actions (like checkboxes and individual delete/download buttons), adding `role="button"`, `tabIndex={0}`, localized `aria-label`s, and custom `onKeyDown` handlers is critical to support seamless screen reader and keyboard-only navigation. Furthermore, ensuring that multi-select UI elements are proper sematic buttons with `role="checkbox"` and `aria-checked` states significantly improves screen reader comprehension.
+**Action:** Next time working on complex card-based layouts with nested actions, ensure that the main card acts as a focal button and all nested interactive elements (like icon buttons) receive specific accessible focus treatments (`focus-visible` ring) and independent screen reader context.
