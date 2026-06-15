@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Video, Image as ImageIcon, Download, Trash2, Camera, HardDrive, Brain } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Individual Event Card Component
@@ -16,6 +17,7 @@ import { useAuth } from '../../contexts/AuthContext';
  */
 export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected, onToggleSelect, getMediaUrl, onDelete }) => {
     const { user } = useAuth();
+    const { t } = useTranslation();
     const [imgError, setImgError] = useState(false);
     const time = new Date(event.timestamp_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const date = new Date(event.timestamp_start).toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -92,7 +94,8 @@ export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected,
                                 onDelete(event.id);
                             }}
                             className="p-1 bg-black/50 hover:bg-red-500/80 text-white rounded backdrop-blur-sm transition-colors"
-                            title="Delete"
+                            title={t('timeline.delete_event', 'Delete event')}
+                            aria-label={t('timeline.delete_event', 'Delete event')}
                         >
                             <Trash2 className="w-3 h-3" />
                         </button>

@@ -136,6 +136,8 @@ export const EventFilters = ({
                 <button
                     onClick={() => setSelectedHour(null)}
                     className="px-3 py-2 text-sm bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-colors flex items-center gap-1.5"
+                    aria-label={t('timeline.clear_hour_filter', 'Clear hour filter')}
+                    title={t('timeline.clear_hour_filter', 'Clear hour filter')}
                 >
                     <span className="font-bold">{selectedHour}:00</span>
                     <span className="opacity-70">✕</span>

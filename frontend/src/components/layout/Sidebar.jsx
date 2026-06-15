@@ -67,6 +67,8 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                 <button
                     onClick={onClose}
                     className="lg:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-accent"
+                    aria-label={t('nav.close_menu', 'Close menu')}
+                    title={t('nav.close_menu', 'Close menu')}
                 >
                     <X className="w-5 h-5" />
                 </button>

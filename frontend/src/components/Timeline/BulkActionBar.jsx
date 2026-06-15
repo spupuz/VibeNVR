@@ -55,7 +55,8 @@ export const BulkActionBar = ({
                     
                     <button
                         onClick={() => setSelectedIds(new Set())}
-                        title="Cancel"
+                        title={t('timeline.cancel', 'Cancel')}
+                        aria-label={t('timeline.cancel', 'Cancel')}
                         className="p-2 sm:px-3 sm:py-1.5 hover:bg-white/10 rounded-xl transition-colors"
                     >
                         <X className="w-4 h-4 sm:hidden" />

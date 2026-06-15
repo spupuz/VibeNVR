@@ -94,6 +94,8 @@ export const EventPreview = ({
                         <button
                             onClick={() => setSelectedEvent(null)}
                             className="p-1 hover:bg-accent rounded-lg text-muted-foreground transition-colors"
+                            aria-label={t('timeline.close_preview', 'Close preview')}
+                            title={t('timeline.close_preview', 'Close preview')}
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -208,6 +210,8 @@ export const EventPreview = ({
                         <button
                             onClick={() => handleDelete(selectedEvent.id)}
                             className="p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-lg transition-colors"
+                            aria-label={t('timeline.delete_event', 'Delete event')}
+                            title={t('timeline.delete_event', 'Delete event')}
                         >
                             <Trash2 className="w-4 h-4" />
                         </button>
