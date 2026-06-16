@@ -119,6 +119,21 @@ CURRENT_NET_SPEED = {
 }
 _realtime_net_lock = threading.Lock()
 
+def _get_current_network_bytes():
+    """Helper to fetch current network bytes (backend + engine)."""
+    net_io = psutil.net_io_counters()
+    recv = net_io.bytes_recv
+    sent = net_io.bytes_sent
+    try:
+        resp = requests.get("http://engine:8000/stats", timeout=1)
+        if resp.status_code == 200:
+            data = resp.json()
+            recv += data.get("network_recv", 0)
+            sent += data.get("network_sent", 0)
+    except:
+        pass
+    return recv, sent
+
 def start_realtime_collector():
     """Background thread to calculate current network speed every 2 seconds"""
     def collector_loop():
@@ -126,19 +141,7 @@ def start_realtime_collector():
         backend_proc = psutil.Process(os.getpid())
         
         # Initial counters
-        net_io = psutil.net_io_counters()
-        last_recv = net_io.bytes_recv
-        last_sent = net_io.bytes_sent
-        
-        # Try to get engine initial if possible
-        try:
-            resp = requests.get("http://engine:8000/stats", timeout=1)
-            if resp.status_code == 200:
-                data = resp.json()
-                last_recv += data.get("network_recv", 0)
-                last_sent += data.get("network_sent", 0)
-        except:
-             pass
+        last_recv, last_sent = _get_current_network_bytes()
 
         while True:
             time.sleep(2)
@@ -148,19 +151,7 @@ def start_realtime_collector():
                 if delta_time <= 0: continue
                 
                 # Get current stats
-                net_io = psutil.net_io_counters()
-                curr_recv = net_io.bytes_recv
-                curr_sent = net_io.bytes_sent
-                
-                # Add Engine stats
-                try:
-                    resp = requests.get("http://engine:8000/stats", timeout=1)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        curr_recv += data.get("network_recv", 0)
-                        curr_sent += data.get("network_sent", 0)
-                except:
-                    pass
+                curr_recv, curr_sent = _get_current_network_bytes()
                 
                 # Calculate diff
                 diff_recv = curr_recv - last_recv
