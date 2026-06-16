@@ -55,7 +55,7 @@ export const Profile = () => {
         if (user?.is_2fa_enabled) {
             fetchTrustedDevices();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, [user?.id, user?.is_2fa_enabled, token]);
 
     const fetchTrustedDevices = async () => {

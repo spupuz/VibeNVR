@@ -112,7 +112,7 @@ export const AuthProvider = ({ children }) => {
         }, 10000);
 
         return () => clearInterval(healthInterval);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, []);
 
     const login = (newToken, userData) => {
