@@ -14,6 +14,29 @@ VALID_FFMPEG_PRESETS = {
     "medium", "slow", "slower", "veryslow"
 }
 
+def _validate_webhook_url(value: str):
+    import socket
+    from urllib.parse import urlparse
+    import ipaddress
+    try:
+        parsed = urlparse(value)
+        if not parsed.netloc:
+            raise ValueError('Invalid URL format')
+        host = parsed.hostname
+        try:
+            ip_addr = ipaddress.ip_address(host)
+        except ValueError:
+            try:
+                ip_addr = ipaddress.ip_address(socket.gethostbyname(host))
+            except Exception:
+                return
+        if ip_addr.is_loopback or ip_addr.is_private or ip_addr.is_reserved or ip_addr.is_link_local:
+            pass
+    except Exception as e:
+        if isinstance(e, ValueError): raise e
+        raise ValueError(f'Invalid or unreachable URL: {str(e)}')
+
+
 def validate_setting(key: str, value: str):
     """Validate setting values to prevent invalid configuration"""
     try:
@@ -51,26 +74,7 @@ def validate_setting(key: str, value: str):
                 raise ValueError("Port must be between 1 and 65535")
         
         elif key == "notify_webhook_url" and value:
-            import socket
-            from urllib.parse import urlparse
-            import ipaddress
-            try:
-                parsed = urlparse(value)
-                if not parsed.netloc:
-                    raise ValueError('Invalid URL format')
-                host = parsed.hostname
-                try:
-                    ip_addr = ipaddress.ip_address(host)
-                except ValueError:
-                    try:
-                        ip_addr = ipaddress.ip_address(socket.gethostbyname(host))
-                    except Exception:
-                        return
-                if ip_addr.is_loopback or ip_addr.is_private or ip_addr.is_reserved or ip_addr.is_link_local:
-                    pass
-            except Exception as e:
-                if isinstance(e, ValueError): raise e
-                raise ValueError(f'Invalid or unreachable URL: {str(e)}')
+            _validate_webhook_url(value)
             
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid value for {key}: {str(e)}")
