@@ -622,6 +622,38 @@ def get_orphan_sync_status(current_user: models.User = Depends(auth_service.get_
     """Get the status of the orphan sync background task"""
     return _sync_state
 
+def _run_sync_task(username: str):
+    import time
+    try:
+        import sync_recordings
+        print(f"[Admin] User {username} triggered orphan sync (Background Task Started)", flush=True)
+        stats = sync_recordings.sync_recordings(dry_run=False)
+
+        _sync_state["result"] = stats
+        _sync_state["status"] = "completed"
+
+        if "error" in stats: # Check if script returned error dict
+             _sync_state["status"] = "error"
+
+        print(f"[Admin] Orphan sync background task finished.", flush=True)
+    except Exception as e:
+        print(f"[Admin] Orphan sync error: {e}", flush=True)
+        _sync_state["status"] = "error"
+        _sync_state["result"] = {"error": str(e)}
+    finally:
+        _sync_state["completed_at"] = time.time()
+        # Also log purely for visibility if needed, though script prints it too.
+        # But the script print might be inside the function.
+        # Since we imported sync_recordings, its print goes to stdout.
+        # We already added the print inside sync_recordings.py, so it should be fine.
+        # However, if we want to be 100% sure the return value (result) is also logged in format:
+        try:
+            import json
+            if _sync_state["result"]:
+                 print(f"JSON_SUMMARY:{json.dumps(_sync_state['result'])}")
+        except:
+            pass
+
 @router.post("/sync-orphans")
 def sync_orphan_recordings(
     background_tasks: BackgroundTasks,
@@ -660,38 +692,7 @@ def sync_orphan_recordings(
     _sync_state["started_at"] = time.time()
     _sync_state["completed_at"] = None
     
-    def run_sync_task():
-        try:
-            import sync_recordings
-            print(f"[Admin] User {current_user.username} triggered orphan sync (Background Task Started)", flush=True)
-            stats = sync_recordings.sync_recordings(dry_run=False)
-            
-            _sync_state["result"] = stats
-            _sync_state["status"] = "completed"
-            
-            if "error" in stats: # Check if script returned error dict
-                 _sync_state["status"] = "error"
-
-            print(f"[Admin] Orphan sync background task finished.", flush=True)
-        except Exception as e:
-            print(f"[Admin] Orphan sync error: {e}", flush=True)
-            _sync_state["status"] = "error"
-            _sync_state["result"] = {"error": str(e)}
-        finally:
-            _sync_state["completed_at"] = time.time()
-            # Also log purely for visibility if needed, though script prints it too.
-            # But the script print might be inside the function.
-            # Since we imported sync_recordings, its print goes to stdout.
-            # We already added the print inside sync_recordings.py, so it should be fine.
-            # However, if we want to be 100% sure the return value (result) is also logged in format:
-            try:
-                import json
-                if _sync_state["result"]:
-                     print(f"JSON_SUMMARY:{json.dumps(_sync_state['result'])}")
-            except:
-                pass
-
-    background_tasks.add_task(run_sync_task)
+    background_tasks.add_task(_run_sync_task, current_user.username)
     return {"message": "Orphan recording recovery started in background."}
 
 @router.post("/test-notify")
