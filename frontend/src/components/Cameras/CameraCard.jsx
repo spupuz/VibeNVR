@@ -160,7 +160,7 @@ export const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelecte
                                 }
                             }}
                             className="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40"
-                            title="Export Camera Settings"
+                            title="Export Camera Settings" aria-label="Export Camera Settings"
                         >
                             <Download className="w-5 h-5" />
                         </Button>
@@ -169,7 +169,7 @@ export const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelecte
                             size="sm"
                             onClick={() => onEdit(camera)}
                             className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/40"
-                            title="Edit Camera"
+                            title="Edit Camera" aria-label="Edit Camera"
                         >
                             <Edit className="w-5 h-5" />
                         </Button>
@@ -178,7 +178,7 @@ export const CameraCard = ({ camera, onDelete, onEdit, onToggleActive, isSelecte
                             size="sm"
                             onClick={() => onDelete(camera.id)}
                             className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40"
-                            title="Delete Camera"
+                            title="Delete Camera" aria-label="Delete Camera"
                         >
                             <Trash2 className="w-5 h-5" />
                         </Button>
