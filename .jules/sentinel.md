@@ -1,0 +1,4 @@
+## 2026-06-16 - [Fix SQL Injection in Database Migrations]
+**Vulnerability:** Raw f-string formatting was used in `backend/migrate_db.py` to construct `SELECT` statements (`query = text(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table_name}' AND column_name='{column_name}'")`), making it a potential SQL injection vector.
+**Learning:** Even internal tooling or migration scripts can contain vulnerable patterns that go unchecked. The developer used the `# nosec` pragma to suppress security warnings instead of fixing the root issue.
+**Prevention:** Always use SQLAlchemy's parameterized execution bindings (`conn.execute(text("... WHERE table_name=:t"), {"t": table_name})`) rather than Python string formatting, and do not use `# nosec` to bypass legitimate SQL injection warnings.

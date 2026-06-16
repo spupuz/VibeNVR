@@ -16,8 +16,8 @@ logger.propagate = False
 def add_column_if_not_exists(engine, table_name, column_name, column_type, default_val=None):
     with engine.connect() as conn:
         # Check if column exists
-        query = text(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table_name}' AND column_name='{column_name}'")  # nosec
-        result = conn.execute(query).fetchone()
+        query = text("SELECT column_name FROM information_schema.columns WHERE table_name=:table_name AND column_name=:column_name")
+        result = conn.execute(query, {"table_name": table_name, "column_name": column_name}).fetchone()
         
         if not result:
             logger.info(f"Adding column {column_name} to {table_name}...")
@@ -40,8 +40,8 @@ def add_column_if_not_exists(engine, table_name, column_name, column_type, defau
 def drop_column_if_exists(engine, table_name, column_name):
     with engine.connect() as conn:
         # Check if column exists
-        query = text(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table_name}' AND column_name='{column_name}'")  # nosec
-        result = conn.execute(query).fetchone()
+        query = text("SELECT column_name FROM information_schema.columns WHERE table_name=:table_name AND column_name=:column_name")
+        result = conn.execute(query, {"table_name": table_name, "column_name": column_name}).fetchone()
         
         if result:
             logger.info(f"Dropping obsolete column {column_name} from {table_name}...")
