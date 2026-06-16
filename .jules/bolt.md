@@ -1,0 +1,3 @@
+## 2024-06-15 - React Render Optimization
+**Learning:** In React functional components, defining complex objects (like a registry of widgets that includes render functions) directly in the component body causes them to be recreated on every render. This forces re-renders of any child components relying on these objects or their functions, leading to unnecessary React reconciliation work.
+**Action:** Use `useMemo` to memoize large complex objects or configuration dictionaries that do not need to change on every render, ensuring stable object identities. Remember to correctly manage dependencies (such as translation functions, routing methods, state, and other memoized callbacks) to prevent stale closures.
