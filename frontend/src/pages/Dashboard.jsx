@@ -678,7 +678,7 @@ export const Dashboard = () => {
                 </div>
                 <button
                     onClick={() => setShowWidgetModal(true)}
-                    className="p-2 hover:bg-muted rounded-lg transition-colors"
+                    className="p-2 hover:bg-muted rounded-lg transition-colors" aria-label={t('timeline.settings', 'Settings')}
                 >
                     <Settings className="w-5 h-5 text-muted-foreground" />
                 </button>

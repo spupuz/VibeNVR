@@ -88,7 +88,7 @@ export const Layout = ({ children, activeTab, onTabChange, theme, toggleTheme })
                 <div className="lg:hidden sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border p-3 flex items-center justify-between w-full max-w-full overflow-hidden">
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="p-2 rounded-lg hover:bg-accent shrink-0"
+                        className="p-2 rounded-lg hover:bg-accent shrink-0" aria-label={t('common.menu', 'Menu')}
                     >
                         <Menu className="w-6 h-6" />
                     </button>

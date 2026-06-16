@@ -66,7 +66,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                 {/* Close button for mobile - absolute positioned */}
                 <button
                     onClick={onClose}
-                    className="lg:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-accent"
+                    className="lg:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-accent" aria-label={t('common.close', 'Close')}
                 >
                     <X className="w-5 h-5" />
                 </button>
@@ -121,7 +121,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:text-foreground transition-colors"
-                            title="GitHub Repository"
+                            title="GitHub Repository" aria-label={t('sidebar.github_repository', 'GitHub Repository')}
                         >
                             <Github className="w-4 h-4" />
                         </a>
@@ -139,7 +139,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:text-yellow-500 transition-colors"
-                            title="Buy Me a Coffee"
+                            title="Buy Me a Coffee" aria-label={t('sidebar.buy_me_a_coffee', 'Buy Me a Coffee')}
                         >
                             <Coffee className="w-4 h-4" />
                         </a>

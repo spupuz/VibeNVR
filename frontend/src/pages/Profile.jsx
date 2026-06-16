@@ -436,7 +436,7 @@ export const Profile = () => {
                                 <p className="text-sm text-muted-foreground">{t('timeline.scan_this_qr_code_with_yo', 'Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)')}</p>
                                 <div className="text-xs font-mono bg-muted p-2 rounded border border-border break-all select-all flex items-center justify-center gap-2">
                                     {setupData.secret}
-                                    <button onClick={() => navigator.clipboard.writeText(setupData.secret)} className="hover:text-primary" title="Copy Secret">
+                                    <button onClick={() => navigator.clipboard.writeText(setupData.secret)} className="hover:text-primary" title="Copy Secret" aria-label={t('profile.copy_secret', 'Copy Secret')}>
                                         <Copy className="w-3 h-3" />
                                     </button>
                                 </div>
