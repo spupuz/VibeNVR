@@ -316,7 +316,8 @@ class RecordingManager:
                     os.remove(self.recording_filename)
                 else:
                     valid_recording = True
-            except Exception: pass
+            except OSError as e:
+                logger.warning(f"Camera {self.camera_name} (ID: {self.camera_id}): Error validating or removing recording {self.recording_filename}: {e}")
 
         if valid_recording and event_callback:
              event_callback(self.camera_id, 'recording_end', {
