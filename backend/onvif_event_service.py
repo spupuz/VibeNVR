@@ -205,7 +205,8 @@ class OnvifEventManager:
                         break # Break to trigger Unsubscribe (finally) and Resubscribe (outer loop)
                     
                     logger.info(f"Camera {camera.name}: Pulling ONVIF messages...")
-                    # Use raw dict to bypass zeep wsdl inheritance bug for rw-2 elements
+                    # Note: Using raw dictionary parameter here is an intentional workaround for a known upstream
+                    # issue in the python-zeep library regarding wsdl inheritance parsing for rw-2 elements.
                     response = await asyncio.to_thread(
                         pullpoint_service.PullMessages,
                         {'Timeout': 'PT5S', 'MessageLimit': 10}
