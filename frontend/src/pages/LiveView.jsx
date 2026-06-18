@@ -277,10 +277,10 @@ const VideoPlayer = ({
             {!showPTZ && (
                 <div className="absolute inset-x-0 bottom-0 p-2 z-40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex justify-center pointer-events-none">
                     <div className="flex items-center gap-0.5 sm:gap-1 bg-black/80 backdrop-blur-xl p-1 rounded-xl border border-white/10 shadow-3xl pointer-events-auto max-w-full overflow-hidden">
-                        <button onClick={() => onFocus(camera.id)} className={`p-1 rounded-md text-white transition-all shrink-0 ${isFocused ? 'bg-primary' : 'hover:bg-white/10'}`} title="Focus">
+                        <button onClick={() => onFocus(camera.id)} className={`p-1 rounded-md text-white transition-all shrink-0 ${isFocused ? 'bg-primary' : 'hover:bg-white/10'}`} title="Focus" aria-label="Focus">
                             <Square className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </button>
-                        <button onClick={handleFullscreen} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Fullscreen">
+                        <button onClick={handleFullscreen} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Fullscreen" aria-label="Fullscreen">
                             <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </button>
 
@@ -294,16 +294,16 @@ const VideoPlayer = ({
                                     method: 'POST',
                                     headers: { Authorization: `Bearer ${token}` }
                                 }).then(res => { if (res.ok) showToast(`Snapshot saved`, 'success'); });
-                            }} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Take Photo">
+                            }} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Take Photo" aria-label="Take Photo">
                                 <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             </button>
                         )}
                         {hasPermission(camera, 'can_replay') && (
                             <>
-                                <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=snapshot`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Gallery">
+                                <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=snapshot`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Gallery" aria-label="Gallery">
                                     <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                 </button>
-                                <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=video`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Videos">
+                                <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=video`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Videos" aria-label="Videos">
                                     <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                 </button>
                             </>
@@ -321,6 +321,7 @@ const VideoPlayer = ({
                                 }}
                                 className={`p-1 rounded-md transition-all shrink-0 ${(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? 'bg-red-600 text-white animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]' : 'text-white hover:bg-red-600/50'}`}
                                 title={(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? "Stop Recording" : "Start Continuous Recording"}
+                                aria-label={(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? "Stop Recording" : "Start Continuous Recording"}
                             >
                                 <Disc className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             </button>
@@ -334,12 +335,13 @@ const VideoPlayer = ({
                                 }}
                                 className={`p-1 rounded-md transition-all shrink-0 ${showPTZ ? 'bg-primary text-white shadow-[0_0_10px_rgba(var(--primary),0.5)]' : 'text-white hover:bg-primary/50'}`}
                                 title={showPTZ ? "Hide PTZ Controls" : "Show PTZ Controls"}
+                                aria-label={showPTZ ? "Hide PTZ Controls" : "Show PTZ Controls"}
                             >
                                 <Move className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             </button>
                         )}
                         {user?.role === 'admin' && (
-                            <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1 text-primary-foreground bg-primary hover:bg-primary/80 rounded-md transition-all shrink-0" title="Settings">
+                            <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1 text-primary-foreground bg-primary hover:bg-primary/80 rounded-md transition-all shrink-0" title="Settings" aria-label="Settings">
                                 <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             </button>
                         )}
