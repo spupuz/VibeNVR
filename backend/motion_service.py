@@ -118,6 +118,30 @@ def get_optimization_settings(db: Session) -> dict:
         
     return defaults
 
+def _apply_go2rtc_routing(config: dict, cam: Camera, opt_settings: dict) -> None:
+    """
+    Applies go2rtc routing to the config if enabled.
+    When enabled, the engine reads the camera through the internal go2rtc gateway
+    instead of the camera directly. The real camera URL stays untouched.
+    """
+    if opt_settings.get("go2rtc_enabled"):
+        stream = go2rtc_stream_name(cam.id)
+        config["rtsp_url"] = f"rtsp://{GO2RTC_RTSP_HOST}/{stream}"
+        # go2rtc republishes over TCP RTSP; force tcp for the engine hop.
+        config["rtsp_transport"] = "tcp"
+        # If the camera has a sub-stream, route it through go2rtc too (as a
+        # separate proxied stream) so the engine keeps reading the low-res
+        # sub-stream for AI inference instead of the camera directly. The
+        # engine never reaches the camera — both hops stay inside go2rtc.
+        # Without a sub-stream there is nothing to proxy, so drop it.
+        if cam.sub_rtsp_url and cam.sub_rtsp_url.strip():
+            sub_stream = go2rtc_substream_name(cam.id)
+            config["sub_rtsp_url"] = f"rtsp://{GO2RTC_RTSP_HOST}/{sub_stream}"
+            config["sub_rtsp_transport"] = "tcp"
+        else:
+            config["sub_rtsp_url"] = None
+
+
 def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
     """ Convert DB Camera model to VibeEngine config dict """
     if opt_settings is None:
@@ -173,27 +197,7 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
     # These keys must match what engine/camera_thread.py expects
     config.update(opt_settings)
 
-    # go2rtc routing: when enabled, the engine reads the camera through the
-    # internal go2rtc gateway instead of the camera directly. The real camera
-    # URL stays in the DB (and the UI) untouched — only the URL handed to the
-    # engine is rewritten to the go2rtc proxy. go2rtc itself is fed the real
-    # URLs via generate_go2rtc_config().
-    if opt_settings.get("go2rtc_enabled"):
-        stream = go2rtc_stream_name(cam.id)
-        config["rtsp_url"] = f"rtsp://{GO2RTC_RTSP_HOST}/{stream}"
-        # go2rtc republishes over TCP RTSP; force tcp for the engine hop.
-        config["rtsp_transport"] = "tcp"
-        # If the camera has a sub-stream, route it through go2rtc too (as a
-        # separate proxied stream) so the engine keeps reading the low-res
-        # sub-stream for AI inference instead of the camera directly. The
-        # engine never reaches the camera — both hops stay inside go2rtc.
-        # Without a sub-stream there is nothing to proxy, so drop it.
-        if cam.sub_rtsp_url and cam.sub_rtsp_url.strip():
-            sub_stream = go2rtc_substream_name(cam.id)
-            config["sub_rtsp_url"] = f"rtsp://{GO2RTC_RTSP_HOST}/{sub_stream}"
-            config["sub_rtsp_transport"] = "tcp"
-        else:
-            config["sub_rtsp_url"] = None
+    _apply_go2rtc_routing(config, cam, opt_settings)
 
     return config
 

@@ -174,8 +174,10 @@ def upload_avatar(
     # Delete old file if it exists and is different
     if old_avatar:
         try:
-            old_full_path = os.path.join("/data", old_avatar)
-            if os.path.exists(old_full_path) and old_full_path != file_path:
+            old_full_path = os.path.abspath(os.path.join("/data", old_avatar))
+            if not old_full_path.startswith("/data/avatars/"):
+                print(f"Security Alert: Blocked attempted deletion of file outside avatars directory: {old_full_path}")
+            elif os.path.exists(old_full_path) and old_full_path != file_path:
                 os.remove(old_full_path)
         except Exception as e:
             print(f"Warning: Failed to delete old avatar {old_avatar}: {e}")

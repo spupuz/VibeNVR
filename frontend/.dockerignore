@@ -7,3 +7,8 @@ Dockerfile
 .git
 .agents/
 .gemini/
+
+.Jules/
+
+.jules/
+scripts/

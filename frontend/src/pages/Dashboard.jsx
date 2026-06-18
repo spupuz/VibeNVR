@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Activity, Camera, HardDrive, ShieldAlert, Film, Image, CalendarClock, Cpu, MemoryStick, Settings, GripVertical, GripHorizontal, Network, Database, Zap, Share2, Bot, Brain } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -216,7 +216,7 @@ export const Dashboard = () => {
         return () => clearInterval(interval);
     }, [token]);
 
-    const getCameraName = (id) => cameraMap[id] || `Camera ${id}`;
+    const getCameraName = useCallback((id) => cameraMap[id] || `Camera ${id}`, [cameraMap]);
 
     // Widget Definition Registry
     // Maps Widget ID -> { Component, Span, Group (for visibility) }
@@ -225,7 +225,9 @@ export const Dashboard = () => {
     // Span 3 = 1/4 (4 per row)
     // Span 6 = 1/2 (2 per row)
     // Span 12 = Full width
-    const WIDGET_REGISTRY = {
+    // ⚡ Bolt: Memoize the WIDGET_REGISTRY to prevent it and its render functions
+    // from being recreated on every re-render, reducing unnecessary React reconciliations.
+    const WIDGET_REGISTRY = useMemo(() => ({
         storage_movies: {
             span: 'col-span-12 md:col-span-6 lg:col-span-4',
             group: 'storage',
@@ -667,7 +669,7 @@ export const Dashboard = () => {
                 </div>
             )
         }
-    };
+    }), [stats, t, graphData, resourceHistory, recentEvents, getCameraName]);
 
     return (
         <div className="space-y-6">
@@ -678,7 +680,7 @@ export const Dashboard = () => {
                 </div>
                 <button
                     onClick={() => setShowWidgetModal(true)}
-                    className="p-2 hover:bg-muted rounded-lg transition-colors"
+                    className="p-2 hover:bg-muted rounded-lg transition-colors" aria-label={t('timeline.settings', 'Settings')}
                 >
                     <Settings className="w-5 h-5 text-muted-foreground" />
                 </button>

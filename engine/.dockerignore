@@ -8,3 +8,9 @@ Dockerfile
 local_tests/
 core.[0-9]*
 .agents/
+
+.Jules/
+
+.gemini/
+
+.jules/

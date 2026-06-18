@@ -9,9 +9,14 @@ import database
 import models
 import schemas
 import auth_service
-import json, time, logging
-import datetime, motion_service, backup_service
-import requests, os
+import json
+import time
+import logging
+import datetime
+import motion_service
+import backup_service
+import requests
+import os
 import telemetry_service
 import settings_service
 
@@ -229,11 +234,9 @@ def init_default_settings(db: Session = Depends(database.get_db), current_user: 
 # BACKUP & RESTORE
 # -----------------------------------------------------------------------------
 
-@router.get("/backup/export")
-@limiter.limit("5/minute")
-def export_backup(request: Request, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
-    """Export configuration to JSON"""
-    data = {
+def _generate_backup_data(db: Session) -> dict:
+    """Helper to generate backup data from the database."""
+    return {
         "timestamp": datetime.datetime.now().isoformat(),
         "version": "1.0",
         "settings": jsonable_encoder(db.query(models.SystemSettings).all()),
@@ -284,6 +287,12 @@ def export_backup(request: Request, db: Session = Depends(database.get_db), curr
             "created_at": d.created_at.isoformat() if d.created_at else None
         } for d in db.query(models.TrustedDevice).all()]
     }
+
+@router.get("/backup/export")
+@limiter.limit("5/minute")
+def export_backup(request: Request, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    """Export configuration to JSON"""
+    data = _generate_backup_data(db)
     
     filename = f"vibenvr_backup_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     return JSONResponse(
@@ -633,7 +642,6 @@ def sync_orphan_recordings(
     Admin-only with 5-minute cooldown to prevent abuse.
     Runs in background.
     """
-    import time
     global _last_orphan_sync_time
     
     # Rate limit: 5 minutes between runs
@@ -672,7 +680,7 @@ def sync_orphan_recordings(
             if "error" in stats: # Check if script returned error dict
                  _sync_state["status"] = "error"
 
-            print(f"[Admin] Orphan sync background task finished.", flush=True)
+            print("[Admin] Orphan sync background task finished.", flush=True)
         except Exception as e:
             print(f"[Admin] Orphan sync error: {e}", flush=True)
             _sync_state["status"] = "error"

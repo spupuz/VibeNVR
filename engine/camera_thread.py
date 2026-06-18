@@ -442,64 +442,68 @@ class CameraThread(threading.Thread):
             self.last_external_motion_source = source
             logger.debug(f"Camera {self.config.get('name')}: External motion event received (Source: {source})")
             
+    def _draw_single_box(self, frame, res):
+        """Helper to draw a single AI detection box and label"""
+        try:
+            label = res.get('label', 'unknown')
+            conf = res.get('confidence', 0.0)
+            box = res.get('box', [0, 0, 0, 0]) # [x1, y1, x2, y2]
+
+            # Colors for different classes (BGR)
+            color = (0, 255, 0) # Default Green
+            if label in ['person']: color = (0, 255, 0) # Green for people
+            elif label in ['vehicle', 'car', 'bus', 'truck']: color = (255, 0, 0) # Blue for vehicles
+            elif label in ['dog', 'cat', 'bird']: color = (0, 165, 255) # Orange for animals
+
+            # Draw Box
+            ymin, xmin, ymax, xmax = box
+            h, w = frame.shape[:2]
+            x1 = int(xmin * w)
+            y1 = int(ymin * h)
+            x2 = int(xmax * w)
+            y2 = int(ymax * h)
+
+            # Dynamically scale font and thickness strictly based on frame width
+            # so that boxes look identical across different camera resolutions in the UI
+            font_scale = max(0.4, w / 1000.0)
+            thickness = max(1, int(w / 600))
+
+            cv2.rectangle(frame, (x1, y1), (x2, y2), color, thickness)
+
+            # Draw Label
+            text = f"{label.capitalize()} {int(conf * 100)}%"
+
+            (tw, th), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
+
+            # Background rectangle for the text (with padding)
+            padding = 5
+            rect_x1 = x1
+            rect_y1 = y1 - th - (padding * 2)
+            rect_x2 = x1 + tw + (padding * 2)
+            rect_y2 = y1
+
+            # Ensure label box doesn't go off-screen at the top
+            if rect_y1 < 0:
+                rect_y1 = y1
+                rect_y2 = y1 + th + (padding * 2)
+
+            cv2.rectangle(frame, (rect_x1, rect_y1), (rect_x2, rect_y2), color, -1)
+
+            # Text Color: Black (0,0,0) for better contrast on bright colors
+            text_color = (0, 0, 0)
+
+            # Draw text
+            text_x = rect_x1 + padding
+            text_y = rect_y1 + th + padding if rect_y1 == y1 else y1 - padding
+
+            cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, text_color, thickness)
+        except Exception as e:
+            logger.error(f"Error drawing AI box: {e}")
+
     def _draw_ai_boxes(self, frame, results):
         """Draw AI detection boxes and labels on the frame"""
         for res in results:
-            try:
-                label = res.get('label', 'unknown')
-                conf = res.get('confidence', 0.0)
-                box = res.get('box', [0, 0, 0, 0]) # [x1, y1, x2, y2]
-                
-                # Colors for different classes (BGR)
-                color = (0, 255, 0) # Default Green
-                if label in ['person']: color = (0, 255, 0) # Green for people
-                elif label in ['vehicle', 'car', 'bus', 'truck']: color = (255, 0, 0) # Blue for vehicles
-                elif label in ['dog', 'cat', 'bird']: color = (0, 165, 255) # Orange for animals
-                
-                # Draw Box
-                ymin, xmin, ymax, xmax = box
-                h, w = frame.shape[:2]
-                x1 = int(xmin * w)
-                y1 = int(ymin * h)
-                x2 = int(xmax * w)
-                y2 = int(ymax * h)
-                
-                # Dynamically scale font and thickness strictly based on frame width
-                # so that boxes look identical across different camera resolutions in the UI
-                font_scale = max(0.4, w / 1000.0)
-                thickness = max(1, int(w / 600))
-
-                cv2.rectangle(frame, (x1, y1), (x2, y2), color, thickness)
-                
-                # Draw Label
-                text = f"{label.capitalize()} {int(conf * 100)}%"
-                
-                (tw, th), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
-                
-                # Background rectangle for the text (with padding)
-                padding = 5
-                rect_x1 = x1
-                rect_y1 = y1 - th - (padding * 2)
-                rect_x2 = x1 + tw + (padding * 2)
-                rect_y2 = y1
-                
-                # Ensure label box doesn't go off-screen at the top
-                if rect_y1 < 0:
-                    rect_y1 = y1
-                    rect_y2 = y1 + th + (padding * 2)
-                
-                cv2.rectangle(frame, (rect_x1, rect_y1), (rect_x2, rect_y2), color, -1)
-                
-                # Text Color: Black (0,0,0) for better contrast on bright colors
-                text_color = (0, 0, 0)
-                
-                # Draw text
-                text_x = rect_x1 + padding
-                text_y = rect_y1 + th + padding if rect_y1 == y1 else y1 - padding
-                
-                cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, text_color, thickness)
-            except Exception as e:
-                logger.error(f"Error drawing AI box: {e}")
+            self._draw_single_box(frame, res)
 
     def _filter_ai_results_by_zones(self, results):
         """
@@ -541,36 +545,7 @@ class CameraThread(threading.Thread):
                 
         return filtered
 
-    def update_config(self, new_config):
-        old_passthrough = self.config.get('movie_passthrough', False)
-        old_masks = (self.config.get('privacy_masks', '[]'), self.config.get('motion_masks', '[]'))
-        old_engine = self.config.get('detect_engine', 'OpenCV')
-        old_rtsp_url = self.config.get('rtsp_url')
-        old_sub_rtsp_url = self.config.get('sub_rtsp_url')
-        
-        self.config.update(new_config)
-        self.motion_detector.config = self.config
-        self.recording_manager.config = self.config
-        self.ai_detector.config = self.config
-        
-        new_engine = self.config.get('detect_engine', 'OpenCV')
-        if old_engine != new_engine:
-            if self.motion_detector.motion_detected:
-                logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Engine changed {old_engine}->{new_engine}, resetting motion state")
-                self.motion_detector.motion_detected = False
-                if self.event_callback:
-                    self.event_callback(self.camera_id, 'motion_end')
-        
-        if old_masks != (self.config.get('privacy_masks', '[]'), self.config.get('motion_masks', '[]')):
-            self._update_masks()
-        
-        
-        if 'movie_passthrough' in new_config and old_passthrough != new_config['movie_passthrough']:
-            if self.recording_manager.is_recording and self.recording_manager.passthrough_active:
-                self.stop_recording()
-            self.recording_manager.passthrough_active = new_config['movie_passthrough']
-            self.stream_reader.force_reconnect()
-        
+    def _reconfigure_routing(self, old_passthrough, old_rtsp_url, old_sub_rtsp_url):
         # Check if routing needs reconfiguration
         new_passthrough = self.config.get('movie_passthrough', False)
         new_rtsp_url = self.config.get('rtsp_url')
@@ -606,6 +581,38 @@ class CameraThread(threading.Thread):
                 if self.sub_stream_reader:
                     self.sub_stream_reader.stop()
                     self.sub_stream_reader = None
+
+    def update_config(self, new_config):
+        old_passthrough = self.config.get('movie_passthrough', False)
+        old_masks = (self.config.get('privacy_masks', '[]'), self.config.get('motion_masks', '[]'))
+        old_engine = self.config.get('detect_engine', 'OpenCV')
+        old_rtsp_url = self.config.get('rtsp_url')
+        old_sub_rtsp_url = self.config.get('sub_rtsp_url')
+
+        self.config.update(new_config)
+        self.motion_detector.config = self.config
+        self.recording_manager.config = self.config
+        self.ai_detector.config = self.config
+
+        new_engine = self.config.get('detect_engine', 'OpenCV')
+        if old_engine != new_engine:
+            if self.motion_detector.motion_detected:
+                logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Engine changed {old_engine}->{new_engine}, resetting motion state")
+                self.motion_detector.motion_detected = False
+                if self.event_callback:
+                    self.event_callback(self.camera_id, 'motion_end')
+
+        if old_masks != (self.config.get('privacy_masks', '[]'), self.config.get('motion_masks', '[]')):
+            self._update_masks()
+
+
+        if 'movie_passthrough' in new_config and old_passthrough != new_config['movie_passthrough']:
+            if self.recording_manager.is_recording and self.recording_manager.passthrough_active:
+                self.stop_recording()
+            self.recording_manager.passthrough_active = new_config['movie_passthrough']
+            self.stream_reader.force_reconnect()
+
+        self._reconfigure_routing(old_passthrough, old_rtsp_url, old_sub_rtsp_url)
 
         pre_cap = self.config.get('pre_capture', 0)
         if pre_cap > 0 and self.pre_buffer.maxlen != pre_cap:

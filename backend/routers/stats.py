@@ -119,6 +119,21 @@ CURRENT_NET_SPEED = {
 }
 _realtime_net_lock = threading.Lock()
 
+def _get_current_network_bytes():
+    """Helper to fetch current network bytes (backend + engine)."""
+    net_io = psutil.net_io_counters()
+    recv = net_io.bytes_recv
+    sent = net_io.bytes_sent
+    try:
+        resp = requests.get("http://engine:8000/stats", timeout=1)
+        if resp.status_code == 200:
+            data = resp.json()
+            recv += data.get("network_recv", 0)
+            sent += data.get("network_sent", 0)
+    except:
+        pass
+    return recv, sent
+
 def start_realtime_collector():
     """Background thread to calculate current network speed every 2 seconds"""
     def collector_loop():
@@ -126,19 +141,7 @@ def start_realtime_collector():
         backend_proc = psutil.Process(os.getpid())
         
         # Initial counters
-        net_io = psutil.net_io_counters()
-        last_recv = net_io.bytes_recv
-        last_sent = net_io.bytes_sent
-        
-        # Try to get engine initial if possible
-        try:
-            resp = requests.get("http://engine:8000/stats", timeout=1)
-            if resp.status_code == 200:
-                data = resp.json()
-                last_recv += data.get("network_recv", 0)
-                last_sent += data.get("network_sent", 0)
-        except:
-             pass
+        last_recv, last_sent = _get_current_network_bytes()
 
         while True:
             time.sleep(2)
@@ -148,19 +151,7 @@ def start_realtime_collector():
                 if delta_time <= 0: continue
                 
                 # Get current stats
-                net_io = psutil.net_io_counters()
-                curr_recv = net_io.bytes_recv
-                curr_sent = net_io.bytes_sent
-                
-                # Add Engine stats
-                try:
-                    resp = requests.get("http://engine:8000/stats", timeout=1)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        curr_recv += data.get("network_recv", 0)
-                        curr_sent += data.get("network_sent", 0)
-                except:
-                    pass
+                curr_recv, curr_sent = _get_current_network_bytes()
                 
                 # Calculate diff
                 diff_recv = curr_recv - last_recv
@@ -453,6 +444,37 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
         }
     }
 
+def _aggregate_hourly_events(events: list, now: datetime) -> list[dict]:
+    """
+    Aggregates a list of events into hourly buckets for the last 24 hours.
+    """
+    history = {}
+    for i in range(25):
+        t = now - timedelta(hours=i)
+        key = t.strftime("%H:00")
+        history[key] = {"events": 0, "videos": 0}
+
+    for evt in events:
+        if not evt.timestamp_start:
+            continue
+        key = evt.timestamp_start.strftime("%H:00")
+        if key in history:
+            history[key]["events"] += 1
+            if evt.type == 'video':
+                history[key]["videos"] += 1
+
+    data = []
+    for i in range(24, -1, -1):
+        t = now - timedelta(hours=i)
+        key = t.strftime("%H:00")
+        if key in history:
+            data.append({
+                "time": key,
+                "events": history[key]["events"],
+                "videos": history[key]["videos"]
+            })
+    return data
+
 @router.get("/history")
 def get_stats_history(db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
     user, is_token = auth_info
@@ -475,41 +497,7 @@ def get_stats_history(db: Session = Depends(database.get_db), auth_info: tuple[m
             .filter(models.Event.timestamp_start >= twenty_four_hours_ago)\
             .all()
             
-        # Initialize buckets for last 24h
-        history = {}
-        # Pre-fill with 0
-        for i in range(25):
-            t = now - timedelta(hours=i)
-            key = t.strftime("%H:00")
-            history[key] = {"events": 0, "videos": 0}
-            
-        for evt in events:
-            if not evt.timestamp_start:
-                continue
-            key = evt.timestamp_start.strftime("%H:00")
-            # We might need to handle timezone if DB is UTC and local is not
-            # But usually naive datetimes in DB match logic.
-            # If the key isn't in history (slightly out of bounds due to minute diff), skip or find nearest.
-            if key in history:
-                history[key]["events"] += 1
-                if evt.type == 'video':
-                    history[key]["videos"] += 1
-        
-        # Convert to list sorted by time
-        data = []
-        # sort keys by time?
-        # Construct list from 24h ago to now
-        for i in range(24, -1, -1):
-            t = now - timedelta(hours=i)
-            key = t.strftime("%H:00")
-            if key in history:
-                data.append({
-                    "time": key,
-                    "events": history[key]["events"],
-                    "videos": history[key]["videos"]
-                })
-        
-        return data
+        return _aggregate_hourly_events(events, now)
 
     except Exception as e:
         print(f"Error generating history stats: {e}")

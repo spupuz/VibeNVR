@@ -67,6 +67,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                 <button
                     onClick={onClose}
                     className="lg:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-accent"
+                    aria-label={t("nav.close_sidebar", "Close Sidebar")}
                 >
                     <X className="w-5 h-5" />
                 </button>
@@ -121,7 +122,8 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:text-foreground transition-colors"
-                            title="GitHub Repository"
+                            title={t("nav.github_repo", "GitHub Repository")}
+                            aria-label={t("nav.github_repo", "GitHub Repository")}
                         >
                             <Github className="w-4 h-4" />
                         </a>
@@ -130,7 +132,8 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs hover:text-foreground font-mono tracking-wider transition-colors"
-                            title="View release on GitHub"
+                            title={t('nav.view_release', 'View release on GitHub')}
+                            aria-label={t('nav.view_release', 'View release on GitHub')}
                         >
                             v{packageJson.version}
                         </a>
@@ -139,7 +142,8 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:text-yellow-500 transition-colors"
-                            title="Buy Me a Coffee"
+                            title={t("nav.buy_coffee", "Buy Me a Coffee")}
+                            aria-label={t("nav.buy_coffee", "Buy Me a Coffee")}
                         >
                             <Coffee className="w-4 h-4" />
                         </a>

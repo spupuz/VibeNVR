@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripHorizontal } from 'lucide-react';
 import { CameraCard } from './CameraCard';
 import { useTranslation } from 'react-i18next';
 
-export function SortableCameraCard(props) {
+// ⚡ Bolt Optimization:
+// Wrapped in React.memo alongside CameraCard to ensure the Sortable wrapper
+// also avoids redundant renders when unrelated items in the grid are reordered.
+// Impact: Prevents O(n) component updates when a single item is dragged.
+export const SortableCameraCard = memo(function SortableCameraCard(props) {
     const { t } = useTranslation();
     const {
         attributes,
@@ -43,4 +47,4 @@ export function SortableCameraCard(props) {
             </div>
         </div>
     );
-}
+});

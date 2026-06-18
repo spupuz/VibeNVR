@@ -153,6 +153,50 @@ def read_camera(camera_id: int, db: Session = Depends(database.get_db), auth_inf
         return schemas.CameraSummary.model_validate(db_camera)
     return schemas.Camera.model_validate(db_camera)
 
+def _probe_resolution_if_needed(camera: schemas.CameraCreate, existing_camera: Any):
+    """Probes the RTSP stream for resolution if URL changed or auto-resolution was enabled."""
+    rtsp_changed = existing_camera.rtsp_url != camera.rtsp_url
+    auto_res_just_enabled = camera.auto_resolution and not existing_camera.auto_resolution
+    is_res_default = existing_camera.resolution_width in (0, 1920) and existing_camera.resolution_height in (0, 1080)
+
+    if camera.auto_resolution and camera.rtsp_url and (rtsp_changed or auto_res_just_enabled or is_res_default):
+        logger.info(f"Probing stream for camera {camera.name} (Trigger: {'URL Change' if rtsp_changed else 'Auto-Res Enabled/Default'})...")
+        dims = probe_service.probe_stream(camera.rtsp_url, rtsp_transport=camera.rtsp_transport)
+        if dims:
+            logger.info(f"Detected resolution: {dims['width']}x{dims['height']}")
+            camera.resolution_width = dims['width']
+            camera.resolution_height = dims['height']
+        else:
+            logger.info("Probe failed, using provided resolution.")
+
+
+def _sync_camera_engine_state(camera_id: int, db_camera: Any, was_active: bool, background_tasks: BackgroundTasks):
+    """Synchronizes the camera's active state with the motion/engine service."""
+    # If active status changed, we might need to start/stop the camera in Engine
+    # If it was inactive and now active -> Start
+    # If it was active and now inactive -> Stop? (Sync handles it?)
+    # For now, let's just Sync All if active status changes, simpler.
+    if was_active != db_camera.is_active:
+        logger.info(f"Camera {db_camera.name} active status changed ({was_active} -> {db_camera.is_active}). Syncing Engine...")
+        if db_camera.is_active:
+            motion_service.update_camera_runtime(db_camera)
+        else:
+            motion_service.stop_camera(db_camera.id)
+    else:
+        # Just update runtime config if active
+        if db_camera.is_active:
+            logger.info(f"Camera {db_camera.name} updated. Applying runtime config...")
+            motion_service.update_camera_runtime(db_camera)
+            # Update ONVIF Event subscription if needed
+            from onvif_event_service import event_manager
+            event_manager.update_subscription(camera_id)
+            # Immediate health refresh
+            background_tasks.add_task(health_service.refresh_camera_health, camera_id)
+        else:
+            logger.info(f"Camera {db_camera.name} updated (inactive). Ensuring it is stopped...")
+            motion_service.stop_camera(db_camera.id)
+
+
 @router.put("/{camera_id}", response_model=schemas.Camera)
 def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks: BackgroundTasks, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     # Sanitize URL credentials
@@ -167,21 +211,7 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks
     if existing_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
     
-    # Proactive probing: 
-    # Trigger if: 1. URL changed OR 2. Auto-Res was just toggled ON OR 3. Res is currently default/missing but Auto-Res is ON
-    rtsp_changed = existing_camera.rtsp_url != camera.rtsp_url
-    auto_res_just_enabled = camera.auto_resolution and not existing_camera.auto_resolution
-    is_res_default = existing_camera.resolution_width in (0, 1920) and existing_camera.resolution_height in (0, 1080)
-    
-    if camera.auto_resolution and camera.rtsp_url and (rtsp_changed or auto_res_just_enabled or is_res_default):
-        logger.info(f"Probing stream for camera {camera.name} (Trigger: {'URL Change' if rtsp_changed else 'Auto-Res Enabled/Default'})...")
-        dims = probe_service.probe_stream(camera.rtsp_url, rtsp_transport=camera.rtsp_transport)
-        if dims:
-            logger.info(f"Detected resolution: {dims['width']}x{dims['height']}")
-            camera.resolution_width = dims['width']
-            camera.resolution_height = dims['height']
-        else:
-            logger.info("Probe failed, using provided resolution.")
+    _probe_resolution_if_needed(camera, existing_camera)
 
     # Store old active status to decide on start vs update
     was_active = existing_camera.is_active
@@ -197,30 +227,7 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks
         background_tasks.add_task(onvif_service.probe_and_update_onvif_features, db_camera.id, None)
     if db_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
-    
-    # If active status changed, we might need to start/stop the camera in Engine
-    # If it was inactive and now active -> Start
-    # If it was active and now inactive -> Stop? (Sync handles it?)
-    # For now, let's just Sync All if active status changes, simpler.
-    if was_active != db_camera.is_active:
-        logger.info(f"Camera {camera.name} active status changed ({was_active} -> {db_camera.is_active}). Syncing Engine...")
-        if db_camera.is_active:
-            motion_service.update_camera_runtime(db_camera)
-        else:
-            motion_service.stop_camera(db_camera.id)
-    else:
-        # Just update runtime config if active
-        if db_camera.is_active:
-            logger.info(f"Camera {camera.name} updated. Applying runtime config...")
-            motion_service.update_camera_runtime(db_camera)
-            # Update ONVIF Event subscription if needed
-            from onvif_event_service import event_manager
-            event_manager.update_subscription(camera_id)
-            # Immediate health refresh
-            background_tasks.add_task(health_service.refresh_camera_health, camera_id)
-        else:
-            logger.info(f"Camera {camera.name} updated (inactive). Ensuring it is stopped...")
-            motion_service.stop_camera(db_camera.id)
+    _sync_camera_engine_state(camera_id, db_camera, was_active, background_tasks)
 
     return db_camera
 
