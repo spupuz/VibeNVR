@@ -1,4 +1,5 @@
-av<10.0.0
+av<10.0.0; python_version < "3.11"
+av>=10.0.0; python_version >= "3.11"
 fastapi
 uvicorn[standard]
 websockets

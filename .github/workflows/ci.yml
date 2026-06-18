@@ -110,8 +110,6 @@ jobs:
       - name: Install test dependencies
         run: |
           pip install requests
-          pip install "Cython<3"
-          pip install --no-binary av --no-build-isolation "av<10.0.0"
           pip install -r backend/requirements.txt
           pip install -r engine/requirements.txt
         
