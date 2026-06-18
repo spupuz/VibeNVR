@@ -109,7 +109,7 @@ jobs:
 
       - name: Install test dependencies
         run: |
-          pip install requests
+          pip install requests opencv-python-headless
           pip install -r backend/requirements.txt
           pip install -r engine/requirements.txt
         
