@@ -104,6 +104,9 @@ jobs:
           # Run bandit on backend and engine, ignoring tests/scripts folders
           bandit -r backend/ engine/ -x "**/scripts/**,**/tests/**,**/security_tests/**" -ll
 
+      - name: Install system dependencies for PyAV
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libswscale-dev libswresample-dev libavfilter-dev
+
       - name: Install test dependencies
         run: |
           pip install requests
