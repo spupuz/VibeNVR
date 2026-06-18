@@ -201,14 +201,16 @@ export const BackupManager = () => {
                                                 <button 
                                                     onClick={() => handleRestore(b.filename)}
                                                     className="p-2 text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
-                                                    title="Restore"
+                                                    title={t('common.restore', 'Restore')}
+                                                    aria-label={t('common.restore', 'Restore')}
                                                 >
                                                     <RotateCcw className="w-5 h-5" />
                                                 </button>
                                                 <button 
                                                     onClick={() => handleDelete(b.filename)}
                                                     className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
-                                                    title="Delete"
+                                                    title={t('common.delete', 'Delete')}
+                                                    aria-label={t('common.delete', 'Delete')}
                                                 >
                                                     <Trash2 className="w-5 h-5" />
                                                 </button>
@@ -251,14 +253,16 @@ export const BackupManager = () => {
                                         <button 
                                             onClick={() => handleRestore(b.filename)}
                                             className="p-3 text-emerald-500 bg-emerald-500/10 rounded-xl border border-emerald-500/20 flex items-center justify-center min-h-[44px] min-w-[44px] active:scale-95 transition-all"
-                                            title="Restore"
+                                            title={t('common.restore', 'Restore')}
+                                            aria-label={t('common.restore', 'Restore')}
                                         >
                                             <RotateCcw className="w-5 h-5" />
                                         </button>
                                         <button 
                                             onClick={() => handleDelete(b.filename)}
                                             className="p-3 text-rose-500 bg-rose-500/10 rounded-xl border border-rose-500/20 flex items-center justify-center min-h-[44px] min-w-[44px] active:scale-95 transition-all"
-                                            title="Delete"
+                                            title={t('common.delete', 'Delete')}
+                                            aria-label={t('common.delete', 'Delete')}
                                         >
                                             <Trash2 className="w-5 h-5" />
                                         </button>
