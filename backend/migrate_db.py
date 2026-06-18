@@ -2,6 +2,7 @@ from database import engine, Base
 from sqlalchemy import text
 import models
 import logging
+import re
 
 # Configure logging explicitly
 logger = logging.getLogger("VibeMigrate")
