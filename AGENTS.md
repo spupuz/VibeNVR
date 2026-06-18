@@ -365,7 +365,10 @@ logger.info(f"Connecting to {safe_url}")
   docker compose down && docker compose up -d --build && docker compose logs --tail 100
   ```
 - **Commits**: Always run local tests (`/run-tests.md` or manual pytest) AND perform manual verification (human UX check) after a full rebuild before committing. Never commit failing code or unverified UI changes. **Wait for explicit USER confirmation after manual verification before committing.**
-- **Automated Tests (New Features)**: If you implement a new feature or functionality, **you MUST explicitly write new automated test scripts** (in `scripts/security_tests/` or `scripts/tests/`) to verify it. The tests must cover:
+- **Automated Tests (New Features)**: If you implement a new feature or functionality, **you MUST explicitly write new automated test scripts** to verify it. NEVER create a root `tests` or `test` folder. Use the following locations:
+  - **Local/Throwaway tests**: Save these in `scripts/security_tests/` or `scripts/tests/` (this folder is ignored by both Git and Docker to keep the repo clean).
+  - **CI Integration tests**: If the test must run automatically on GitHub Actions, save it in `.github/scripts/` (this folder is tracked by Git so the CI can access it, but is excluded from Docker images to prevent bloat).
+  The tests must cover:
   1. **Security** (RBAC, missing auth, exposed data)
   2. **Regression** (ensure existing logic is not broken)
   3. **Functioning** (verify the new logic works as expected)
