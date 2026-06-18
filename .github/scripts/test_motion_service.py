@@ -65,3 +65,39 @@ def test_stop_camera_request_exception(mock_logger, mock_post):
     assert result is False
     mock_post.assert_called_once()
     mock_logger.error.assert_called_with("Error stopping camera 1: Connection error")
+
+from requests.exceptions import Timeout
+from motion_service import _go2rtc_put_one, GO2RTC_API_URL
+
+def test_go2rtc_put_one_delete_timeout():
+    """Test that a timeout during requests.delete does not prevent the PUT request."""
+    with (
+        patch("motion_service.requests.delete") as mock_delete,
+        patch("motion_service.requests.put") as mock_put,
+    ):
+        mock_delete.side_effect = Timeout("Connection timed out")
+        mock_put.return_value = MagicMock(status_code=200)
+        result = _go2rtc_put_one("test_cam", "rtsp://test/stream")
+        assert result is True
+
+def test_go2rtc_put_one_delete_exception():
+    """Test that a general exception during requests.delete does not prevent the PUT request."""
+    with (
+        patch("motion_service.requests.delete") as mock_delete,
+        patch("motion_service.requests.put") as mock_put,
+    ):
+        mock_delete.side_effect = Exception("General exception")
+        mock_put.return_value = MagicMock(status_code=200)
+        result = _go2rtc_put_one("test_cam", "rtsp://test/stream")
+        assert result is True
+
+def test_go2rtc_put_one_success():
+    """Test the happy path where both delete and put succeed."""
+    with (
+        patch("motion_service.requests.delete") as mock_delete,
+        patch("motion_service.requests.put") as mock_put,
+    ):
+        mock_delete.return_value = MagicMock(status_code=200)
+        mock_put.return_value = MagicMock(status_code=200)
+        result = _go2rtc_put_one("test_cam", "rtsp://test/stream")
+        assert result is True

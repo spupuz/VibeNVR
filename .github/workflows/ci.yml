@@ -105,7 +105,10 @@ jobs:
           bandit -r backend/ engine/ -x "**/scripts/**,**/tests/**,**/security_tests/**" -ll
 
       - name: Install test dependencies
-        run: pip install requests
+        run: |
+          pip install requests
+          pip install -r backend/requirements.txt
+          pip install -r engine/requirements.txt
         
       - name: Prepare environment
         run: cp .env.example .env

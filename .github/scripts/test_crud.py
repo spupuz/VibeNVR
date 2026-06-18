@@ -3,6 +3,7 @@ import json
 import pytest
 
 from crud import update_camera
+import crud
 import models
 
 def test_update_camera_success():
@@ -90,3 +91,99 @@ def test_update_camera_not_found():
     assert updated_camera is None
     db_mock.commit.assert_not_called()
     db_mock.refresh.assert_not_called()
+
+from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from models import Base, Camera, Event
+import schemas
+
+# Setup SQLite in-memory database
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+@pytest.fixture(scope="function")
+def db():
+    Base.metadata.create_all(bind=engine)
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
+
+@pytest.fixture(scope="function")
+def sample_data(db):
+    camera1 = Camera(name="Camera 1", rtsp_url="rtsp://cam1")
+    camera2 = Camera(name="Camera 2", rtsp_url="rtsp://cam2")
+    db.add_all([camera1, camera2])
+    db.commit()
+    db.refresh(camera1)
+    db.refresh(camera2)
+
+    local_tz = ZoneInfo("Europe/Rome")
+    base_date_local = datetime(2023, 10, 25, 0, 0, 0, tzinfo=local_tz)
+
+    event1 = Event(
+        camera_id=camera1.id,
+        type="motion",
+        timestamp_start=base_date_local + timedelta(hours=10)
+    )
+    event2 = Event(
+        camera_id=camera1.id,
+        type="object",
+        timestamp_start=base_date_local + timedelta(hours=15)
+    )
+    event3 = Event(
+        camera_id=camera2.id,
+        type="motion",
+        timestamp_start=base_date_local + timedelta(days=1, hours=8)
+    )
+
+    db.add_all([event1, event2, event3])
+    db.commit()
+
+    return {
+        "camera1": camera1,
+        "camera2": camera2,
+        "event1": event1,
+        "event2": event2,
+        "event3": event3,
+        "base_date": base_date_local
+    }
+
+def test_get_events_no_filters(db, sample_data):
+    events = crud.get_events(db)
+    assert len(events) == 3
+
+def test_get_events_by_camera_id(db, sample_data):
+    events = crud.get_events(db, camera_id=sample_data["camera1"].id)
+    assert len(events) == 2
+
+def test_get_events_by_type(db, sample_data):
+    events = crud.get_events(db, type="motion")
+    assert len(events) == 2
+
+def test_get_events_by_date(db, sample_data, monkeypatch):
+    monkeypatch.setenv("TZ", "Europe/Rome")
+    events = crud.get_events(db, date="2023-10-25")
+    assert len(events) == 2
+
+def test_get_events_combined_filters(db, sample_data, monkeypatch):
+    monkeypatch.setenv("TZ", "Europe/Rome")
+    events = crud.get_events(db, camera_id=sample_data["camera1"].id, type="object", date="2023-10-25")
+    assert len(events) == 1
+
+def test_get_events_no_matches(db, sample_data, monkeypatch):
+    monkeypatch.setenv("TZ", "Europe/Rome")
+    assert len(crud.get_events(db, type="nonexistent")) == 0
+    assert len(crud.get_events(db, date="2020-01-01")) == 0
+    assert len(crud.get_events(db, camera_id=999)) == 0
+
+def test_get_events_pagination(db, sample_data):
+    assert len(crud.get_events(db, limit=1)) == 1
+    assert len(crud.get_events(db, skip=1)) == 2
