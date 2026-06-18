@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
  * @param {Function} props.onHourClick - Handler for clicking an hour
  * @param {Number} props.selectedHour - Currently selected hour
  */
-export const HourTimeline = ({ events, onHourClick, selectedHour }) => {
+export const HourTimeline = React.memo(({ events, onHourClick, selectedHour }) => {
   const { t } = useTranslation();
     const hours = Array.from({ length: 24 }, (_, i) => 23 - i); // Newest at top
 
@@ -59,4 +59,4 @@ export const HourTimeline = ({ events, onHourClick, selectedHour }) => {
             </div>
         </div>
     );
-};
+});

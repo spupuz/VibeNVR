@@ -111,18 +111,18 @@ export const Timeline = () => {
         }
     }, [fetchEvents, fetchCameras, token]);
 
-    const getCamera = (id) => cameraMap[id];
-    const getCameraName = (id) => cameraMap[id]?.name || `Camera ${id}`;
+    const getCamera = useCallback((id) => cameraMap[id], [cameraMap]);
+    const getCameraName = useCallback((id) => cameraMap[id]?.name || `Camera ${id}`, [cameraMap]);
 
-    const getMediaUrl = (path) => {
+    const getMediaUrl = useCallback((path) => {
         if (!path) return '';
         let relative = path;
         const prefixes = ['/var/lib/motion/', '/var/lib/vibe/recordings/'];
         prefixes.forEach(p => { if (relative.startsWith(p)) relative = relative.replace(p, ''); });
         return `${API_BASE}/media/${relative}`;
-    };
+    }, []);
 
-    const handleDelete = async (id) => {
+    const handleDelete = useCallback(async (id) => {
         setConfirmConfig({
             isOpen: true,
             title: t('timeline.delete_event_title', 'Delete Event'),
@@ -140,7 +140,7 @@ export const Timeline = () => {
                             next.delete(id);
                             return next;
                         });
-                        if (selectedEvent?.id === id) setSelectedEvent(null);
+                        setSelectedEvent(prev => prev?.id === id ? null : prev);
                         showToast(t('timeline.event_deleted', 'Event deleted successfully'), 'success');
                     } else {
                         showToast(t('timeline.delete_failed', 'Failed to delete event'), 'error');
@@ -152,7 +152,7 @@ export const Timeline = () => {
             },
             onCancel: () => setConfirmConfig({ isOpen: false })
         });
-    };
+    }, [t, token, showToast]);
 
     const handleToggleSelect = useCallback((id, isShift) => {
         if (user?.role !== 'admin') return;
@@ -215,6 +215,18 @@ export const Timeline = () => {
         if (selectedIds.size === filteredEvents.length) setSelectedIds(new Set());
         else setSelectedIds(new Set(filteredEvents.map(e => e.id)));
     };
+
+    const handleHourClick = useCallback((h) => {
+        setSelectedHour(prev => prev === h ? null : h);
+    }, []);
+
+    const handleEventClick = useCallback((event, e) => {
+        if (user?.role === 'admin' && selectedIds.size > 0 && !e?.shiftKey) {
+            handleToggleSelect(event.id, false);
+        } else {
+            setSelectedEvent(event);
+        }
+    }, [user?.role, selectedIds.size, handleToggleSelect]);
 
     const groupedEvents = useMemo(() => {
         return filteredEvents.reduce((acc, event) => {
@@ -292,7 +304,7 @@ export const Timeline = () => {
 
                     <div className="flex-1 flex flex-col min-h-0">
                         <div className="flex-1 flex gap-2 min-h-0 p-3">
-                            <HourTimeline events={events} onHourClick={(h) => setSelectedHour(selectedHour === h ? null : h)} selectedHour={selectedHour} />
+                            <HourTimeline events={events} onHourClick={handleHourClick} selectedHour={selectedHour} />
                             <div className="flex-1 overflow-y-auto space-y-2 pr-1 text-[13px]">
                                 {filteredEvents.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
@@ -307,7 +319,7 @@ export const Timeline = () => {
                                                 {dateEvents.map(event => (
                                                     <EventCard 
                                                         key={event.id} event={event} camera={getCamera(event.camera_id)} isSelected={selectedEvent?.id === event.id} isMultiSelected={selectedIds.has(event.id)}
-                                                        onClick={(e) => { if (user?.role === 'admin' && selectedIds.size > 0 && !e.shiftKey) handleToggleSelect(event.id, false); else setSelectedEvent(event); }}
+                                                        onClick={handleEventClick}
                                                         onToggleSelect={handleToggleSelect} getMediaUrl={getMediaUrl} onDelete={handleDelete}
                                                     />
                                                 ))}

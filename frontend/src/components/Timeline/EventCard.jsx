@@ -14,7 +14,7 @@ import { useAuth } from '../../contexts/AuthContext';
  * @param {Function} props.getMediaUrl - Resolver for media URLs
  * @param {Function} props.onDelete - Handler for single event deletion
  */
-export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected, onToggleSelect, getMediaUrl, onDelete }) => {
+export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMultiSelected, onToggleSelect, getMediaUrl, onDelete }) => {
     const { user } = useAuth();
     const [imgError, setImgError] = useState(false);
     const time = new Date(event.timestamp_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -26,7 +26,7 @@ export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected,
             className={`flex items-stretch bg-card border rounded-xl overflow-hidden cursor-pointer transition-all hover:shadow-lg group
                 ${isSelected ? 'ring-2 ring-primary border-primary' : 'border-border hover:border-primary/50'}
             `}
-            onClick={() => onClick(event)}
+            onClick={(e) => onClick(event, e)}
         >
             {/* Thumbnail */}
             <div className="w-24 sm:w-32 h-20 bg-black/10 flex-shrink-0 relative overflow-hidden">
@@ -175,4 +175,4 @@ export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected,
             </div>
         </div>
     );
-};
+});
