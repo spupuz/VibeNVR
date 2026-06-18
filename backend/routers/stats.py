@@ -1,12 +1,19 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 import shutil
-import requests, time, psutil, os, logging, threading
+import requests
+import time
+import psutil
+import os
+import threading
 from settings_service import get_setting
 from datetime import datetime, timedelta
 from collections import deque
 from sqlalchemy import func
-import crud, database, schemas, models, auth_service
+import crud
+import database
+import models
+import auth_service
 
 router = APIRouter(
     prefix="/stats",
@@ -65,8 +72,10 @@ def collect_resource_stats(last_net_recv=None, last_net_sent=None, check_duratio
              diff_sent = current_net_sent - last_net_sent
              
              # Handle counter resets (if container restarted)
-             if diff_recv < 0: diff_recv = 0
-             if diff_sent < 0: diff_sent = 0
+             if diff_recv < 0:
+                 diff_recv = 0
+             if diff_sent < 0:
+                 diff_sent = 0
              
              net_recv_mbps = round((diff_recv / (1024 * 1024)) / check_duration_sec, 2)
              net_sent_mbps = round((diff_sent / (1024 * 1024)) / check_duration_sec, 2)
@@ -130,7 +139,7 @@ def _get_current_network_bytes():
             data = resp.json()
             recv += data.get("network_recv", 0)
             sent += data.get("network_sent", 0)
-    except:
+    except Exception:
         pass
     return recv, sent
 
@@ -138,7 +147,7 @@ def start_realtime_collector():
     """Background thread to calculate current network speed every 2 seconds"""
     def collector_loop():
         last_time = time.time()
-        backend_proc = psutil.Process(os.getpid())
+        psutil.Process(os.getpid())
         
         # Initial counters
         last_recv, last_sent = _get_current_network_bytes()
@@ -148,7 +157,8 @@ def start_realtime_collector():
             try:
                 now_time = time.time()
                 delta_time = now_time - last_time
-                if delta_time <= 0: continue
+                if delta_time <= 0:
+                    continue
                 
                 # Get current stats
                 curr_recv, curr_sent = _get_current_network_bytes()
@@ -158,8 +168,10 @@ def start_realtime_collector():
                 diff_sent = curr_sent - last_sent
                 
                 # Handle restarts/overflows
-                if diff_recv < 0: diff_recv = 0
-                if diff_sent < 0: diff_sent = 0
+                if diff_recv < 0:
+                    diff_recv = 0
+                if diff_sent < 0:
+                    diff_sent = 0
                 
                 # MB/s
                 recv_mbps = round((diff_recv / (1024*1024)) / delta_time, 2)
@@ -184,17 +196,9 @@ def start_realtime_collector():
 # Start collectors
 start_realtime_collector()
 
-@router.get("")
-def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
-    user, is_token = auth_info
-    from sqlalchemy import func, text
-    
-    # 1. Active Cameras
-    cameras = crud.get_cameras(db, skip=0, limit=1000)
-    active_cameras_count = len([c for c in cameras if c.is_active])
 
-    # 2. Detailed Storage Stats
-    # Global counts and sizes
+def _get_detailed_storage_stats(db: Session, cameras: list) -> tuple:
+    """Calculates detailed storage statistics for movies and images globally and per camera."""
     global_movies = db.query(func.count(models.Event.id), func.sum(models.Event.file_size)).filter(models.Event.type == "video").first()
     global_pics = db.query(func.count(models.Event.id), func.sum(models.Event.file_size)).filter(models.Event.type == "snapshot").first()
     
@@ -203,7 +207,6 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
         "images": {"count": global_pics[0] or 0, "size_gb": round((global_pics[1] or 0) / (1024**3), 2)}
     }
 
-    # Per-camera stats
     camera_stats = {}
     for cam in cameras:
         cam_movies = db.query(func.count(models.Event.id), func.sum(models.Event.file_size)).filter(models.Event.camera_id == cam.id, models.Event.type == "video").first()
@@ -213,34 +216,30 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
             "movies": {"count": cam_movies[0] or 0, "size_gb": round((cam_movies[1] or 0) / (1024**3), 2)},
             "images": {"count": cam_pics[0] or 0, "size_gb": round((cam_pics[1] or 0) / (1024**3), 2)}
         }
+    return global_movies, global_pics, global_stats, camera_stats
 
-    # 3. Storage Usage (Global Disk + Vibe Media)
+def _get_disk_usage_stats(global_movies: tuple, global_pics: tuple) -> tuple:
+    """Calculates disk usage statistics based on physical disk and application usage."""
     storage_path = "/data"
     try:
-        # Physical disk stats
         total, used_physical, free = shutil.disk_usage(storage_path)
         storage_total_gb = round(total / (2**30), 1)
         storage_free_gb = round(free / (2**30), 1)
         
-        # Vibe Application Usage (Movies + Images)
         vibe_used_bytes = (global_movies[1] or 0) + (global_pics[1] or 0)
         storage_used_gb = round(vibe_used_bytes / (1024**3), 2)
         
-        # Percent is Vibe Usage / Total Disk (though frontend might compare against quota)
         storage_percent = round((vibe_used_bytes / total) * 100) if total > 0 else 0
-        
     except Exception as e:
         print(f"Error getting disk usage: {e}")
         storage_total_gb = storage_used_gb = storage_free_gb = storage_percent = 0
+    return storage_total_gb, storage_free_gb, storage_used_gb, storage_percent
 
-    # ----------------------------------------------------
-    # Retention Estimation Logic
-    # ----------------------------------------------------
+def _get_retention_estimates(db: Session, cameras: list, storage_total_gb: float, camera_stats: dict) -> dict:
+    """Calculates retention estimates and storage requirements based on daily usage."""
     now = datetime.now()
     one_day_ago = now - timedelta(days=1)
     
-    # Calculate Daily "Burn Rate" (GB/day) based on last 24h of recordings (Video + Snapshots)
-    # Group by camera to be precise
     daily_stats_query = db.query(models.Event.camera_id, func.sum(models.Event.file_size))\
         .filter(models.Event.timestamp_start >= one_day_ago)\
         .group_by(models.Event.camera_id).all()
@@ -249,42 +248,33 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
     global_daily_bytes = sum(daily_usage_map.values())
     global_daily_gb = global_daily_bytes / (1024**3)
 
-    # Simple 24h count
     events_24h = db.query(func.count(models.Event.id))\
         .filter(models.Event.timestamp_start >= one_day_ago)\
         .scalar() or 0
 
-    # Get Global Limit setting
     global_limit_row = db.query(models.SystemSettings).filter(models.SystemSettings.key == "max_global_storage_gb").first()
     max_global_gb = float(global_limit_row.value) if global_limit_row and global_limit_row.value else 0
 
-    # Global Estimation
-    global_retention_days = None
-    if global_daily_gb > 0.01: # Lowered threshold to show capacity even with small burn rates
-        # If global limit is set, use it. Otherwise use physical free space + used by vibe (Total available to app)
+    global_retention_days: float | None = None
+    if global_daily_gb > 0.01:
         available_gb = max_global_gb if max_global_gb > 0 else storage_total_gb
         global_retention_days = round(available_gb / global_daily_gb, 1)
 
-    # Enhance Camera Stats with specific estimates
     for cam in cameras:
         d_bytes = daily_usage_map.get(cam.id, 0)
         d_gb = d_bytes / (1024**3)
         est_days = None
         
         if d_gb > 0.01:
-            # If camera has specific quota
             if cam.max_storage_gb > 0:
                 est_days = round(cam.max_storage_gb / d_gb, 1)
             else:
-                # If no specific quota, it's limited by Global or Disk
-                # To be conservative, show Global Estimate
                 est_days = global_retention_days
 
         if cam.id in camera_stats:
             camera_stats[cam.id]["daily_rate_gb"] = round(d_gb, 2)
             camera_stats[cam.id]["estimated_retention_days"] = est_days
 
-    # 4. Calculate Required Storage for Configured Retention (Precise per-camera sum)
     RETENTION_DAYS_MAP = {
         "For One Day": 1,
         "For One Week": 7,
@@ -328,17 +318,22 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
         configured_retention_setting = None
         required_storage_gb = None
 
-    # 5. System Uptime
-    uptime_seconds = int(time.time() - START_TIME)
-    uptime_str = f"{uptime_seconds // 86400}d {(uptime_seconds % 86400) // 3600}h {(uptime_seconds % 3600) // 60}m"
+    return {
+        "global_daily_gb": global_daily_gb,
+        "events_24h": events_24h,
+        "max_global_gb": max_global_gb,
+        "global_retention_days": global_retention_days,
+        "configured_retention_setting": configured_retention_setting,
+        "configured_retention_days": configured_retention_days,
+        "required_storage_gb": required_storage_gb
+    }
 
-    # 6. Resource Usage (CPU/Memory for VibeNVR app only)
-    # Backend process stats
+def _get_resource_usage() -> tuple:
+    """Fetches resource usage statistics for the backend and engine processes."""
     backend_process = psutil.Process(os.getpid())
     backend_cpu = backend_process.cpu_percent(interval=0.1)
     backend_mem_mb = backend_process.memory_info().rss / (1024 * 1024)
     
-    # Engine stats (from its /stats endpoint)
     engine_stats = fetch_engine_stats()
     engine_cpu = 0
     engine_mem_mb = 0
@@ -346,34 +341,39 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
         engine_cpu = engine_stats.get("cpu_percent", 0)
         engine_mem_mb = engine_stats.get("memory_mb", 0)
 
-    # Total app resources
     total_cpu = round(backend_cpu + engine_cpu, 1)
     total_mem_mb = round(backend_mem_mb + engine_mem_mb, 1)
 
-    # Network Rate Calculation (Read from background thread)
+    return backend_cpu, backend_mem_mb, engine_cpu, engine_mem_mb, total_cpu, total_mem_mb, engine_stats
+
+def _get_network_rate() -> tuple:
+    """Gets the current network receive and send rates in Mbps."""
     recv_mbps = 0.0
     sent_mbps = 0.0
     with _realtime_net_lock:
         recv_mbps = CURRENT_NET_SPEED["recv_mbps"]
         sent_mbps = CURRENT_NET_SPEED["sent_mbps"]
+    return recv_mbps, sent_mbps
 
-    # Database Size
+def _get_database_size(db: Session) -> float:
+    """Gets the current database size in MB."""
+    from sqlalchemy import text
     db_size_mb = 0
     try:
-        # Postgres specific
         result = db.execute(text("SELECT pg_database_size(current_database())")).fetchone()
         if result:
             db_size_mb = round(result[0] / (1024*1024), 1)
     except Exception as e:
         print(f"Error getting DB size: {e}")
+    return db_size_mb
 
-    # 7. System Health Calculation
+def _get_system_health_and_mqtt(db: Session, cameras: list, active_cameras_count: int, engine_stats: dict) -> tuple:
+    """Evaluates system health and retrieves MQTT connection status."""
     total_errors = len([c for c in cameras if c.status in ("UNREACHABLE", "UNAUTHORIZED") and c.is_active])
     system_status = "Healthy" if total_errors == 0 else "Issues Detected"
     if active_cameras_count == 0 and len(cameras) > 0:
         system_status = "Standby"
 
-    # MQTT Status
     mqtt_enabled = get_setting(db, "mqtt_enabled") == "true"
     mqtt_host = get_setting(db, "mqtt_host") or "Not configured"
     
@@ -384,11 +384,48 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
         mqtt_connected = engine_stats.get("mqtt_connected", False)
         ai_status = engine_stats.get("ai_status", ai_status)
 
+    return total_errors, system_status, mqtt_enabled, mqtt_host, mqtt_connected, ai_status
+
+@router.get("")
+def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
+    user, is_token = auth_info
+
+    # 1. Active Cameras
+    cameras = crud.get_cameras(db, skip=0, limit=1000)
+    active_cameras_count = len([c for c in cameras if c.is_active])
+
+    # 2. Detailed Storage Stats
+    global_movies, global_pics, global_stats, camera_stats = _get_detailed_storage_stats(db, cameras)
+
+    # 3. Storage Usage
+    storage_total_gb, storage_free_gb, storage_used_gb, storage_percent = _get_disk_usage_stats(global_movies, global_pics)
+
+    # 4. Retention Estimation Logic
+    retention_info = _get_retention_estimates(db, cameras, storage_total_gb, camera_stats)
+
+    # 5. System Uptime
+    uptime_seconds = int(time.time() - START_TIME)
+    uptime_str = f"{uptime_seconds // 86400}d {(uptime_seconds % 86400) // 3600}h {(uptime_seconds % 3600) // 60}m"
+
+    # 6. Resource Usage
+    backend_cpu, backend_mem_mb, engine_cpu, engine_mem_mb, total_cpu, total_mem_mb, engine_stats = _get_resource_usage()
+
+    # Network Rate
+    recv_mbps, sent_mbps = _get_network_rate()
+
+    # Database Size
+    db_size_mb = _get_database_size(db)
+
+    # 7. System Health Calculation
+    total_errors, system_status, mqtt_enabled, mqtt_host, mqtt_connected, ai_status = _get_system_health_and_mqtt(
+        db, cameras, active_cameras_count, engine_stats
+    )
+
     return {
         "active_cameras": active_cameras_count,
         "total_errors": total_errors,
         "total_events": (global_movies[0] or 0) + (global_pics[0] or 0),
-        "events_24h": events_24h,
+        "events_24h": retention_info["events_24h"],
         "video_count": global_movies[0] or 0,
         "picture_count": global_pics[0] or 0,
         "storage": {
@@ -396,13 +433,13 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
             "used_gb": storage_used_gb,
             "free_gb": storage_free_gb,
             "percent": storage_percent,
-            "estimated_retention_days": global_retention_days,
-            "daily_rate_gb": round(global_daily_gb, 2),
-            "configured_retention": configured_retention_setting,
-            "configured_retention_days": configured_retention_days,
-            "required_storage_gb": required_storage_gb,
-            "total_quota_gb": max_global_gb,
-            "quota_percent": round((storage_used_gb / max_global_gb) * 100) if max_global_gb > 0 else 0
+            "estimated_retention_days": retention_info["global_retention_days"],
+            "daily_rate_gb": round(retention_info["global_daily_gb"], 2),
+            "configured_retention": retention_info["configured_retention_setting"],
+            "configured_retention_days": retention_info["configured_retention_days"],
+            "required_storage_gb": retention_info["required_storage_gb"],
+            "total_quota_gb": retention_info["max_global_gb"],
+            "quota_percent": round((storage_used_gb / retention_info["max_global_gb"]) * 100) if retention_info["max_global_gb"] > 0 else 0
         },
         "resources": {
             "cpu_percent": total_cpu,
