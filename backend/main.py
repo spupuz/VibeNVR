@@ -2,7 +2,6 @@ import os
 import logging
 import json
 import asyncio
-import tarfile
 import io
 import re
 import threading
