@@ -1,7 +1,6 @@
 import os
 import logging
 import json
-import asyncio
 
 import io
 import re
@@ -27,13 +26,13 @@ import crud
 import models
 import storage_service
 import motion_service
-from models import Camera 
+from models import Camera
 
 # 1. IMMEDIATE LOGGING CONFIGURATION
 # We do this at the very top to catch Uvicorn's earliest messages
 def setup_initial_logging():
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-    
+
     # Configure Root Logger
     root_logger = logging.getLogger()
     if not root_logger.handlers:
@@ -67,23 +66,23 @@ class TokenRedactingFilter(logging.Filter):
         if isinstance(record.msg, str):
             # 1. Redact credentials in URLs (rtsp://user:pass@host)
             record.msg = re.sub(r'([a-z]+://[^:]+:)([^@]+)(@)', r'\1***\3', record.msg)
-            
+
             # 2. Sensitive keys list (matching logs.py)
             sensitive_keys = r'password|pwd|secret|token|access_token|Authorization|X-API-Key|client_secret|totp_secret|media_token'
-            
+
             # 3. Handle Bearer tokens specifically
             record.msg = re.sub(r'(?i)Bearer\s+[\w\-\.]+', r'Bearer REDACTED', record.msg)
-            
+
             # 4. Handle JSON/YAML/Quoted formats: "key": "value" or 'key': 'value'
             record.msg = re.sub(rf'(?i)(["\']?({sensitive_keys})["\']?\s*[:=]\s*["\'])([^"\']+)(["\'])', r'\1***\4', record.msg)
-            
+
             # 5. Handle unquoted key-value pairs: key=value or key: value
             record.msg = re.sub(rf'(?i)\b({sensitive_keys})\b\s*[:=]\s*(?!Bearer )[\w\-\.!@#$%^&*()]+', r'\1=REDACTED', record.msg)
 
             # 6. Legacy fallback for simple token=
             if "token=" in record.msg:
                 record.msg = re.sub(r"token=[^&\s]*", "token=REDACTED", record.msg)
-        
+
         # Redact token from uvicorn access log arguments (client, method, path, etc)
         if hasattr(record, "args") and record.args:
             new_args = list(record.args)
@@ -113,7 +112,7 @@ class PollingSamplingFilter(logging.Filter):
             method = record.args[1]
             path = record.args[2]
             status = record.args[4]
-            
+
             # Only sample successful GET requests to specific polling endpoints
             if method == "GET" and status == 200 and any(p in path for p in ["/health", "/stats", "/frame", "/events/status"]):
                 count = self.counters.get(path, 0)
@@ -127,10 +126,10 @@ def apply_security_logging():
     """
     redact_filter = TokenRedactingFilter()
     sampling_filter = PollingSamplingFilter()
-    
+
     # Target loggers: root, uvicorn, and its sub-loggers
     target_loggers = ["", "uvicorn", "uvicorn.access", "uvicorn.error", "websockets", "fastapi"]
-    
+
     for name in target_loggers:
         logger_obj = logging.getLogger(name)
         # 1. Add Filters to logger
@@ -138,14 +137,14 @@ def apply_security_logging():
             logger_obj.addFilter(redact_filter)
         if name == "uvicorn.access" and not any(isinstance(f, PollingSamplingFilter) for f in logger_obj.filters):
             logger_obj.addFilter(sampling_filter)
-        
+
         # 2. Add to all existing handlers
         for handler in logger_obj.handlers:
             if not any(isinstance(f, TokenRedactingFilter) for f in handler.filters):
                 handler.addFilter(redact_filter)
             if name == "uvicorn.access" and not any(isinstance(f, PollingSamplingFilter) for f in handler.filters):
                 handler.addFilter(sampling_filter)
-                
+
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
@@ -166,16 +165,16 @@ async def lifespan(app: FastAPI):
         "change_this_to_a_long_random_string",
         "vibe_secure_key_9823748923748923_change_in_prod",  # .env dev default
     ]
-    
+
     is_weak_key = auth_service.SECRET_KEY in default_keys or len(auth_service.SECRET_KEY) < 32
     auth_service.IS_WEAK_KEY = is_weak_key
-    
+
     if is_weak_key:
         logger.warning("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         logger.warning("!! WARNING: You are using a default or a weak SECRET_KEY.                     !!")
         logger.warning("!! This is a security risk. Please set a secure SECRET_KEY in your .env file. !!")
         logger.warning("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        
+
         # Only exit if in production and not explicitly bypassed
         if os.getenv("ENVIRONMENT", "production").lower() == "production":
              if os.getenv("ALLOW_WEAK_SECRET", "false").lower() != "true":
@@ -184,14 +183,14 @@ async def lifespan(app: FastAPI):
                  logger.error("!! To bypass this (NOT RECOMMENDED), set ALLOW_WEAK_SECRET=true.         !!")
                  logger.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                  # We no longer exit, but persist the warning in the UI
-                 # sys.exit(1) 
+                 # sys.exit(1)
              else:
                  logger.warning("!! WARNING: Bypassing weak SECRET_KEY check in production.              !!")
                  logger.warning("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
     # Wait for DB to be ready
     import time
-    
+
     # Force log formatting for Uvicorn Access logs (ensure timestamps)
     try:
         # Define formatter
@@ -201,7 +200,7 @@ async def lifespan(app: FastAPI):
         access_log = logging.getLogger("uvicorn.access")
         for handler in access_log.handlers:
             handler.setFormatter(formatter)
-            
+
         # 2. Root Logger (for app-generated logs)
         root_log = logging.getLogger()
         # If root has no handlers, add one (stdout)
@@ -213,7 +212,7 @@ async def lifespan(app: FastAPI):
         else:
             for handler in root_log.handlers:
                 handler.setFormatter(formatter)
-                
+
     except Exception as e:
         logger.error(f"Log setup warning: {e}")
 
@@ -225,17 +224,17 @@ async def lifespan(app: FastAPI):
         try:
             Base.metadata.create_all(bind=engine)
             logger.info("Database connection established.")
-            
+
             # Auto-migrate schema updates
             try:
                 import migrate_db
                 logger.info("Checking for schema migrations...")
                 migrate_db.migrate()
-                
+
                 # Auto-migrate captured_before (Frames -> Seconds)
                 import migrate_captured_before
                 migrate_captured_before.migrate_frames_to_seconds()
-                
+
                 # Sanitize AI Passthrough (Downgrade to OpenCV if passthrough is missing)
                 db = database.SessionLocal()
                 try:
@@ -252,7 +251,7 @@ async def lifespan(app: FastAPI):
                     db.close()
             except Exception as e:
                 logger.warning(f"Migration warning: {e}")
-                
+
             break
         except Exception as e:
             retry_count += 1
@@ -272,18 +271,18 @@ async def lifespan(app: FastAPI):
     backup_service.start_scheduler()
     from onvif_event_service import event_manager
     event_manager.start()
-    
+
     # Regenerate motion config
     with database.get_db_ctx() as db:
         try:
             # Sync to engine directly using motion_service
             motion_service.generate_motion_config(db)
-            
+
             # Initialize default settings (adds new keys like MQTT if missing)
             settings.init_default_settings(db, current_user=None) # Bypass admin check during startup
         except Exception as e:
             logger.warning(f"Startup warning: {e}")
-    
+
     # Background orphan recovery (delayed to not overload startup)
     def run_orphan_recovery():
         import time
@@ -294,10 +293,10 @@ async def lifespan(app: FastAPI):
             sync_recordings.sync_recordings(dry_run=False)
         except Exception as e:
             logger.warning(f"[Startup] Orphan recovery warning: {e}")
-    
+
     orphan_thread = threading.Thread(target=run_orphan_recovery, daemon=True, name="OrphanRecovery")
     orphan_thread.start()
-        
+
     yield
     # Shutdown actions (if any)
     from onvif_event_service import event_manager
@@ -364,7 +363,7 @@ async def database_exception_handler(request: Request, exc: OperationalError):
     import logging
     logger = logging.getLogger("uvicorn.error")
     logger.error(f"Database Connectivity Error: {exc}")
-    
+
     return JSONResponse(
         status_code=503,
         content={
@@ -415,11 +414,11 @@ async def get_secure_media(file_path: str, request: Request, token: Optional[str
     except Exception as e:
         logging.error(f"Media Auth Fail: Invalid token for {file_path} - {str(e)}")
         raise HTTPException(status_code=401, detail="Invalid media authentication")
-    
+
     # Security Validation: Ensure path is within /data/
     # Normalize path to prevent traversals like /data/../etc/passwd
     full_path = os.path.normpath(f"/data/{file_path}")
-    
+
     if not full_path.startswith("/data/"):
          logger.warning(f"Security Alert (Media): Attempted access to {full_path}")
          raise HTTPException(status_code=403, detail="Access denied")
@@ -440,7 +439,7 @@ async def get_secure_media(file_path: str, request: Request, token: Optional[str
 
     if not os.path.exists(full_path):
         raise HTTPException(status_code=404, detail="File not found")
-        
+
     return FileResponse(full_path)
 
 @app.get("/")
@@ -470,7 +469,7 @@ async def health_check(background_tasks: BackgroundTasks):
         if resp.status_code == 200:
             engine_data = resp.json()
             health_status["components"]["engine"] = "ok"
-            
+
             # PROACTIVE SYNC: If engine is alive but has 0 active cameras,
             # and we have active cameras in DB, trigger a re-sync.
             if engine_data.get("active_cameras") == 0:
@@ -480,14 +479,14 @@ async def health_check(background_tasks: BackgroundTasks):
                          # Use a lock to prevent spawning dozens of sync threads if health is polled rapidly
                          if motion_service.sync_lock.acquire(blocking=False):
                              print("Health check: Engine is empty. Triggering proactive re-sync...", flush=True)
-                             
+
                              def do_sync():
                                  try:
                                      with database.get_db_ctx() as db_inner:
                                          motion_service.generate_motion_config(db_inner)
                                  finally:
                                      motion_service.sync_lock.release()
-                                     
+
                              background_tasks.add_task(do_sync)
         else:
             health_status["components"]["engine"] = f"error: status_code {resp.status_code}"

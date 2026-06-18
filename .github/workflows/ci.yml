@@ -82,7 +82,7 @@ jobs:
           failure-threshold: error
 
       - name: Install Linting & Security Tools
-        run: pip install flake8 bandit requests mypy pytest
+        run: pip install flake8 bandit requests mypy pytest pytest-asyncio
 
       - name: Python Syntax & Undefined Names Check (Flake8)
         run: |
@@ -121,3 +121,6 @@ jobs:
           
       - name: Run CI Basic Integration Tests
         run: python3 .github/scripts/ci_integration_test.py
+
+      - name: Run CI Unit Tests
+        run: PYTHONPATH=.:backend:engine pytest .github/scripts/
