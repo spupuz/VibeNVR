@@ -313,7 +313,10 @@ def get_stats():
         "ai_status": {
             "initialized": ai._initialized,
             "hardware": ai.hardware,
-            "model_type": ai.model_type
+            "model_type": ai.model_type,
+            "last_inference_time": getattr(ai, "last_inference_time", 0),
+            "inference_count": getattr(ai, "inference_count", 0),
+            "last_inference_attempt": getattr(ai, "last_inference_attempt", 0)
         }
     }
 

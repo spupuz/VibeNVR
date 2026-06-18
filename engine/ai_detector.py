@@ -102,6 +102,10 @@ class AIDetector:
         self._initialized = True
         self._tpu_fail_count = 0
         self._last_tpu_fail = 0
+        self.last_inference_time = 0
+        self.inference_count = 0
+        self.last_inference_attempt = 0
+        self._is_loading = False
 
     @property
     def enabled(self):
@@ -155,6 +159,13 @@ class AIDetector:
         3. If still failed, try SSD + TPU
         4. If still failed, try SSD + CPU
         """
+        self._is_loading = True
+        try:
+            self._load_model_impl(force_cpu)
+        finally:
+            self._is_loading = False
+
+    def _load_model_impl(self, force_cpu=False):
         model_dir = "models"
         self.interpreter = None
         
@@ -317,6 +328,10 @@ class AIDetector:
                         continue
                     self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
                     self.interpreter.invoke()
+                    
+                    self.last_inference_time = time.time()
+                    self.inference_count += 1
+                    
                     # Collect raw outputs
                     raw = {
                         'boxes': None, 'classes': None, 'scores': None, 'count': None,
@@ -337,7 +352,18 @@ class AIDetector:
         self._infer_thread.start()
 
     def detect(self, frame, camera_id: int = 0, config: Dict[str, Any] = None) -> List[Dict[str, Any]]:
-        if not self._enabled or not self.interpreter:
+        self.last_inference_attempt = time.time()
+        
+        if not self._enabled:
+            return []
+            
+        if not self.interpreter:
+            # Watchdog: If interpreter is None for >20s and not currently loading, trigger a reload
+            if not getattr(self, '_is_loading', False) and (time.time() - getattr(self, '_last_tpu_fail', 0) > 20):
+                logger.error(f"Camera {camera_id}: AI Watchdog triggered - interpreter is None, forcing reload.")
+                self._tpu_fail_count += 1
+                self._last_tpu_fail = time.time()
+                threading.Thread(target=self._load_model, kwargs={'force_cpu': self._tpu_fail_count > 3}, daemon=True).start()
             return []
 
         # Ensure inference thread is running
