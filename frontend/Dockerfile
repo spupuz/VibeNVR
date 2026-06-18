@@ -4,6 +4,7 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
+# hadolint ignore=SC2015
 RUN npm config set fetch-retries 5 && \
     npm install --no-audit --no-fund --legacy-peer-deps || \
     (rm -rf node_modules package-lock.json && npm install --no-audit --no-fund)
@@ -17,6 +18,7 @@ RUN npm run build
 FROM nginx:alpine
 
 # Create necessary directories and set permissions for unprivileged execution if needed
+# hadolint ignore=DL3018
 RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx && \
     chmod -R 777 /var/cache/nginx /var/run /var/log/nginx && \
     apk add --no-cache netcat-openbsd

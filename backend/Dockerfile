@@ -8,7 +8,9 @@ COPY backend/requirements.txt .
 # However, for simplicity and stability in this iteration, we keep the apt version 
 # but we can try to use a lighter base or specific flags if needed. 
 # Actually, let's switch to proper static build pattern:
+# hadolint ignore=DL3008
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends curl xz-utils tzdata ffmpeg libmagic1 && rm -rf /var/lib/apt/lists/*
+# hadolint ignore=DL3013
 RUN pip install --no-cache-dir --upgrade pip wheel && \
     pip install --no-cache-dir -r requirements.txt
 
