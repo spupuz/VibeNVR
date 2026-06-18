@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Video, Image as ImageIcon, Download, Trash2, Camera, HardDrive, Brain } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -14,7 +14,7 @@ import { useAuth } from '../../contexts/AuthContext';
  * @param {Function} props.getMediaUrl - Resolver for media URLs
  * @param {Function} props.onDelete - Handler for single event deletion
  */
-export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected, onToggleSelect, getMediaUrl, onDelete }) => {
+const EventCardComponent = ({ event, onClick, camera, isSelected, isMultiSelected, onToggleSelect, getMediaUrl, onDelete }) => {
     const { user } = useAuth();
     const [imgError, setImgError] = useState(false);
     const time = new Date(event.timestamp_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -176,3 +176,5 @@ export const EventCard = ({ event, onClick, camera, isSelected, isMultiSelected,
         </div>
     );
 };
+
+export const EventCard = memo(EventCardComponent);

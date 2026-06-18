@@ -114,15 +114,15 @@ export const Timeline = () => {
     const getCamera = (id) => cameraMap[id];
     const getCameraName = (id) => cameraMap[id]?.name || `Camera ${id}`;
 
-    const getMediaUrl = (path) => {
+    const getMediaUrl = useCallback((path) => {
         if (!path) return '';
         let relative = path;
         const prefixes = ['/var/lib/motion/', '/var/lib/vibe/recordings/'];
         prefixes.forEach(p => { if (relative.startsWith(p)) relative = relative.replace(p, ''); });
         return `${API_BASE}/media/${relative}`;
-    };
+    }, []);
 
-    const handleDelete = async (id) => {
+    const handleDelete = useCallback(async (id) => {
         setConfirmConfig({
             isOpen: true,
             title: t('timeline.delete_event_title', 'Delete Event'),
@@ -140,7 +140,7 @@ export const Timeline = () => {
                             next.delete(id);
                             return next;
                         });
-                        if (selectedEvent?.id === id) setSelectedEvent(null);
+                        setSelectedEvent(prev => prev?.id === id ? null : prev);
                         showToast(t('timeline.event_deleted', 'Event deleted successfully'), 'success');
                     } else {
                         showToast(t('timeline.delete_failed', 'Failed to delete event'), 'error');
@@ -152,7 +152,7 @@ export const Timeline = () => {
             },
             onCancel: () => setConfirmConfig({ isOpen: false })
         });
-    };
+    }, [t, token]);
 
     const handleToggleSelect = useCallback((id, isShift) => {
         if (user?.role !== 'admin') return;
