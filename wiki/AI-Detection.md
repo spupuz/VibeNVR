@@ -364,7 +364,8 @@ VibeNVR implements **Non-Maximum Suppression (NMS)** for YOLOv8 models. This tec
 | **Severe UI Lag / API Timeout** | Database Corruption (Data Bloat) | The system now auto-truncates oversized AI settings and uses a self-healing validator. Ensure v1.28.5+ is installed to prevent recurrence. |
 | `Model 404 Error` on startup | Outdated model URLs | The system now skips non-existent models. Rebuild with `--build` to clean the cache. |
 | **Settings Reset after Reboot** | Postgres Array Conflict | v1.28.5 introduced a native Postgres array parser (`{...}`) to prevent accidental resets to defaults. |
-| `AI: invoke() timed out (6s)` | Queue contention across multiple cameras | The system now implements a **200ms submit lock timeout** to safely drop frames when the AI engine is heavily loaded, completely preventing this endless loop. |
+| `AI: invoke() timed out (6s)` | Queue contention across multiple cameras | The system now implements a **200ms submit lock timeout** to safely drop frames when the AI engine is heavily loaded. Additionally, a **passive watchdog** automatically restarts the TFLite interpreter if a silent stall is detected, ensuring continuous detection without requiring an engine restart. |
+| **Silent Detection Stall** | Interpreter state corruption | A passive watchdog runs with every inference request. If inference stops producing events for over 10 seconds despite successful invokes, the interpreter is automatically reinitialized. |
 
 ---
 

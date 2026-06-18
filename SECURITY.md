@@ -9,6 +9,7 @@ VibeNVR employs a defense-in-depth strategy, isolating components and ensuring s
 1. **Internal Port Protection**: By default, critical internal services (the Python Backend API on port `5005` and the VibeEngine processing node on port `8000`) bind exclusively to the internal Docker network. They are **NOT** safely accessible from the outside network, effectively isolating them from direct external attacks.
 2. **Reverse Proxy Ready**: The system is designed to be deployed behind a Reverse Proxy (e.g., Nginx Proxy Manager). This offloads SSL termination and ensures only the frontend interface (HTTP/HTTPS) is exposed to the public internet or untrusted LAN segments.
 3. **Database Security**: The PostgreSQL database is contained within the Docker bridge network and is not mapped to any host ports. Data persistence is managed securely via Docker volumes or bind mounts.
+4. **SQL Injection Prevention**: All direct database queries and migrations use strict parameterized bindings (e.g., `bindparams` in SQLAlchemy) and rigorous regex sanitization to eliminate SQL Injection (SQLi) vectors. Raw string formatting is strictly prohibited.
 
 ## 🔐 Authentication & Security Checks
 
