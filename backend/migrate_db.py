@@ -1,7 +1,8 @@
-from database import engine, Base
+from database import engine
 from sqlalchemy import text
 import models
 import logging
+import re
 
 # Configure logging explicitly
 logger = logging.getLogger("VibeMigrate")
@@ -13,12 +14,19 @@ if not logger.handlers:
     logger.addHandler(handler)
 logger.propagate = False
 
+def is_valid_identifier(identifier: str) -> bool:
+    """Check if the given string is a valid SQL identifier to prevent SQL injection."""
+    return bool(re.match(r"^[a-zA-Z0-9_]+$", str(identifier)))
+
 def add_column_if_not_exists(engine, table_name, column_name, column_type, default_val=None):
+    if not is_valid_identifier(table_name) or not is_valid_identifier(column_name):
+        raise ValueError(f"Invalid table or column name provided: {table_name}, {column_name}")
+
     with engine.connect() as conn:
         # Check if column exists
-        query = text(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table_name}' AND column_name='{column_name}'")  # nosec
-        result = conn.execute(query).fetchone()
-        
+        query = text("SELECT column_name FROM information_schema.columns WHERE table_name=:table_name AND column_name=:column_name")
+        result = conn.execute(query, {"table_name": table_name, "column_name": column_name}).fetchone()
+
         if not result:
             logger.info(f"Adding column {column_name} to {table_name}...")
             alter_query = f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"
@@ -30,7 +38,7 @@ def add_column_if_not_exists(engine, table_name, column_name, column_type, defau
                     alter_query += f" DEFAULT {'TRUE' if default_val else 'FALSE'}"
                 else:
                     alter_query += f" DEFAULT {default_val}"
-            
+
             conn.execute(text(alter_query))
             conn.commit()
             logger.info(f"Added {column_name}.")
@@ -38,11 +46,14 @@ def add_column_if_not_exists(engine, table_name, column_name, column_type, defau
             logger.info(f"Column {column_name} already exists.")
 
 def drop_column_if_exists(engine, table_name, column_name):
+    if not is_valid_identifier(table_name) or not is_valid_identifier(column_name):
+        raise ValueError(f"Invalid table or column name provided: {table_name}, {column_name}")
+
     with engine.connect() as conn:
         # Check if column exists
-        query = text(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table_name}' AND column_name='{column_name}'")  # nosec
-        result = conn.execute(query).fetchone()
-        
+        query = text("SELECT column_name FROM information_schema.columns WHERE table_name=:table_name AND column_name=:column_name")
+        result = conn.execute(query, {"table_name": table_name, "column_name": column_name}).fetchone()
+
         if result:
             logger.info(f"Dropping obsolete column {column_name} from {table_name}...")
             conn.execute(text(f"ALTER TABLE {table_name} DROP COLUMN {column_name}"))
@@ -63,7 +74,7 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "status", "VARCHAR", "STARTING")
     add_column_if_not_exists(engine, "cameras", "last_seen", "TIMESTAMP WITH TIME ZONE")
     add_column_if_not_exists(engine, "cameras", "sort_order", "INTEGER", 0)
-    
+
     # Audio Capabilities
     add_column_if_not_exists(engine, "cameras", "audio_enabled", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "enable_audio", "BOOLEAN", False)
@@ -79,7 +90,7 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "onvif_firmware", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "onvif_serial", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "onvif_hw_id", "VARCHAR")
-    
+
     # PTZ Capabilities
     add_column_if_not_exists(engine, "cameras", "ptz_can_pan_tilt", "BOOLEAN", True)
     add_column_if_not_exists(engine, "cameras", "ptz_can_zoom", "BOOLEAN", True)
@@ -90,7 +101,7 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "text_left", "VARCHAR", "Camera Name")
     add_column_if_not_exists(engine, "cameras", "text_right", "VARCHAR", "%Y-%m-%d %H:%M:%S")
     add_column_if_not_exists(engine, "cameras", "text_scale", "FLOAT", 1.0)
-    
+
     # File Storage
     add_column_if_not_exists(engine, "cameras", "storage_path", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "root_directory", "VARCHAR")
@@ -156,7 +167,7 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "notify_start_command", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "notify_end_webhook", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "notify_end_command", "BOOLEAN", False)
-    
+
     add_column_if_not_exists(engine, "cameras", "notify_attach_image_email", "BOOLEAN", True)
     add_column_if_not_exists(engine, "cameras", "notify_attach_image_telegram", "BOOLEAN", True)
 
@@ -177,7 +188,7 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "ai_object_types", "VARCHAR", '["person", "vehicle"]')
     add_column_if_not_exists(engine, "cameras", "ai_threshold", "FLOAT", 0.5)
     add_column_if_not_exists(engine, "cameras", "ai_tracking_enabled", "BOOLEAN", False)
-    
+
     # Cleanup moved AI settings (Moved to global)
     drop_column_if_exists(engine, "cameras", "ai_hardware")
     drop_column_if_exists(engine, "cameras", "ai_model")
@@ -198,7 +209,7 @@ def migrate():
     add_column_if_not_exists(engine, "users", "is_2fa_enabled", "BOOLEAN", False)
     add_column_if_not_exists(engine, "users", "restrict_camera_access", "BOOLEAN", False)
     add_column_if_not_exists(engine, "users", "language", "VARCHAR", "en")
-    
+
     # Granular User Access associations
     add_column_if_not_exists(engine, "user_camera_access", "can_view", "BOOLEAN", True)
     add_column_if_not_exists(engine, "user_camera_access", "can_replay", "BOOLEAN", True)
@@ -207,7 +218,7 @@ def migrate():
     add_column_if_not_exists(engine, "user_group_access", "can_view", "BOOLEAN", True)
     add_column_if_not_exists(engine, "user_group_access", "can_replay", "BOOLEAN", True)
     add_column_if_not_exists(engine, "user_group_access", "can_control", "BOOLEAN", False)
-    
+
     with engine.connect() as conn:
         try:
             conn.execute(text("SELECT 1 FROM user_camera_access LIMIT 1"))
@@ -275,7 +286,7 @@ def migrate():
             models.StorageProfile.__table__.create(engine)
             conn.commit()
             logger.info("storage_profiles table created.")
-            
+
     # Add storage_profile_id to cameras
     add_column_if_not_exists(engine, "cameras", "storage_profile_id", "INTEGER")
 
