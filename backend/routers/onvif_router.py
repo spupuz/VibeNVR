@@ -126,7 +126,7 @@ async def probe_onvif_device(req: schemas.OnvifProbeRequest, current_user: schem
         return details
     except HTTPException:
         raise
-    except ConnectionError as e:
+    except ConnectionError:
         raise HTTPException(status_code=400, detail=f"Connection refused: Could not connect to {req.ip}:{req.port}. Is the port correct?")
     except Exception as e:
         err_str = str(e)

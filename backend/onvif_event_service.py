@@ -12,7 +12,6 @@ import onvif.exceptions
 
 from database import SessionLocal
 import models
-import schemas
 import onvif_service
 
 logger = logging.getLogger("uvicorn.error")
@@ -281,8 +280,6 @@ class OnvifEventManager:
     def _handle_notification(self, camera_id: int, msg):
         """Parse XML notification and trigger engine if motion is detected."""
         try:
-            from zeep import helpers
-            import xml.etree.ElementTree as ET
 
             # 1. Extract Topic
             topic = ""

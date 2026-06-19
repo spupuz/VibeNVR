@@ -1,13 +1,11 @@
 
 import os
-import sys
 from sqlalchemy import create_engine, text
-from database import Base, get_db
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vibenvr:vibenvrpass@db:5432/vibenvr")
 
 def cleanup_db():
-    print(f"Connecting to database...")
+    print("Connecting to database...")
     engine = create_engine(DATABASE_URL)
     
     with engine.connect() as connection:

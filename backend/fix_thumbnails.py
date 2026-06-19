@@ -45,9 +45,9 @@ for e in events:
             db_thumb_path = e.file_path.rsplit('.', 1)[0] + '.jpg'
             e.thumbnail_path = db_thumb_path
             fixed += 1
-            print(f"    -> Generated thumbnail!")
+            print("    -> Generated thumbnail!")
         else:
-            print(f"    -> Failed to generate thumbnail")
+            print("    -> Failed to generate thumbnail")
 
 if fixed > 0:
     db.commit()
