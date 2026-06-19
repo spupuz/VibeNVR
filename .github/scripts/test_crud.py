@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 import json
 import pytest
 
@@ -187,3 +187,80 @@ def test_get_events_no_matches(db, sample_data, monkeypatch):
 def test_get_events_pagination(db, sample_data):
     assert len(crud.get_events(db, limit=1)) == 1
     assert len(crud.get_events(db, skip=1)) == 2
+
+@patch('models.Camera')
+def test_create_camera_json_serialization(mock_camera):
+    # Mocking db session
+    db_mock = MagicMock()
+
+    # Mocking schema with list for ai_object_types
+    camera_data = {
+        "name": "Test Camera",
+        "rtsp_url": "rtsp://test",
+        "ai_object_types": ["person", "car"]
+    }
+
+    # Mock schema object
+    class DummyCameraSchema:
+        def dict(self):
+            return camera_data.copy()
+
+    camera_schema = DummyCameraSchema()
+
+    crud.create_camera(db_mock, camera_schema)
+
+    # Check that it serialized correctly
+    import json
+    expected_data = camera_data.copy()
+    expected_data['ai_object_types'] = json.dumps(["person", "car"])
+
+    mock_camera.assert_called_once_with(**expected_data)
+    db_mock.add.assert_called_once()
+    db_mock.commit.assert_called_once()
+
+@patch('models.Camera')
+def test_create_camera_no_ai_object_types(mock_camera):
+    # Mocking db session
+    db_mock = MagicMock()
+
+    # Mocking schema without ai_object_types
+    camera_data = {
+        "name": "Test Camera",
+        "rtsp_url": "rtsp://test"
+    }
+
+    class DummyCameraSchema:
+        def dict(self):
+            return camera_data.copy()
+
+    camera_schema = DummyCameraSchema()
+
+    crud.create_camera(db_mock, camera_schema)
+
+    mock_camera.assert_called_once_with(**camera_data)
+    db_mock.add.assert_called_once()
+    db_mock.commit.assert_called_once()
+
+@patch('models.Camera')
+def test_create_camera_string_ai_object_types(mock_camera):
+    # Mocking db session
+    db_mock = MagicMock()
+
+    # Mocking schema with string for ai_object_types
+    camera_data = {
+        "name": "Test Camera",
+        "rtsp_url": "rtsp://test",
+        "ai_object_types": "person, car" # This shouldn't be serialized to json
+    }
+
+    class DummyCameraSchema:
+        def dict(self):
+            return camera_data.copy()
+
+    camera_schema = DummyCameraSchema()
+
+    crud.create_camera(db_mock, camera_schema)
+
+    mock_camera.assert_called_once_with(**camera_data)
+    db_mock.add.assert_called_once()
+    db_mock.commit.assert_called_once()
