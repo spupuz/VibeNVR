@@ -192,27 +192,36 @@ def update_user(db: Session, user_id: int, user: schemas.UserUpdate):
 
 def get_allowed_camera_ids_for_user(db: Session, user_id: int, permission: str = "view") -> list[int] | None:
     """Returns a list of camera IDs the user is allowed to access with the required permission, or None if they have full access."""
-    from sqlalchemy.orm import selectinload
-    user = db.query(models.User).options(
-        selectinload(models.User.camera_accesses),
-        selectinload(models.User.group_accesses).selectinload(models.UserGroupAccess.group).selectinload(models.CameraGroup.cameras)
-    ).filter(models.User.id == user_id).first()
+    user = get_user(db, user_id)
     if not user or user.role == "admin" or not user.restrict_camera_access:
         return None
-    
-    # Collect explicit camera IDs with the required permission
+
+    # ⚡ Bolt: Resolving N+1 query issue.
+    # Instead of iterating over relationships which triggers a query for each group's cameras,
+    # we directly query the association tables, reducing DB queries from O(N) to O(1).
     camera_ids = set()
-    for acc in user.camera_accesses:
-        if getattr(acc, f"can_{permission}", False):
-            camera_ids.add(acc.camera_id)
-            
-    # Collect camera IDs from groups with the required permission
-    for acc in user.group_accesses:
-        if getattr(acc, f"can_{permission}", False):
-            if acc.group:
-                for c in acc.group.cameras:
-                    camera_ids.add(c.id)
-            
+
+    # 1. Collect explicit camera IDs
+    direct_ids = db.query(models.UserCameraAccess.camera_id).filter(
+        models.UserCameraAccess.user_id == user_id,
+        getattr(models.UserCameraAccess, f"can_{permission}").is_(True)
+    ).all()
+
+    for (cid,) in direct_ids:
+        camera_ids.add(cid)
+
+    # 2. Collect camera IDs from groups with the required permission
+    group_camera_ids = db.query(models.CameraGroupAssociation.camera_id).join(
+        models.UserGroupAccess,
+        models.UserGroupAccess.group_id == models.CameraGroupAssociation.group_id
+    ).filter(
+        models.UserGroupAccess.user_id == user_id,
+        getattr(models.UserGroupAccess, f"can_{permission}").is_(True)
+    ).all()
+
+    for (cid,) in group_camera_ids:
+        camera_ids.add(cid)
+
     return list(camera_ids)
 
 
