@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
-import models, schemas
+import models
+import schemas
 
 def get_camera(db: Session, camera_id: int):
     return db.query(models.Camera).filter(models.Camera.id == camera_id).first()
@@ -191,7 +192,11 @@ def update_user(db: Session, user_id: int, user: schemas.UserUpdate):
 
 def get_allowed_camera_ids_for_user(db: Session, user_id: int, permission: str = "view") -> list[int] | None:
     """Returns a list of camera IDs the user is allowed to access with the required permission, or None if they have full access."""
-    user = get_user(db, user_id)
+    from sqlalchemy.orm import selectinload
+    user = db.query(models.User).options(
+        selectinload(models.User.camera_accesses),
+        selectinload(models.User.group_accesses).selectinload(models.UserGroupAccess.group).selectinload(models.CameraGroup.cameras)
+    ).filter(models.User.id == user_id).first()
     if not user or user.role == "admin" or not user.restrict_camera_access:
         return None
     
