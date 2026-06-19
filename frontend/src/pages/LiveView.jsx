@@ -294,7 +294,7 @@ const VideoPlayer = ({
                                     method: 'POST',
                                     headers: { Authorization: `Bearer ${token}` }
                                 }).then(res => { if (res.ok) showToast(`Snapshot saved`, 'success'); });
-                            }} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Take Photo">
+                            }} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0" title="Take Photo" aria-label={t('live.take_photo', 'Take Photo')}>
                                 <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             </button>
                         )}
@@ -321,6 +321,7 @@ const VideoPlayer = ({
                                 }}
                                 className={`p-1 rounded-md transition-all shrink-0 ${(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? 'bg-red-600 text-white animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.5)]' : 'text-white hover:bg-red-600/50'}`}
                                 title={(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? "Stop Recording" : "Start Continuous Recording"}
+                                aria-label={(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? t('live.stop_recording', 'Stop Recording') : t('live.start_recording', 'Start Continuous Recording')}
                             >
                                 <Disc className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             </button>
@@ -334,6 +335,7 @@ const VideoPlayer = ({
                                 }}
                                 className={`p-1 rounded-md transition-all shrink-0 ${showPTZ ? 'bg-primary text-white shadow-[0_0_10px_rgba(var(--primary),0.5)]' : 'text-white hover:bg-primary/50'}`}
                                 title={showPTZ ? "Hide PTZ Controls" : "Show PTZ Controls"}
+                                aria-label={showPTZ ? t('live.hide_ptz', 'Hide PTZ Controls') : t('live.show_ptz', 'Show PTZ Controls')}
                             >
                                 <Move className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             </button>
