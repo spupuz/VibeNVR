@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 import json
 import pytest
 
@@ -188,9 +188,10 @@ def test_get_events_pagination(db, sample_data):
     assert len(crud.get_events(db, limit=1)) == 1
     assert len(crud.get_events(db, skip=1)) == 2
 
-def test_create_camera_json_serialization(mocker):
+@patch('models.Camera')
+def test_create_camera_json_serialization(mock_camera):
     # Mocking db session
-    db_mock = mocker.Mock()
+    db_mock = MagicMock()
 
     # Mocking schema with list for ai_object_types
     camera_data = {
@@ -198,9 +199,6 @@ def test_create_camera_json_serialization(mocker):
         "rtsp_url": "rtsp://test",
         "ai_object_types": ["person", "car"]
     }
-
-    # We will use mocker to mock models.Camera
-    mocker.patch('models.Camera')
 
     # Mock schema object
     class DummyCameraSchema:
@@ -216,21 +214,20 @@ def test_create_camera_json_serialization(mocker):
     expected_data = camera_data.copy()
     expected_data['ai_object_types'] = json.dumps(["person", "car"])
 
-    models.Camera.assert_called_once_with(**expected_data)
+    mock_camera.assert_called_once_with(**expected_data)
     db_mock.add.assert_called_once()
     db_mock.commit.assert_called_once()
 
-def test_create_camera_no_ai_object_types(mocker):
+@patch('models.Camera')
+def test_create_camera_no_ai_object_types(mock_camera):
     # Mocking db session
-    db_mock = mocker.Mock()
+    db_mock = MagicMock()
 
     # Mocking schema without ai_object_types
     camera_data = {
         "name": "Test Camera",
         "rtsp_url": "rtsp://test"
     }
-
-    mocker.patch('models.Camera')
 
     class DummyCameraSchema:
         def dict(self):
@@ -240,13 +237,14 @@ def test_create_camera_no_ai_object_types(mocker):
 
     crud.create_camera(db_mock, camera_schema)
 
-    models.Camera.assert_called_once_with(**camera_data)
+    mock_camera.assert_called_once_with(**camera_data)
     db_mock.add.assert_called_once()
     db_mock.commit.assert_called_once()
 
-def test_create_camera_string_ai_object_types(mocker):
+@patch('models.Camera')
+def test_create_camera_string_ai_object_types(mock_camera):
     # Mocking db session
-    db_mock = mocker.Mock()
+    db_mock = MagicMock()
 
     # Mocking schema with string for ai_object_types
     camera_data = {
@@ -255,8 +253,6 @@ def test_create_camera_string_ai_object_types(mocker):
         "ai_object_types": "person, car" # This shouldn't be serialized to json
     }
 
-    mocker.patch('models.Camera')
-
     class DummyCameraSchema:
         def dict(self):
             return camera_data.copy()
@@ -265,6 +261,6 @@ def test_create_camera_string_ai_object_types(mocker):
 
     crud.create_camera(db_mock, camera_schema)
 
-    models.Camera.assert_called_once_with(**camera_data)
+    mock_camera.assert_called_once_with(**camera_data)
     db_mock.add.assert_called_once()
     db_mock.commit.assert_called_once()
