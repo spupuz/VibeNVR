@@ -270,12 +270,26 @@ class CheckCameraAccess:
         
         # 2. Group camera access
         if not has_permission:
-            for acc in current_user.group_accesses:
-                if getattr(acc, f"can_{self.required_permission}", False):
-                    # Check if camera_id is in this group
-                    if acc.group and any(c.id == camera_id for c in acc.group.cameras):
-                        has_permission = True
-                        break
+            from sqlalchemy import select
+
+            # Efficiently query database instead of lazy-loading all group cameras into memory
+            stmt = (
+                select(1)
+                .select_from(models.UserGroupAccess)
+                .join(
+                    models.CameraGroupAssociation,
+                    models.UserGroupAccess.group_id == models.CameraGroupAssociation.group_id
+                )
+                .where(
+                    models.UserGroupAccess.user_id == current_user.id,
+                    getattr(models.UserGroupAccess, f"can_{self.required_permission}").is_(True),
+                    models.CameraGroupAssociation.camera_id == camera_id
+                )
+                .limit(1)
+            )
+
+            if db.execute(stmt).scalar() is not None:
+                has_permission = True
                         
         if not has_permission:
             raise HTTPException(
