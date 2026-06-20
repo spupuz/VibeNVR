@@ -63,6 +63,7 @@ const Toast = ({ message, type, onClose }) => {
             <button
                 onClick={onClose}
                 className="p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-muted-foreground transition-colors"
+                aria-label="Close"
             >
                 <X className="w-4 h-4" />
             </button>

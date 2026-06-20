@@ -129,6 +129,7 @@ export const CameraAddEditModal = ({
                         <button
                             onClick={() => { setShowAddModal(false); setEditingId(null); setCloneSourceId(''); }}
                             className="p-2 hover:bg-muted rounded-full transition-colors"
+                            aria-label={t('common.close', 'Close')}
                         >
                             <X className="w-5 h-5" />
                         </button>

@@ -1,0 +1,3 @@
+## 2026-06-20 - Missing ARIA labels on common Lucide close icons
+**Learning:** Found an accessibility pattern across the application where the `lucide-react` `<X />` icon was used for closing modals/toast notifications but the parent `<button>` lacked an `aria-label`. Because `X` is used purely visually, screen readers did not have an accessible name for these close actions.
+**Action:** Always ensure that icon-only interactive elements (like an `X` for close or `Trash` for delete) have a clear and explicit `aria-label` (using localized text via `t()` where available, e.g., `aria-label={t('common.close', 'Close')}`).

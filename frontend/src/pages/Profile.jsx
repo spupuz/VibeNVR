@@ -329,7 +329,7 @@ export const Profile = () => {
                                 <Key className="w-5 h-5 text-primary" />
                                 Change Password
                             </h3>
-                            <button onClick={() => setPwdModalOpen(false)} className="text-muted-foreground hover:text-foreground">
+                            <button onClick={() => setPwdModalOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label={t('common.close', 'Close')}>
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -382,7 +382,7 @@ export const Profile = () => {
                                 <Shield className="w-5 h-5 text-red-500" />
                                 Disable Two-Factor Authentication
                             </h3>
-                            <button onClick={() => { setDisable2FAModalOpen(false); setDisable2FAPassword(''); }} className="text-muted-foreground hover:text-foreground">
+                            <button onClick={() => { setDisable2FAModalOpen(false); setDisable2FAPassword(''); }} className="text-muted-foreground hover:text-foreground" aria-label={t('common.close', 'Close')}>
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -422,7 +422,7 @@ export const Profile = () => {
                                 <Smartphone className="w-5 h-5 text-primary" />
                                 Setup 2FA
                             </h3>
-                            <button onClick={() => { setIs2FASetupOpen(false); setSetupCode(''); }} className="text-muted-foreground hover:text-foreground">
+                            <button onClick={() => { setIs2FASetupOpen(false); setSetupCode(''); }} className="text-muted-foreground hover:text-foreground" aria-label={t('common.close', 'Close')}>
                                 <X className="w-5 h-5" />
                             </button>
                         </div>

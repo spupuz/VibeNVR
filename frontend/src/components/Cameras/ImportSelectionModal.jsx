@@ -48,7 +48,7 @@ export const ImportSelectionModal = ({ showModal, onClose, onConfirm, cameras })
                             {t('cameras.import_selection_desc', 'Choose which cameras you want to import from the file.')}
                         </p>
                     </div>
-                    <button onClick={onClose} className="p-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors">
+                    <button onClick={onClose} className="p-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors" aria-label={t('common.close', 'Close')}>
                         <X className="w-5 h-5" />
                     </button>
                 </div>
