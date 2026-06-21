@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
-import models, schemas
+import models
+import schemas
 
 def get_camera(db: Session, camera_id: int):
     return db.query(models.Camera).filter(models.Camera.id == camera_id).first()
@@ -17,7 +18,7 @@ def create_camera(db: Session, camera: schemas.CameraCreate):
     if 'ai_object_types' in create_data and isinstance(create_data['ai_object_types'], list):
         import json
         create_data['ai_object_types'] = json.dumps(create_data['ai_object_types'])
-        
+
     db_camera = models.Camera(**create_data)
     db.add(db_camera)
     db.commit()
@@ -32,7 +33,7 @@ def update_camera(db: Session, camera_id: int, camera: schemas.CameraCreate):
         if 'ai_object_types' in update_data and isinstance(update_data['ai_object_types'], list):
             import json
             update_data['ai_object_types'] = json.dumps(update_data['ai_object_types'])
-            
+
         for key, value in update_data.items():
             setattr(db_camera, key, value)
         db.commit()
@@ -61,20 +62,20 @@ def get_events(db: Session, skip: int = 0, limit: int = 100, camera_id: int = No
         # Use a range to handle timezone correctly
         # Use a range to handle timezone correctly
         from zoneinfo import ZoneInfo
-        
+
         # Get local timezone from env or default to Europe/Rome as per docker-compose
         import os
         tz_name = os.environ.get('TZ', 'Europe/Rome')
         local_tz = ZoneInfo(tz_name)
-        
+
         # Parse date and set to start of day in local timezone
         naive_start = datetime.strptime(date, '%Y-%m-%d')
         start_date = naive_start.replace(tzinfo=local_tz)
         end_date = start_date + timedelta(days=1)
-        
+
         query = query.filter(models.Event.timestamp_start >= start_date)
         query = query.filter(models.Event.timestamp_start < end_date)
-        
+
     return query.order_by(models.Event.timestamp_start.desc()).offset(skip).limit(limit).all()
 
 def create_event(db: Session, event: schemas.EventCreate):
@@ -116,7 +117,7 @@ def create_user(db: Session, user: schemas.UserCreate):
     )
     db.add(db_user)
     db.commit()
-    
+
     if user.camera_accesses is not None:
         db_user.camera_accesses = []
         for acc in user.camera_accesses:
@@ -128,7 +129,7 @@ def create_user(db: Session, user: schemas.UserCreate):
         cameras = db.query(models.Camera).filter(models.Camera.id.in_(user.allowed_camera_ids)).all()
         for c in cameras:
             db_user.camera_accesses.append(models.UserCameraAccess(camera_id=c.id))
-            
+
     if user.group_accesses is not None:
         db_user.group_accesses = []
         for acc in user.group_accesses:
@@ -140,7 +141,7 @@ def create_user(db: Session, user: schemas.UserCreate):
         groups = db.query(models.CameraGroup).filter(models.CameraGroup.id.in_(user.allowed_group_ids)).all()
         for g in groups:
             db_user.group_accesses.append(models.UserGroupAccess(group_id=g.id))
-        
+
     db.commit()
     db.refresh(db_user)
     return db_user
@@ -149,17 +150,17 @@ def update_user(db: Session, user_id: int, user: schemas.UserUpdate):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if not db_user:
         return None
-        
+
     db_user.username = user.username
     db_user.email = user.email
     db_user.role = user.role
     db_user.restrict_camera_access = user.restrict_camera_access
-    
+
     # Note: password update is handled separately, but if provided here, we could update it.
     if user.password and user.password != "********":
         import auth_service
         db_user.hashed_password = auth_service.get_password_hash(user.password)
-        
+
     # Update relations
     if user.camera_accesses is not None:
         db_user.camera_accesses = []
@@ -172,7 +173,7 @@ def update_user(db: Session, user_id: int, user: schemas.UserUpdate):
         cameras = db.query(models.Camera).filter(models.Camera.id.in_(user.allowed_camera_ids)).all()
         for c in cameras:
             db_user.camera_accesses.append(models.UserCameraAccess(camera_id=c.id))
-            
+
     if user.group_accesses is not None:
         db_user.group_accesses = []
         for acc in user.group_accesses:
@@ -184,7 +185,7 @@ def update_user(db: Session, user_id: int, user: schemas.UserUpdate):
         groups = db.query(models.CameraGroup).filter(models.CameraGroup.id.in_(user.allowed_group_ids)).all()
         for g in groups:
             db_user.group_accesses.append(models.UserGroupAccess(group_id=g.id))
-        
+
     db.commit()
     db.refresh(db_user)
     return db_user
@@ -194,21 +195,25 @@ def get_allowed_camera_ids_for_user(db: Session, user_id: int, permission: str =
     user = get_user(db, user_id)
     if not user or user.role == "admin" or not user.restrict_camera_access:
         return None
-    
-    # Collect explicit camera IDs with the required permission
-    camera_ids = set()
-    for acc in user.camera_accesses:
-        if getattr(acc, f"can_{permission}", False):
-            camera_ids.add(acc.camera_id)
-            
-    # Collect camera IDs from groups with the required permission
-    for acc in user.group_accesses:
-        if getattr(acc, f"can_{permission}", False):
-            if acc.group:
-                for c in acc.group.cameras:
-                    camera_ids.add(c.id)
-            
-    return list(camera_ids)
+
+    # Direct SQL union query to avoid N+1 issues when loading associations
+    stmt1 = db.query(models.UserCameraAccess.camera_id).filter(
+        models.UserCameraAccess.user_id == user_id,
+        getattr(models.UserCameraAccess, f"can_{permission}").is_(True)
+    )
+
+    stmt2 = db.query(models.Camera.id).join(
+        models.Camera.groups
+    ).join(
+        models.UserGroupAccess,
+        models.UserGroupAccess.group_id == models.CameraGroup.id
+    ).filter(
+        models.UserGroupAccess.user_id == user_id,
+        getattr(models.UserGroupAccess, f"can_{permission}").is_(True)
+    )
+
+    result = stmt1.union(stmt2).all()
+    return [row[0] for row in result]
 
 
 def delete_user(db: Session, user_id: int):
@@ -251,7 +256,7 @@ def update_group_cameras(db: Session, group_id: int, camera_ids: list[int]):
     db_group = get_group(db, group_id)
     if not db_group:
         return None
-    
+
     # Fetch cameras
     cameras = db.query(models.Camera).filter(models.Camera.id.in_(camera_ids)).all()
     db_group.cameras = cameras
