@@ -141,6 +141,16 @@ class CameraThread(threading.Thread):
                     age = time.time() - self.stream_reader.last_read_time if self.stream_reader.last_read_time else -1
                     logger.debug(f"[HB] Cam {self.camera_id}: health={self.stream_reader.health_status}, recording={self.recording_manager.is_recording}, frame_age={age:.1f}s")
 
+                # Segment Rotation Check (Decoupled from frame decode)
+                if self.recording_manager.check_segment_rotation(self.stop_recording):
+                    mode = self.config.get('recording_mode', 'Off')
+                    post_cap = self.config.get('post_capture', 5)
+                    motion_active = (time.time() - self.motion_detector.last_motion_time) < post_cap
+                    reason = "Continuous" if mode in ['Always', 'Continuous'] else ("Motion" if mode == 'Motion Triggered' and motion_active else None)
+                    if reason:
+                        trigger_source = self.last_external_motion_source if motion_active else None
+                        self.recording_manager.start_recording(self.width, self.height, None, self.event_callback, reason=reason, trigger_source=trigger_source)
+
                 frame, read_time = self.stream_reader.get_latest()
                 if frame is None or read_time == self.last_processed_read_time:
                     time.sleep(0.01)

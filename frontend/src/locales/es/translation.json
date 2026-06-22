@@ -71,7 +71,12 @@
     "Network error during probe": "error",
     "Copied Monday settings to all days": "éxito",
     "cancel": "Cancelar",
-    "done": "Hecho"
+    "done": "Hecho",
+    "settings": "Ajustes",
+    "restore": "Restaurar",
+    "delete": "Borrar",
+    "close": "Cerca",
+    "download": "Descargar"
   },
   "login": {
     "welcome_back": "Bienvenido de nuevo",
@@ -93,7 +98,11 @@
     "about": "Acerca de",
     "logout": "Cerrar sesión",
     "light_mode": "Modo claro",
-    "dark_mode": "Modo oscuro"
+    "dark_mode": "Modo oscuro",
+    "close_sidebar": "Cerrar barra lateral",
+    "github_repo": "Repositorio GitHub",
+    "view_release": "Ver lanzamiento en GitHub",
+    "buy_coffee": "Cómprame un café"
   },
   "dashboard": {
     "title": "Panel de control",
@@ -504,7 +513,12 @@
     "import_selected": "Importar seleccionado",
     "requires_passthrough": "(REQUIERE PASO)",
     "ai_requires_passthrough": "La IA requiere transferencia",
-    "ai_passthrough_desc": "La detección de objetos AI requiere que Movie Passthrough esté habilitado en la pestaña Grabación para evitar picos de CPU y fallas de TPU. Habilite Passthrough o cambie a OpenCV."
+    "ai_passthrough_desc": "La detección de objetos AI requiere que Movie Passthrough esté habilitado en la pestaña Grabación para evitar picos de CPU y fallas de TPU. Habilite Passthrough o cambie a OpenCV.",
+    "use_these_streams": "Utilice estas transmisiones",
+    "use_streams_help": "Complete las URL principales y secundarias de estos perfiles (las credenciales se reutilizan de la URL actual)",
+    "streams_filled_both": "Secuencia principal y secundaria llenas de ONVIF",
+    "streams_filled_main": "Corriente principal llena desde ONVIF",
+    "main_label": "principal"
   },
   "settings": {
     "general_preferences": "Preferencias generales",
@@ -573,7 +587,6 @@
     "number_of_old_log_files_t": "Número de archivos de registro antiguos que se conservarán (por ejemplo, 5 = conservar de 0,1 a 0,5).",
     "check_interval_minutes": "Intervalo de verificación (minutos)",
     "how_often_the_system_chec": "Con qué frecuencia el sistema busca archivos grandes.",
-    "continuous": "CONTINUOUS",
     "no_signal": "SIN SEÑAL",
     "auth_error": "ERROR DE AUTORIZACIÓN",
     "group": "Grupo:",
@@ -772,14 +785,22 @@
     "delete_selected": "Eliminar seleccionado",
     "saving_rec": "GUARDAR GRABACIÓN",
     "camera_permissions": "Permisos de cámara",
-    "group_permissions": "Permisos de grupo"
+    "group_permissions": "Permisos de grupo",
+    "settings": "Ajustes",
+    "all_events": "Todos los eventos",
+    "continuous": "Continuo"
   },
   "live": {
     "title": "Vista en vivo",
     "cameras": "cámaras",
     "subtitle": "Monitoree sus cámaras en tiempo real.",
     "group_view": "Vista de grupo",
-    "group_by_section": "Agrupar cámaras por sección"
+    "group_by_section": "Agrupar cámaras por sección",
+    "exit_fullscreen": "Salir de pantalla completa",
+    "focus": "Enfocar",
+    "fullscreen": "Pantalla completa",
+    "gallery": "Galería",
+    "videos": "Vídeos"
   },
   "settings_main": {
     "title": "Ajustes",
@@ -1073,7 +1094,9 @@
     "confirm": "Confirmar",
     "apply": "Aplicar",
     "save_changes": "Guardar cambios",
-    "create_camera": "Crear cámara"
+    "create_camera": "Crear cámara",
+    "edit": "Editar",
+    "delete": "Borrar"
   },
   "2FA Enabled Successfully! Please save your recovery codes": {
     "": "éxito"
@@ -1127,7 +1150,8 @@
     "env": ".env",
     "3_rebuild_apply": "3. Reiniciar para aplicar",
     "paste_generated_key": "Pega la clave generada en tu",
-    "file_as": "presentar como"
+    "file_as": "presentar como",
+    "open_sidebar": "Abrir barra lateral"
   },
   "translation": {
     "Device revoked successfully": "éxito",
@@ -1164,10 +1188,17 @@
     "No cameras found in MotionEye backup": "advertencia"
   },
   "profile": {
-    "display_language": "Idioma de visualización"
+    "display_language": "Idioma de visualización",
+    "copy_secret": "Copiar secreto"
   },
   "settings_go2rtc": {
     "activation": "Utilice la puerta de enlace go2rtc",
     "activation_help": "Enrute todas las cámaras a través de la puerta de enlace interna go2rtc en lugar de conectarse directamente. Mejora la estabilidad con cámaras IP poco fiables o baratas (transmisiones interrumpidas, apretones de manos lentos, límites de sesión) y reduce la CPU. Al alternar esto se reinician todas las transmisiones de la cámara."
+  },
+  "camera": {
+    "select": "Seleccionar cámara",
+    "export": "Exportar configuración de la cámara",
+    "edit": "Editar cámara",
+    "delete": "Eliminar cámara"
   }
 }

@@ -71,7 +71,12 @@
     "Network error during probe": "错误",
     "Copied Monday settings to all days": "成功",
     "cancel": "取消",
-    "done": "完毕"
+    "done": "完毕",
+    "settings": "设置",
+    "restore": "恢复",
+    "delete": "删除",
+    "close": "关闭",
+    "download": "下载"
   },
   "login": {
     "welcome_back": "欢迎回来",
@@ -93,7 +98,11 @@
     "about": "关于",
     "logout": "退出",
     "light_mode": "浅色模式",
-    "dark_mode": "深色模式"
+    "dark_mode": "深色模式",
+    "close_sidebar": "关闭侧边栏",
+    "github_repo": "GitHub 存储库",
+    "view_release": "查看 GitHub 上的发布",
+    "buy_coffee": "请我喝杯咖啡"
   },
   "dashboard": {
     "title": "仪表板",
@@ -510,7 +519,13 @@
     "import_selected": "导入所选内容",
     "requires_passthrough": "（需要直通）",
     "ai_requires_passthrough": "AI需要直通",
-    "ai_passthrough_desc": "AI 对象检测需要在“录制”选项卡中启用“电影直通”，以防止 CPU 峰值和 TPU 崩溃。请启用 Passthrough 或切换到 OpenCV。"
+    "ai_passthrough_desc": "AI 对象检测需要在“录制”选项卡中启用“电影直通”，以防止 CPU 峰值和 TPU 崩溃。请启用 Passthrough 或切换到 OpenCV。",
+    "use_these_streams": "使用这些流",
+    "use_streams_help": "填写这些配置文件中的主流 URL 和子流 URL（凭据从当前 URL 重用）",
+    "streams_filled_both": "来自ONVIF的填充主码流和子码流",
+    "streams_filled_main": "填充来自 ONVIF 的主流",
+    "main_label": "主要的",
+    "sub_label": "子"
   },
   "settings": {
     "general_preferences": "常规首选项",
@@ -580,7 +595,6 @@
     "number_of_old_log_files_t": "要保留的旧日志文件的数量（例如 5 = 保留 .1 到 .5）。",
     "check_interval_minutes": "检查间隔（分钟）",
     "how_often_the_system_chec": "系统检查大文件的频率。",
-    "continuous": "CONTINUOUS",
     "no_signal": "无信号",
     "auth_error": "授权错误",
     "group": "团体：",
@@ -779,14 +793,22 @@
     "delete_selected": "删除所选内容",
     "saving_rec": "保存记录",
     "camera_permissions": "相机权限",
-    "group_permissions": "群组权限"
+    "group_permissions": "群组权限",
+    "settings": "设置",
+    "all_events": "所有活动",
+    "continuous": "连续的"
   },
   "live": {
     "title": "实时视图",
     "cameras": "相机",
     "subtitle": "实时监控您的相机。",
     "group_view": "群组视图",
-    "group_by_section": "按部分对摄像机进行分组"
+    "group_by_section": "按部分对摄像机进行分组",
+    "exit_fullscreen": "退出全屏",
+    "focus": "重点",
+    "fullscreen": "全屏",
+    "gallery": "画廊",
+    "videos": "视频"
   },
   "settings_main": {
     "title": "设置",
@@ -1080,7 +1102,9 @@
     "confirm": "确认",
     "apply": "申请",
     "save_changes": "保存更改",
-    "create_camera": "创建相机"
+    "create_camera": "创建相机",
+    "edit": "编辑",
+    "delete": "删除"
   },
   "2FA Enabled Successfully! Please save your recovery codes": {
     "": "成功"
@@ -1135,7 +1159,8 @@
     "env": ".env",
     "3_rebuild_apply": "3. 重启以应用",
     "paste_generated_key": "将生成的密钥粘贴到您的",
-    "file_as": "文件为"
+    "file_as": "文件为",
+    "open_sidebar": "打开侧边栏"
   },
   "translation": {
     "Device revoked successfully": "成功",
@@ -1213,10 +1238,17 @@
     "No cameras found in MotionEye backup": "警告"
   },
   "profile": {
-    "display_language": "显示语言"
+    "display_language": "显示语言",
+    "copy_secret": "复制秘密"
   },
   "settings_go2rtc": {
     "activation": "使用go2rtc网关",
     "activation_help": "通过内部 go2rtc 网关路由所有摄像机，而不是直接连接。提高不稳定/廉价 IP 摄像机的稳定性（数据流中断、握手缓慢、会话限制）并降低 CPU 性能。切换此选项会重新启动所有摄像机流。"
+  },
+  "camera": {
+    "select": "选择相机",
+    "export": "导出相机设置",
+    "edit": "编辑相机",
+    "delete": "删除相机"
   }
 }

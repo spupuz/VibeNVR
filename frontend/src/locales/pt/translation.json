@@ -71,7 +71,11 @@
     "Network error during probe": "erro",
     "Copied Monday settings to all days": "sucesso",
     "cancel": "Cancelar",
-    "done": "Feito"
+    "done": "Feito",
+    "settings": "Configurações",
+    "restore": "Restaurar",
+    "delete": "Excluir",
+    "close": "Fechar"
   },
   "login": {
     "welcome_back": "Bem-vindo de volta",
@@ -93,7 +97,11 @@
     "about": "Sobre",
     "logout": "Sair",
     "light_mode": "Modo claro",
-    "dark_mode": "Modo escuro"
+    "dark_mode": "Modo escuro",
+    "close_sidebar": "Fechar barra lateral",
+    "github_repo": "Repositório GitHub",
+    "view_release": "Veja o lançamento no GitHub",
+    "buy_coffee": "Compre-me um café"
   },
   "dashboard": {
     "title": "Painel",
@@ -505,7 +513,12 @@
     "import_selected": "Importar selecionado",
     "requires_passthrough": "(REQUER PASSAGEM)",
     "ai_requires_passthrough": "IA requer passagem",
-    "ai_passthrough_desc": "A detecção de objetos AI requer que o Movie Passthrough esteja ativado na guia Gravação para evitar picos de CPU e travamentos de TPU. Ative o Passthrough ou mude para OpenCV."
+    "ai_passthrough_desc": "A detecção de objetos AI requer que o Movie Passthrough esteja ativado na guia Gravação para evitar picos de CPU e travamentos de TPU. Ative o Passthrough ou mude para OpenCV.",
+    "use_these_streams": "Use esses fluxos",
+    "use_streams_help": "Preencha os URLs principal e secundário desses perfis (as credenciais são reutilizadas do URL atual)",
+    "streams_filled_both": "Fluxo principal e secundário preenchido do ONVIF",
+    "streams_filled_main": "Fluxo principal preenchido do ONVIF",
+    "main_label": "principal"
   },
   "settings": {
     "general_preferences": "Preferências gerais",
@@ -575,7 +588,6 @@
     "number_of_old_log_files_t": "Número de arquivos de log antigos a serem mantidos (por exemplo, 5 = manter 0,1 a 0,5).",
     "check_interval_minutes": "Intervalo de verificação (minutos)",
     "how_often_the_system_chec": "Com que frequência o sistema verifica arquivos grandes.",
-    "continuous": "CONTINUOUS",
     "no_signal": "SEM SINAL",
     "auth_error": "ERRO DE AUTORIZAÇÃO",
     "group": "Grupo:",
@@ -774,14 +786,22 @@
     "delete_selected": "Excluir selecionado",
     "saving_rec": "SALVANDO REC",
     "camera_permissions": "Permissões da câmera",
-    "group_permissions": "Permissões de grupo"
+    "group_permissions": "Permissões de grupo",
+    "settings": "Configurações",
+    "all_events": "Todos os eventos",
+    "continuous": "Contínuo"
   },
   "live": {
     "title": "Exibição ao vivo",
     "cameras": "câmeras",
     "subtitle": "Monitore suas câmeras em tempo real.",
     "group_view": "Visualização de grupo",
-    "group_by_section": "Agrupar câmeras por seção"
+    "group_by_section": "Agrupar câmeras por seção",
+    "exit_fullscreen": "Sair da tela cheia",
+    "focus": "Foco",
+    "fullscreen": "Tela cheia",
+    "gallery": "Galeria",
+    "videos": "Vídeos"
   },
   "settings_main": {
     "title": "Configurações",
@@ -1075,7 +1095,9 @@
     "confirm": "Confirmar",
     "apply": "Aplicar",
     "save_changes": "Salvar alterações",
-    "create_camera": "Criar câmera"
+    "create_camera": "Criar câmera",
+    "edit": "Editar",
+    "delete": "Excluir"
   },
   "2FA Enabled Successfully! Please save your recovery codes": {
     "": "sucesso"
@@ -1130,7 +1152,8 @@
     "env": ".env",
     "3_rebuild_apply": "3. Reinicie para Aplicar",
     "paste_generated_key": "Cole a chave gerada em seu",
-    "file_as": "arquivar como"
+    "file_as": "arquivar como",
+    "open_sidebar": "Abrir barra lateral"
   },
   "translation": {
     "Device revoked successfully": "sucesso",
@@ -1208,10 +1231,17 @@
     "No cameras found in MotionEye backup": "aviso"
   },
   "profile": {
-    "display_language": "Idioma de exibição"
+    "display_language": "Idioma de exibição",
+    "copy_secret": "Copiar segredo"
   },
   "settings_go2rtc": {
     "activation": "Use o gateway go2rtc",
     "activation_help": "Roteie todas as câmeras através do gateway go2rtc interno em vez de conectar diretamente. Melhora a estabilidade com câmeras IP instáveis/baratas (streams interrompidos, handshakes lentos, limites de sessão) e reduz a CPU. Alternar isso reinicia todos os fluxos de câmera."
+  },
+  "camera": {
+    "select": "Selecione a câmera",
+    "export": "Exportar configurações da câmera",
+    "edit": "Editar câmera",
+    "delete": "Excluir câmera"
   }
 }

@@ -71,7 +71,12 @@
     "Network error during probe": "Fehler",
     "Copied Monday settings to all days": "Erfolg",
     "cancel": "Stornieren",
-    "done": "Erledigt"
+    "done": "Erledigt",
+    "settings": "Einstellungen",
+    "restore": "Wiederherstellen",
+    "delete": "Löschen",
+    "close": "Schließen",
+    "download": "Herunterladen"
   },
   "login": {
     "welcome_back": "Willkommen zurück",
@@ -93,7 +98,11 @@
     "about": "Über",
     "logout": "Abmelden",
     "light_mode": "Heller Modus",
-    "dark_mode": "Dunkler Modus"
+    "dark_mode": "Dunkler Modus",
+    "close_sidebar": "Seitenleiste schließen",
+    "github_repo": "GitHub-Repository",
+    "view_release": "Veröffentlichung auf GitHub ansehen",
+    "buy_coffee": "Kauf mir einen Kaffee"
   },
   "dashboard": {
     "title": "Armaturenbrett",
@@ -502,7 +511,12 @@
     "import_selected": "Ausgewählte importieren",
     "requires_passthrough": "(ERRFORDERT PASSTHROUGH)",
     "ai_requires_passthrough": "KI erfordert Passthrough",
-    "ai_passthrough_desc": "Für die KI-Objekterkennung muss Movie Passthrough auf der Registerkarte „Aufnahme“ aktiviert sein, um CPU-Spitzen und TPU-Abstürze zu verhindern. Bitte aktivieren Sie Passthrough oder wechseln Sie zu OpenCV."
+    "ai_passthrough_desc": "Für die KI-Objekterkennung muss Movie Passthrough auf der Registerkarte „Aufnahme“ aktiviert sein, um CPU-Spitzen und TPU-Abstürze zu verhindern. Bitte aktivieren Sie Passthrough oder wechseln Sie zu OpenCV.",
+    "use_these_streams": "Nutzen Sie diese Streams",
+    "use_streams_help": "Füllen Sie die Haupt- und Sub-Stream-URLs aus diesen Profilen aus (Anmeldeinformationen werden von der aktuellen URL wiederverwendet).",
+    "streams_filled_both": "Gefüllter Haupt- und Substream von ONVIF",
+    "streams_filled_main": "Gefüllter Hauptstrom von ONVIF",
+    "main_label": "hauptsächlich"
   },
   "settings": {
     "general_preferences": "Allgemeine Einstellungen",
@@ -572,7 +586,6 @@
     "number_of_old_log_files_t": "Anzahl der alten Protokolldateien, die aufbewahrt werden sollen (z. B. 5 = .1 bis .5 behalten).",
     "check_interval_minutes": "Prüfintervall (Minuten)",
     "how_often_the_system_chec": "Wie oft prüft das System, ob große Dateien vorhanden sind?",
-    "continuous": "CONTINUOUS",
     "no_signal": "KEIN SIGNAL",
     "auth_error": "AUTH-FEHLER",
     "group": "Gruppe:",
@@ -771,14 +784,21 @@
     "delete_selected": "Ausgewählte löschen",
     "saving_rec": "AUFZEICHNUNG SPEICHERN",
     "camera_permissions": "Kameraberechtigungen",
-    "group_permissions": "Gruppenberechtigungen"
+    "group_permissions": "Gruppenberechtigungen",
+    "settings": "Einstellungen",
+    "all_events": "Alle Veranstaltungen",
+    "continuous": "Kontinuierlich"
   },
   "live": {
     "title": "Live-Ansicht",
     "cameras": "kameras",
     "subtitle": "Überwachen Sie Ihre Kameras in Echtzeit.",
     "group_view": "Gruppenansicht",
-    "group_by_section": "Gruppieren Sie Kameras nach Abschnitt"
+    "group_by_section": "Gruppieren Sie Kameras nach Abschnitt",
+    "exit_fullscreen": "Beenden Sie den Vollbildmodus",
+    "focus": "Fokus",
+    "fullscreen": "Vollbild",
+    "gallery": "Galerie"
   },
   "settings_main": {
     "title": "Einstellungen",
@@ -1072,7 +1092,9 @@
     "confirm": "Bestätigen",
     "apply": "Anwenden",
     "save_changes": "Änderungen speichern",
-    "create_camera": "Kamera erstellen"
+    "create_camera": "Kamera erstellen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen"
   },
   "2FA Enabled Successfully! Please save your recovery codes": {
     "": "Erfolg"
@@ -1127,7 +1149,8 @@
     "env": ".env",
     "3_rebuild_apply": "3. Zum Anwenden neu starten",
     "paste_generated_key": "Fügen Sie den generierten Schlüssel in Ihr ein",
-    "file_as": "Datei als"
+    "file_as": "Datei als",
+    "open_sidebar": "Seitenleiste öffnen"
   },
   "translation": {
     "Device revoked successfully": "Erfolg",
@@ -1205,10 +1228,17 @@
     "No cameras found in MotionEye backup": "Warnung"
   },
   "profile": {
-    "display_language": "Anzeigesprache"
+    "display_language": "Anzeigesprache",
+    "copy_secret": "Geheimnis kopieren"
   },
   "settings_go2rtc": {
     "activation": "Verwenden Sie das go2rtc-Gateway",
     "activation_help": "Leiten Sie alle Kameras über das interne go2rtc-Gateway, anstatt eine direkte Verbindung herzustellen. Verbessert die Stabilität bei instabilen/billigen IP-Kameras (unterbrochene Streams, langsame Handshakes, Sitzungslimits) und senkt die CPU. Toggling this restarts all camera streams."
+  },
+  "camera": {
+    "select": "Kamera auswählen",
+    "export": "Kameraeinstellungen exportieren",
+    "edit": "Kamera bearbeiten",
+    "delete": "Kamera löschen"
   }
 }

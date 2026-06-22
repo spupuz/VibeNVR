@@ -71,7 +71,12 @@
     "Network error during probe": "erreur",
     "Copied Monday settings to all days": "succès",
     "cancel": "Annuler",
-    "done": "Fait"
+    "done": "Fait",
+    "settings": "Paramètres",
+    "restore": "Restaurer",
+    "delete": "Supprimer",
+    "close": "Fermer",
+    "download": "Télécharger"
   },
   "login": {
     "welcome_back": "Bon retour",
@@ -93,7 +98,11 @@
     "about": "À propos",
     "logout": "Se déconnecter",
     "light_mode": "Mode clair",
-    "dark_mode": "Mode sombre"
+    "dark_mode": "Mode sombre",
+    "close_sidebar": "Fermer la barre latérale",
+    "github_repo": "Dépôt GitHub",
+    "view_release": "Voir la version sur GitHub",
+    "buy_coffee": "Achetez-moi un café"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -506,7 +515,13 @@
     "import_selected": "Importer la sélection",
     "requires_passthrough": "(NÉCESSITE PASSTHROUGH)",
     "ai_requires_passthrough": "L'IA nécessite un passage",
-    "ai_passthrough_desc": "La détection d'objets AI nécessite que Movie Passthrough soit activé dans l'onglet Enregistrement pour éviter les pics de processeur et les pannes de TPU. Veuillez activer Passthrough ou passer à OpenCV."
+    "ai_passthrough_desc": "La détection d'objets AI nécessite que Movie Passthrough soit activé dans l'onglet Enregistrement pour éviter les pics de processeur et les pannes de TPU. Veuillez activer Passthrough ou passer à OpenCV.",
+    "use_these_streams": "Utilisez ces flux",
+    "use_streams_help": "Remplissez les URL principales et secondaires de ces profils (les informations d'identification sont réutilisées à partir de l'URL actuelle)",
+    "streams_filled_both": "Flux principal et secondaire remplis depuis ONVIF",
+    "streams_filled_main": "Flux principal rempli depuis ONVIF",
+    "main_label": "principal",
+    "sub_label": "sous"
   },
   "settings": {
     "general_preferences": "Préférences générales",
@@ -576,7 +591,6 @@
     "number_of_old_log_files_t": "Nombre d'anciens fichiers journaux à conserver (par exemple 5 = conserver 0,1 à 0,5).",
     "check_interval_minutes": "Vérifier l'intervalle (minutes)",
     "how_often_the_system_chec": "À quelle fréquence le système recherche les fichiers volumineux.",
-    "continuous": "CONTINUOUS",
     "no_signal": "PAS DE SIGNAL",
     "auth_error": "ERREUR D'AUTHISATION",
     "group": "Groupe:",
@@ -775,14 +789,22 @@
     "delete_selected": "Supprimer la sélection",
     "saving_rec": "SAUVEGARDE D'ENREGISTREMENT",
     "camera_permissions": "Autorisations de la caméra",
-    "group_permissions": "Autorisations de groupe"
+    "group_permissions": "Autorisations de groupe",
+    "settings": "Paramètres",
+    "all_events": "Tous les événements",
+    "continuous": "Continu"
   },
   "live": {
     "title": "Vue en direct",
     "cameras": "caméras",
     "subtitle": "Surveillez vos caméras en temps réel.",
     "group_view": "Vue de groupe",
-    "group_by_section": "Regrouper les caméras par section"
+    "group_by_section": "Regrouper les caméras par section",
+    "exit_fullscreen": "Quitter le plein écran",
+    "focus": "Se concentrer",
+    "fullscreen": "Plein écran",
+    "gallery": "Galerie",
+    "videos": "Vidéos"
   },
   "settings_main": {
     "title": "Paramètres",
@@ -1076,7 +1098,9 @@
     "confirm": "Confirmer",
     "apply": "Appliquer",
     "save_changes": "Enregistrer les modifications",
-    "create_camera": "Créer une caméra"
+    "create_camera": "Créer une caméra",
+    "edit": "Modifier",
+    "delete": "Supprimer"
   },
   "2FA Enabled Successfully! Please save your recovery codes": {
     "": "succès"
@@ -1131,7 +1155,8 @@
     "env": ".env",
     "3_rebuild_apply": "3. Redémarrer pour appliquer",
     "paste_generated_key": "Collez la clé générée dans votre",
-    "file_as": "fichier comme"
+    "file_as": "fichier comme",
+    "open_sidebar": "Ouvrir la barre latérale"
   },
   "translation": {
     "Device revoked successfully": "succès",
@@ -1209,10 +1234,17 @@
     "No cameras found in MotionEye backup": "avertissement"
   },
   "profile": {
-    "display_language": "Langue d'affichage"
+    "display_language": "Langue d'affichage",
+    "copy_secret": "Copier le secret"
   },
   "settings_go2rtc": {
     "activation": "Utiliser la passerelle go2rtc",
     "activation_help": "Acheminez toutes les caméras via la passerelle go2rtc interne au lieu de vous connecter directement. Améliore la stabilité avec les caméras IP fragiles/bon marché (flux interrompus, poignées de main lentes, limites de session) et réduit le processeur. Cette option redémarre tous les flux de caméra."
+  },
+  "camera": {
+    "select": "Sélectionnez la caméra",
+    "export": "Exporter les paramètres de la caméra",
+    "edit": "Modifier la caméra",
+    "delete": "Supprimer la caméra"
   }
 }

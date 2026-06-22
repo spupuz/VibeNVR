@@ -71,7 +71,12 @@
     "Network error during probe": "помилка",
     "Copied Monday settings to all days": "успіх",
     "cancel": "Скасувати",
-    "done": "Готово"
+    "done": "Готово",
+    "settings": "Налаштування",
+    "restore": "Відновити",
+    "delete": "Видалити",
+    "close": "Закрити",
+    "download": "Завантажити"
   },
   "login": {
     "welcome_back": "З поверненням",
@@ -93,7 +98,11 @@
     "about": "Про програму",
     "logout": "Вийти",
     "light_mode": "Світла тема",
-    "dark_mode": "Темна тема"
+    "dark_mode": "Темна тема",
+    "close_sidebar": "Закрити бічну панель",
+    "github_repo": "Репозиторій GitHub",
+    "view_release": "Переглянути випуск на GitHub",
+    "buy_coffee": "Купи мені каву"
   },
   "dashboard": {
     "title": "Панель",
@@ -587,7 +596,6 @@
     "number_of_old_log_files_t": "Кількість старих файлів журналів для збереження (напр. 5 = зберігати від .1 до .5).",
     "check_interval_minutes": "Інтервал перевірки (хвилини)",
     "how_often_the_system_chec": "Як часто система перевіряє наявність великих файлів.",
-    "continuous": "БЕЗПЕРЕРВНИЙ",
     "no_signal": "НЕМАЄ СИГНАЛУ",
     "auth_error": "ПОМИЛКА АВТОРИЗАЦІЇ",
     "group": "Група:",
@@ -786,14 +794,22 @@
     "delete_selected": "Видалити вибране",
     "saving_rec": "ЗБЕРЕЖЕННЯ ЗАПИСУ",
     "camera_permissions": "Дозволи камери",
-    "group_permissions": "Дозволи групи"
+    "group_permissions": "Дозволи групи",
+    "settings": "Налаштування",
+    "all_events": "Всі події",
+    "continuous": "Безперервний"
   },
   "live": {
     "title": "Прямий ефір",
     "cameras": "камери",
     "subtitle": "Моніторинг ваших камер у реальному часі.",
     "group_view": "Перегляд по групах",
-    "group_by_section": "Групувати камери по розділах"
+    "group_by_section": "Групувати камери по розділах",
+    "exit_fullscreen": "Вийти з повноекранного режиму",
+    "focus": "Фокус",
+    "fullscreen": "Повний екран",
+    "gallery": "Галерея",
+    "videos": "Відео"
   },
   "settings_main": {
     "title": "Налаштування",
@@ -1091,7 +1107,9 @@
     "confirm": "Підтвердити",
     "apply": "Застосувати",
     "save_changes": "Зберегти зміни",
-    "create_camera": "Створити камеру"
+    "create_camera": "Створити камеру",
+    "edit": "Редагувати",
+    "delete": "Видалити"
   },
   "2FA Enabled Successfully! Please save your recovery codes": {
     "": "успіх"
@@ -1146,7 +1164,8 @@
     "env": ".env",
     "3_rebuild_apply": "3. Перебудувати та застосувати",
     "paste_generated_key": "Вставте згенерований ключ у ваш",
-    "file_as": "файл як"
+    "file_as": "файл як",
+    "open_sidebar": "Відкрийте бічну панель"
   },
   "translation": {
     "Device revoked successfully": "успіх",
@@ -1224,6 +1243,13 @@
     "No cameras found in MotionEye backup": "УВАГА"
   },
   "profile": {
-    "display_language": "Мова інтерфейсу"
+    "display_language": "Мова інтерфейсу",
+    "copy_secret": "Копіювати секрет"
+  },
+  "camera": {
+    "select": "Виберіть камеру",
+    "export": "Експорт налаштувань камери",
+    "edit": "Редагувати камеру",
+    "delete": "Видалити камеру"
   }
 }

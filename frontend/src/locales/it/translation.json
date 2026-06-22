@@ -71,7 +71,12 @@
     "Network error during probe": "errore",
     "Copied Monday settings to all days": "successo",
     "cancel": "Cancellare",
-    "done": "Fatto"
+    "done": "Fatto",
+    "settings": "Impostazioni",
+    "restore": "Ripristinare",
+    "delete": "Eliminare",
+    "close": "Vicino",
+    "download": "Scaricamento"
   },
   "login": {
     "welcome_back": "Bentornato",
@@ -93,7 +98,11 @@
     "about": "Informazioni",
     "logout": "Esci",
     "light_mode": "Tema Chiaro",
-    "dark_mode": "Tema Scuro"
+    "dark_mode": "Tema Scuro",
+    "close_sidebar": "Chiudi la barra laterale",
+    "github_repo": "Repository GitHub",
+    "view_release": "Visualizza la versione su GitHub",
+    "buy_coffee": "Comprami un caffè"
   },
   "dashboard": {
     "title": "Pannello di controllo",
@@ -504,7 +513,12 @@
     "import_selected": "Importa selezionato",
     "requires_passthrough": "(RICHIEDE PASSTHROUGH)",
     "ai_requires_passthrough": "L'intelligenza artificiale richiede il passthrough",
-    "ai_passthrough_desc": "Il rilevamento oggetti AI richiede l'abilitazione di Movie Passthrough nella scheda Registrazione per evitare picchi della CPU e arresti anomali del TPU. Abilita Passthrough o passa a OpenCV."
+    "ai_passthrough_desc": "Il rilevamento oggetti AI richiede l'abilitazione di Movie Passthrough nella scheda Registrazione per evitare picchi della CPU e arresti anomali del TPU. Abilita Passthrough o passa a OpenCV.",
+    "use_these_streams": "Usa questi flussi",
+    "use_streams_help": "Compila gli URL del flusso principale e secondario da questi profili (le credenziali vengono riutilizzate dall'URL corrente)",
+    "streams_filled_both": "Flusso principale e secondario riempiti da ONVIF",
+    "streams_filled_main": "Flusso principale riempito da ONVIF",
+    "main_label": "principale"
   },
   "settings": {
     "general_preferences": "Preferenze Generali",
@@ -574,7 +588,6 @@
     "number_of_old_log_files_t": "Numero di vecchi file di registro da conservare (ad esempio 5 = mantieni da .1 a .5).",
     "check_interval_minutes": "Intervallo di controllo (minuti)",
     "how_often_the_system_chec": "La frequenza con cui il sistema controlla i file di grandi dimensioni.",
-    "continuous": "CONTINUOUS",
     "no_signal": "NESSUN SEGNALE",
     "auth_error": "ERRORE DI AUTORIZZAZIONE",
     "group": "Gruppo:",
@@ -773,14 +786,22 @@
     "delete_selected": "Elimina selezionato",
     "saving_rec": "SALVATAGGIO REG",
     "camera_permissions": "Autorizzazioni della fotocamera",
-    "group_permissions": "Autorizzazioni di gruppo"
+    "group_permissions": "Autorizzazioni di gruppo",
+    "settings": "Impostazioni",
+    "all_events": "Tutti gli eventi",
+    "continuous": "Continuo"
   },
   "live": {
     "title": "Vista Live",
     "cameras": "telecamere",
     "subtitle": "Monitora le tue telecamere in tempo reale.",
     "group_view": "Visualizzazione gruppo",
-    "group_by_section": "Raggruppare le telecamere per sezione"
+    "group_by_section": "Raggruppare le telecamere per sezione",
+    "exit_fullscreen": "Esci da schermo intero",
+    "focus": "Messa a fuoco",
+    "fullscreen": "A schermo intero",
+    "gallery": "Galleria",
+    "videos": "Video"
   },
   "settings_main": {
     "title": "Impostazioni",
@@ -1072,7 +1093,9 @@
     "confirm": "Conferma",
     "apply": "Applica",
     "save_changes": "Salva modifiche",
-    "create_camera": "Crea fotocamera"
+    "create_camera": "Crea fotocamera",
+    "edit": "Modificare",
+    "delete": "Eliminare"
   },
   "2FA Enabled Successfully! Please save your recovery codes": {
     "": "successo"
@@ -1127,7 +1150,8 @@
     "env": ".env",
     "3_rebuild_apply": "3. Riavvia per Applicare",
     "paste_generated_key": "Incolla la chiave generata nel tuo file",
-    "file_as": "archiviare come"
+    "file_as": "archiviare come",
+    "open_sidebar": "Apri la barra laterale"
   },
   "translation": {
     "Device revoked successfully": "successo",
@@ -1205,10 +1229,17 @@
     "No cameras found in MotionEye backup": "avvertimento"
   },
   "profile": {
-    "display_language": "Lingua di visualizzazione"
+    "display_language": "Lingua di visualizzazione",
+    "copy_secret": "Copia segreto"
   },
   "settings_go2rtc": {
     "activation": "Proxy di Rete (Gateway go2rtc)",
     "activation_help": "Instrada tutte le telecamere attraverso il gateway go2rtc interno invece di collegarle direttamente. Migliora la stabilità con telecamere IP instabili/economiche (flussi interrotti, handshake lenti, limiti di sessione) e riduce la CPU. Attivando questa opzione si riavviano tutti i flussi della telecamera."
+  },
+  "camera": {
+    "select": "Seleziona la fotocamera",
+    "export": "Esporta le impostazioni della fotocamera",
+    "edit": "Modifica fotocamera",
+    "delete": "Elimina fotocamera"
   }
 }

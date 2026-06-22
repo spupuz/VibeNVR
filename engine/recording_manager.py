@@ -50,18 +50,25 @@ class RecordingManager:
         self.last_event_callback = None
         self.current_ai_detections = [] # Track unique labels found during this event
 
+    def check_segment_rotation(self, stop_recording_cb):
+        max_len = self.config.get('max_movie_length', 0)
+        if self.is_recording and max_len > 0:
+            if time.time() - self.recording_start_time > max_len:
+                logger.info(f"Camera {self.camera_name} (ID: {self.camera_id}): Max movie length reached, splitting file")
+                stop_recording_cb()
+                return True
+        return False
+
     def handle_recording(self, frame, motion_detected, last_motion_time, stop_recording_cb, trigger_source=None, ai_results=None, pre_buffer_frames=None):
         mode = self.config.get('recording_mode', 'Off')
         should_record = False
         reason = "Continuous" if mode in ['Always', 'Continuous'] else ("Motion" if mode == 'Motion Triggered' and motion_detected else None)
         if reason:
             should_record = True
-            
-        max_len = self.config.get('max_movie_length', 0)
-        if self.is_recording and max_len > 0:
-            if time.time() - self.recording_start_time > max_len:
-                logger.info(f"Camera {self.camera_name} (ID: {self.camera_id}): Max movie length reached, splitting file")
-                stop_recording_cb()
+
+        if self.is_recording and motion_detected:
+            self.motion_during_current_recording = True
+
         
         # Accumulate AI results if recording
         if self.is_recording and ai_results:
@@ -116,6 +123,8 @@ class RecordingManager:
 
     def start_recording(self, width, height, pre_buffer_frames, event_callback=None, reason="Manual", trigger_source=None):
         self.current_ai_detections = [] # Reset for new event
+        self.current_recording_reason = reason
+        self.motion_during_current_recording = (reason == "Motion")
         if event_callback is not None:
             self.last_event_callback = event_callback
         format_str = self.config.get('movie_file_name', '%Y-%m-%d/%H-%M-%S').replace('%q', '00')
@@ -319,10 +328,19 @@ class RecordingManager:
             except OSError as e:
                 logger.warning(f"Camera {self.camera_name} (ID: {self.camera_id}): Error validating or removing recording {self.recording_filename}: {e}")
 
+        ai_meta_str = None
+        if self.current_ai_detections:
+            ai_meta_str = ",".join(self.current_ai_detections)
+
         if valid_recording and event_callback:
+             reason = getattr(self, 'current_recording_reason', 'unknown')
+             if getattr(self, 'motion_during_current_recording', False):
+                 reason = "Motion"
+
              event_callback(self.camera_id, 'recording_end', {
                  "file_path": self.recording_filename, 
                  "width": width, 
                  "height": height,
-                 "ai_metadata": ",".join(self.current_ai_detections) if self.current_ai_detections else None
+                 "ai_metadata": ai_meta_str,
+                 "reason": reason
              })

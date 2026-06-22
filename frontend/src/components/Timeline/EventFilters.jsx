@@ -25,6 +25,8 @@ export const EventFilters = ({
     setSelectedCameraFilter,
     selectedTypeFilter,
     setSelectedTypeFilter,
+    selectedEventTypeFilter,
+    setSelectedEventTypeFilter,
     selectedObjectFilter,
     setSelectedObjectFilter,
     selectedDate,
@@ -83,6 +85,28 @@ export const EventFilters = ({
                 </div>
             </div>
 
+            {/* Event Type Filter */}
+            <div className="relative">
+                <select
+                    className="appearance-none pl-3 pr-8 py-2 bg-card border border-border rounded-xl text-sm min-w-[120px] focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50 text-foreground"
+                    value={selectedEventTypeFilter}
+                    onChange={(e) => {
+                        setSelectedEventTypeFilter(e.target.value);
+                        const newParams = new URLSearchParams(searchParams);
+                        if (e.target.value === 'all') newParams.delete('event_type');
+                        else newParams.set('event_type', e.target.value);
+                        setSearchParams(newParams);
+                    }}
+                >
+                    <option value="all">{t('timeline.all_events', 'All Events')}</option>
+                    <option value="motion">{t('timeline.motion', 'Motion')}</option>
+                    <option value="continuous">{t('timeline.continuous', 'Continuous')}</option>
+                </select>
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                    <Filter className="w-3.5 h-3.5" />
+                </div>
+            </div>
+
             {/* Object Type Filter */}
             <div className="relative">
                 <select
@@ -123,7 +147,7 @@ export const EventFilters = ({
             <button
                 onClick={onReset}
                 className={`flex items-center space-x-1.5 px-3 py-2 border rounded-xl text-sm transition-all
-                ${selectedDate === new Date().toLocaleDateString('en-CA') && selectedCameraFilter === 'all' && selectedTypeFilter === 'all' && selectedObjectFilter === 'all'
+                ${selectedDate === new Date().toLocaleDateString('en-CA') && selectedCameraFilter === 'all' && selectedTypeFilter === 'all' && selectedObjectFilter === 'all' && selectedEventTypeFilter === 'all'
                         ? 'bg-primary/10 border-primary/20 text-primary font-medium'
                         : 'bg-card border-border hover:bg-accent text-muted-foreground'
                     }`}

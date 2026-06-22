@@ -152,6 +152,7 @@ class CameraManager:
                     data["file_path"] = payload.get("file_path")
                     data["width"] = payload.get("width")
                     data["height"] = payload.get("height")
+                    data["reason"] = payload.get("reason", "unknown")
                     if "ai_metadata" in payload:
                         data["ai_metadata"] = payload["ai_metadata"]
                 else:

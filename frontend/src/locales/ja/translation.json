@@ -71,7 +71,12 @@
     "Network error during probe": "エラー",
     "Copied Monday settings to all days": "成功",
     "cancel": "キャンセル",
-    "done": "終わり"
+    "done": "終わり",
+    "settings": "設定",
+    "restore": "復元する",
+    "delete": "消去",
+    "close": "近い",
+    "download": "ダウンロード"
   },
   "login": {
     "welcome_back": "お帰りなさい",
@@ -93,7 +98,11 @@
     "about": "概要",
     "logout": "ログアウト",
     "light_mode": "ライトモード",
-    "dark_mode": "ダークモード"
+    "dark_mode": "ダークモード",
+    "close_sidebar": "サイドバーを閉じる",
+    "github_repo": "GitHub リポジトリ",
+    "view_release": "GitHub でリリースを表示",
+    "buy_coffee": "コーヒーを買ってきて"
   },
   "dashboard": {
     "title": "ダッシュボード",
@@ -504,7 +513,13 @@
     "import_selected": "選択したものをインポート",
     "requires_passthrough": "(パススルーが必要)",
     "ai_requires_passthrough": "AI にはパススルーが必要です",
-    "ai_passthrough_desc": "AI オブジェクト検出では、CPU のスパイクや TPU のクラッシュを防ぐために、[録画] タブでムービー パススルーを有効にする必要があります。パススルーを有効にするか、OpenCV に切り替えてください。"
+    "ai_passthrough_desc": "AI オブジェクト検出では、CPU のスパイクや TPU のクラッシュを防ぐために、[録画] タブでムービー パススルーを有効にする必要があります。パススルーを有効にするか、OpenCV に切り替えてください。",
+    "use_these_streams": "これらのストリームを使用してください",
+    "use_streams_help": "これらのプロファイルからメインおよびサブストリーム URL を入力します (資格情報は現在の URL から再利用されます)。",
+    "streams_filled_both": "ONVIF からのメインストリームとサブストリームを埋め込む",
+    "streams_filled_main": "ONVIF からのメインストリームを満たした",
+    "main_label": "主要",
+    "sub_label": "サブ"
   },
   "settings": {
     "general_preferences": "一般設定",
@@ -574,7 +589,6 @@
     "number_of_old_log_files_t": "保持する古いログ ファイルの数 (例: 5 = 0.1 ～ 0.5 を保持)。",
     "check_interval_minutes": "チェック間隔 (分)",
     "how_often_the_system_chec": "システムが大きなファイルをチェックする頻度。",
-    "continuous": "CONTINUOUS",
     "no_signal": "信号がありません",
     "auth_error": "認証エラー",
     "group": "グループ：",
@@ -773,14 +787,22 @@
     "delete_selected": "選択したものを削除",
     "saving_rec": "録音の保存",
     "camera_permissions": "カメラの許可",
-    "group_permissions": "グループ権限"
+    "group_permissions": "グループ権限",
+    "settings": "設定",
+    "all_events": "すべてのイベント",
+    "continuous": "継続的"
   },
   "live": {
     "title": "ライブビュー",
     "cameras": "カメラ",
     "subtitle": "カメラをリアルタイムで監視します。",
     "group_view": "グループビュー",
-    "group_by_section": "カメラをセクションごとにグループ化する"
+    "group_by_section": "カメラをセクションごとにグループ化する",
+    "exit_fullscreen": "全画面表示を終了する",
+    "focus": "集中",
+    "fullscreen": "全画面表示",
+    "gallery": "ギャラリー",
+    "videos": "動画"
   },
   "settings_main": {
     "title": "設定",
@@ -1074,7 +1096,9 @@
     "confirm": "確認する",
     "apply": "適用する",
     "save_changes": "変更を保存",
-    "create_camera": "カメラの作成"
+    "create_camera": "カメラの作成",
+    "edit": "編集",
+    "delete": "消去"
   },
   "2FA Enabled Successfully! Please save your recovery codes": {
     "": "成功"
@@ -1129,7 +1153,8 @@
     "env": ".env",
     "3_rebuild_apply": "3. 再起動して適用",
     "paste_generated_key": "生成されたキーを",
-    "file_as": "としてファイルする"
+    "file_as": "としてファイルする",
+    "open_sidebar": "サイドバーを開く"
   },
   "translation": {
     "Device revoked successfully": "成功",
@@ -1207,10 +1232,17 @@
     "No cameras found in MotionEye backup": "警告"
   },
   "profile": {
-    "display_language": "表示言語"
+    "display_language": "表示言語",
+    "copy_secret": "シークレットをコピーする"
   },
   "settings_go2rtc": {
     "activation": "go2rtc ゲートウェイを使用する",
     "activation_help": "すべてのカメラを直接接続するのではなく、内部 go2rtc ゲートウェイ経由でルーティングします。不安定/安価な IP カメラの安定性 (壊れたストリーム、遅いハンドシェイク、セッション制限) を改善し、CPU を削減します。これを切り替えると、すべてのカメラ ストリームが再開されます。"
+  },
+  "camera": {
+    "select": "カメラの選択",
+    "export": "カメラ設定をエクスポートする",
+    "edit": "カメラを編集する",
+    "delete": "カメラの削除"
   }
 }

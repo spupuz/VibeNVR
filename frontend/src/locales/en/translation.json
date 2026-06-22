@@ -71,7 +71,12 @@
     "Network error during probe": "error",
     "Copied Monday settings to all days": "success",
     "cancel": "Cancel",
-    "done": "Done"
+    "done": "Done",
+    "settings": "Settings",
+    "restore": "Restore",
+    "delete": "Delete",
+    "close": "Close",
+    "download": "Download"
   },
   "login": {
     "welcome_back": "Welcome Back",
@@ -93,7 +98,11 @@
     "about": "About",
     "logout": "Logout",
     "light_mode": "Light Mode",
-    "dark_mode": "Dark Mode"
+    "dark_mode": "Dark Mode",
+    "close_sidebar": "Close Sidebar",
+    "github_repo": "GitHub Repository",
+    "view_release": "View release on GitHub",
+    "buy_coffee": "Buy Me a Coffee"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -588,7 +597,6 @@
     "number_of_old_log_files_t": "Number of old log files to keep (e.g. 5 = keep .1 to .5).",
     "check_interval_minutes": "Check Interval (Minutes)",
     "how_often_the_system_chec": "How often the system checks for large files.",
-    "continuous": "CONTINUOUS",
     "no_signal": "NO SIGNAL",
     "auth_error": "AUTH ERROR",
     "group": "Group:",
@@ -787,14 +795,22 @@
     "delete_selected": "Delete Selected",
     "saving_rec": "SAVING REC",
     "camera_permissions": "Camera Permissions",
-    "group_permissions": "Group Permissions"
+    "group_permissions": "Group Permissions",
+    "settings": "Settings",
+    "all_events": "All Events",
+    "continuous": "Continuous"
   },
   "live": {
     "title": "Live View",
     "cameras": "cameras",
     "subtitle": "Monitor your cameras in real-time.",
     "group_view": "Group View",
-    "group_by_section": "Group cameras by section"
+    "group_by_section": "Group cameras by section",
+    "exit_fullscreen": "Exit Fullscreen",
+    "focus": "Focus",
+    "fullscreen": "Fullscreen",
+    "gallery": "Gallery",
+    "videos": "Videos"
   },
   "settings_main": {
     "title": "Settings",
@@ -1092,7 +1108,9 @@
     "confirm": "Confirm",
     "apply": "Apply",
     "save_changes": "Save Changes",
-    "create_camera": "Create Camera"
+    "create_camera": "Create Camera",
+    "edit": "Edit",
+    "delete": "Delete"
   },
   "2FA Enabled Successfully! Please save your recovery codes": {
     "": "success"
@@ -1147,7 +1165,8 @@
     "env": ".env",
     "3_rebuild_apply": "3. Rebuild & Apply",
     "paste_generated_key": "Paste the generated key into your",
-    "file_as": "file as"
+    "file_as": "file as",
+    "open_sidebar": "Open Sidebar"
   },
   "translation": {
     "Device revoked successfully": "success",
@@ -1225,6 +1244,13 @@
     "No cameras found in MotionEye backup": "warning"
   },
   "profile": {
-    "display_language": "Display Language"
+    "display_language": "Display Language",
+    "copy_secret": "Copy Secret"
+  },
+  "camera": {
+    "select": "Select camera",
+    "export": "Export camera settings",
+    "edit": "Edit camera",
+    "delete": "Delete camera"
   }
 }

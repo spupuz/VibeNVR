@@ -649,11 +649,16 @@ def process_webhook_file_event(camera_id: int, event_type: str, payload: dict, i
         except:
             ts = datetime.datetime.now().astimezone()
 
+        reason = payload.get("reason", "unknown")
+        db_event_type = "motion"
+        if reason.lower() == "continuous":
+            db_event_type = "continuous"
+
         event_data = schemas.EventCreate(
             camera_id=camera_id,
             timestamp_start=ts,
             type="video" if event_type == "movie_end" else "snapshot",
-            event_type="motion",
+            event_type=db_event_type,
             file_path=file_path,
             file_size=file_size,
             width=payload.get("width"),

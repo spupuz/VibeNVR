@@ -210,7 +210,7 @@ const VideoPlayer = ({
                 {(camera.recording_mode === 'Always' || camera.recording_mode === 'Continuous') ? (
                     <div className="flex items-center space-x-2 bg-blue-600 px-2.5 py-1 rounded shadow-2xl ring-1 ring-white/20 w-fit">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-200" />
-                        <span className="text-[10px] font-black text-white tracking-widest uppercase">{t('timeline.continuous', 'CONTINUOUS')}</span>
+                        <span className="text-[10px] font-black text-white tracking-widest uppercase">{t('timeline.continuous', 'Continuous')}</span>
                     </div>
                 ) : (isLiveMotion || isRecording) ? (
                     <div className={`flex items-center space-x-2 px-2 py-1 rounded shadow-2xl ring-1 ring-white/40 w-fit ${isLiveMotion ? 'bg-red-600 animate-pulse' : 'bg-orange-500'}`}>

@@ -31,6 +31,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 ## 🚀 Featured Capabilities
 
 - **Bulk Timeline Operations**: Multi-select events (with Shift+Click support) for rapid deletion and storage cleanup.
+- **Timeline Filters**: Instantly filter recordings by Camera, Event Type (Motion vs Continuous), AI Objects, Date, and Hour.
 - **AI Object Detection**: Hardware-accelerated ML inference via **Google Coral Edge TPU** or CPU. Detect people, vehicles, animals, and filter Timeline events by object type.
 - **UniFi First-Class Support**: Native RSTSPS streaming with automatic TLS verification bypass for UniFi controllers.
 - **WebCodecs Performance**: Ultra low-latency streaming with hardware acceleration and intelligent keyframe caching.

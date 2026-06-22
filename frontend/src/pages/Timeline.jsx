@@ -28,6 +28,7 @@ export const Timeline = () => {
     const [selectedCameraFilter, setSelectedCameraFilter] = useState(searchParams.get('camera') || 'all');
     const [selectedHour, setSelectedHour] = useState(null);
     const [selectedTypeFilter, setSelectedTypeFilter] = useState(searchParams.get('type') || 'all');
+    const [selectedEventTypeFilter, setSelectedEventTypeFilter] = useState(searchParams.get('event_type') || 'all');
     const [selectedObjectFilter, setSelectedObjectFilter] = useState('all');
     const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA'));
     const { showToast } = useToast();
@@ -53,11 +54,12 @@ export const Timeline = () => {
         if (selectedCameraFilter !== 'all') results = results.filter(e => e.camera_id === parseInt(selectedCameraFilter));
         if (selectedHour !== null) results = results.filter(e => new Date(e.timestamp_start).getHours() === selectedHour);
         if (selectedTypeFilter !== 'all') results = results.filter(e => e.type === selectedTypeFilter);
+        if (selectedEventTypeFilter !== 'all') results = results.filter(e => e.event_type === selectedEventTypeFilter);
         if (selectedObjectFilter !== 'all') {
             results = results.filter(e => e.ai_metadata && e.ai_metadata.toLowerCase().includes(selectedObjectFilter.toLowerCase()));
         }
         return results;
-    }, [events, selectedHour, selectedCameraFilter, selectedTypeFilter, selectedObjectFilter]);
+    }, [events, selectedHour, selectedCameraFilter, selectedTypeFilter, selectedEventTypeFilter, selectedObjectFilter]);
 
     useEffect(() => {
         if (urlDate) setSelectedDate(urlDate);
@@ -293,11 +295,12 @@ export const Timeline = () => {
                     <EventFilters 
                         cameras={cameras} selectedCameraFilter={selectedCameraFilter} setSelectedCameraFilter={setSelectedCameraFilter}
                         selectedTypeFilter={selectedTypeFilter} setSelectedTypeFilter={setSelectedTypeFilter}
+                        selectedEventTypeFilter={selectedEventTypeFilter} setSelectedEventTypeFilter={setSelectedEventTypeFilter}
                         selectedObjectFilter={selectedObjectFilter} setSelectedObjectFilter={setSelectedObjectFilter}
                         selectedDate={selectedDate} setSelectedDate={setSelectedDate}
                         onReset={() => {
                             const today = new Date().toLocaleDateString('en-CA');
-                            setSelectedDate(today); setSelectedHour(null); setSelectedCameraFilter('all'); setSelectedTypeFilter('all'); setSelectedObjectFilter('all'); setSearchParams({});
+                            setSelectedDate(today); setSelectedHour(null); setSelectedCameraFilter('all'); setSelectedTypeFilter('all'); setSelectedEventTypeFilter('all'); setSelectedObjectFilter('all'); setSearchParams({});
                         }}
                         selectedHour={selectedHour} setSelectedHour={setSelectedHour} searchParams={searchParams} setSearchParams={setSearchParams}
                     />
