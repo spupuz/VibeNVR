@@ -37,6 +37,8 @@ export const Tooltip = ({ text, children }) => {
             <button
                 ref={triggerRef}
                 type="button"
+                aria-label="Show help"
+                aria-expanded={show}
                 onMouseEnter={() => { updateCoords(); setShow(true); }}
                 onMouseLeave={() => setShow(false)}
                 onClick={() => { updateCoords(); setShow(!show); }}
@@ -74,6 +76,9 @@ export const Toggle = ({ checked, onChange, label, disabled = false, help = '' }
         <LabelWithHelp label={label} help={help} />
         <button
             type="button"
+            role="switch"
+            aria-checked={checked}
+            aria-label={label || 'Toggle'}
             onClick={() => !disabled && onChange(!checked)}
             disabled={disabled}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
@@ -158,6 +163,8 @@ export const InputField = ({ value, onChange, label, type = 'text', placeholder 
                 {isPassword && showPasswordToggle && (
                     <button
                         type="button"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-pressed={showPassword}
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
                     >
