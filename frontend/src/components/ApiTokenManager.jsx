@@ -246,6 +246,7 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                                             onClick={() => setConfirmDelete({ isOpen: true, tokenId: apiToken.id })}
                                             className="p-2 hover:bg-red-100 text-red-500 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center ml-auto"
                                             title="Revoke Token"
+                                            aria-label="Revoke Token"
                                         >
                                             <Trash2 className="w-5 h-5" />
                                         </button>
@@ -282,6 +283,7 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                                     onClick={() => setConfirmDelete({ isOpen: true, tokenId: apiToken.id })}
                                     className="p-3 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors min-w-[44px] min-h-[44px]"
                                     title="Revoke Token"
+                                    aria-label="Revoke Token"
                                 >
                                     <Trash2 className="w-5 h-5" />
                                 </button>
