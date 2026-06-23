@@ -543,7 +543,14 @@ async def webhook_event(
         logger.warning("[WEBHOOK] Unauthorized access attempt (Invalid Secret).")
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    camera_id = payload.get("camera_id")
+    camera_id_raw = str(payload.get("camera_id", ""))
+    try:
+        # Strip _sub or other suffixes if present (e.g. 101_sub -> 101)
+        camera_id = int(camera_id_raw.split("_")[0])
+    except ValueError:
+        logger.error(f"[WEBHOOK] Invalid camera ID format: {camera_id_raw}")
+        return {"status": "error", "message": "invalid camera id format"}
+
     # Fetch camera for settings
     camera = crud.get_camera(db, camera_id)
     if not camera:

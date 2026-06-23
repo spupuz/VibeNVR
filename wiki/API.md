@@ -171,6 +171,20 @@ The following fields are transmitted to the engine in real-time upon camera upda
 
 ### 🔔 Events (`/events`)
 
+#### **POST** `/events/webhook`
+Internal endpoint to receive event triggers (like motion detection) from the Engine or external Webhooks. 
+- **Header**: `X-Webhook-Secret` must match the configured backend secret.
+- **Payload Example**:
+  ```json
+  {
+    "camera_id": "101",
+    "event": "motion_on",
+    "timestamp": 1678886400
+  }
+  ```
+> [!NOTE]
+> **Camera ID Formatting**: If the engine appends a suffix (e.g., `"101_sub"`) to distinguish processing on a sub-stream, the webhook endpoint automatically strips the suffix and maps the event to the parent camera integer ID (`101`).
+
 #### **GET** `/events`
 List motion events and recordings.
 - **Filters**: `camera_id`, `type` (video/snapshot), `date` (YYYY-MM-DD).
