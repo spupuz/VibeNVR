@@ -60,3 +60,4 @@ VibeNVR enforces strict isolation between development artifacts and production a
 - **Fallback Logic**: If a sub-stream is not configured (optional), the Engine automatically falls back to the main stream reader for all operations, including live UI frames.
 - **Adaptive Streaming**: Automatically switches between high-performance WebCodecs (H.264), optimized Sub-Streams, and compatible JPEG polling fallback.
 - **Live Audio**: Implements low-latency audio streaming using browser WebCodecs (PCM ALAW/ULAW). The Engine performs secure authentication and direct passthrough of G.711 streams to the client, minimizing backend CPU overhead and ensuring perfect AV synchronization.
+- **Database Query Optimization**: Critical API endpoints (such as `get_users`) employ eager loading techniques (`selectinload`) to resolve N+1 query issues during serialization, reducing database query complexity from O(N) to O(1) and ensuring scalable performance.

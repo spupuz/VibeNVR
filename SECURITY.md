@@ -124,7 +124,8 @@ VibeNVR's code includes specific mitigations against common attack vectors:
 13. **SECRET_KEY Security Enforcement**:
     - In production, the application **refuses to start** with a weak `SECRET_KEY` (shorter than 32 chars) to ensure session integrity. This can be overridden via `ALLOW_WEAK_SECRET=true` for troubleshooting only.
 14. **Browser Security Headers**: 
-    - VibeNVR implements standard security headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy) and a strict **Content-Security-Policy (CSP)** in Report-Only mode.
+    - VibeNVR implements standard security headers via middleware (`X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Strict-Transport-Security`, `Referrer-Policy`).
+    - A strict **Content-Security-Policy (CSP)** is actively enforced to mitigate cross-site scripting and unauthorized resource loading.
 15. **Live Audio Privacy & Control**:
     - Audio is disabled by default and proxied via an authenticated WebSocket. Capability flags are synchronized between backend and engine via Admin-only routes.
 16. **PTZ Mobile Integrity**:
