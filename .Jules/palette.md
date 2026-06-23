@@ -1,0 +1,3 @@
+## 2026-06-22 - Accessible Custom Form Controls
+**Learning:** Custom UI components like toggles or icon-only buttons lack semantic meaning for screen readers by default. Relying solely on visual cues (e.g., icons, custom styling) makes forms inaccessible. Specifically, `role="switch"` combined with `aria-checked` should be used for toggle controls rather than just styling a `div` or generic `button`. Tooltips should use `aria-expanded` and password toggles should use `aria-pressed`.
+**Action:** Whenever creating a custom interactive form element, explicitly implement the appropriate ARIA roles (`role="switch"`, etc.) and states (`aria-checked`, `aria-expanded`, `aria-pressed`, `aria-label`) to maintain parity with native HTML elements.

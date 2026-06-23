@@ -183,6 +183,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
             onContextMenu={(e) => e.preventDefault()}
             className={`p-3 rounded-full bg-background/80 hover:bg-primary hover:text-primary-foreground border border-border transition-all active:scale-95 shadow-lg group touch-none select-none ${className} ${activeAction === action ? 'bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2 scale-110' : ''}`}
             title={action}
+            aria-label={action}
         >
             <Icon className={`w-5 h-5 ${activeAction === action ? 'animate-pulse' : ''}`} />
         </button>
@@ -207,6 +208,10 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
                             }`}
                         title={!isWebCodecPlayback 
                             ? t('cameras.ptz.audio_requires_webcodecs', "Audio requires WebCodecs playback") 
+                            : isAuditing ? t('cameras.ptz.stop_auditing', "Stop Auditing") : t('cameras.ptz.listen_live', "Listen Live")
+                        }
+                        aria-label={!isWebCodecPlayback
+                            ? t('cameras.ptz.audio_requires_webcodecs', "Audio requires WebCodecs playback")
                             : isAuditing ? t('cameras.ptz.stop_auditing', "Stop Auditing") : t('cameras.ptz.listen_live', "Listen Live")
                         }
                     >
@@ -246,6 +251,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
                                     onContextMenu={(e) => e.preventDefault()}
                                     className="p-3 rounded-full bg-red-500 text-white shadow-xl hover:bg-red-600 transition-colors select-none flex items-center justify-center"
                                     title={t('cameras.ptz.emergency_stop', "Emergency Stop")}
+                                    aria-label={t('cameras.ptz.emergency_stop', "Emergency Stop")}
                                 >
                                     {activeAction ? (
                                         <Loader2 className="w-4 h-4 animate-spin" />

@@ -80,6 +80,7 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
                         onClick={(e) => e.stopPropagation()}
                         className="p-1 bg-black/50 hover:bg-black/70 text-white rounded backdrop-blur-sm transition-colors"
                         title="Download"
+                        aria-label="Download"
                     >
                         <Download className="w-3 h-3" />
                     </a>
@@ -93,6 +94,7 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
                             }}
                             className="p-1 bg-black/50 hover:bg-red-500/80 text-white rounded backdrop-blur-sm transition-colors"
                             title="Delete"
+                            aria-label="Delete"
                         >
                             <Trash2 className="w-3 h-3" />
                         </button>

@@ -22,6 +22,7 @@ export const SyncResultModal = ({
                     <button
                         onClick={onClose}
                         className="text-muted-foreground hover:text-foreground"
+                        aria-label={t('common.close', 'Close')}
                     >
                         <X className="w-5 h-5" />
                     </button>

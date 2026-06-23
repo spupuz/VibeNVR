@@ -1,13 +1,18 @@
 from datetime import datetime, timedelta, timezone
-from sqlalchemy.orm import Session
-import models
-import schemas
+from sqlalchemy.orm import Session, selectinload
+import models, schemas
 
 def get_camera(db: Session, camera_id: int):
     return db.query(models.Camera).filter(models.Camera.id == camera_id).first()
 
 def get_cameras(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Camera).order_by(models.Camera.sort_order.asc(), models.Camera.id.asc()).offset(skip).limit(limit).all()
+    # Performance Optimization: Use selectinload to eagerly load the groups and
+    # storage_profile relationships. This prevents N+1 queries and avoids the Cartesian
+    # product explosion that joinedload would cause for collections.
+    return db.query(models.Camera).options(
+        selectinload(models.Camera.groups),
+        selectinload(models.Camera.storage_profile)
+    ).order_by(models.Camera.sort_order.asc(), models.Camera.id.asc()).offset(skip).limit(limit).all()
 
 def get_camera_by_rtsp_url(db: Session, rtsp_url: str):
     return db.query(models.Camera).filter(models.Camera.rtsp_url == rtsp_url).first()

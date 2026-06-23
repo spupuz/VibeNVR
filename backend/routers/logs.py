@@ -5,7 +5,8 @@ import re
 from typing import List, Optional
 import zipfile
 import io
-from auth_service import get_current_user
+import auth_service
+import models
 import psutil
 import platform
 import subprocess
@@ -235,11 +236,8 @@ async def get_logs(
     service: str = Query(..., description="Service name: backend, engine, frontend_access, frontend_error"),
     lines: int = Query(100, description="Number of lines to return"),
     search: Optional[str] = None,
-    user: dict = Depends(get_current_user)
+    current_user: models.User = Depends(auth_service.get_current_active_admin)
 ):
-    if user.role != 'admin':
-        raise HTTPException(status_code=403, detail="Admin access required")
-        
     log_files = []
     if service == 'all':
         for svc_name, filename in FILES_MAP.items():
@@ -336,13 +334,10 @@ async def get_logs(
     return [item['line'] for item in all_logs]
 
 @router.get("/download")
-async def download_all_logs(user: dict = Depends(get_current_user)):
+async def download_all_logs(current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """
     Generate a sanitized tar.gz/zip of all log files.
     """
-    if user.role != 'admin':
-        raise HTTPException(status_code=403, detail="Admin access required")
-
     # Create in-memory zip
     zip_buffer = io.BytesIO()
     
