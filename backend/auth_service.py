@@ -9,9 +9,10 @@ import crud, database, models
 
 import os
 import pyotp
+import secrets
 
 # Secret key for JWT (Should be in env var in production)
-SECRET_KEY = os.getenv("SECRET_KEY", "vibenvr-super-secret-key-change-me")
+SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
 IS_WEAK_KEY = False
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 2  # 48 hours (Reduced from 7 days for security)

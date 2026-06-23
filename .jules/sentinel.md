@@ -1,0 +1,4 @@
+## 2026-01-19 - Removed Hardcoded Default SECRET_KEY
+**Vulnerability:** The application was falling back to a known hardcoded string (`"vibenvr-super-secret-key-change-me"`) for its JWT `SECRET_KEY` if the environment variable was omitted. This allowed potential attackers to forge valid JWT tokens and bypass authentication entirely if an instance was carelessly deployed.
+**Learning:** Hardcoded cryptographic keys or secrets should never be left as defaults in production code, even as placeholders or "dev" hints. Providing a fallback string inadvertently creates a backdoor for misconfigured deployments.
+**Prevention:** If a cryptographic secret must be generated on the fly when missing, use a secure random generator (like `secrets.token_urlsafe(32)`) to ensure the fallback is unique per runtime, keeping the instance secure (at the cost of token invalidation on restart, which encourages proper setup).
