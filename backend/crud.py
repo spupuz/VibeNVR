@@ -1,20 +1,11 @@
 from datetime import datetime, timedelta, timezone
-<<<<<<< HEAD
-from sqlalchemy.orm import Session
-import models
-import schemas
-=======
 from sqlalchemy.orm import Session, selectinload
 import models, schemas
->>>>>>> pr-128
 
 def get_camera(db: Session, camera_id: int):
     return db.query(models.Camera).filter(models.Camera.id == camera_id).first()
 
 def get_cameras(db: Session, skip: int = 0, limit: int = 100):
-<<<<<<< HEAD
-    return db.query(models.Camera).order_by(models.Camera.sort_order.asc(), models.Camera.id.asc()).offset(skip).limit(limit).all()
-=======
     # Performance Optimization: Use selectinload to eagerly load the groups and
     # storage_profile relationships. This prevents N+1 queries and avoids the Cartesian
     # product explosion that joinedload would cause for collections.
@@ -22,7 +13,6 @@ def get_cameras(db: Session, skip: int = 0, limit: int = 100):
         selectinload(models.Camera.groups),
         selectinload(models.Camera.storage_profile)
     ).order_by(models.Camera.sort_order.asc(), models.Camera.id.asc()).offset(skip).limit(limit).all()
->>>>>>> pr-128
 
 def get_camera_by_rtsp_url(db: Session, rtsp_url: str):
     return db.query(models.Camera).filter(models.Camera.rtsp_url == rtsp_url).first()
@@ -33,7 +23,8 @@ def create_camera(db: Session, camera: schemas.CameraCreate):
     if 'ai_object_types' in create_data and isinstance(create_data['ai_object_types'], list):
         import json
         create_data['ai_object_types'] = json.dumps(create_data['ai_object_types'])
-            db_camera = models.Camera(**create_data)
+        
+    db_camera = models.Camera(**create_data)
     db.add(db_camera)
     db.commit()
     db.refresh(db_camera)
@@ -47,7 +38,8 @@ def update_camera(db: Session, camera_id: int, camera: schemas.CameraCreate):
         if 'ai_object_types' in update_data and isinstance(update_data['ai_object_types'], list):
             import json
             update_data['ai_object_types'] = json.dumps(update_data['ai_object_types'])
-                    for key, value in update_data.items():
+            
+        for key, value in update_data.items():
             setattr(db_camera, key, value)
         db.commit()
         db.refresh(db_camera)
@@ -75,18 +67,21 @@ def get_events(db: Session, skip: int = 0, limit: int = 100, camera_id: int = No
         # Use a range to handle timezone correctly
         # Use a range to handle timezone correctly
         from zoneinfo import ZoneInfo
-                # Get local timezone from env or default to Europe/Rome as per docker-compose
+        
+        # Get local timezone from env or default to Europe/Rome as per docker-compose
         import os
         tz_name = os.environ.get('TZ', 'Europe/Rome')
         local_tz = ZoneInfo(tz_name)
-                # Parse date and set to start of day in local timezone
+        
+        # Parse date and set to start of day in local timezone
         naive_start = datetime.strptime(date, '%Y-%m-%d')
         start_date = naive_start.replace(tzinfo=local_tz)
         end_date = start_date + timedelta(days=1)
         
         query = query.filter(models.Event.timestamp_start >= start_date)
         query = query.filter(models.Event.timestamp_start < end_date)
-            return query.order_by(models.Event.timestamp_start.desc()).offset(skip).limit(limit).all()
+        
+    return query.order_by(models.Event.timestamp_start.desc()).offset(skip).limit(limit).all()
 
 def create_event(db: Session, event: schemas.EventCreate):
     db_event = models.Event(**event.dict())
@@ -127,7 +122,8 @@ def create_user(db: Session, user: schemas.UserCreate):
     )
     db.add(db_user)
     db.commit()
-        if user.camera_accesses is not None:
+    
+    if user.camera_accesses is not None:
         db_user.camera_accesses = []
         for acc in user.camera_accesses:
             db_user.camera_accesses.append(models.UserCameraAccess(
@@ -138,7 +134,8 @@ def create_user(db: Session, user: schemas.UserCreate):
         cameras = db.query(models.Camera).filter(models.Camera.id.in_(user.allowed_camera_ids)).all()
         for c in cameras:
             db_user.camera_accesses.append(models.UserCameraAccess(camera_id=c.id))
-                if user.group_accesses is not None:
+            
+    if user.group_accesses is not None:
         db_user.group_accesses = []
         for acc in user.group_accesses:
             db_user.group_accesses.append(models.UserGroupAccess(
@@ -149,7 +146,8 @@ def create_user(db: Session, user: schemas.UserCreate):
         groups = db.query(models.CameraGroup).filter(models.CameraGroup.id.in_(user.allowed_group_ids)).all()
         for g in groups:
             db_user.group_accesses.append(models.UserGroupAccess(group_id=g.id))
-            db.commit()
+        
+    db.commit()
     db.refresh(db_user)
     return db_user
 
@@ -157,15 +155,18 @@ def update_user(db: Session, user_id: int, user: schemas.UserUpdate):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if not db_user:
         return None
-            db_user.username = user.username
+        
+    db_user.username = user.username
     db_user.email = user.email
     db_user.role = user.role
     db_user.restrict_camera_access = user.restrict_camera_access
-        # Note: password update is handled separately, but if provided here, we could update it.
+    
+    # Note: password update is handled separately, but if provided here, we could update it.
     if user.password and user.password != "********":
         import auth_service
         db_user.hashed_password = auth_service.get_password_hash(user.password)
-            # Update relations
+        
+    # Update relations
     if user.camera_accesses is not None:
         db_user.camera_accesses = []
         for acc in user.camera_accesses:
@@ -177,7 +178,8 @@ def update_user(db: Session, user_id: int, user: schemas.UserUpdate):
         cameras = db.query(models.Camera).filter(models.Camera.id.in_(user.allowed_camera_ids)).all()
         for c in cameras:
             db_user.camera_accesses.append(models.UserCameraAccess(camera_id=c.id))
-                if user.group_accesses is not None:
+            
+    if user.group_accesses is not None:
         db_user.group_accesses = []
         for acc in user.group_accesses:
             db_user.group_accesses.append(models.UserGroupAccess(
@@ -188,7 +190,8 @@ def update_user(db: Session, user_id: int, user: schemas.UserUpdate):
         groups = db.query(models.CameraGroup).filter(models.CameraGroup.id.in_(user.allowed_group_ids)).all()
         for g in groups:
             db_user.group_accesses.append(models.UserGroupAccess(group_id=g.id))
-            db.commit()
+        
+    db.commit()
     db.refresh(db_user)
     return db_user
 
@@ -198,7 +201,6 @@ def get_allowed_camera_ids_for_user(db: Session, user_id: int, permission: str =
     if not user or user.role == "admin" or not user.restrict_camera_access:
         return None
 
-<<<<<<< HEAD
     # ⚡ Bolt: Resolving N+1 query issue.
     # Instead of iterating over relationships which triggers a query for each group's cameras,
     # we directly query the association tables, reducing DB queries from O(N) to O(1).
@@ -224,20 +226,6 @@ def get_allowed_camera_ids_for_user(db: Session, user_id: int, permission: str =
 
     for (cid,) in group_camera_ids:
         camera_ids.add(cid)
-=======
-    # Collect explicit camera IDs with the required permission
-    camera_ids = set()
-    for acc in user.camera_accesses:
-        if getattr(acc, f"can_{permission}", False):
-            camera_ids.add(acc.camera_id)
-
-    # Collect camera IDs from groups with the required permission
-    for acc in user.group_accesses:
-        if getattr(acc, f"can_{permission}", False):
-            if acc.group:
-                for c in acc.group.cameras:
-                    camera_ids.add(c.id)
->>>>>>> pr-128
 
     return list(camera_ids)
 
@@ -282,7 +270,8 @@ def update_group_cameras(db: Session, group_id: int, camera_ids: list[int]):
     db_group = get_group(db, group_id)
     if not db_group:
         return None
-        # Fetch cameras
+    
+    # Fetch cameras
     cameras = db.query(models.Camera).filter(models.Camera.id.in_(camera_ids)).all()
     db_group.cameras = cameras
     db.commit()
