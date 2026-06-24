@@ -3,6 +3,11 @@
 **Learning:** Manual role checks scattered within route logic are an anti-pattern (as documented in `AGENTS.md`) because they can be easily skipped, bypassed, or incorrectly implemented during refactoring. Furthermore, updating the dependency injection type hint (e.g., from `dict` to `models.User`) without importing the corresponding module (`models`) will cause a `NameError` crash at module load time because Python evaluates type hints dynamically.
 **Prevention:** Always use centralized `Depends(...)` decorators for authorization to enforce secure-by-default routing. Always verify that updated type hints have their corresponding modules imported to prevent catastrophic runtime crashes.
 
+## 2025-02-23 - Hardcoded JWT Secret Vulnerability
+**Vulnerability:** The application used a predictable, hardcoded string (`"vibenvr-super-secret-key-change-me"`) as a fallback for the JWT `SECRET_KEY` when it was not set in the environment.
+**Learning:** Hardcoded secrets in open-source applications lead to immediate token forgery if users deploy without properly configuring their environment variables, allowing complete authentication bypass.
+**Prevention:** Always use `secrets.token_urlsafe()` or similar cryptographically secure random generators as a fallback for missing secrets. This ensures instances without configuration fail securely (ephemeral sessions) rather than failing open (vulnerable to known keys).
+
 ## 2025-02-28 - Missing Default Security Headers in FastAPI
 **Vulnerability:** The application was missing basic defense-in-depth security headers (like X-Frame-Options: DENY, Strict-Transport-Security, X-Content-Type-Options: nosniff, and X-XSS-Protection) on its HTTP responses.
 **Learning:** By default, FastAPI/Starlette does not inject these standard security headers. Since the app might be exposed directly or via proxies that don't enforce them, it's essential to add them at the application level.

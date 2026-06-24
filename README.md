@@ -121,7 +121,7 @@ Your privacy is paramount. You can disable telemetry at any time:
     ```properties
     # .env content example
     # ENV Configuration
-    SECRET_KEY=change_this_to_a_long_random_string  # CRITICAL: Security key (min 32 chars). Application won't start in production with a weak key unless ALLOW_WEAK_SECRET=true is set.
+    SECRET_KEY=change_this_to_a_long_random_string  # CRITICAL: Security key (min 32 chars). If omitted, a dynamic key is generated, logging out users on every restart. Application won't start with an explicitly weak key.
     WEBHOOK_SECRET=change_this_to_a_long_random_string # REQUIRED: Validates engine->backend communication. Set SAME as SECRET_KEY.
     # POSTGRES_PASSWORD=vibenvrpass
 
