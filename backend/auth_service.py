@@ -1,17 +1,20 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Union
+from typing import Optional
 import jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-import crud, database, models
+import crud
+import database
+import models
 
 import os
 import pyotp
+import secrets
 
 # Secret key for JWT (Should be in env var in production)
-SECRET_KEY = os.getenv("SECRET_KEY", "vibenvr-super-secret-key-change-me")
+SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
 IS_WEAK_KEY = False
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 2  # 48 hours (Reduced from 7 days for security)
