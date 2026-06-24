@@ -353,6 +353,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                             onClick={() => openManageModal(group)}
                                             className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-colors"
                                             title="Edit Group"
+                                            aria-label="Edit Group"
                                         >
                                             <Edit className="w-5 h-5" />
                                         </button>
@@ -360,6 +361,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                             onClick={() => handleDeleteGroup(group.id)}
                                             className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
                                             title="Delete Group"
+                                            aria-label="Delete Group"
                                         >
                                             <Trash2 className="w-5 h-5" />
                                         </button>
