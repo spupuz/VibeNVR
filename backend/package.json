@@ -1,7 +1,7 @@
 {
   "name": "vibenvr-backend",
   "private": true,
-  "version": "1.30.8",
+  "version": "1.30.9",
   "description": "VibeNVR Backend Python Dependencies",
   "license": "MIT",
   "main": "main.py"
