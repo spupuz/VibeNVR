@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session, selectinload
-import models, schemas
+import models
+import schemas
 
 def get_camera(db: Session, camera_id: int):
     return db.query(models.Camera).filter(models.Camera.id == camera_id).first()
@@ -107,7 +108,13 @@ def get_user_by_email(db: Session, email: str):
     return db.query(models.User).filter(models.User.email == email).first()
 
 def get_users(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.User).offset(skip).limit(limit).all()
+    # Performance Optimization: Use selectinload to eagerly load user access
+    # relationships. This prevents N+1 queries by fetching relationships in
+    # bulk instead of one-by-one.
+    return db.query(models.User).options(
+        selectinload(models.User.camera_accesses).selectinload(models.UserCameraAccess.camera),
+        selectinload(models.User.group_accesses).selectinload(models.UserGroupAccess.group)
+    ).offset(skip).limit(limit).all()
 
 def create_user(db: Session, user: schemas.UserCreate):
     # Import here to avoid circular dependency
