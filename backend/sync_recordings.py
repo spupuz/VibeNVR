@@ -37,7 +37,7 @@ def get_video_duration(file_path):
     try:
         cmd = [
             "ffprobe", "-v", "error", "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1", file_path
+            "-of", "default=noprint_wrappers=1:nokey=1", "-i", file_path
         ]
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=10)
         if result.returncode == 0:
@@ -69,7 +69,7 @@ def is_video_valid(file_path):
     try:
         cmd = [
             "ffprobe", "-v", "error", "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1", file_path
+            "-of", "default=noprint_wrappers=1:nokey=1", "-i", file_path
         ]
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=10)
         if result.returncode != 0:

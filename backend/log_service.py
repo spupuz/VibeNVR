@@ -3,7 +3,7 @@ import shutil
 import time
 import threading
 import logging
-from routers.settings import get_setting, set_setting, DEFAULT_SETTINGS
+from routers.settings import get_setting, DEFAULT_SETTINGS
 from database import SessionLocal
 from routers.logs import LOG_DIR, FILES_MAP
 

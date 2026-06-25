@@ -37,20 +37,15 @@ def probe_stream(rtsp_url: str, rtsp_transport: str = "tcp"):
         "-show_streams",
         "-select_streams", "v:0",  # Select first video stream
         "-rtsp_transport", rtsp_transport,  # Use configured transport
-        rtsp_url
+        "-i", rtsp_url
     ]
 
     # Secure RTSP (RSTSPS/RTSPS) - Skip verification (common for self-signed NVRs)
     if rtsp_url.lower().startswith(('rstsps://', 'rtsps://')):
-        # Insert before the URL (last arg)
-        cmd.insert(-1, "-tls_verify")
-        cmd.insert(-1, "0")
+        # Insert before the -i and URL
+        cmd.insert(-2, "-tls_verify")
+        cmd.insert(-2, "0")
         logger.info(f"Probing secure stream, skipping TLS verification for {mask_url(rtsp_url)}")
-
-    # Security: Ensure URL doesn't start with - to prevent flag injection
-    if rtsp_url.strip().startswith("-"):
-         logger.error("Invalid RTSP URL: Cannot start with -")
-         return None
 
     try:
         # Run ffprobe with a timeout to prevent hanging

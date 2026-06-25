@@ -1,6 +1,4 @@
 import os
-import sys
-from sqlalchemy.orm import Session
 from database import SessionLocal
 import models
 
