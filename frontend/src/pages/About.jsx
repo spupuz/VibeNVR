@@ -23,7 +23,7 @@ export const About = () => {
                 </p>
                 <div className="flex justify-center space-x-2">
                     <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold uppercase tracking-wider">
-                        v{packageJson.version} Beta
+                        v{packageJson.version}
                     </span>
                     <span className="px-3 py-1 bg-green-500/10 text-green-500 rounded-full text-xs font-semibold uppercase tracking-wider">
                         Open Source
