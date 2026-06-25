@@ -95,6 +95,9 @@ export const UserManager = ({
                                 <div className="flex items-center gap-3">
                                     <button
                                         type="button"
+                                        role="switch"
+                                        aria-checked={newUser.restrict_camera_access || false}
+                                        aria-label={t('timeline.restrict_camera_access', 'Restrict Camera Access')}
                                         onClick={() => setNewUser({ ...newUser, restrict_camera_access: !newUser.restrict_camera_access })}
                                         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${newUser.restrict_camera_access ? 'bg-primary' : 'bg-muted'}`}
                                     >
