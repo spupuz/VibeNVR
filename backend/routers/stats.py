@@ -199,30 +199,59 @@ start_realtime_collector()
 
 def _get_detailed_storage_stats(db: Session, cameras: list, allowed_ids: list | None = None) -> tuple:
     """Calculates detailed storage statistics for movies and images globally and per camera."""
-    query_movies = db.query(func.count(models.Event.id), func.sum(models.Event.file_size)).filter(models.Event.type == "video")
-    query_pics = db.query(func.count(models.Event.id), func.sum(models.Event.file_size)).filter(models.Event.type == "snapshot")
     
+    # ⚡ Bolt: Resolving N+1 query issue.
+    # Instead of querying events for each camera individually, we execute a single grouped query
+    # to retrieve counts and sizes per camera and event type.
+    stats_query = db.query(
+        models.Event.camera_id,
+        models.Event.type,
+        func.count(models.Event.id),
+        func.sum(models.Event.file_size)
+    ).group_by(models.Event.camera_id, models.Event.type)
+
     if allowed_ids is not None:
-        query_movies = query_movies.filter(models.Event.camera_id.in_(allowed_ids))
-        query_pics = query_pics.filter(models.Event.camera_id.in_(allowed_ids))
-        
-    global_movies = query_movies.first()
-    global_pics = query_pics.first()
-    
-    global_stats = {
-        "movies": {"count": global_movies[0] or 0, "size_gb": round((global_movies[1] or 0) / (1024**3), 2)},
-        "images": {"count": global_pics[0] or 0, "size_gb": round((global_pics[1] or 0) / (1024**3), 2)}
+        stats_query = stats_query.filter(models.Event.camera_id.in_(allowed_ids))
+
+    results = stats_query.all()
+
+    global_movies_count = 0
+    global_movies_size = 0
+    global_pics_count = 0
+    global_pics_size = 0
+
+    camera_stats = {
+        cam.id: {
+            "movies": {"count": 0, "size_gb": 0.0},
+            "images": {"count": 0, "size_gb": 0.0}
+        } for cam in cameras
     }
 
-    camera_stats = {}
-    for cam in cameras:
-        cam_movies = db.query(func.count(models.Event.id), func.sum(models.Event.file_size)).filter(models.Event.camera_id == cam.id, models.Event.type == "video").first()
-        cam_pics = db.query(func.count(models.Event.id), func.sum(models.Event.file_size)).filter(models.Event.camera_id == cam.id, models.Event.type == "snapshot").first()
+    for cam_id, event_type, count, size in results:
+        size = size or 0
+        size_gb = round(size / (1024**3), 2)
         
-        camera_stats[cam.id] = {
-            "movies": {"count": cam_movies[0] or 0, "size_gb": round((cam_movies[1] or 0) / (1024**3), 2)},
-            "images": {"count": cam_pics[0] or 0, "size_gb": round((cam_pics[1] or 0) / (1024**3), 2)}
-        }
+        if event_type == "video":
+            global_movies_count += count
+            global_movies_size += size
+            if cam_id in camera_stats:
+                camera_stats[cam_id]["movies"]["count"] = count
+                camera_stats[cam_id]["movies"]["size_gb"] = size_gb
+        elif event_type == "snapshot":
+            global_pics_count += count
+            global_pics_size += size
+            if cam_id in camera_stats:
+                camera_stats[cam_id]["images"]["count"] = count
+                camera_stats[cam_id]["images"]["size_gb"] = size_gb
+
+    global_stats = {
+        "movies": {"count": global_movies_count, "size_gb": round(global_movies_size / (1024**3), 2)},
+        "images": {"count": global_pics_count, "size_gb": round(global_pics_size / (1024**3), 2)}
+    }
+
+    global_movies = (global_movies_count, global_movies_size)
+    global_pics = (global_pics_count, global_pics_size)
+
     return global_movies, global_pics, global_stats, camera_stats
 
 def _get_disk_usage_stats(global_movies: tuple, global_pics: tuple) -> tuple:
