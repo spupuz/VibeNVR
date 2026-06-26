@@ -705,6 +705,9 @@ export const Dashboard = () => {
                                 <div key={key} className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-lg">
                                     <span className="text-sm font-medium">{label}</span>
                                     <button
+                                        role="switch"
+                                        aria-checked={visibleWidgets[key] || false}
+                                        aria-label={label}
                                         onClick={() => setVisibleWidgets(prev => ({ ...prev, [key]: !prev[key] }))}
                                         className={'relative inline-flex h-6 w-11 items-center rounded-full transition-colors ' +
                                             (visibleWidgets[key] ? 'bg-primary' : 'bg-muted')
