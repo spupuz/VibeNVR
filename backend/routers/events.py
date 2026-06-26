@@ -686,7 +686,7 @@ def process_webhook_file_event(camera_id: int, event_type: str, payload: dict, i
                     try:
                         cmd = [
                             "ffprobe", "-v", "error", "-show_entries", "format=duration",
-                            "-of", "default=noprint_wrappers=1:nokey=1", local_path
+                            "-of", "default=noprint_wrappers=1:nokey=1", "-i", local_path
                         ]
                         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=10)
                         if result.returncode == 0:
