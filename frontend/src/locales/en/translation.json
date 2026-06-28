@@ -810,7 +810,8 @@
     "focus": "Focus",
     "fullscreen": "Fullscreen",
     "gallery": "Gallery",
-    "videos": "Videos"
+    "videos": "Videos",
+    "show_all": "Show All"
   },
   "settings_main": {
     "title": "Settings",

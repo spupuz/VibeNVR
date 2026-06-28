@@ -600,7 +600,7 @@ export const LiveView = () => {
 
                     {focusCameraId && (
                         <button onClick={() => setFocusCameraId(null)} className="text-sm text-primary hover:underline">
-                            Show All
+                            {t('live.show_all', 'Show All')}
                         </button>
                     )}
                 </div>
