@@ -37,12 +37,12 @@ The second argument acts as the English fallback. This ensures the codebase rema
 ## Automated Translation Tools
 To avoid manually maintaining 10 different language JSON files, VibeNVR provides two Python scripts located in `frontend/scripts/`.
 
-### 1. `update_locales.py`
+### 1. `extract_t.py`
 This script scans all `.jsx` and `.js` files in the `src/` directory, extracts every string wrapped in `t('key', 'Default Value')`, and builds a comprehensive `en/translation.json` file. It automatically merges new keys, updates changed fallbacks, and cleans up orphaned keys.
 
 ```bash
 cd frontend
-python3 scripts/update_locales.py
+python3 scripts/extract_t.py
 ```
 
 ### 2. `auto_translate.py`
