@@ -227,6 +227,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
                     onContextMenu={(e) => e.preventDefault()}
                     className="absolute top-2 right-2 z-[110] p-2 bg-background/80 hover:bg-red-500 hover:text-white rounded-full border border-border shadow-xl pointer-events-auto transition-all active:scale-90"
                     title={t('cameras.ptz.close_controls', "Close PTZ Controls")}
+                    aria-label={t('cameras.ptz.close_controls', "Close PTZ Controls")}
                 >
                     <X className="w-5 h-5" />
                 </button>
@@ -306,6 +307,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
                                             : 'bg-background/80 hover:bg-muted border-border'
                                         }`}
                                     title={t('cameras.ptz.camera_presets', "Camera Presets")}
+                                    aria-label={t('cameras.ptz.camera_presets', "Camera Presets")}
                                 >
                                     <Bookmark className="w-4 h-4" />
                                 </button>
@@ -343,6 +345,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
                                     onContextMenu={(e) => e.preventDefault()}
                                     className="p-2 rounded-full bg-background/80 hover:bg-indigo-500 hover:text-white border border-border shadow-lg transition-all active:scale-95 flex items-center justify-center"
                                     title={t('cameras.ptz.go_to_home', "Go to Home Position")}
+                                    aria-label={t('cameras.ptz.go_to_home', "Go to Home Position")}
                                 >
                                     {isGoingHome ? <Loader2 className="w-4 h-4 animate-spin" /> : <Home className="w-4 h-4" />}
                                 </button>
@@ -352,6 +355,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
                                     onContextMenu={(e) => e.preventDefault()}
                                     className="p-2 rounded-full bg-background/80 hover:bg-green-600 hover:text-white border border-border shadow-lg transition-all active:scale-95 flex items-center justify-center"
                                     title={t('cameras.ptz.set_current_as_home', "Set Current as Home")}
+                                    aria-label={t('cameras.ptz.set_current_as_home', "Set Current as Home")}
                                 >
                                     {isSettingHome ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                 </button>
