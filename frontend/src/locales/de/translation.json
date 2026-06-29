@@ -764,7 +764,7 @@
     "3x": "3x",
     "24h": "24h",
     "delete_error": "Fehler beim Löschen des Ereignisses: {{error}}', { error: err.message }), 'error",
-    "bulk_deleted": "{{count}} Ereignisse erfolgreich gelöscht', { count: data.deleted_count }), 'success",
+    "bulk_deleted": "{{count}} Ereignisse erfolgreich gelöscht",
     "bulk_error": "Fehler beim Massenlöschen: {{error}}', { error: err.message }), 'error",
     "the_selected_model_will_b": "Das ausgewählte Modell wird von allen Kameras verwendet, bei denen die „AI Engine“ aktiviert ist. Spezifische Kameraeinstellungen können weiterhin individuell angepasst werden.",
     "change_password": "Kennwort ändern",

@@ -766,7 +766,7 @@
     "3x": "3x",
     "24h": "24h",
     "delete_error": "Erro ao excluir evento: {{error}}', { error: err.message }), 'error",
-    "bulk_deleted": "{{count}} eventos excluídos com sucesso', {count: data.deleted_count }), 'sucesso",
+    "bulk_deleted": "{{count}} eventos excluídos com sucesso",
     "bulk_error": "Erro durante a exclusão em massa: {{error}}', { error: err.message }), 'error",
     "the_selected_model_will_b": "O modelo selecionado será utilizado por todas as câmeras que possuem o “AI Engine” habilitado. As configurações específicas da câmera ainda podem ser ajustadas individualmente.",
     "change_password": "Alterar a senha",

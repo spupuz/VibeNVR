@@ -766,7 +766,7 @@
     "3x": "3x",
     "24h": "24 ore",
     "delete_error": "Errore durante l'eliminazione dell'evento: {{error}}', { error: err.message }), 'error",
-    "bulk_deleted": "Eliminati {{count}} eventi', { count: data.deleted_count }), 'success",
+    "bulk_deleted": "Eliminati {{count}} eventi",
     "bulk_error": "Errore durante l'eliminazione collettiva: {{error}}', { error: err.message }), 'errore",
     "the_selected_model_will_b": "Il modello selezionato verrà utilizzato da tutte le fotocamere che hanno il \"motore AI\" abilitato. Le impostazioni specifiche della fotocamera possono comunque essere regolate individualmente.",
     "change_password": "Cambiare la password",

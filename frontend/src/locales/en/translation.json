@@ -775,7 +775,7 @@
     "3x": "3x",
     "24h": "24h",
     "delete_error": "Error deleting event: {{error}}', { error: err.message }), 'error",
-    "bulk_deleted": "Successfully deleted {{count}} events', { count: data.deleted_count }), 'success",
+    "bulk_deleted": "Successfully deleted {{count}} events",
     "bulk_error": "Error during bulk delete: {{error}}', { error: err.message }), 'error",
     "the_selected_model_will_b": "The selected model will be used by all cameras that have the \"AI Engine\" enabled. Specific camera settings can still be tuned individually.",
     "change_password": "Change Password",

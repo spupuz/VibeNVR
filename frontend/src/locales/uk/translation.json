@@ -774,7 +774,7 @@
     "3x": "3x",
     "24h": "24год",
     "delete_error": "Помилка видалення події: {{error}}', { error: err.message }), 'помилка",
-    "bulk_deleted": "Успішно видалено {{count}} подій', { count: data.deleted_count }), 'успіх",
+    "bulk_deleted": "Успішно видалено {{count}} подій",
     "bulk_error": "Помилка масового видалення: {{error}}', { error: err.message }), 'помилка",
     "the_selected_model_will_b": "Вибрана модель буде використовуватися всіма камерами з увімкненим «AI Engine». Налаштування конкретних камер можна налаштувати індивідуально.",
     "change_password": "Змінити пароль",

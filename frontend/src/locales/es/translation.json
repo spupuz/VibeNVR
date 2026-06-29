@@ -765,7 +765,7 @@
     "3x": "3x",
     "24h": "24h",
     "delete_error": "Error al eliminar evento: {{error}}', { error: err.message }), 'error",
-    "bulk_deleted": "{{count}} eventos eliminados con éxito', {count: data.deleted_count }), 'éxito",
+    "bulk_deleted": "{{count}} eventos eliminados con éxito",
     "bulk_error": "Error durante la eliminación masiva: {{error}}', { error: err.message }), 'error",
     "the_selected_model_will_b": "El modelo seleccionado será utilizado por todas las cámaras que tengan habilitado el \"Motor AI\". Los ajustes específicos de la cámara aún se pueden ajustar individualmente.",
     "change_password": "Cambiar la contraseña",

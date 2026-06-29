@@ -767,7 +767,7 @@
     "3x": "3x",
     "24h": "24時間",
     "delete_error": "イベント削除エラー: {{error}}'、{ エラー: err.message })、'error",
-    "bulk_deleted": "{{count}} 件のイベントが正常に削除されました', { count: data.deleted_count }), 'success",
+    "bulk_deleted": "{{count}} 件のイベントが正常に削除されました",
     "bulk_error": "一括削除中のエラー: {{error}}'、{ error: err.message })、'error",
     "the_selected_model_will_b": "選択したモデルは、「AI エンジン」が有効になっているすべてのカメラで使用されます。特定のカメラ設定は引き続き個別に調整できます。",
     "change_password": "パスワードを変更する",

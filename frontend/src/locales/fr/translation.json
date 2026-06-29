@@ -769,7 +769,7 @@
     "3x": "3x",
     "24h": "24h",
     "delete_error": "Erreur lors de la suppression de l'événement : {{error}}', { error: err.message }), 'error",
-    "bulk_deleted": "{{count}} événements supprimés avec succès', { count: data.deleted_count }), 'success",
+    "bulk_deleted": "{{count}} événements supprimés avec succès",
     "bulk_error": "Erreur lors de la suppression groupée : {{error}}', { error: err.message }), 'error",
     "the_selected_model_will_b": "Le modèle sélectionné sera utilisé par toutes les caméras sur lesquelles le « moteur AI » est activé. Les paramètres spécifiques de la caméra peuvent toujours être réglés individuellement.",
     "change_password": "Changer le mot de passe",

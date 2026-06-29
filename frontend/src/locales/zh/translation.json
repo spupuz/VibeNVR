@@ -773,7 +773,7 @@
     "3x": "3x",
     "24h": "24小时",
     "delete_error": "删除事件时出错：{{error}}', { error: err.message }), 'error",
-    "bulk_deleted": "已成功删除 {{count}} 个事件', { count: data.deleted_count }), '成功",
+    "bulk_deleted": "已成功删除 {{count}} 个事件",
     "bulk_error": "批量删除时出错：{{error}}', { error: err.message }), 'error",
     "the_selected_model_will_b": "所选型号将被所有启用“AI Engine”的相机使用。特定的相机设置仍然可以单独调整。",
     "change_password": "更改密码",
