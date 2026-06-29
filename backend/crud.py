@@ -254,7 +254,13 @@ def update_user_password(db: Session, user_id: int, hashed_password: str):
 
 # Groups
 def get_groups(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.CameraGroup).offset(skip).limit(limit).all()
+    # ⚡ Bolt: Resolving N+1 query issue during serialization.
+    # When Pydantic serializes groups, it fetches the cameras, which in turn fetch their nested groups and storage profiles.
+    # Using chained selectinload pre-fetches all these relationships in constant O(1) queries instead of O(N) queries.
+    return db.query(models.CameraGroup).options(
+        selectinload(models.CameraGroup.cameras).selectinload(models.Camera.groups),
+        selectinload(models.CameraGroup.cameras).selectinload(models.Camera.storage_profile)
+    ).offset(skip).limit(limit).all()
 
 def get_group(db: Session, group_id: int):
     return db.query(models.CameraGroup).filter(models.CameraGroup.id == group_id).first()
