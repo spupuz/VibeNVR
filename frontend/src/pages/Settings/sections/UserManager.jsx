@@ -186,6 +186,7 @@ export const UserManager = ({
                                     onClick={() => handleEditClick(u)}
                                     className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
                                     title={t('settings_usermanager.title', 'Edit User')}
+                                    aria-label={t('settings_usermanager.title', 'Edit User')}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                                 </button>
@@ -194,6 +195,7 @@ export const UserManager = ({
                                 onClick={() => openPasswordModal(u)}
                                 className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
                                 title={t('settings_usermanager.title', 'Change Password')}
+                                aria-label={t('settings_usermanager.title', 'Change Password')}
                             >
                                 <Key className="w-5 h-5" />
                             </button>
@@ -227,6 +229,7 @@ export const UserManager = ({
                                     }}
                                     className="p-2 hover:bg-red-100 text-red-500 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
                                     title={t('settings_usermanager.title', 'Delete User')}
+                                    aria-label={t('settings_usermanager.title', 'Delete User')}
                                 >
                                     <Trash2 className="w-5 h-5" />
                                 </button>
@@ -272,6 +275,7 @@ export const UserManager = ({
                                                     onClick={() => handleEditClick(u)}
                                                     className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
                                                     title={t('settings_usermanager.title', 'Edit User')}
+                                                    aria-label={t('settings_usermanager.title', 'Edit User')}
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                                                 </button>
@@ -280,6 +284,7 @@ export const UserManager = ({
                                                 onClick={() => openPasswordModal(u)}
                                                 className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
                                                 title={t('settings_usermanager.title', 'Change Password')}
+                                                aria-label={t('settings_usermanager.title', 'Change Password')}
                                             >
                                                 <Key className="w-5 h-5" />
                                             </button>
@@ -313,6 +318,7 @@ export const UserManager = ({
                                                     }}
                                                     className="p-2 hover:bg-red-100 text-red-500 rounded-lg transition-colors"
                                                     title={t('settings_usermanager.title', 'Delete User')}
+                                                    aria-label={t('settings_usermanager.title', 'Delete User')}
                                                 >
                                                     <Trash2 className="w-5 h-5" />
                                                 </button>
