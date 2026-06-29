@@ -811,8 +811,12 @@ def bulk_delete_events(request: schemas.BulkDeleteRequest, db: Session = Depends
     deleted_count = 0
     errors = []
 
+    # ⚡ Bolt: Fetch all events in a single O(1) query instead of O(N) queries inside the loop
+    events = db.query(models.Event).filter(models.Event.id.in_(request.event_ids)).all()
+    events_map = {event.id: event for event in events}
+
     for event_id in request.event_ids:
-        event = db.query(models.Event).filter(models.Event.id == event_id).first()
+        event = events_map.get(event_id)
         if not event:
             errors.append(f"Event {event_id} not found")
             continue
