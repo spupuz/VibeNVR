@@ -106,6 +106,41 @@ class AIDetector:
         self.inference_count = 0
         self.last_inference_attempt = 0
         self._is_loading = False
+        self._start_staleness_watchdog()
+
+    def _start_staleness_watchdog(self):
+        """Independent alarm/backstop for AI going silently dead.
+
+        The existing reload path only triggers on an invoke() timeout (None
+        interpreter). But AI can also stop silently with the interpreter still
+        fine — e.g. detect() stops being called upstream. This thread watches
+        last_inference_attempt (set on the first line of detect()) and logs the
+        moment it goes stale while AI is enabled, so the cause is captured live
+        instead of discovered hours later. As a backstop it reloads the model if
+        the interpreter itself is gone.
+        """
+        def _wd():
+            last_reload = 0.0
+            while True:
+                time.sleep(15)
+                try:
+                    if not self._enabled or not self.last_inference_attempt:
+                        continue
+                    age = time.time() - self.last_inference_attempt
+                    if age > 60:
+                        logger.error(
+                            f"[AI-WD] detect() not called for {age:.0f}s while AI enabled "
+                            f"(count={self.inference_count}, interp={'ok' if self.interpreter else 'None'}, "
+                            f"hw={self.hardware}, loading={self._is_loading}) — inference pipeline starved"
+                        )
+                        if self.interpreter is None and not self._is_loading and time.time() - last_reload > 60:
+                            last_reload = time.time()
+                            logger.error("[AI-WD] interpreter is None — triggering model reload")
+                            threading.Thread(target=self._load_model, daemon=True).start()
+                except Exception as e:
+                    logger.error(f"[AI-WD] watchdog error: {e}")
+        threading.Thread(target=_wd, daemon=True).start()
+        logger.info("AI: staleness watchdog started")
 
     @property
     def enabled(self):

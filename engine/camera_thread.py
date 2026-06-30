@@ -124,6 +124,43 @@ class CameraThread(threading.Thread):
     def get_health(self):
         return self.stream_reader.get_health()
 
+    def _stream_health_watchdog(self):
+        """Detect + recover silently-stalled stream readers.
+
+        A reader only self-reconnects on a decode *exception*. A valid-but-
+        undecodable stream (e.g. an SPS/PPS mismatch from a flaky proxy or a
+        lossy VPN link) keeps connected=True while decode yields no frames and
+        no exception fires — latest_frame freezes forever, the camera silently
+        stops feeding AI/motion, and only a full engine restart clears it. We
+        catch that here: a connected reader whose last decoded frame is older
+        than STALL_SECS is forced to reconnect. Each check also logs a state
+        snapshot so a stall vs a reconnect-loop can be told apart from logs.
+        """
+        STALL_SECS = 30.0
+        now = time.time()
+        for tag, r in (("primary", self.stream_reader), ("sub", self.sub_stream_reader)):
+            if r is None:
+                continue
+            lrt = getattr(r, 'last_read_time', 0) or 0
+            ct = getattr(r, 'connection_time', 0) or 0
+            age = now - lrt if lrt else -1
+            conn_age = now - ct if ct else -1
+            if r.connected and lrt and age > 10:
+                logger.warning(
+                    f"[STREAM-WD] Cam {self.camera_id} {tag}: health={r.health_status} "
+                    f"connected={r.connected} frame_age={age:.1f}s conn_age={conn_age:.1f}s "
+                    f"fails={getattr(r, 'consecutive_failures', '?')}"
+                )
+            if r.connected and lrt and age > STALL_SECS:
+                logger.error(
+                    f"[STREAM-WD] Cam {self.camera_id} {tag}: STALLED {age:.1f}s with no decoded "
+                    f"frame while connected — forcing reconnect"
+                )
+                try:
+                    r.force_reconnect()
+                except Exception as e:
+                    logger.error(f"[STREAM-WD] Cam {self.camera_id} {tag}: force_reconnect failed: {e}")
+
     def run(self):
         self.running = True
         logger.info(f"Camera {self.config.get('name')} (ID: {self.camera_id}): Starting loop")
@@ -140,6 +177,7 @@ class CameraThread(threading.Thread):
                     last_heartbeat_time = time.time()
                     age = time.time() - self.stream_reader.last_read_time if self.stream_reader.last_read_time else -1
                     logger.debug(f"[HB] Cam {self.camera_id}: health={self.stream_reader.health_status}, recording={self.recording_manager.is_recording}, frame_age={age:.1f}s")
+                    self._stream_health_watchdog()  # recover + diagnose silently-stalled readers
 
                 # Segment Rotation Check (Decoupled from frame decode)
                 if self.recording_manager.check_segment_rotation(self.stop_recording):
@@ -182,8 +220,16 @@ class CameraThread(threading.Thread):
                 
                 detect_engine = self.config.get('detect_engine', 'OpenCV')
                 
-                # Fallback to OpenCV if AI is disabled globally but camera is set to AI
-                if detect_engine == 'AI' and not self.manager.global_config.get('ai_enabled', False):
+                # Fallback to OpenCV if AI is disabled globally but camera is set to AI.
+                # Gate on the AIDetector singleton's own enabled flag, NOT
+                # manager.global_config['ai_enabled']. The latter silently drifts to False
+                # (a manager reinit resets global_config to {}, or a config sync lands
+                # before the ai_enabled key is set) while the detector stays loaded and
+                # enabled — which makes EVERY camera fall back to OpenCV motion and
+                # silently kills AI detection system-wide until an engine restart. The
+                # detector flag is the single source of truth and survives those resets.
+                ai_on = getattr(self.ai_detector, 'enabled', False) or self.manager.global_config.get('ai_enabled', False)
+                if detect_engine == 'AI' and not ai_on:
                     detect_engine = 'OpenCV'
                     
                 # AI Inference Logic
