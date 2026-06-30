@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from typing import Optional
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -263,7 +263,7 @@ def _generate_backup_data(db: Session) -> dict:
             "restrict_camera_access": u.restrict_camera_access,
             "allowed_camera_ids": [c.id for c in u.allowed_cameras],
             "allowed_group_ids": [g.id for g in u.allowed_groups]
-        } for u in db.query(models.User).all()],
+        } for u in db.query(models.User).options(selectinload(models.User.allowed_cameras), selectinload(models.User.allowed_groups)).all()],
         "api_tokens": [{
             "name": t.name,
             "token_hash": t.token_hash,
@@ -272,12 +272,12 @@ def _generate_backup_data(db: Session) -> dict:
             "expires_at": t.expires_at.isoformat() if t.expires_at else None,
             "is_active": t.is_active,
             "username": t.created_by.username if t.created_by else None
-        } for t in db.query(models.ApiToken).all()],
+        } for t in db.query(models.ApiToken).options(selectinload(models.ApiToken.created_by)).all()],
         "recovery_codes": [{
             "username": r.user.username,
             "code_hash": r.code_hash,
             "created_at": r.created_at.isoformat() if r.created_at else None
-        } for r in db.query(models.RecoveryCode).all()],
+        } for r in db.query(models.RecoveryCode).options(selectinload(models.RecoveryCode.user)).all()],
         "trusted_devices": [{
             "username": d.user.username,
             "token": d.token,
@@ -285,7 +285,7 @@ def _generate_backup_data(db: Session) -> dict:
             "last_used": d.last_used.isoformat() if d.last_used else None,
             "expires_at": d.expires_at.isoformat() if d.expires_at else None,
             "created_at": d.created_at.isoformat() if d.created_at else None
-        } for d in db.query(models.TrustedDevice).all()]
+        } for d in db.query(models.TrustedDevice).options(selectinload(models.TrustedDevice.user)).all()]
     }
 
 @router.get("/backup/export")
