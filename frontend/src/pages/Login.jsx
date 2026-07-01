@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User } from 'lucide-react';
+import { Lock, User, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
@@ -19,6 +19,7 @@ export const Login = () => {
     // Trusted Device State
     const [trustDevice, setTrustDevice] = useState(false);
     const [deviceName, setDeviceName] = useState(`Browser on ${navigator.platform}`);
+    const [showPassword, setShowPassword] = useState(false);
 
     const { login } = useAuth();
     const navigate = useNavigate();
@@ -170,13 +171,22 @@ export const Login = () => {
                                 <div className="relative">
                                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                     <input
-                                        type="password"
-                                        className="w-full pl-9 pr-3 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
+                                        type={showPassword ? "text" : "password"}
+                                        className="w-full pl-9 pr-10 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
                                         placeholder="••••••••"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
                                     />
+                                    <button
+                                        type="button"
+                                        aria-label={showPassword ? "Hide password" : "Show password"}
+                                        aria-pressed={showPassword}
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-3 text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+                                    >
+                                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
                                 </div>
                             </div>
                         </>
