@@ -55,10 +55,21 @@ def delete_group(group_id: int, db: Session = Depends(database.get_db), current_
 def bulk_delete_groups(group_ids: List[int], db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Delete multiple groups at once"""
     deleted_count = 0
+
+    # ⚡ Bolt: Fetch all groups in a single O(1) query instead of O(N) queries inside the loop
+    groups = db.query(models.CameraGroup).filter(models.CameraGroup.id.in_(group_ids)).all()
+    groups_map = {group.id: group for group in groups}
+
     for group_id in group_ids:
-        deleted = crud.delete_group(db, group_id=group_id)
-        if deleted:
-            deleted_count += 1
+        group = groups_map.get(group_id)
+        if not group:
+            continue
+
+        db.delete(group)
+        deleted_count += 1
+
+    db.commit()
+
     return {"message": f"Successfully deleted {deleted_count} group(s)", "count": deleted_count}
 
 @router.post("/{group_id}/cameras", response_model=schemas.CameraGroup)
