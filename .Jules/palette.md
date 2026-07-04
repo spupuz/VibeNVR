@@ -4,3 +4,6 @@
 ## 2024-06-27 - [Add ARIA labels to icon-only buttons]
 **Learning:** When making UX accessibility improvements, avoid the anti-pattern of adding an `aria-label` that is exactly identical to the visible text content of an interactive element (e.g., a button), as screen readers natively announce text content, and duplicate labels cause redundant announcements. However, for buttons that only have an icon, or text that might be hidden or visually truncated, `aria-label`s are still necessary.
 **Action:** Add `aria-label` attributes to icon-only buttons for better screen reader accessibility.
+## 2024-05-24 - Add ARIA label to active hour filter button
+**Learning:** When clearing active hour filters, the button relies solely on visual text ("{hour}:00 ✕"). Screen readers miss the context of the action being a filter clear operation without an explicit `aria-label`.
+**Action:** Always add an `aria-label` to custom filter clearing buttons, especially those using symbols like "✕", to clearly indicate their function to screen readers.
