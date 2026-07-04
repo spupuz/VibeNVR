@@ -151,6 +151,7 @@ export const EventFilters = ({
                         ? 'bg-primary/10 border-primary/20 text-primary font-medium'
                         : 'bg-card border-border hover:bg-accent text-muted-foreground'
                     }`}
+                aria-label={t('timeline.reset', 'Reset')}
             >
                 <span>{t('timeline.reset', 'Reset')}</span>
             </button>
@@ -160,6 +161,8 @@ export const EventFilters = ({
                 <button
                     onClick={() => setSelectedHour(null)}
                     className="px-3 py-2 text-sm bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-colors flex items-center gap-1.5"
+                    title={t('timeline.clear_hour_filter', 'Clear hour filter')}
+                    aria-label={t('timeline.clear_hour_filter', 'Clear hour filter')}
                 >
                     <span className="font-bold">{selectedHour}:00</span>
                     <span className="opacity-70">✕</span>
