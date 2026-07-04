@@ -50,7 +50,7 @@ def cleanup():
                         print(f"Failed to delete {full_path}: {e}")
                         
         print("-" * 30)
-        print(f"Cleanup Complete.")
+        print("Cleanup Complete.")
         print(f"Deleted {deleted_count} orphaned files.")
         print(f"Freed {deleted_size / (1024**3):.2f} GB.")
         

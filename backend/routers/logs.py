@@ -12,8 +12,6 @@ import platform
 import subprocess
 from datetime import datetime
 import database
-import models
-from sqlalchemy import func
 
 def generate_debug_report():
     """Generate a sanitized system report for debugging"""
