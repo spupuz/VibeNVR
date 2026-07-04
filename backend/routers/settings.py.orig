@@ -37,7 +37,7 @@ def get_setting(db: Session, key: str) -> Optional[str]:
 
 # Validation Constants
 VALID_FFMPEG_PRESETS = {
-    "ultrafast", "superfast", "veryfast", "faster", "fast", 
+    "ultrafast", "superfast", "veryfast", "faster", "fast",
     "medium", "slow", "slower", "veryslow"
 }
 
@@ -60,7 +60,7 @@ def get_setting_by_key(key: str, db: Session = Depends(database.get_db), current
         safe_keys = ["default_landing_page", "telemetry_enabled", "instance_id"]
         if key not in safe_keys:
             raise HTTPException(status_code=403, detail="Not authorized to access this setting")
-            
+
     setting = db.query(models.SystemSettings).filter(models.SystemSettings.key == key).first()
     if not setting:
         # Fallback to DEFAULT_SETTINGS if available
@@ -97,7 +97,7 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
     for key, value in settings.items():
         # Validation for known numeric keys
         numeric_keys = [
-            "max_global_storage_gb", "cleanup_interval_hours", 
+            "max_global_storage_gb", "cleanup_interval_hours",
             "backup_auto_frequency_hours", "backup_auto_retention",
             "opt_live_view_fps_throttle", "opt_motion_fps_throttle",
             "opt_live_view_height_limit", "opt_motion_analysis_height",
@@ -113,7 +113,7 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
                 raise HTTPException(status_code=400, detail=f"Value for {key} must be a number")
 
         set_setting(db, key, str(value))
-    
+
     # A go2rtc toggle changes every camera's effective URL → full restart + re-sync.
     if go2rtc_changed:
         motion_service.stop_all_engines()
@@ -128,14 +128,14 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
 def trigger_cleanup(camera_id: int = None, media_type: str = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Manually trigger storage cleanup"""
     from storage_service import run_cleanup, cleanup_camera
-    
+
     if camera_id:
         camera = db.query(models.Camera).filter(models.Camera.id == camera_id).first()
         if not camera:
             return {"error": "Camera not found"}, 404
         cleanup_camera(db, camera, media_type=media_type)
         return {"message": f"Cleanup for camera {camera.name} triggered successfully"}
-    
+
     run_cleanup()
     return {"message": "Global storage cleanup triggered successfully"}
 
@@ -156,7 +156,7 @@ DEFAULT_SETTINGS = {
     "max_global_storage_gb": {"value": "0", "description": "Maximum total storage for all cameras (0 = unlimited)"},
     "cleanup_enabled": {"value": "true", "description": "Enable automatic cleanup of old recordings"},
     "cleanup_interval_hours": {"value": "24", "description": "How often to run cleanup (in hours)"},
-    
+
     # Notification Settings
     "smtp_server": {"value": "", "description": "SMTP Server Address"},
     "smtp_port": {"value": "587", "description": "SMTP Port (e.g. 587 or 465)"},
@@ -173,7 +173,7 @@ DEFAULT_SETTINGS = {
     "notify_email_recipient": {"value": "", "description": "Default recipient for email notifications"},
     "notify_webhook_url": {"value": "", "description": "Global Webhook URL for notifications"},
     "default_landing_page": {"value": "live", "description": "Default page when opening the app (dashboard, timeline, live)"},
-    
+
     # AI Detection Settings
     "ai_enabled": {"value": "false", "description": "Enable Global AI Detection Engine"},
     "ai_model": {"value": "mobilenet_ssd_v2", "description": "Global AI Model architecture (mobilenet_ssd_v2, yolo_v8)"},
@@ -199,7 +199,7 @@ DEFAULT_SETTINGS = {
     "telemetry_enabled": {"value": "true", "description": "Enable anonymous telemetry to help improve VibeNVR"},
     "instance_id": {"value": "", "description": "Unique anonymous ID for this VibeNVR instance"},
     "default_live_view_mode": {"value": "auto", "description": "Default streaming mode for new cameras (auto, webcodecs, mjpeg)"},
-    
+
     # Automatic Backup Settings
     "backup_auto_enabled": {"value": "false", "description": "Enable automatic configuration backups to /data/backups/"},
     "backup_auto_frequency_hours": {"value": "24", "description": "Frequency in hours for automatic backups"},
@@ -225,7 +225,7 @@ def init_default_settings(db: Session = Depends(database.get_db), current_user: 
             logger.info(f"Initializing missing setting: {key} = {data['value']}")
             set_setting(db, key, data["value"], data["description"])
             created += 1
-    
+
     if created > 0:
         logger.info(f"Successfully initialized {created} default settings.")
     return {"message": f"Initialized {created} default settings"}
@@ -293,7 +293,7 @@ def _generate_backup_data(db: Session) -> dict:
 def export_backup(request: Request, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Export configuration to JSON"""
     data = _generate_backup_data(db)
-    
+
     filename = f"vibenvr_backup_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     return JSONResponse(
         content=data,
@@ -309,14 +309,14 @@ async def perform_restore(data: dict, db: Session):
     if "settings" in data:
         for s in data["settings"]:
             existing = db.query(models.SystemSettings).filter(models.SystemSettings.key == s["key"]).first()
-            
+
             if s["key"].startswith("opt_") or s["key"].startswith("mqtt_"):
                 try:
                     validate_setting(s["key"], str(s["value"]))
                 except HTTPException as e:
                     logging.warning(f"[BACKUP] Skipping invalid optimization setting {s['key']}: {e.detail}")
                     continue
-            
+
             if existing:
                 existing.value = s["value"]
                 existing.description = s.get("description")
@@ -325,9 +325,9 @@ async def perform_restore(data: dict, db: Session):
                     key=s["key"], value=s["value"], description=s.get("description")
                 )
                 db.add(new_setting)
-    
+
     # 2. Restore Storage Profiles
-    profile_id_map = {} 
+    profile_id_map = {}
     if "storage_profiles" in data:
         for p in data["storage_profiles"]:
             backup_p_id = p.get("id")
@@ -335,17 +335,17 @@ async def perform_restore(data: dict, db: Session):
             if not existing_p:
                 existing_p = models.StorageProfile()
                 db.add(existing_p)
-            
+
             for k, v in p.items():
                 if k == "id": continue
                 if hasattr(existing_p, k):
                     setattr(existing_p, k, v)
-            
+
             db.flush()
             profile_id_map[backup_p_id] = existing_p.id
 
     # 3. Restore Cameras
-    cam_id_map = {} 
+    cam_id_map = {}
     from urllib.parse import urlparse
     def get_host(url):
         try:
@@ -359,35 +359,35 @@ async def perform_restore(data: dict, db: Session):
             backup_id = c.get("id")
             rtsp_url = c.get("rtsp_url")
             cam_host = get_host(rtsp_url)
-            
+
             existing_cam = db.query(models.Camera).filter(models.Camera.id == backup_id).first()
             if not existing_cam and cam_host:
                 all_cams = db.query(models.Camera).all()
                 existing_cam = next((cam for cam in all_cams if get_host(cam.rtsp_url) == cam_host), None)
-            
+
             if not existing_cam:
                 id_conflict = db.query(models.Camera).filter(models.Camera.id == backup_id).first()
                 existing_cam = models.Camera() if id_conflict else models.Camera(id=backup_id)
                 db.add(existing_cam)
-            
+
             try:
                 cam_data = {k: v for k, v in c.items() if k not in ['id', 'events', 'groups', 'last_frame_path', 'last_thumbnail_path']}
                 clean_cam = schemas.CameraCreate(**cam_data)
-                
+
                 for k, v in clean_cam.model_dump(exclude_unset=True).items():
                      if k == "storage_profile_id" and v in profile_id_map:
                          setattr(existing_cam, k, profile_id_map[v])
                      elif hasattr(existing_cam, k):
                          setattr(existing_cam, k, v)
-                
-                db.flush() 
+
+                db.flush()
                 cam_id_map[backup_id] = existing_cam.id
             except Exception as e:
                  logging.warning(f"[BACKUP] Security Warning: Skipping invalid camera config for ID {backup_id}: {e}")
                  continue
 
     # 4. Restore Groups
-    grp_id_map = {} 
+    grp_id_map = {}
     if "groups" in data:
         for g in data["groups"]:
             backup_grp_id = g.get("id")
@@ -395,15 +395,15 @@ async def perform_restore(data: dict, db: Session):
             if not existing_grp:
                 existing_grp = models.CameraGroup()
                 db.add(existing_grp)
-            
+
             for k, v in g.items():
                 if k in ["cameras", "id"]: continue
                 if hasattr(existing_grp, k):
                     setattr(existing_grp, k, v)
-            
+
             db.flush()
             grp_id_map[backup_grp_id] = existing_grp.id
-    
+
     # 5. Restore Associations
     if "associations" in data:
         for a in data["associations"]:
@@ -449,13 +449,13 @@ async def perform_restore(data: dict, db: Session):
                 if "allowed_group_ids" in u:
                     mapped_grp_ids = [grp_id_map.get(gid, gid) for gid in u["allowed_group_ids"]]
                     existing_user.allowed_groups = db.query(models.CameraGroup).filter(models.CameraGroup.id.in_(mapped_grp_ids)).all()
-    
+
     # 7. Restore API Tokens
     if "api_tokens" in data:
         for t in data["api_tokens"]:
             username = t.get("username")
             if not username: continue
-            
+
             user = db.query(models.User).filter(models.User.username == username).first()
             if user:
                 # Check if token hash already exists
@@ -464,7 +464,7 @@ async def perform_restore(data: dict, db: Session):
                     from datetime import datetime
                     def parse_dt(dt_str):
                         return datetime.fromisoformat(dt_str) if dt_str else None
-                    
+
                     new_token = models.ApiToken(
                         name=t["name"],
                         token_hash=t["token_hash"],
@@ -481,7 +481,7 @@ async def perform_restore(data: dict, db: Session):
         for r in data["recovery_codes"]:
             username = r.get("username")
             if not username: continue
-            
+
             user = db.query(models.User).filter(models.User.username == username).first()
             if user:
                 # Check if code hash already exists for this user
@@ -497,13 +497,13 @@ async def perform_restore(data: dict, db: Session):
                         created_at=datetime.fromisoformat(r["created_at"]) if r.get("created_at") else None
                     )
                     db.add(new_code)
-    
+
     # 9. Restore Trusted Devices
     if "trusted_devices" in data:
         for d in data["trusted_devices"]:
             username = d.get("username")
             if not username: continue
-            
+
             user = db.query(models.User).filter(models.User.username == username).first()
             if user:
                 # Check if device token hash already exists for this user
@@ -515,7 +515,7 @@ async def perform_restore(data: dict, db: Session):
                     from datetime import datetime
                     def parse_dt(dt_str):
                         return datetime.fromisoformat(dt_str) if dt_str else None
-                    
+
                     new_device = models.TrustedDevice(
                         user_id=user.id,
                         token=d["token"],
@@ -525,7 +525,7 @@ async def perform_restore(data: dict, db: Session):
                         created_at=parse_dt(d.get("created_at"))
                     )
                     db.add(new_device)
-    
+
     db.commit()
     return {"message": "Configuration restored successfully"}
 
@@ -533,8 +533,8 @@ async def perform_restore(data: dict, db: Session):
 @limiter.limit("5/minute")
 async def import_backup(
     request: Request,
-    file: UploadFile = File(...), 
-    db: Session = Depends(database.get_db), 
+    file: UploadFile = File(...),
+    db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth_service.get_current_active_admin)
 ):
     """Import configuration from JSON"""
@@ -557,7 +557,7 @@ def list_backups(current_user: models.User = Depends(auth_service.get_current_ac
     """List available backup files on the server"""
     if not os.path.exists(backup_service.BACKUP_DIR):
         return []
-    
+
     files = []
     for f in os.listdir(backup_service.BACKUP_DIR):
         if f.endswith(".json"):
@@ -568,7 +568,7 @@ def list_backups(current_user: models.User = Depends(auth_service.get_current_ac
                 "size": stats.st_size,
                 "created_at": datetime.datetime.fromtimestamp(stats.st_ctime).isoformat()
             })
-    
+
     # Sort descending
     files.sort(key=lambda x: x["created_at"], reverse=True)
     return files
@@ -582,9 +582,9 @@ def manual_backup(db: Session = Depends(database.get_db), current_user: models.U
 @router.delete("/backup/{filename}")
 def delete_backup(filename: str, current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Delete a specific backup file"""
-    if "/" in filename or ".." in filename or filename != os.path.basename(filename):
+    if "/" in filename or ".." in filename:
         raise HTTPException(status_code=400, detail="Invalid filename")
-    
+
     path = os.path.join(backup_service.BACKUP_DIR, filename)
     if os.path.exists(path):
         os.remove(path)
@@ -595,13 +595,13 @@ def delete_backup(filename: str, current_user: models.User = Depends(auth_servic
 @router.post("/backup/restore-file/{filename}")
 async def restore_backup_from_file(filename: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Restore system configuration from a file on the server"""
-    if "/" in filename or ".." in filename or filename != os.path.basename(filename):
+    if "/" in filename or ".." in filename:
         raise HTTPException(status_code=400, detail="Invalid filename")
-    
+
     path = os.path.join(backup_service.BACKUP_DIR, filename)
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="Backup file not found")
-    
+
     try:
         with open(path, "r") as f:
             data = json.load(f)
@@ -643,7 +643,7 @@ def sync_orphan_recordings(
     Runs in background.
     """
     global _last_orphan_sync_time
-    
+
     # Rate limit: 5 minutes between runs
     if _last_orphan_sync_time:
         elapsed = time.time() - _last_orphan_sync_time
@@ -651,32 +651,32 @@ def sync_orphan_recordings(
             # If currently running, definitely block
             if _sync_state["status"] == "running":
                  raise HTTPException(status_code=409, detail="Sync already in progress")
-            
-            # If recently completed, enforce limit? 
+
+            # If recently completed, enforce limit?
             # User wants to run it. Let's enforce rate limit to prevent disk thrashing.
             remaining = int(300 - elapsed)
             raise HTTPException(
-                status_code=429, 
+                status_code=429,
                 detail=f"Please wait {remaining} seconds before running again"
             )
-    
+
     _last_orphan_sync_time = time.time()
-    
+
     # Reset state
     _sync_state["status"] = "running"
     _sync_state["result"] = None
     _sync_state["started_at"] = time.time()
     _sync_state["completed_at"] = None
-    
+
     def run_sync_task():
         try:
             import sync_recordings
             print(f"[Admin] User {current_user.username} triggered orphan sync (Background Task Started)", flush=True)
             stats = sync_recordings.sync_recordings(dry_run=False)
-            
+
             _sync_state["result"] = stats
             _sync_state["status"] = "completed"
-            
+
             if "error" in stats: # Check if script returned error dict
                  _sync_state["status"] = "error"
 
@@ -708,7 +708,7 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
     try:
         channel = config.channel
         settings = config.settings
-        
+
         # Helper to get setting from payload OR database
         def get_conf(key, default=None):
             val = settings.get(key)
@@ -718,29 +718,29 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
         if channel == "email":
             import smtplib
             from email.mime.text import MIMEText
-            
+
             import socket
-            
+
             smtp_server = get_conf("smtp_server")
             smtp_port = int(get_conf("smtp_port", "587"))
             smtp_user = get_conf("smtp_username")
             smtp_pass = get_conf("smtp_password")
             smtp_from = get_conf("smtp_from_email")
             smtp_verify_cert = str(get_conf("smtp_verify_cert")).lower() != "false"
-            
+
             # Recipient priority: Payload 'recipient' -> DB 'notify_email_recipient'
-            recipient = settings.get("recipient") 
+            recipient = settings.get("recipient")
             if not recipient:
                 recipient = get_setting(db, "notify_email_recipient")
-            
+
             if not all([smtp_server, smtp_from, recipient]):
                 raise ValueError("Missing required Email settings (Server, From, Recipient). Configure them in Global Settings first.")
-                
+
             msg = MIMEText("This is a test notification from VibeNVR.\nIf you see this, your Email settings are correct!")
             msg['Subject'] = "VibeNVR Test Notification"
             msg['From'] = smtp_from
             msg['To'] = recipient
-            
+
             try:
                 # Handle implicit SSL (Port 465) vs STARTTLS (Port 587/25)
                 if smtp_port == 465:
@@ -756,52 +756,52 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
                             context.verify_mode = ssl.CERT_NONE
                         server.starttls(context=context)
                         server.ehlo()
-                
+
                 with server:
                     if smtp_user and smtp_pass:
                         try:
                             server.login(smtp_user, smtp_pass)
                         except smtplib.SMTPAuthenticationError:
                             raise ValueError("Authentication failed: Incorrect Username or Password.")
-                    
+
                     server.send_message(msg)
             except smtplib.SMTPException as e:
                  raise ValueError(f"SMTP Error: {str(e)}")
             except (socket.timeout, ConnectionRefusedError, OSError) as e:
                  raise ValueError(f"Connection failed: Unable to connect to {smtp_server}:{smtp_port}. ({str(e)})")
-                 
+
             return {"status": "success", "message": f"Test email sent to {recipient}"}
-            
+
         elif channel == "telegram":
             token = get_conf("telegram_bot_token")
             chat_id = settings.get("telegram_chat_id") or get_conf("telegram_chat_id")
-            
+
             proxy_enabled = settings.get("telegram_proxy_enabled")
             if proxy_enabled is None:
                 proxy_enabled = str(get_conf("telegram_proxy_enabled")).lower() == "true"
             else:
                 proxy_enabled = str(proxy_enabled).lower() == "true"
-            
+
             proxy_url = settings.get("telegram_proxy_url")
             if proxy_url is None:
                 proxy_url = get_conf("telegram_proxy_url")
-            
+
             if not token or not chat_id:
                 raise ValueError("Missing Telegram Token or Chat ID. Configure them in Global Settings first.")
-                
+
             api_url = f"https://api.telegram.org/bot{token}/sendMessage"
             payload = {
                 "chat_id": chat_id,
                 "text": "🔔 VibeNVR Test Notification\n\nSucccess! Your Telegram bot is configured correctly."
             }
-            
+
             proxies = None
             if proxy_enabled and proxy_url:
                 proxies = {"http": proxy_url, "https": proxy_url}
-            
+
             retries = int(settings.get("telegram_proxy_retries", get_conf("telegram_proxy_retries")) or 3)
             delay = int(settings.get("telegram_proxy_retry_delay", get_conf("telegram_proxy_retry_delay")) or 2)
-            
+
             last_err = None
             import time
             for attempt in range(max(1, retries)):
@@ -815,29 +815,29 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
                     if attempt < max(1, retries) - 1:
                         logger.warning(f"Telegram Test attempt {attempt+1} failed, retrying in {delay}s...")
                         time.sleep(delay)
-            
+
             raise ValueError(str(last_err))
-            
+
         elif channel == "webhook":
             url = settings.get("notify_webhook_url") or get_conf("notify_webhook_url")
-            
+
             if not url:
                 raise ValueError("Missing Webhook URL. Configure it in Global Settings first.")
-                
+
             payload = {
                 "event": "test",
                 "message": "VibeNVR Test Webhook",
                 "timestamp": datetime.datetime.now().isoformat()
             }
-            
+
             resp = requests.post(url, json=payload, timeout=10)
             if not resp.ok:
                 raise ValueError(f"Webhook returned error: {resp.status_code} {resp.text}")
-                
+
             return {"status": "success", "message": f"Test payload sent to {url}"}
-            
+
         else:
             raise ValueError(f"Unknown channel: {channel}")
-            
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

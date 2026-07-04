@@ -685,7 +685,7 @@ async def import_motioneye_cameras(file: UploadFile = File(...), analyze_only: b
 
             for member in members:
                 # Zip Slip / TAR path traversal guard
-                if ".." in member.name or member.name.startswith("/") or os.path.isabs(member.name):
+                if ".." in member.name or member.name.startswith("/"):
                     print(f"[IMPORT] Security: Skipping suspicious path in tar: {member.name}", flush=True)
                     continue
                 filename = os.path.basename(member.name)

@@ -1,0 +1,11 @@
+--- cameras.py
++++ cameras.py
+@@ -684,7 +684,7 @@
+
+             for member in members:
+                 # Zip Slip / TAR path traversal guard
+-                if ".." in member.name or member.name.startswith("/"):
++                if ".." in member.name or member.name.startswith("/") or os.path.isabs(member.name):
+                     print(f"[IMPORT] Security: Skipping suspicious path in tar: {member.name}", flush=True)
+                     continue
+                 filename = os.path.basename(member.name)
