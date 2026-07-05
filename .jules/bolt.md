@@ -10,3 +10,6 @@
 ## 2025-02-12 - [Optimize _generate_backup_data API with selectinload]
 **Learning:** In APIs dealing with large exports (like generating full backup dictionaries of the entire database state), accessing lazy-loaded relationships during JSON serialization can trigger thousands of O(N) queries, significantly degrading performance.
 **Action:** Always eagerly load relationships using `selectinload` (e.g. `.options(selectinload(Model.relation))`) on bulk API queries that serialize nested components, particularly when assembling large data structures like backups.
+## 2025-02-12 - [Optimize homepage stats with DB aggregation]
+**Learning:** In dashboards or stats endpoints that simply need counts or filtered counts of rows, loading all SQLAlchemy ORM objects into memory (e.g., `db.query(Model).all()`) to run `len()` is an O(N) memory anti-pattern. Using native database aggregations like `db.query(func.count(Model.id)).scalar()` converts this into an efficient O(1) query.
+**Action:** Always refactor Python-level `len(items)` on bulk ORM fetches into direct SQL `COUNT` aggregations to preserve memory and speed up response times.
