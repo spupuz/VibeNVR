@@ -156,6 +156,17 @@ def sample_data(db):
         "base_date": base_date_local
     }
 
+def test_get_camera_success(db, sample_data):
+    camera = crud.get_camera(db, camera_id=sample_data["camera1"].id)
+    assert camera is not None
+    assert camera.id == sample_data["camera1"].id
+    assert camera.name == sample_data["camera1"].name
+    assert camera.rtsp_url == sample_data["camera1"].rtsp_url
+
+def test_get_camera_not_found(db, sample_data):
+    camera = crud.get_camera(db, camera_id=9999)
+    assert camera is None
+
 def test_get_events_no_filters(db, sample_data):
     events = crud.get_events(db)
     assert len(events) == 3
