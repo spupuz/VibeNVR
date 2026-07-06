@@ -17,3 +17,8 @@
 **Vulnerability:** External input (e.g. URLs or file paths) passed directly to `ffmpeg` or `ffprobe` commands via `subprocess.run()` without preceding argument identifiers can be misinterpreted as command-line flags (e.g. if an input starts with `-`), leading to argument/command injection.
 **Learning:** Always explicitly mark inputs with the appropriate flag (like `-i`) to guarantee that `ffmpeg`/`ffprobe` correctly interprets the following string as an input source and not an arbitrary, potentially malicious flag, regardless of previous path sanitization.
 **Prevention:** Ensure every dynamic path or URL passed to a `subprocess.run` list for `ffmpeg` or `ffprobe` is immediately preceded by the `-i` flag.
+
+## 2026-07-06 - Secure String Comparison for Webhook Secrets
+**Vulnerability:** Timing attack vulnerability in webhook secret verification (in `backend/routers/events.py`) due to the use of standard equality operators (`!=`) for comparing security-sensitive strings.
+**Learning:** Using standard equality operators for cryptographic secrets allows attackers to measure the time it takes for the comparison to fail, potentially brute-forcing the secret byte by byte.
+**Prevention:** Always use `hmac.compare_digest(provided, expected)` when comparing security-sensitive strings (e.g., API keys, tokens, webhooks) to prevent timing attacks. Ensure the strings are encoded to bytes if they are unicode.
