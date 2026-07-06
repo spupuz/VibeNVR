@@ -10,3 +10,6 @@
 ## 2025-02-12 - [Optimize _generate_backup_data API with selectinload]
 **Learning:** In APIs dealing with large exports (like generating full backup dictionaries of the entire database state), accessing lazy-loaded relationships during JSON serialization can trigger thousands of O(N) queries, significantly degrading performance.
 **Action:** Always eagerly load relationships using `selectinload` (e.g. `.options(selectinload(Model.relation))`) on bulk API queries that serialize nested components, particularly when assembling large data structures like backups.
+## 2025-05-24 - Bulk Delete N+1 Query Optimization
+**Learning:** During database cleanup/bulk deletion operations, selecting single records repeatedly inside a `while` loop with `.first()` (e.g., `while size < target: oldest = query.first(); delete(oldest); db.commit()`) creates a severe N+1 query issue that dramatically slows down the application and heavily loads the database.
+**Action:** When implementing bulk cleanup or deletion logic based on a threshold (like storage limits), always fetch records in batches (e.g. using `.limit(100).all()`) to execute (1)$ queries per batch rather than (N)$. Also ensure that `db.commit()` is moved outside the inner loop to bundle all deletions of the batch into a single database transaction.

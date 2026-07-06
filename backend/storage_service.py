@@ -3,7 +3,7 @@ import shutil
 import time
 import logging
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 import models
@@ -116,16 +116,21 @@ def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None, s
             logger.info(f"Camera {camera.name} MOVIE limit exceeded: {movies_used_gb:.2f}GB > {camera.max_storage_gb:.2f}GB")
             target_gb = camera.max_storage_gb * 0.95
             while movies_used_gb > target_gb:
-                oldest = db.query(models.Event).filter(
+                # ⚡ Bolt: Fetch events in batches to avoid O(N) queries during bulk deletion
+                oldest_events = db.query(models.Event).filter(
                     models.Event.camera_id == camera.id, 
                     models.Event.type == "video"
-                ).order_by(models.Event.timestamp_start.asc()).first()
-                if not oldest: break
+                ).order_by(models.Event.timestamp_start.asc()).limit(100).all()
+                if not oldest_events:
+                    break
                 
-                size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0.05
-                delete_event_media(oldest, db, reason="Camera Quota (Video)")
+                for oldest in oldest_events:
+                    if movies_used_gb <= target_gb:
+                        break
+                    size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0.05
+                    delete_event_media(oldest, db, reason="Camera Quota (Video)")
+                    movies_used_gb -= size_gb
                 db.commit()
-                movies_used_gb -= size_gb
 
     # 2. Cleanup Pictures (max_pictures_storage_gb)
     if (not media_type or media_type == 'snapshot') and camera.max_pictures_storage_gb and camera.max_pictures_storage_gb > 0:
@@ -139,16 +144,21 @@ def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None, s
             logger.info(f"Camera {camera.name} PICTURE limit exceeded: {pics_used_gb:.2f}GB > {camera.max_pictures_storage_gb:.2f}GB")
             target_gb = camera.max_pictures_storage_gb * 0.95
             while pics_used_gb > target_gb:
-                oldest = db.query(models.Event).filter(
+                # ⚡ Bolt: Fetch events in batches to avoid O(N) queries during bulk deletion
+                oldest_events = db.query(models.Event).filter(
                     models.Event.camera_id == camera.id, 
                     models.Event.type == "snapshot"
-                ).order_by(models.Event.timestamp_start.asc()).first()
-                if not oldest: break
+                ).order_by(models.Event.timestamp_start.asc()).limit(100).all()
+                if not oldest_events:
+                    break
                 
-                size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0.001
-                delete_event_media(oldest, db, reason="Camera Quota (Snapshot)")
+                for oldest in oldest_events:
+                    if pics_used_gb <= target_gb:
+                        break
+                    size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0.001
+                    delete_event_media(oldest, db, reason="Camera Quota (Snapshot)")
+                    pics_used_gb -= size_gb
                 db.commit()
-                pics_used_gb -= size_gb
 
     # 3. Time-based cleanup
     if skip_time_retention:
@@ -214,17 +224,21 @@ def cleanup_profile(db: Session, profile: models.StorageProfile):
         target_gb = profile.max_size_gb * 0.95
         
         while current_used_gb > target_gb:
-            # Delete oldest event across all cameras in this profile
-            oldest = events_query.order_by(models.Event.timestamp_start.asc()).first()
-            if not oldest: break
+            # ⚡ Bolt: Fetch events in batches to avoid O(N) queries during bulk deletion
+            oldest_events = events_query.order_by(models.Event.timestamp_start.asc()).limit(100).all()
+            if not oldest_events:
+                break
             
-            size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0
-            if size_gb == 0:
-                 size_gb = 0.05 # Conservative estimate (50MB) for untracked videos
-            
-            delete_event_media(oldest, db, reason=f"Profile Quota ({profile.name})")
+            for oldest in oldest_events:
+                if current_used_gb <= target_gb:
+                    break
+                size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0
+                if size_gb == 0:
+                     size_gb = 0.05 # Conservative estimate (50MB) for untracked videos
+
+                delete_event_media(oldest, db, reason=f"Profile Quota ({profile.name})")
+                current_used_gb -= size_gb
             db.commit()
-            current_used_gb -= size_gb
 
 def cleanup_temp_files():
     """Delete usage-dependent temporary files (e.g. notification snapshots) older than 1 hour"""
@@ -262,11 +276,17 @@ def run_cleanup(quota_only=False):
                     # In emergency, we reduce EVERYTHING until we have 10% free
                     target_free_bytes = usage.total * 0.10
                     while usage.free < target_free_bytes:
-                        oldest = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).first()
-                        if not oldest: break
-                        delete_event_media(oldest, db, reason="Emergency Disk Space")
+                        # ⚡ Bolt: Fetch events in batches to avoid O(N) queries during bulk deletion
+                        oldest_events = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).limit(100).all()
+                        if not oldest_events:
+                            break
+
+                        for oldest in oldest_events:
+                            if usage.free >= target_free_bytes:
+                                break
+                            delete_event_media(oldest, db, reason="Emergency Disk Space")
+                            usage = shutil.disk_usage("/data")
                         db.commit()
-                        usage = shutil.disk_usage("/data")
             except Exception as disk_e:
                 logger.error(f"Error checking disk usage: {disk_e}")
 
@@ -298,20 +318,25 @@ def run_cleanup(quota_only=False):
                     iterations = 0
                     while current_used_gb > target_gb and iterations < max_iterations:
                         iterations += 1
-                        oldest_event = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).first()
-                        if not oldest_event: break
+                        # ⚡ Bolt: Fetch events in batches to avoid O(N) queries during bulk deletion
+                        oldest_events = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).limit(100).all()
+                        if not oldest_events:
+                            break
                         
-                        size_gb = (oldest_event.file_size / (1024**3)) if oldest_event.file_size else 0.05
-                        success = delete_event_media(oldest_event, db, reason="Global Quota")
+                        for oldest_event in oldest_events:
+                            if current_used_gb <= target_gb:
+                                break
+                            size_gb = (oldest_event.file_size / (1024**3)) if oldest_event.file_size else 0.05
+                            success = delete_event_media(oldest_event, db, reason="Global Quota")
+
+                            if success:
+                                current_used_gb -= size_gb
+                            else:
+                                # If deletion fails, we skip this event to avoid infinite loop
+                                # (The event remains in DB and on disk, which is bad, but we can't do much)
+                                logger.error(f"Failed to delete event {oldest_event.id} during global cleanup. Skipping.")
+                                # We don't decrement current_used_gb, so iterations will eventually hit max_iterations
                         db.commit()
-                        
-                        if success:
-                            current_used_gb -= size_gb
-                        else:
-                            # If deletion fails, we skip this event to avoid infinite loop
-                            # (The event remains in DB and on disk, which is bad, but we can't do much)
-                            logger.error(f"Failed to delete event {oldest_event.id} during global cleanup. Skipping.")
-                            # We don't decrement current_used_gb, so iterations will eventually hit max_iterations
             
             # Priority 4: Cleanup Temp Files (Only on full run)
             if not quota_only:
