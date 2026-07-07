@@ -1,6 +1,5 @@
 from database import SessionLocal
 from models import Camera
-import traceback
 
 def debug_insert():
     db = SessionLocal()

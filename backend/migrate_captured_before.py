@@ -1,7 +1,6 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
-import sys
 import logging
 
 # Configure logging

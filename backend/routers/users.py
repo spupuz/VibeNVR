@@ -3,7 +3,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-import crud, database, schemas, models, auth_service
+import crud
+import database
+import schemas
+import models
+import auth_service
 
 limiter = Limiter(key_func=get_remote_address)
 
