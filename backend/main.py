@@ -347,8 +347,11 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Default to empty/restrictive for security. User should set ALLOWED_ORIGINS in .env
 allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "")
 if not allowed_origins_raw:
-    # Allow localhost for development if not set
-    allowed_origins = ["http://localhost:5173", "http://localhost:5005", "http://localhost:8080"]
+    # Allow localhost for development if not set, otherwise fail securely in production
+    if _is_dev:
+        allowed_origins = ["http://localhost:5173", "http://localhost:5005", "http://localhost:8080"]
+    else:
+        allowed_origins = []
 else:
     allowed_origins = allowed_origins_raw.split(",")
 
