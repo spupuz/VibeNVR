@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { HelpCircle, Eye, EyeOff } from 'lucide-react';
 
@@ -60,21 +60,30 @@ export const Tooltip = ({ text, children }) => {
 };
 
 // Label with Tooltip
-const LabelWithHelp = ({ label, help }) => (
-    help ? (
-        <Tooltip text={help}>
-            <span className="text-sm font-medium">{label}</span>
-        </Tooltip>
+const LabelWithHelp = ({ label, help, htmlFor }) => {
+    const content = htmlFor ? (
+        <label htmlFor={htmlFor} className="text-sm font-medium cursor-pointer">{label}</label>
     ) : (
         <span className="text-sm font-medium">{label}</span>
-    )
-);
+    );
+
+    return help ? (
+        <Tooltip text={help}>
+            {content}
+        </Tooltip>
+    ) : content;
+};
 
 // Toggle Switch Component (like motionEye)
-export const Toggle = ({ checked, onChange, label, disabled = false, help = '' }) => (
+export const Toggle = ({ checked, onChange, label, disabled = false, help = '', id: providedId }) => {
+    const generatedId = useId();
+    const id = providedId || generatedId;
+
+    return (
     <div className="flex items-center justify-between gap-3">
-        <LabelWithHelp label={label} help={help} />
+        <LabelWithHelp label={label} help={help} htmlFor={id} />
         <button
+            id={id}
             type="button"
             role="switch"
             aria-checked={checked}
@@ -90,16 +99,19 @@ export const Toggle = ({ checked, onChange, label, disabled = false, help = '' }
             />
         </button>
     </div>
-);
+    );
+};
 
 // Slider Component (like motionEye)
-export const Slider = ({ value, onChange, min = 0, max = 100, step = 1, label, unit = '', showValue = true, marks = [], help = '' }) => {
+export const Slider = ({ value, onChange, min = 0, max = 100, step = 1, label, unit = '', showValue = true, marks = [], help = '', id: providedId }) => {
+    const generatedId = useId();
+    const id = providedId || generatedId;
     const percentage = ((value - min) / (max - min)) * 100;
 
     return (
         <div className="space-y-2">
             <div className="flex items-center justify-between">
-                <LabelWithHelp label={label} help={help} />
+                <LabelWithHelp label={label} help={help} htmlFor={id} />
                 {showValue && (
                     <span className="text-sm text-muted-foreground">
                         {value}{unit}
@@ -108,6 +120,7 @@ export const Slider = ({ value, onChange, min = 0, max = 100, step = 1, label, u
             </div>
             <div className="relative">
                 <input
+                    id={id}
                     type="range"
                     min={min}
                     max={max}
@@ -132,7 +145,9 @@ export const Slider = ({ value, onChange, min = 0, max = 100, step = 1, label, u
 };
 
 // Input Field Component
-export const InputField = ({ value, onChange, label, type = 'text', placeholder = '', unit = '', className = '', help = '', showPasswordToggle = false, icon: Icon = null }) => {
+export const InputField = ({ value, onChange, label, type = 'text', placeholder = '', unit = '', className = '', help = '', showPasswordToggle = false, icon: Icon = null, id: providedId }) => {
+    const generatedId = useId();
+    const id = providedId || generatedId;
     const [showPassword, setShowPassword] = useState(false);
     const isPassword = type === 'password';
     const actualType = isPassword && showPassword ? 'text' : type;
@@ -140,7 +155,7 @@ export const InputField = ({ value, onChange, label, type = 'text', placeholder 
     return (
         <div className={className}>
             <div className="block mb-1">
-                <LabelWithHelp label={label} help={help} />
+                <LabelWithHelp label={label} help={help} htmlFor={id} />
             </div>
             <div className="relative">
                 {Icon && (
@@ -149,6 +164,7 @@ export const InputField = ({ value, onChange, label, type = 'text', placeholder 
                     </div>
                 )}
                 <input
+                    id={id}
                     type={actualType}
                     value={value || ''}
                     onChange={(e) => onChange(type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)}
@@ -177,12 +193,17 @@ export const InputField = ({ value, onChange, label, type = 'text', placeholder 
 };
 
 // Select Field Component
-export const SelectField = ({ value, onChange, label, options = [], className = '', help = '' }) => (
+export const SelectField = ({ value, onChange, label, options = [], className = '', help = '', id: providedId }) => {
+    const generatedId = useId();
+    const id = providedId || generatedId;
+
+    return (
     <div className={className}>
         <div className="block mb-1">
-            <LabelWithHelp label={label} help={help} />
+            <LabelWithHelp label={label} help={help} htmlFor={id} />
         </div>
         <select
+            id={id}
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
             className="w-full bg-background border border-input rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent transition-all cursor-pointer"
@@ -198,7 +219,8 @@ export const SelectField = ({ value, onChange, label, options = [], className = 
             ))}
         </select>
     </div>
-);
+    );
+};
 
 // Section Header Component
 export const SectionHeader = ({ title, description }) => (
