@@ -155,7 +155,7 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                             </p>
                             <div className="flex items-center gap-2 mt-3 bg-background p-2 rounded border border-border">
                                 <code className="flex-1 font-mono text-sm break-all">{createdToken.token}</code>
-                                <Button size="sm" variant="ghost" onClick={() => copyToClipboard(createdToken.token)}>
+                                <Button size="sm" variant="ghost" title="Copy" aria-label="Copy" onClick={() => copyToClipboard(createdToken.token)}>
                                     <Copy className="w-4 h-4" />
                                 </Button>
                             </div>

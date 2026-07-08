@@ -178,6 +178,7 @@ export const Logs = () => {
                         onClick={() => setAutoScroll(!autoScroll)}
                         className={`p-2 rounded-md border transition-colors ${autoScroll ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-background border-border text-muted-foreground'}`}
                         title={autoScroll ? t('logs.pause_scroll', 'Pause Auto-scroll') : t('logs.resume_scroll', 'Resume Auto-scroll')}
+                        aria-label={autoScroll ? t('logs.pause_scroll', 'Pause Auto-scroll') : t('logs.resume_scroll', 'Resume Auto-scroll')}
                     >
                         {autoScroll ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                     </button>
@@ -185,13 +186,15 @@ export const Logs = () => {
                         onClick={fetchLogs}
                         className="p-2 rounded-md hover:bg-accent text-muted-foreground"
                         title={t('logs.refresh_now', 'Refresh Now')}
+                        aria-label={t('logs.refresh_now', 'Refresh Now')}
                     >
                         <RefreshCw className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => setShowSettings(true)}
                         className="p-2 rounded-md hover:bg-accent text-muted-foreground"
-                        title="Log Settings"
+                        title={t('logs.log_rotation_settings', 'Log Rotation Settings')}
+                        aria-label={t('logs.log_rotation_settings', 'Log Rotation Settings')}
                     >
                         <SettingsIcon className="w-4 h-4" />
                     </button>
