@@ -10,3 +10,6 @@
 ## 2025-02-12 - [Optimize _generate_backup_data API with selectinload]
 **Learning:** In APIs dealing with large exports (like generating full backup dictionaries of the entire database state), accessing lazy-loaded relationships during JSON serialization can trigger thousands of O(N) queries, significantly degrading performance.
 **Action:** Always eagerly load relationships using `selectinload` (e.g. `.options(selectinload(Model.relation))`) on bulk API queries that serialize nested components, particularly when assembling large data structures like backups.
+## 2025-03-05 - N+1 query in backend bulk deletion endpoints
+**Learning:** In backend endpoints processing a list of items for bulk action (e.g. `bulk_delete_cameras`, `bulk_delete_groups`), querying the database and deleting items via external crud functions for each item individually inside a `for` loop causes an N+1 query issue, hurting performance and creating multiple transactions instead of one.
+**Action:** Use an `.in_()` filter (e.g., `db.query(Model).filter(Model.id.in_(ids)).all()`) to pre-fetch all records in a single query and process them via an in-memory dictionary map, delete the records with `db.delete`, and commit once using `db.commit()` at the end, reducing database queries from O(N) to O(1) and making it a single transaction.

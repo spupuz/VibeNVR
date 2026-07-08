@@ -57,6 +57,24 @@ def delete_camera(db: Session, camera_id: int):
         db.commit()
     return db_camera
 
+def bulk_delete_cameras(db: Session, camera_ids: list[int]) -> int:
+    # ⚡ Bolt: Use selectinload instead of joinedload for collections and IN query for O(1) query performance
+    from sqlalchemy.orm import selectinload
+    cameras = db.query(models.Camera).options(
+        selectinload(models.Camera.storage_profile),
+        selectinload(models.Camera.groups)
+    ).filter(models.Camera.id.in_(camera_ids)).all()
+
+    deleted_count = 0
+    for camera in cameras:
+        db.delete(camera)
+        deleted_count += 1
+
+    if deleted_count > 0:
+        db.commit()
+
+    return deleted_count
+
 def get_events(db: Session, skip: int = 0, limit: int = 100, camera_id: int = None, type: str = None, date: str = None):
     query = db.query(models.Event)
     if camera_id:
@@ -278,6 +296,20 @@ def delete_group(db: Session, group_id: int):
         db.delete(db_group)
         db.commit()
     return db_group
+
+def bulk_delete_groups(db: Session, group_ids: list[int]) -> int:
+    # ⚡ Bolt: Fetch all groups in a single O(1) query instead of O(N) queries inside the loop
+    groups = db.query(models.CameraGroup).filter(models.CameraGroup.id.in_(group_ids)).all()
+
+    deleted_count = 0
+    for group in groups:
+        db.delete(group)
+        deleted_count += 1
+
+    if deleted_count > 0:
+        db.commit()
+
+    return deleted_count
 
 def update_group_cameras(db: Session, group_id: int, camera_ids: list[int]):
     db_group = get_group(db, group_id)
