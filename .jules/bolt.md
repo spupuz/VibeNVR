@@ -10,3 +10,6 @@
 ## 2025-02-12 - [Optimize _generate_backup_data API with selectinload]
 **Learning:** In APIs dealing with large exports (like generating full backup dictionaries of the entire database state), accessing lazy-loaded relationships during JSON serialization can trigger thousands of O(N) queries, significantly degrading performance.
 **Action:** Always eagerly load relationships using `selectinload` (e.g. `.options(selectinload(Model.relation))`) on bulk API queries that serialize nested components, particularly when assembling large data structures like backups.
+## 2024-05-18 - [FastAPI Dashboard Counts]
+**Learning:** Using `len(db.query(Model).all())` to get record counts fetches all rows into Python memory, causing O(N) memory overhead and performance issues.
+**Action:** Use database-level aggregations like `db.query(func.count(Model.id)).scalar()` for efficient O(1) query counts, avoiding loading complete records into memory.
