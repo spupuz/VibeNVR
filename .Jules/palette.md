@@ -4,3 +4,6 @@
 ## 2024-06-27 - [Add ARIA labels to icon-only buttons]
 **Learning:** When making UX accessibility improvements, avoid the anti-pattern of adding an `aria-label` that is exactly identical to the visible text content of an interactive element (e.g., a button), as screen readers natively announce text content, and duplicate labels cause redundant announcements. However, for buttons that only have an icon, or text that might be hidden or visually truncated, `aria-label`s are still necessary.
 **Action:** Add `aria-label` attributes to icon-only buttons for better screen reader accessibility.
+## 2026-07-09 - [Accessible Custom Form Controls (Dynamic htmlFor IDs)]
+**Learning:** Reusable form components with custom `LabelWithHelp` elements lacked explicit programmatic linking to their interactive controls (missing `htmlFor` and `id`). Generic spans were being used instead of proper `<label>` elements, creating an accessibility issue.
+**Action:** When updating or building reusable input/toggle components in React, use `useId()` to generate unique fallback IDs when one isn't passed via props. Ensure the `id` is passed to the native input element (e.g. `<input>`, `<button role="switch">`) and `htmlFor={id}` is passed down to the `<label>` wrapper.
