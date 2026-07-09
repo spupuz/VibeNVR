@@ -14,6 +14,9 @@ import auth_service
 import datetime
 import logging
 import time
+import socket
+import ipaddress
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -200,6 +203,28 @@ def _send_email_notification(
     except Exception as e:
         logger.error(f"[NOTIFY] Email failed: {e}")
 
+def is_safe_webhook_url(url: str) -> bool:
+    """
+    Validates webhook URLs to prevent SSRF while allowing localhost/private IPs.
+    Blocks non-HTTP(S) schemes and link-local (cloud metadata) / multicast IPs.
+    """
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ('http', 'https'):
+            return False
+
+        # Resolve hostname to IP
+        ip_str = socket.gethostbyname(parsed.hostname)
+        ip_obj = ipaddress.ip_address(ip_str)
+
+        # Block link-local (e.g., 169.254.169.254) and multicast
+        if ip_obj.is_link_local or ip_obj.is_multicast:
+            return False
+
+        return True
+    except (ValueError, socket.gaierror, Exception):
+        return False
+
 def _send_webhook_notification(
     camera,
     event_type: str,
@@ -218,6 +243,10 @@ def _send_webhook_notification(
     if not (should_notify_webhook and webhook_url):
         return
 
+    if not is_safe_webhook_url(webhook_url):
+        logger.warning(f"[NOTIFY] Webhook URL {webhook_url} is invalid or unsafe, aborting notification.")
+        return
+
     try:
         requests.post(webhook_url, json={
             "camera_name": camera.name,
@@ -227,7 +256,7 @@ def _send_webhook_notification(
             "timestamp": details.get("timestamp"),
             "file_path": details.get("file_path"),
             "source": details.get("source", "Standard")
-        }, timeout=5)
+        }, timeout=5, allow_redirects=False)
     except Exception as e:
         logger.error(f"[NOTIFY] Webhook failed: {e}")
 

@@ -17,3 +17,5 @@
 **Vulnerability:** External input (e.g. URLs or file paths) passed directly to `ffmpeg` or `ffprobe` commands via `subprocess.run()` without preceding argument identifiers can be misinterpreted as command-line flags (e.g. if an input starts with `-`), leading to argument/command injection.
 **Learning:** Always explicitly mark inputs with the appropriate flag (like `-i`) to guarantee that `ffmpeg`/`ffprobe` correctly interprets the following string as an input source and not an arbitrary, potentially malicious flag, regardless of previous path sanitization.
 **Prevention:** Ensure every dynamic path or URL passed to a `subprocess.run` list for `ffmpeg` or `ffprobe` is immediately preceded by the `-i` flag.
+- 2026-07-09: Validated webhooks against SSRF by disallowing link-local and multicast IPs, while permitting private/localhost IPs to support local integrations like Home Assistant.
+- 2026-07-09: Ensure requests.post uses allow_redirects=False when preventing SSRF to mitigate HTTP 302 redirect bypasses.
