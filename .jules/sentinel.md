@@ -17,3 +17,8 @@
 **Vulnerability:** External input (e.g. URLs or file paths) passed directly to `ffmpeg` or `ffprobe` commands via `subprocess.run()` without preceding argument identifiers can be misinterpreted as command-line flags (e.g. if an input starts with `-`), leading to argument/command injection.
 **Learning:** Always explicitly mark inputs with the appropriate flag (like `-i`) to guarantee that `ffmpeg`/`ffprobe` correctly interprets the following string as an input source and not an arbitrary, potentially malicious flag, regardless of previous path sanitization.
 **Prevention:** Ensure every dynamic path or URL passed to a `subprocess.run` list for `ffmpeg` or `ffprobe` is immediately preceded by the `-i` flag.
+
+## 2024-05-28 - SSRF Redirect Bypass in Requests Library
+**Vulnerability:** Server-Side Request Forgery (SSRF) bypass through HTTP redirects in webhook delivery endpoints (`requests.post`).
+**Learning:** Even when user-provided URLs are strictly validated to block private or loopback IPs (e.g., using `ipaddress` and `socket`), the Python `requests` library follows HTTP redirects (301/302) by default. A malicious server could return a redirect to a restricted internal IP (like `127.0.0.1` or `169.254.169.254`), bypassing the initial URL validation and pivoting the request to internal infrastructure.
+**Prevention:** Always explicitly set `allow_redirects=False` when making HTTP requests to user-provided or untrusted URLs using the `requests` library, especially when implementing webhooks or external integrations, to ensure the destination remains strictly as validated.
