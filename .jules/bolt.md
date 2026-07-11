@@ -10,3 +10,6 @@
 ## 2025-02-12 - [Optimize _generate_backup_data API with selectinload]
 **Learning:** In APIs dealing with large exports (like generating full backup dictionaries of the entire database state), accessing lazy-loaded relationships during JSON serialization can trigger thousands of O(N) queries, significantly degrading performance.
 **Action:** Always eagerly load relationships using `selectinload` (e.g. `.options(selectinload(Model.relation))`) on bulk API queries that serialize nested components, particularly when assembling large data structures like backups.
+## 2025-02-12 - [Optimize get_homepage_stats with SQL count]
+**Learning:** Loading all models into memory to count them (e.g. `cameras = db.query(models.Camera).all(); cameras_total = len(cameras)`) can lead to severe performance and memory usage issues, particularly when there are many entities or large nested object sets being eagerly loaded.
+**Action:** When calculating statistics like counts, always use SQL aggregation functions natively (e.g., `db.query(func.count(models.Camera.id)).scalar()`) to avoid loading unnecessary objects into Python memory.

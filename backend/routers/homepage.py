@@ -23,9 +23,9 @@ def get_homepage_stats(
     Requires authentication via API token (X-API-Key header).
     """
     # Camera Stats
-    cameras = db.query(models.Camera).all()
-    cameras_total = len(cameras)
-    cameras_online = len([c for c in cameras if c.is_active])
+    # ⚡ Bolt: Prevent loading all cameras into memory just to count them
+    cameras_total = db.query(func.count(models.Camera.id)).scalar() or 0
+    cameras_online = db.query(func.count(models.Camera.id)).filter(models.Camera.is_active.is_(True)).scalar() or 0
     
     # Active Recording Cameras (using LIVE_MOTION / ACTIVE_CAMERAS from events router)
     # ACTIVE_CAMERAS tracks ongoing motion events
