@@ -10,3 +10,6 @@
 ## 2025-02-12 - [Optimize _generate_backup_data API with selectinload]
 **Learning:** In APIs dealing with large exports (like generating full backup dictionaries of the entire database state), accessing lazy-loaded relationships during JSON serialization can trigger thousands of O(N) queries, significantly degrading performance.
 **Action:** Always eagerly load relationships using `selectinload` (e.g. `.options(selectinload(Model.relation))`) on bulk API queries that serialize nested components, particularly when assembling large data structures like backups.
+## 2025-02-12 - [Optimize bulk deletions in storage cleanup]
+**Learning:** In backend loops processing storage cleanup deletions, querying the database for the oldest item individually inside a `while` loop with `.first()` causes severe N+1 query performance degradation.
+**Action:** Always refactor iterative single-record fetches in deletion loops to batched queries using `.limit(100).all()` and defer `db.commit()` outside the inner batch loop to execute as a single efficient transaction.

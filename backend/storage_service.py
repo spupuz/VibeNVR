@@ -214,17 +214,22 @@ def cleanup_profile(db: Session, profile: models.StorageProfile):
         target_gb = profile.max_size_gb * 0.95
         
         while current_used_gb > target_gb:
-            # Delete oldest event across all cameras in this profile
-            oldest = events_query.order_by(models.Event.timestamp_start.asc()).first()
-            if not oldest: break
+            # Delete oldest events across all cameras in this profile in batches
+            batch = events_query.order_by(models.Event.timestamp_start.asc()).limit(100).all()
+            if not batch: break
             
-            size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0
-            if size_gb == 0:
-                 size_gb = 0.05 # Conservative estimate (50MB) for untracked videos
+            for oldest in batch:
+                if current_used_gb <= target_gb:
+                    break
+
+                size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0
+                if size_gb == 0:
+                     size_gb = 0.05 # Conservative estimate (50MB) for untracked videos
+
+                delete_event_media(oldest, db, reason=f"Profile Quota ({profile.name})")
+                current_used_gb -= size_gb
             
-            delete_event_media(oldest, db, reason=f"Profile Quota ({profile.name})")
             db.commit()
-            current_used_gb -= size_gb
 
 def cleanup_temp_files():
     """Delete usage-dependent temporary files (e.g. notification snapshots) older than 1 hour"""
