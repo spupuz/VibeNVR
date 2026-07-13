@@ -76,6 +76,7 @@ export const EventPreview = ({
                             <span className="text-[10px] font-bold text-foreground/80 uppercase tracking-tighter">{t('timeline.auto_next', 'Auto-next')}</span>
                             {autoplayNext && (
                                 <select
+                                    aria-label={t('timeline.playback_order', 'Playback Order')}
                                     value={autoplayDirection}
                                     onChange={(e) => {
                                         e.preventDefault();
@@ -123,6 +124,7 @@ export const EventPreview = ({
                     {selectedEvent.type === 'video' && (
                         <div className="absolute top-2 right-2 px-2.5 py-1 rounded-md backdrop-blur-md shadow-lg bg-black/40 border border-white/20 active:scale-90 transition-all">
                             <select
+                                aria-label={t('timeline.playback_speed', 'Playback Speed')}
                                 value={playbackSpeed}
                                 onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
                                 className="bg-transparent text-xs font-black text-white/90 border-none focus:ring-0 cursor-pointer p-0 text-center w-8 appearance-none"
@@ -170,6 +172,7 @@ export const EventPreview = ({
                         <label htmlFor="autoplayNextDesktop" className="text-xs font-medium cursor-pointer select-none">{t('timeline.auto_next', 'Auto-next')}</label>
                         {autoplayNext && (
                             <select
+                                aria-label={t('timeline.playback_order', 'Playback Order')}
                                 value={autoplayDirection}
                                 onChange={(e) => setAutoplayDirection(e.target.value)}
                                 className="ml-1 h-5 text-[10px] bg-transparent border-none focus:ring-0 cursor-pointer text-muted-foreground hover:text-foreground p-0 pr-1 pl-1"
@@ -185,6 +188,7 @@ export const EventPreview = ({
                     {selectedEvent.type === 'video' && (
                         <div className="flex items-center space-x-1 bg-muted/50 hover:bg-muted rounded-lg px-2 py-1 transition-colors border border-transparent hover:border-border">
                             <select
+                                aria-label={t('timeline.playback_speed', 'Playback Speed')}
                                 value={playbackSpeed}
                                 onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
                                 className="bg-transparent text-xs font-bold text-foreground border-none focus:ring-0 cursor-pointer p-0 text-center w-12 appearance-none"
