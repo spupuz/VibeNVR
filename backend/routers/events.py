@@ -9,6 +9,7 @@ import os
 import requests
 import threading
 import models
+import utils
 import subprocess
 import auth_service
 import datetime
@@ -218,6 +219,10 @@ def _send_webhook_notification(
     if not (should_notify_webhook and webhook_url):
         return
 
+    if not utils.is_safe_webhook_url(webhook_url):
+        logger.error(f"[NOTIFY] Webhook failed: Unsafe webhook URL blocked")
+        return
+
     try:
         requests.post(webhook_url, json={
             "camera_name": camera.name,
@@ -227,7 +232,7 @@ def _send_webhook_notification(
             "timestamp": details.get("timestamp"),
             "file_path": details.get("file_path"),
             "source": details.get("source", "Standard")
-        }, timeout=5)
+        }, timeout=5, allow_redirects=False)
     except Exception as e:
         logger.error(f"[NOTIFY] Webhook failed: {e}")
 

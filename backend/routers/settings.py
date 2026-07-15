@@ -18,6 +18,7 @@ import backup_service
 import requests
 import os
 import telemetry_service
+import utils
 import settings_service
 
 logger = logging.getLogger(__name__)
@@ -824,13 +825,16 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
             if not url:
                 raise ValueError("Missing Webhook URL. Configure it in Global Settings first.")
                 
+            if not utils.is_safe_webhook_url(url):
+                raise ValueError("Unsafe Webhook URL. Link-local and multicast IPs are blocked.")
+
             payload = {
                 "event": "test",
                 "message": "VibeNVR Test Webhook",
                 "timestamp": datetime.datetime.now().isoformat()
             }
             
-            resp = requests.post(url, json=payload, timeout=10)
+            resp = requests.post(url, json=payload, timeout=10, allow_redirects=False)
             if not resp.ok:
                 raise ValueError(f"Webhook returned error: {resp.status_code} {resp.text}")
                 

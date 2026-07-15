@@ -17,3 +17,8 @@
 **Vulnerability:** External input (e.g. URLs or file paths) passed directly to `ffmpeg` or `ffprobe` commands via `subprocess.run()` without preceding argument identifiers can be misinterpreted as command-line flags (e.g. if an input starts with `-`), leading to argument/command injection.
 **Learning:** Always explicitly mark inputs with the appropriate flag (like `-i`) to guarantee that `ffmpeg`/`ffprobe` correctly interprets the following string as an input source and not an arbitrary, potentially malicious flag, regardless of previous path sanitization.
 **Prevention:** Ensure every dynamic path or URL passed to a `subprocess.run` list for `ffmpeg` or `ffprobe` is immediately preceded by the `-i` flag.
+
+## 2024-07-15 - Prevent SSRF in Webhooks
+**Vulnerability:** Server-Side Request Forgery (SSRF) was possible via webhook functionality. Webhook URLs were not validated, allowing malicious actors to point webhooks at internal or cloud metadata IP addresses (e.g., `169.254.169.254`). Also, `allow_redirects=False` was missing, which could bypass validation if an attacker set up an external server that redirects to an internal IP.
+**Learning:** Even when functionality intentionally allows external connections, IP resolution must occur to block internal or sensitive cloud endpoints. Redirects in HTTP clients can bypass pre-request URL validation.
+**Prevention:** Implement an IP resolution check using `socket.gethostbyname` to identify and block link-local and multicast IPs. Additionally, enforce `allow_redirects=False` in network request clients (e.g., `requests.post`) to prevent redirect-based SSRF bypasses.
