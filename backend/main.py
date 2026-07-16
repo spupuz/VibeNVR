@@ -2,6 +2,7 @@ import os
 import logging
 import json
 
+import asyncio
 import io
 import re
 import threading
@@ -256,7 +257,7 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             retry_count += 1
             logger.info(f"Waiting for Database (Attempt {retry_count})...")
-            time.sleep(2)
+            await asyncio.sleep(2)
 
     # Start background tasks
     storage_service.start_scheduler()
