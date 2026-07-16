@@ -16,3 +16,6 @@
 ## 2025-02-12 - [Optimize bulk deletions in storage cleanup]
 **Learning:** In backend loops processing storage cleanup deletions, querying the database for the oldest item individually inside a `while` loop with `.first()` causes severe N+1 query performance degradation.
 **Action:** Always refactor iterative single-record fetches in deletion loops to batched queries using `.limit(100).all()` and defer `db.commit()` outside the inner batch loop to execute as a single efficient transaction.
+## 2025-03-05 - N+1 query in backend bulk deletion endpoints
+**Learning:** In backend endpoints processing a list of items for bulk action (e.g. `bulk_delete_cameras`, `bulk_delete_groups`), querying the database and deleting items via external crud functions for each item individually inside a `for` loop causes an N+1 query issue, hurting performance and creating multiple transactions instead of one.
+**Action:** Use an `.in_()` filter (e.g., `db.query(Model).filter(Model.id.in_(ids)).all()`) to pre-fetch all records in a single query and process them via an in-memory dictionary map, delete the records with `db.delete`, and commit once using `db.commit()` at the end, reducing database queries from O(N) to O(1) and making it a single transaction.
