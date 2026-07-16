@@ -15,15 +15,21 @@ export const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, conf
     return (
         <Portal>
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center z-[2000] p-4 overflow-y-auto pt-16 sm:pt-4 lg:pl-64 animate-in fade-in duration-200">
-                <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="confirm-modal-title"
+                    aria-describedby="confirm-modal-desc"
+                    className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200"
+                >
                     <div className="p-6">
                         <div className="flex items-center gap-4 mb-4">
                             <div className={`p-3 rounded-full ${variant === 'danger' ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'}`}>
                                 <AlertTriangle className="w-6 h-6" />
                             </div>
-                            <h3 className="text-xl font-bold">{title}</h3>
+                            <h3 id="confirm-modal-title" className="text-xl font-bold">{title}</h3>
                         </div>
-                        <p className="text-muted-foreground leading-relaxed">
+                        <p id="confirm-modal-desc" className="text-muted-foreground leading-relaxed">
                             {message}
                         </p>
                     </div>
