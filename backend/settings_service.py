@@ -64,7 +64,7 @@ def validate_setting(key: str, value: str):
             if value not in ["auto", "webcodecs", "mjpeg"]:
                 raise ValueError("Invalid mode. Must be 'auto', 'webcodecs', or 'mjpeg'")
         
-        elif key in ["opt_verbose_engine_logs", "telemetry_enabled", "mqtt_enabled", "cleanup_enabled"]:
+        elif key in ["opt_verbose_engine_logs", "telemetry_enabled", "mqtt_enabled", "cleanup_enabled", "ai_enabled", "go2rtc_enabled", "backup_auto_enabled"]:
             if value.lower() not in ["true", "false"]:
                 raise ValueError("Must be 'true' or 'false'")
         

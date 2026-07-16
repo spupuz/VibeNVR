@@ -113,6 +113,11 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
             except (ValueError, TypeError):
                 raise HTTPException(status_code=400, detail=f"Value for {key} must be a number")
 
+        # Force lowercase for boolean fields
+        boolean_keys = ["opt_verbose_engine_logs", "telemetry_enabled", "mqtt_enabled", "cleanup_enabled", "ai_enabled", "go2rtc_enabled", "backup_auto_enabled"]
+        if key in boolean_keys:
+            value = str(value).lower()
+        
         set_setting(db, key, str(value))
     
     # A go2rtc toggle changes every camera's effective URL → full restart + re-sync.

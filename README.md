@@ -13,7 +13,7 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 > 
 > ⚠️ **IMPORTANT**: When updating, always check the **[Release Notes](https://github.com/spupuz/VibeNVR/releases)** and ensure your `docker-compose.prod.yml` and `.env` are synchronized with the latest version.
 > 
-> **Language Policy**: Please note that **English is the official and only supported language** of this project. All code, user interface elements, commit messages, issues, and documentation (including wikis) must be written strictly in English to maintain consistency and accessibility for the global community.
+> **Language Policy**: The VibeNVR **User Interface** features full multi-language support (10+ languages). However, for **Development & Community**, English is the official language. All code, commit messages, issues, pull requests, and documentation (including wikis) must be written strictly in English to maintain consistency and accessibility for the global community.
 > 
 > ---
 > ### 💬 Help Us Improve!
@@ -92,6 +92,17 @@ Your privacy is paramount. You can disable telemetry at any time:
 3. Toggle off **Enable Anonymous Telemetry** and save.
 
 ---
+
+---
+
+## 🌍 Localization & Translations
+
+VibeNVR is designed for a global audience with full internationalization support via `react-i18next`. The user interface is currently available in **10 languages**: English, Italian, French, German, Spanish, Portuguese, Russian, Chinese, Japanese, and Ukrainian.
+
+- **Automated Translation**: We use an automated Python pipeline (`frontend/scripts/auto_translate.py`) to keep translations synchronized as new features are added.
+- **Contributing**: If you spot an inaccurate machine translation, feel free to submit a Pull Request! Simply edit the corresponding `translation.json` file in `frontend/src/locales/`. 
+
+> **Developer Note**: While the UI is multilingual, all development discussions, issues, commits, and codebase comments must remain in **English**. For detailed instructions on adding new strings, see the [Localization Wiki](wiki/Localization.md).
 
 ---
 

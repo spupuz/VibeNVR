@@ -165,7 +165,7 @@ export const Settings = () => {
                 setGlobalSettings(prev => ({
                     ...prev,
                     max_global_storage_gb: data.max_global_storage_gb?.value !== undefined ? (parseFloat(data.max_global_storage_gb.value) || 0) : prev.max_global_storage_gb,
-                    cleanup_enabled: data.cleanup_enabled?.value !== undefined ? data.cleanup_enabled.value === 'true' : prev.cleanup_enabled,
+                    cleanup_enabled: data.cleanup_enabled?.value !== undefined ? String(data.cleanup_enabled.value).toLowerCase() === 'true' : prev.cleanup_enabled,
                     cleanup_interval_hours: data.cleanup_interval_hours?.value !== undefined ? (parseFloat(data.cleanup_interval_hours.value) || 24) : prev.cleanup_interval_hours,
                     smtp_server: data.smtp_server?.value || prev.smtp_server,
                     smtp_port: data.smtp_port?.value || prev.smtp_port,
@@ -181,8 +181,8 @@ export const Settings = () => {
                     notify_email_recipient: data.notify_email_recipient?.value || prev.notify_email_recipient,
                     notify_webhook_url: data.notify_webhook_url?.value || prev.notify_webhook_url,
                     default_landing_page: data.default_landing_page?.value || prev.default_landing_page,
-                    global_attach_image_email: data.global_attach_image_email?.value !== undefined ? data.global_attach_image_email.value !== 'false' : prev.global_attach_image_email,
-                    global_attach_image_telegram: data.global_attach_image_telegram?.value !== undefined ? data.global_attach_image_telegram.value !== 'false' : prev.global_attach_image_telegram,
+                    global_attach_image_email: data.global_attach_image_email?.value !== undefined ? String(data.global_attach_image_email.value).toLowerCase() !== 'false' : prev.global_attach_image_email,
+                    global_attach_image_telegram: data.global_attach_image_telegram?.value !== undefined ? String(data.global_attach_image_telegram.value).toLowerCase() !== 'false' : prev.global_attach_image_telegram,
 
                     opt_live_view_fps_throttle: data.opt_live_view_fps_throttle?.value !== undefined ? parseInt(data.opt_live_view_fps_throttle.value) : prev.opt_live_view_fps_throttle,
                     opt_motion_fps_throttle: data.opt_motion_fps_throttle?.value !== undefined ? parseInt(data.opt_motion_fps_throttle.value) : prev.opt_motion_fps_throttle,
@@ -192,10 +192,10 @@ export const Settings = () => {
                     opt_snapshot_quality: data.opt_snapshot_quality?.value !== undefined ? parseInt(data.opt_snapshot_quality.value) : prev.opt_snapshot_quality,
                     opt_ffmpeg_preset: data.opt_ffmpeg_preset?.value || prev.opt_ffmpeg_preset,
                     opt_pre_capture_fps_throttle: data.opt_pre_capture_fps_throttle?.value !== undefined ? parseInt(data.opt_pre_capture_fps_throttle.value) : prev.opt_pre_capture_fps_throttle,
-                    opt_verbose_engine_logs: data.opt_verbose_engine_logs?.value !== undefined ? data.opt_verbose_engine_logs.value === 'true' : prev.opt_verbose_engine_logs,
-                    telemetry_enabled: data.telemetry_enabled?.value !== undefined ? data.telemetry_enabled.value !== 'false' : prev.telemetry_enabled,
+                    opt_verbose_engine_logs: data.opt_verbose_engine_logs?.value !== undefined ? String(data.opt_verbose_engine_logs.value).toLowerCase() === 'true' : prev.opt_verbose_engine_logs,
+                    telemetry_enabled: data.telemetry_enabled?.value !== undefined ? String(data.telemetry_enabled.value).toLowerCase() !== 'false' : prev.telemetry_enabled,
                     default_live_view_mode: data.default_live_view_mode?.value || prev.default_live_view_mode,
-                    backup_auto_enabled: data.backup_auto_enabled?.value !== undefined ? data.backup_auto_enabled.value === 'true' : prev.backup_auto_enabled,
+                    backup_auto_enabled: data.backup_auto_enabled?.value !== undefined ? String(data.backup_auto_enabled.value).toLowerCase() === 'true' : prev.backup_auto_enabled,
                     backup_auto_frequency_hours: data.backup_auto_frequency_hours?.value !== undefined ? parseInt(data.backup_auto_frequency_hours.value) : prev.backup_auto_frequency_hours,
                     backup_auto_retention: data.backup_auto_retention?.value !== undefined ? parseInt(data.backup_auto_retention.value) : prev.backup_auto_retention,
                     mqtt_enabled: data.mqtt_enabled?.value || prev.mqtt_enabled,
@@ -206,8 +206,8 @@ export const Settings = () => {
                     mqtt_topic_prefix: data.mqtt_topic_prefix?.value || prev.mqtt_topic_prefix,
                     ai_model: data.ai_model?.value || prev.ai_model,
                     ai_hardware: data.ai_hardware?.value || prev.ai_hardware,
-                    ai_enabled: data.ai_enabled?.value !== undefined ? data.ai_enabled.value === 'true' : prev.ai_enabled,
-                    go2rtc_enabled: data.go2rtc_enabled?.value !== undefined ? data.go2rtc_enabled.value === 'true' : prev.go2rtc_enabled
+                    ai_enabled: data.ai_enabled?.value !== undefined ? String(data.ai_enabled.value).toLowerCase() === 'true' : prev.ai_enabled,
+                    go2rtc_enabled: data.go2rtc_enabled?.value !== undefined ? String(data.go2rtc_enabled.value).toLowerCase() === 'true' : prev.go2rtc_enabled
                 }));
             }
         } catch (err) {
