@@ -346,17 +346,31 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # CORS Configuration
 # Default to empty/restrictive for security. User should set ALLOWED_ORIGINS in .env
 allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "")
+_env = os.getenv("ENVIRONMENT", "production").lower()
+
 if not allowed_origins_raw:
-    # Allow localhost for development if not set
-    allowed_origins = ["http://localhost:5173", "http://localhost:5005", "http://localhost:8080"]
+    if _env == "dev":
+        # Allow localhost for development if not set
+        allowed_origins = ["http://localhost:5173", "http://localhost:5005", "http://localhost:8080"]
+    else:
+        # Default to strict security in production
+        allowed_origins = []
 else:
     allowed_origins = allowed_origins_raw.split(",")
 
 if "*" in allowed_origins:
-    logger.warning("--------------------------------------------------------------------------------")
-    logger.warning("!! WARNING: CORS ALLOWED_ORIGINS is set to '*'.                               !!")
-    logger.warning("!! For production, set this to your specific domain (e.g., https://vibe.io).  !!")
-    logger.warning("--------------------------------------------------------------------------------")
+    if _env == "production":
+        logger.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        logger.error("!! CRITICAL: CORS ALLOWED_ORIGINS is set to '*' in production!                  !!")
+        logger.error("!! This combined with allow_credentials=True is a severe security risk (SSRF).  !!")
+        logger.error("!! Overriding to empty list. Please configure specific ALLOWED_ORIGINS in .env. !!")
+        logger.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        allowed_origins = []
+    else:
+        logger.warning("--------------------------------------------------------------------------------")
+        logger.warning("!! WARNING: CORS ALLOWED_ORIGINS is set to '*'.                               !!")
+        logger.warning("!! For production, set this to your specific domain (e.g., https://vibe.io).  !!")
+        logger.warning("--------------------------------------------------------------------------------")
 
 app.add_middleware(
     CORSMiddleware,
