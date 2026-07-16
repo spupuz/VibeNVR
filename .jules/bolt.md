@@ -10,3 +10,6 @@
 ## 2025-02-12 - [Optimize _generate_backup_data API with selectinload]
 **Learning:** In APIs dealing with large exports (like generating full backup dictionaries of the entire database state), accessing lazy-loaded relationships during JSON serialization can trigger thousands of O(N) queries, significantly degrading performance.
 **Action:** Always eagerly load relationships using `selectinload` (e.g. `.options(selectinload(Model.relation))`) on bulk API queries that serialize nested components, particularly when assembling large data structures like backups.
+## 2026-07-16 - [N+1 query in storage cleanup loops]
+**Learning:** When refactoring database loops to fix N+1 query issues in SQLAlchemy (e.g., bulk deletions), calling single-record fetches (like `.first()`) repeatedly is inefficient.
+**Action:** Use batched queries (e.g., `.limit(100).all()`) and ensure `db.commit()` is moved outside the inner loop to execute as a single transaction.

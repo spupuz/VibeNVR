@@ -2,7 +2,6 @@ from pydantic import BaseModel, field_validator, model_validator, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import json
-import logging
 
 class TestNotificationConfig(BaseModel):
     channel: str # 'email', 'telegram', 'webhook'
@@ -135,7 +134,6 @@ class CameraBase(BaseModel):
         if not v or v == "[]":
             return "[]"
         
-        import json
         try:
             data = json.loads(v)
             if not isinstance(data, list):
