@@ -297,6 +297,7 @@ def delete_camera(camera_id: int, db: Session = Depends(database.get_db), curren
 @router.post("/bulk-delete")
 def bulk_delete_cameras(camera_ids: List[int], db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Delete multiple cameras at once"""
+    deleted_count: int = 0
     for camera_id in camera_ids:
         # 1. Stop the camera if running
         motion_service.stop_camera(camera_id)
@@ -304,8 +305,10 @@ def bulk_delete_cameras(camera_ids: List[int], db: Session = Depends(database.ge
         # 2. Delete media from disk
         storage_service.delete_camera_media(camera_id)
 
-    # 3. Bulk delete all cameras from the database via crud layer in O(1) query
-    deleted_count: int = crud.bulk_delete_cameras(db, camera_ids)
+        db_camera = crud.delete_camera(db, camera_id=camera_id)
+        if db_camera:
+            count: int = int(deleted_count)
+            deleted_count = count + 1
 
     # 4. Sync engine config once
     motion_service.generate_motion_config(db)
@@ -682,7 +685,7 @@ async def import_motioneye_cameras(file: UploadFile = File(...), analyze_only: b
 
             for member in members:
                 # Zip Slip / TAR path traversal guard
-                if ".." in member.name or member.name.startswith("/") or os.path.isabs(member.name):
+                if ".." in member.name or member.name.startswith("/"):
                     print(f"[IMPORT] Security: Skipping suspicious path in tar: {member.name}", flush=True)
                     continue
                 filename = os.path.basename(member.name)

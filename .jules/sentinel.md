@@ -17,6 +17,7 @@
 **Vulnerability:** External input (e.g. URLs or file paths) passed directly to `ffmpeg` or `ffprobe` commands via `subprocess.run()` without preceding argument identifiers can be misinterpreted as command-line flags (e.g. if an input starts with `-`), leading to argument/command injection.
 **Learning:** Always explicitly mark inputs with the appropriate flag (like `-i`) to guarantee that `ffmpeg`/`ffprobe` correctly interprets the following string as an input source and not an arbitrary, potentially malicious flag, regardless of previous path sanitization.
 **Prevention:** Ensure every dynamic path or URL passed to a `subprocess.run` list for `ffmpeg` or `ffprobe` is immediately preceded by the `-i` flag.
+
 ## 2024-07-15 - Prevent SSRF in Webhooks
 **Vulnerability:** Server-Side Request Forgery (SSRF) was possible via webhook functionality. Webhook URLs were not validated, allowing malicious actors to point webhooks at internal or cloud metadata IP addresses (e.g., `169.254.169.254`). Also, `allow_redirects=False` was missing, which could bypass validation if an attacker set up an external server that redirects to an internal IP.
 **Learning:** Even when functionality intentionally allows external connections, IP resolution must occur to block internal or sensitive cloud endpoints. Redirects in HTTP clients can bypass pre-request URL validation.
@@ -26,3 +27,8 @@
 **Vulnerability:** Combining `allow_origins=["*"]` with `allow_credentials=True` in FastAPI/Starlette dynamically reflects the incoming `Origin` header. Also, development localhost origins were falling back into production.
 **Learning:** Starlette's `CORSMiddleware` circumvents browser wildcard restrictions when credentials are true and a wildcard is used, creating severe cross-origin vulnerabilities.
 **Prevention:** Ensure the `ENVIRONMENT` variable is strictly checked, blocking `*` and `localhost` fallbacks in production when `allow_credentials=True`.
+
+## 2025-06-29 - [Fix Zip Slip and Path Traversal Vulnerabilities]
+**Vulnerability:** The codebase had incomplete path traversal checks. `import_motioneye_cameras` allowed Zip Slip attacks because `os.path.isabs` wasn't checked on tar members, which could allow a malicious backup to extract absolute paths. Furthermore, `restore_backup_from_file` and `delete_backup` lacked `os.path.basename(filename) == filename` checks, meaning they only blocked `/` and `..` characters.
+**Learning:** Always use `os.path.basename` (or `os.path.abspath`) to safely validate untrusted file names in backup features, and never rely solely on basic substring checks for `..` and `/` as it may fail on different platforms or when handling arbitrary tar extractions.
+**Prevention:** Check `filename == os.path.basename(filename)` when handling user-provided file names. For zip/tar extractions, always ensure the file path is explicitly relative and safe against absolute path injection (`os.path.isabs`).
