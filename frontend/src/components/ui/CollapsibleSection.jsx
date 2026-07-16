@@ -7,6 +7,7 @@ export const CollapsibleSection = ({ title, description, icon, isOpen, onToggle,
             <button
                 onClick={() => onToggle(id)}
                 aria-expanded={isOpen}
+                aria-controls={id ? `${id}-content` : undefined}
                 className={`w-full flex items-center justify-between p-4 sm:p-6 text-left transition-colors duration-200 ${isOpen ? 'bg-muted/30' : 'hover:bg-muted/10'}`}
             >
                 <div className="flex items-center space-x-4 min-w-0 flex-1 mr-2">
@@ -26,6 +27,7 @@ export const CollapsibleSection = ({ title, description, icon, isOpen, onToggle,
             </button>
 
             <div
+                id={id ? `${id}-content` : undefined}
                 className={`transition-all duration-300 ease-in-out origin-top overflow-hidden ${isOpen ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'}`}
             >
                 <div className="p-4 sm:p-8 border-t border-border/40">
