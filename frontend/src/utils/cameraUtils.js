@@ -42,3 +42,19 @@ export const parseRtspUrl = (url) => {
     }
     return { user, pass, host, protocol };
 };
+
+export const getSnapshotUrl = (cameraId, streamIndex = 0, eventId = null) => {
+  if (!cameraId) return null;
+
+  let url = `/api/cameras/${cameraId}/snapshot?stream=${streamIndex}`;
+  if (eventId) {
+    url += `&event_id=${eventId}`;
+  }
+
+  // Add a cache buster unless it's a specific event snapshot
+  if (!eventId) {
+    url += `&_t=${Date.now()}`;
+  }
+
+  return url;
+};
