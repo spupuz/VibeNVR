@@ -328,7 +328,7 @@ class CameraThread(threading.Thread):
                         if (time.time() - self.last_ai_update_time) < persist_window:
                             ai_results = self.latest_ai_results
                             # FIX: Ensure motion state persists during the AI persistence window
-                            self.motion_detector.last_motion_time = time.time()
+                            self.motion_detector.last_motion_time = self.last_ai_update_time
                     
                     # Handle Motion End for AI
                     motion_gap = self.config.get('motion_gap', 10)
