@@ -130,3 +130,6 @@ jobs:
 
       - name: Run CI Unit Tests
         run: PYTHONPATH=.:backend:engine pytest .github/scripts/
+
+      - name: Run CI Frontend Unit Tests
+        run: node .github/scripts/frontend_tests/test_cameraUtils.mjs
