@@ -23,7 +23,6 @@ import database
 from database import engine, Base
 from routers import cameras, events, stats, settings, auth, users, groups, logs, homepage, api_tokens, onvif_router, storage
 import auth_service
-import crud
 import models
 import storage_service
 import motion_service
