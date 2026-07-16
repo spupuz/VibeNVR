@@ -67,7 +67,7 @@ def test_stop_camera_request_exception(mock_logger, mock_post):
     mock_logger.error.assert_called_with("Error stopping camera 1: Connection error")
 
 from requests.exceptions import Timeout
-from motion_service import _go2rtc_put_one, GO2RTC_API_URL
+from motion_service import _go2rtc_put_one, GO2RTC_API_URL, _parse_ai_object_types
 
 def test_go2rtc_put_one_delete_timeout():
     """Test that a timeout during requests.delete does not prevent the PUT request."""
@@ -79,6 +79,31 @@ def test_go2rtc_put_one_delete_timeout():
         mock_put.return_value = MagicMock(status_code=200)
         result = _go2rtc_put_one("test_cam", "rtsp://test/stream")
         assert result is True
+
+def test_parse_ai_object_types():
+    """Test parsing AI object types from various input formats."""
+    # Test None fallback
+    assert _parse_ai_object_types(None) == ["person", "vehicle"]
+
+    # Test empty string / whitespace
+    assert _parse_ai_object_types("") == []
+    assert _parse_ai_object_types("   ") == []
+    assert _parse_ai_object_types("[]") == []
+
+    # Test list input
+    assert _parse_ai_object_types(["person", "car"]) == ["person", "car"]
+
+    # Test standard JSON string
+    assert _parse_ai_object_types('["person", "car"]') == ["person", "car"]
+
+    # Test invalid JSON string with single quotes (the fallback parsing)
+    assert _parse_ai_object_types("['person', 'car']") == ["person", "car"]
+
+    # Test postgres array format
+    assert _parse_ai_object_types("{person,car}") == ["person", "car"]
+
+    # Test generic string parsing fallback
+    assert _parse_ai_object_types("person,car") == ["person", "car"]
 
 def test_go2rtc_put_one_delete_exception():
     """Test that a general exception during requests.delete does not prevent the PUT request."""
