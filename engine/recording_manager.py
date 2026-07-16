@@ -121,6 +121,149 @@ class RecordingManager:
         except Exception:
             pass
 
+    def _start_passthrough_recording(self, full_path, width, height, event_callback):
+        audio_args = ['-c:a', 'aac', '-b:a', '128k'] if self.config.get('record_audio') else ['-an']
+        # Use frag_keyframe+empty_moov+default_base_moof so the moov atom is written at
+        # the START of the file (empty_moov) and a new fragment is flushed at each keyframe.
+        # This ensures the MP4 is always valid and playable even if FFmpeg is terminated
+        # mid-recording (unlike +faststart which requires a final mux pass at the end).
+        command = [
+            'ffmpeg', '-y', '-rtsp_transport', self.config.get('rtsp_transport', 'tcp'), '-hide_banner', '-loglevel', 'error',
+            '-i', self.config['rtsp_url'], '-c:v', 'copy', *audio_args, '-f', 'mp4',
+            '-movflags', '+frag_keyframe+empty_moov+default_base_moof', full_path
+        ]
+        try:
+            from ai_detector import AIDetector
+            ai_lock = AIDetector().inference_lock
+            with ai_lock:
+                self.recording_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+            threading.Thread(target=self._monitor_ffmpeg_logs, args=(self.recording_process,), daemon=True).start()
+            self.is_recording = True
+            self.recording_filename = full_path
+            self.recording_start_time = time.time()
+            if event_callback:
+                event_callback(self.camera_id, 'recording_start', {"file_path": full_path, "width": width, "height": height})
+            logger.info(f"Camera {self.camera_name}: Started Passthrough Recording")
+            return
+        except Exception as e:
+            logger.error(f"Camera {self.camera_name}: Failed to start Passthrough ffmpeg: {e}")
+            self.passthrough_active = False
+            self.is_recording = False
+            return
+
+    def _async_ffmpeg_writer(self, proc, q, cam_name, w, h, do_resize):
+        try:
+            while True:
+                if proc.poll() is not None:
+                    break
+                try:
+                    frame_data = q.get(timeout=1.0)
+                    if frame_data is None:
+                        break
+                    if do_resize:
+                        frame_data = cv2.resize(frame_data, (w, h), interpolation=cv2.INTER_LINEAR)
+                    proc.stdin.write(frame_data.tobytes())
+                    time.sleep(0.033)
+                except queue.Empty:
+                    continue
+                except Exception as e:
+                    logger.error(f"Camera {cam_name}: Async FFmpeg writer died: {e}")
+                    break
+        finally:
+            if proc.stdin:
+                try:
+                    proc.stdin.close()
+                except Exception:
+                    pass
+
+    def _launch_transcoded_ffmpeg(self, full_path, width, height, event_callback):
+        quality = self.config.get('movie_quality', 75)
+        crf = max(18, min(51, int(51 - (quality * 0.33))))
+        hw_accel_enabled = os.environ.get('HW_ACCEL', 'false').lower() == 'true'
+        hw_accel_type = os.environ.get('HW_ACCEL_TYPE', 'auto').lower()
+        video_codec = 'libx264'
+        # Limit CPU threads to prevent system starvation during fallback SW encoding
+        codec_specific_args = ['-preset', self.config.get('opt_ffmpeg_preset', 'ultrafast'), '-crf', str(crf), '-threads', '2']
+
+        try:
+            from main import GLOBAL_CONFIG
+            ffmpeg_loglevel = 'debug' if GLOBAL_CONFIG.get('opt_verbose_engine_logs') else 'error'
+        except ImportError:
+            ffmpeg_loglevel = 'error'
+
+        if hw_accel_enabled:
+            if hw_accel_type in ['vaapi', 'intel', 'amd', 'auto'] and os.path.exists('/dev/dri'):
+                if _probe_vaapi_init():
+                    video_codec = 'h264_vaapi'
+                    codec_specific_args = ['-vaapi_device', '/dev/dri/renderD128', '-vf', 'format=nv12,hwupload', '-qp', str(int(crf * 0.7))]
+            elif hw_accel_type == 'nvidia':
+                video_codec = 'h264_nvenc'
+                codec_specific_args = ['-preset', 'fast', '-cq', str(crf)]
+
+        target_w, target_h = width, height
+        needs_resize = False
+        if not hw_accel_enabled and height > 720:
+            needs_resize = True
+            scale = 720 / height
+            target_h = 720
+            target_w = int(width * scale)
+            target_w -= target_w % 2  # Must be even for yuv420p
+
+        command = [
+            'ffmpeg', '-y', '-loglevel', ffmpeg_loglevel, '-f', 'rawvideo', '-vcodec', 'rawvideo',
+            '-s', f'{target_w}x{target_h}', '-pix_fmt', 'bgr24', '-r', str(self.config.get('framerate', 15)),
+            '-i', '-'
+        ]
+
+        if self.config.get('record_audio'):
+            # Fetch audio from RTSP as a second input
+            command += [
+                '-rtsp_transport', self.config.get('rtsp_transport', 'tcp'),
+                '-i', self.config['rtsp_url'],
+                '-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '128k'
+            ]
+        else:
+            command += ['-an']
+
+        # -shortest is CRITICAL: it forces FFmpeg to stop recording the RTSP audio stream when stdin (video) closes.
+        command += ['-c:v', video_codec, *codec_specific_args, '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-shortest', full_path]
+
+        # Apply nice -n 19 to lower FFmpeg's CPU scheduling priority
+        command = ['nice', '-n', '19'] + command
+
+        try:
+            self.recording_process = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            threading.Thread(target=self._monitor_ffmpeg_logs, args=(self.recording_process,), daemon=True).start()
+
+            self.writer_thread = threading.Thread(target=self._async_ffmpeg_writer, args=(self.recording_process, self.frame_queue, self.camera_name, target_w, target_h, needs_resize), daemon=True)
+            self.writer_thread.start()
+
+            if event_callback:
+                event_callback(self.camera_id, 'recording_start', {"file_path": full_path, "width": width, "height": height})
+        except Exception as e:
+            logger.error(f"Camera {self.camera_name} (ID: {self.camera_id}): Failed to start ffmpeg: {e}")
+            self.is_recording = False
+            self.recording_process = None
+
+    def _start_transcoded_recording(self, full_path, width, height, pre_buffer_frames, event_callback):
+        # Setup Async Writer Queue synchronously so CameraThread can push to it immediately
+        self.frame_queue = queue.Queue(maxsize=1500)
+        self.is_recording = True
+        self.recording_filename = full_path
+        self.recording_start_time = time.time()
+
+        # Flush pre-buffer synchronously
+        if pre_buffer_frames:
+            for pref in pre_buffer_frames:
+                try:
+                    self.frame_queue.put_nowait(pref)
+                except queue.Full:
+                    pass
+
+        threading.Thread(target=self._launch_transcoded_ffmpeg, args=(full_path, width, height, event_callback), daemon=True).start()
+        return True
+
     def start_recording(self, width, height, pre_buffer_frames, event_callback=None, reason="Manual", trigger_source=None):
         self.current_ai_detections = [] # Reset for new event
         self.current_recording_reason = reason
@@ -142,148 +285,9 @@ class RecordingManager:
             self.passthrough_active = self.config.get('movie_passthrough', False)
         
         if self.passthrough_active:
-            audio_args = ['-c:a', 'aac', '-b:a', '128k'] if self.config.get('record_audio') else ['-an']
-            # Use frag_keyframe+empty_moov+default_base_moof so the moov atom is written at
-            # the START of the file (empty_moov) and a new fragment is flushed at each keyframe.
-            # This ensures the MP4 is always valid and playable even if FFmpeg is terminated
-            # mid-recording (unlike +faststart which requires a final mux pass at the end).
-            command = [
-                'ffmpeg', '-y', '-rtsp_transport', self.config.get('rtsp_transport', 'tcp'), '-hide_banner', '-loglevel', 'error',
-                '-i', self.config['rtsp_url'], '-c:v', 'copy', *audio_args, '-f', 'mp4',
-                '-movflags', '+frag_keyframe+empty_moov+default_base_moof', full_path
-            ]
-            try:
-                from ai_detector import AIDetector
-                ai_lock = AIDetector().inference_lock
-                with ai_lock:
-                    self.recording_process = subprocess.Popen(command, stderr=subprocess.PIPE)
-                threading.Thread(target=self._monitor_ffmpeg_logs, args=(self.recording_process,), daemon=True).start()
-                self.is_recording = True
-                self.recording_filename = full_path
-                self.recording_start_time = time.time()
-                if event_callback:
-                    event_callback(self.camera_id, 'recording_start', {"file_path": full_path, "width": width, "height": height})
-                logger.info(f"Camera {self.camera_name}: Started Passthrough Recording")
-                return 
-            except Exception as e:
-                logger.error(f"Camera {self.camera_name}: Failed to start Passthrough ffmpeg: {e}")
-                self.passthrough_active = False
-                self.is_recording = False
-                return
+            return self._start_passthrough_recording(full_path, width, height, event_callback)
 
-        # Setup Async Writer Queue synchronously so CameraThread can push to it immediately
-        self.frame_queue = queue.Queue(maxsize=1500)
-        self.is_recording = True
-        self.recording_filename = full_path
-        self.recording_start_time = time.time()
-        
-        # Flush pre-buffer synchronously
-        if pre_buffer_frames:
-            for pref in pre_buffer_frames:
-                try:
-                    self.frame_queue.put_nowait(pref)
-                except queue.Full:
-                    pass
-
-        def _launch_ffmpeg():
-            quality = self.config.get('movie_quality', 75)
-            crf = max(18, min(51, int(51 - (quality * 0.33))))
-            hw_accel_enabled = os.environ.get('HW_ACCEL', 'false').lower() == 'true'
-            hw_accel_type = os.environ.get('HW_ACCEL_TYPE', 'auto').lower()
-            video_codec = 'libx264'
-            # Limit CPU threads to prevent system starvation during fallback SW encoding
-            codec_specific_args = ['-preset', self.config.get('opt_ffmpeg_preset', 'ultrafast'), '-crf', str(crf), '-threads', '2']
-            
-            try:
-                from main import GLOBAL_CONFIG
-                ffmpeg_loglevel = 'debug' if GLOBAL_CONFIG.get('opt_verbose_engine_logs') else 'error'
-            except ImportError:
-                ffmpeg_loglevel = 'error'
-            
-            if hw_accel_enabled:
-                if hw_accel_type in ['vaapi', 'intel', 'amd', 'auto'] and os.path.exists('/dev/dri'):
-                    if _probe_vaapi_init():
-                        video_codec = 'h264_vaapi'
-                        codec_specific_args = ['-vaapi_device', '/dev/dri/renderD128', '-vf', 'format=nv12,hwupload', '-qp', str(int(crf * 0.7))]
-                elif hw_accel_type == 'nvidia':
-                    video_codec = 'h264_nvenc'
-                    codec_specific_args = ['-preset', 'fast', '-cq', str(crf)]
-            
-            target_w, target_h = width, height
-            needs_resize = False
-            if not hw_accel_enabled and height > 720:
-                needs_resize = True
-                scale = 720 / height
-                target_h = 720
-                target_w = int(width * scale)
-                target_w -= target_w % 2  # Must be even for yuv420p
-
-            command = [
-                'ffmpeg', '-y', '-loglevel', ffmpeg_loglevel, '-f', 'rawvideo', '-vcodec', 'rawvideo',
-                '-s', f'{target_w}x{target_h}', '-pix_fmt', 'bgr24', '-r', str(self.config.get('framerate', 15)),
-                '-i', '-'
-            ]
-            
-            if self.config.get('record_audio'):
-                # Fetch audio from RTSP as a second input
-                command += [
-                    '-rtsp_transport', self.config.get('rtsp_transport', 'tcp'),
-                    '-i', self.config['rtsp_url'],
-                    '-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '128k'
-                ]
-            else:
-                command += ['-an']
-
-            # -shortest is CRITICAL: it forces FFmpeg to stop recording the RTSP audio stream when stdin (video) closes.
-            command += ['-c:v', video_codec, *codec_specific_args, '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-shortest', full_path]
-            
-            # Apply nice -n 19 to lower FFmpeg's CPU scheduling priority
-            command = ['nice', '-n', '19'] + command
-
-            try:
-                self.recording_process = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-                
-                threading.Thread(target=self._monitor_ffmpeg_logs, args=(self.recording_process,), daemon=True).start()
-                
-                def _async_ffmpeg_writer(proc, q, cam_name, w, h, do_resize):
-                    try:
-                        while True:
-                            if proc.poll() is not None:
-                                break
-                            try:
-                                frame_data = q.get(timeout=1.0)
-                                if frame_data is None:
-                                    break
-                                if do_resize:
-                                    frame_data = cv2.resize(frame_data, (w, h), interpolation=cv2.INTER_LINEAR)
-                                proc.stdin.write(frame_data.tobytes())
-                                time.sleep(0.033)
-                            except queue.Empty:
-                                continue
-                            except Exception as e:
-                                logger.error(f"Camera {cam_name}: Async FFmpeg writer died: {e}")
-                                break
-                    finally:
-                        if proc.stdin:
-                            try:
-                                proc.stdin.close()
-                            except Exception:
-                                pass
-
-                self.writer_thread = threading.Thread(target=_async_ffmpeg_writer, args=(self.recording_process, self.frame_queue, self.camera_name, target_w, target_h, needs_resize), daemon=True)
-                self.writer_thread.start()
-                
-                if event_callback:
-                    event_callback(self.camera_id, 'recording_start', {"file_path": full_path, "width": width, "height": height})
-            except Exception as e:
-                logger.error(f"Camera {self.camera_name} (ID: {self.camera_id}): Failed to start ffmpeg: {e}")
-                self.is_recording = False
-                self.recording_process = None
-
-
-        threading.Thread(target=_launch_ffmpeg, daemon=True).start()
-        return True
-
+        return self._start_transcoded_recording(full_path, width, height, pre_buffer_frames, event_callback)
 
     def stop_recording(self, event_callback=None, width=0, height=0):
         if not self.is_recording: return
