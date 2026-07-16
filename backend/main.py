@@ -10,7 +10,7 @@ from typing import Optional
 from urllib.parse import urlparse
 
 import requests
-from fastapi import FastAPI, BackgroundTasks, Depends, HTTPException, Request, WebSocket
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Request, WebSocket
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -417,7 +417,7 @@ app.include_router(storage.router)
 
 from fastapi.responses import FileResponse
 import os
-from fastapi import HTTPException, Depends
+from fastapi import HTTPException
 
 # Secure media serving
 @app.get("/media/{file_path:path}")
