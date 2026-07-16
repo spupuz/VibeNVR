@@ -131,6 +131,15 @@ def _scan_and_import_camera_recordings(db, camera_id_str: str, camera: Camera, e
 
     logger.info(f"Scanning Camera {camera_id_str} ({camera.name})...")
 
+    # Pre-fetch existing file paths for this camera to avoid N+1 queries
+    existing_events = db.query(Event.file_path).filter(
+        Event.camera_id == int(camera_id_str),
+        Event.type == "video"
+    ).all()
+    existing_file_paths = {e[0] for e in existing_events if e[0]}
+
+    events_to_add = []
+
     # Walk through date folders
     for root, dirs, files in os.walk(entry_path):
         for f in files:
@@ -144,9 +153,8 @@ def _scan_and_import_camera_recordings(db, camera_id_str: str, camera: Camera, e
             rel_path = os.path.relpath(full_path, data_root).replace("\\", "/")
             db_file_path = f"/var/lib/vibe/recordings/{rel_path}"
 
-            # Check if already in DB
-            exists = db.query(Event).filter(Event.file_path == db_file_path).first()
-            if exists:
+            # Check if already in DB (O(1) lookup)
+            if db_file_path in existing_file_paths:
                 skipped_count += 1
                 continue
 
@@ -214,6 +222,7 @@ def _scan_and_import_camera_recordings(db, camera_id_str: str, camera: Camera, e
 
             if dry_run:
                 logger.info(f"  [Would Import] {rel_path}")
+                added_count += 1
             else:
                 # Create Event
                 new_event = Event(
@@ -227,15 +236,24 @@ def _scan_and_import_camera_recordings(db, camera_id_str: str, camera: Camera, e
                     file_size=file_size,
                     motion_score=0.0
                 )
-                db.add(new_event)
-                logger.info(f"  ✅ Imported: {rel_path}")
+                events_to_add.append(new_event)
+                logger.info(f"  ✅ Queueing import: {rel_path}")
 
-            added_count += 1
+                added_count += 1
 
-            # Commit every 50 to avoid memory issues
-            if not dry_run and added_count % 50 == 0:
-                db.commit()
-                logger.info(f"  ... committed {added_count} events")
+                # Bulk insert every 50 to avoid memory issues and improve performance
+                if len(events_to_add) >= 50:
+                    db.add_all(events_to_add)
+                    db.commit()
+                    logger.info(f"  ... bulk committed {len(events_to_add)} events (Total: {added_count})")
+                    events_to_add.clear()
+
+    # Insert any remaining events
+    if events_to_add:
+        db.add_all(events_to_add)
+        db.commit()
+        logger.info(f"  ... bulk committed {len(events_to_add)} events (Total: {added_count})")
+        events_to_add.clear()
 
     return added_count, skipped_count
 

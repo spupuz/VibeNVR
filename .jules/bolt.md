@@ -19,3 +19,6 @@
 ## 2025-03-05 - N+1 query in backend bulk deletion endpoints
 **Learning:** In backend endpoints processing a list of items for bulk action (e.g. `bulk_delete_cameras`, `bulk_delete_groups`), querying the database and deleting items via external crud functions for each item individually inside a `for` loop causes an N+1 query issue, hurting performance and creating multiple transactions instead of one.
 **Action:** Use an `.in_()` filter (e.g., `db.query(Model).filter(Model.id.in_(ids)).all()`) to pre-fetch all records in a single query and process them via an in-memory dictionary map, delete the records with `db.delete`, and commit once using `db.commit()` at the end, reducing database queries from O(N) to O(1) and making it a single transaction.
+## 2026-07-06 - N+1 query in backend orphan recording sync
+**Learning:** During backend orphan recording synchronization, performing DB lookups or inserts for individual records causes significant N+1 overhead and latency.
+**Action:** Pre-fetch relevant database file paths into a Python set for O(1) lookups, and replace individual DB inserts with batched `db.add_all()` arrays to reduce execution latency.
