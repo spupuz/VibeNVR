@@ -830,7 +830,7 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
                 "timestamp": datetime.datetime.now().isoformat()
             }
             
-            resp = requests.post(url, json=payload, timeout=10)
+            resp = requests.post(url, json=payload, timeout=10, allow_redirects=False)
             if not resp.ok:
                 raise ValueError(f"Webhook returned error: {resp.status_code} {resp.text}")
                 

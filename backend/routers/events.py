@@ -227,7 +227,7 @@ def _send_webhook_notification(
             "timestamp": details.get("timestamp"),
             "file_path": details.get("file_path"),
             "source": details.get("source", "Standard")
-        }, timeout=5)
+        }, timeout=5, allow_redirects=False)
     except Exception as e:
         logger.error(f"[NOTIFY] Webhook failed: {e}")
 
