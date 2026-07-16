@@ -273,7 +273,7 @@ class CameraThread(threading.Thread):
                             self.latest_ai_results = ai_results
                             self.last_ai_update_time = time.time()
                             self.last_external_motion_time = self.last_ai_update_time
-                            self.motion_detector.last_motion_time = self.last_ai_update_time  # FIX: Ensure motion state persists
+                            self.motion_detector.last_motion_time = self.last_ai_update_time  # Ensure motion state persists
                             hw_label = f"{self.ai_detector.hardware.upper()} - {self.ai_detector.model_type}"
                             self.last_external_motion_source = f"AI Engine [{hw_label}]"
                             # Sync with motion detector so handle_recording knows it's active
