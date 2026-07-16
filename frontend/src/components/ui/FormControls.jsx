@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { HelpCircle, Eye, EyeOff } from 'lucide-react';
 
@@ -60,46 +60,56 @@ export const Tooltip = ({ text, children }) => {
 };
 
 // Label with Tooltip
-const LabelWithHelp = ({ label, help }) => (
-    help ? (
+const LabelWithHelp = ({ label, help, htmlFor }) => {
+    const LabelComponent = htmlFor ? 'label' : 'span';
+    const props = htmlFor ? { htmlFor, className: "text-sm font-medium cursor-pointer" } : { className: "text-sm font-medium" };
+
+    return help ? (
         <Tooltip text={help}>
-            <span className="text-sm font-medium">{label}</span>
+            <LabelComponent {...props}>{label}</LabelComponent>
         </Tooltip>
     ) : (
-        <span className="text-sm font-medium">{label}</span>
-    )
-);
+        <LabelComponent {...props}>{label}</LabelComponent>
+    );
+};
 
 // Toggle Switch Component (like motionEye)
-export const Toggle = ({ checked, onChange, label, disabled = false, help = '' }) => (
-    <div className="flex items-center justify-between gap-3">
-        <LabelWithHelp label={label} help={help} />
-        <button
-            type="button"
-            role="switch"
-            aria-checked={checked}
-            aria-label={label || 'Toggle'}
-            onClick={() => !disabled && onChange(!checked)}
-            disabled={disabled}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                } ${checked ? 'bg-primary' : 'bg-muted'}`}
-        >
-            <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-            />
-        </button>
-    </div>
-);
+export const Toggle = ({ checked, onChange, label, disabled = false, help = '', id: externalId }) => {
+    const generatedId = useId();
+    const id = externalId || generatedId;
+    return (
+        <div className="flex items-center justify-between gap-3">
+            <LabelWithHelp label={label} help={help} htmlFor={id} />
+            <button
+                id={id}
+                type="button"
+                role="switch"
+                aria-checked={checked}
+                aria-label={label || 'Toggle'}
+                onClick={() => !disabled && onChange(!checked)}
+                disabled={disabled}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                    } ${checked ? 'bg-primary' : 'bg-muted'}`}
+            >
+                <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                />
+            </button>
+        </div>
+    );
+};
 
 // Slider Component (like motionEye)
-export const Slider = ({ value, onChange, min = 0, max = 100, step = 1, label, unit = '', showValue = true, marks = [], help = '' }) => {
+export const Slider = ({ value, onChange, min = 0, max = 100, step = 1, label, unit = '', showValue = true, marks = [], help = '', id: externalId }) => {
+    const generatedId = useId();
+    const id = externalId || generatedId;
     const percentage = ((value - min) / (max - min)) * 100;
 
     return (
         <div className="space-y-2">
             <div className="flex items-center justify-between">
-                <LabelWithHelp label={label} help={help} />
+                <LabelWithHelp label={label} help={help} htmlFor={id} />
                 {showValue && (
                     <span className="text-sm text-muted-foreground">
                         {value}{unit}
@@ -108,6 +118,7 @@ export const Slider = ({ value, onChange, min = 0, max = 100, step = 1, label, u
             </div>
             <div className="relative">
                 <input
+                    id={id}
                     type="range"
                     min={min}
                     max={max}
@@ -132,7 +143,9 @@ export const Slider = ({ value, onChange, min = 0, max = 100, step = 1, label, u
 };
 
 // Input Field Component
-export const InputField = ({ value, onChange, label, type = 'text', placeholder = '', unit = '', className = '', help = '', showPasswordToggle = false, icon: Icon = null }) => {
+export const InputField = ({ value, onChange, label, type = 'text', placeholder = '', unit = '', className = '', help = '', showPasswordToggle = false, icon: Icon = null, id: externalId }) => {
+    const generatedId = useId();
+    const id = externalId || generatedId;
     const [showPassword, setShowPassword] = useState(false);
     const isPassword = type === 'password';
     const actualType = isPassword && showPassword ? 'text' : type;
@@ -140,7 +153,7 @@ export const InputField = ({ value, onChange, label, type = 'text', placeholder 
     return (
         <div className={className}>
             <div className="block mb-1">
-                <LabelWithHelp label={label} help={help} />
+                <LabelWithHelp label={label} help={help} htmlFor={id} />
             </div>
             <div className="relative">
                 {Icon && (
@@ -149,6 +162,7 @@ export const InputField = ({ value, onChange, label, type = 'text', placeholder 
                     </div>
                 )}
                 <input
+                    id={id}
                     type={actualType}
                     value={value || ''}
                     onChange={(e) => onChange(type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)}
@@ -177,28 +191,33 @@ export const InputField = ({ value, onChange, label, type = 'text', placeholder 
 };
 
 // Select Field Component
-export const SelectField = ({ value, onChange, label, options = [], className = '', help = '' }) => (
-    <div className={className}>
-        <div className="block mb-1">
-            <LabelWithHelp label={label} help={help} />
+export const SelectField = ({ value, onChange, label, options = [], className = '', help = '', id: externalId }) => {
+    const generatedId = useId();
+    const id = externalId || generatedId;
+    return (
+        <div className={className}>
+            <div className="block mb-1">
+                <LabelWithHelp label={label} help={help} htmlFor={id} />
+            </div>
+            <select
+                id={id}
+                value={value || ''}
+                onChange={(e) => onChange(e.target.value)}
+                className="w-full bg-background border border-input rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent transition-all cursor-pointer"
+            >
+                {options.map((opt, i) => (
+                    <option
+                        key={i}
+                        value={typeof opt === 'string' ? opt : opt.value}
+                        disabled={typeof opt === 'object' && opt.disabled}
+                    >
+                        {typeof opt === 'string' ? opt : opt.label}
+                    </option>
+                ))}
+            </select>
         </div>
-        <select
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-full bg-background border border-input rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent transition-all cursor-pointer"
-        >
-            {options.map((opt, i) => (
-                <option 
-                    key={i} 
-                    value={typeof opt === 'string' ? opt : opt.value}
-                    disabled={typeof opt === 'object' && opt.disabled}
-                >
-                    {typeof opt === 'string' ? opt : opt.label}
-                </option>
-            ))}
-        </select>
-    </div>
-);
+    );
+};
 
 // Section Header Component
 export const SectionHeader = ({ title, description }) => (
