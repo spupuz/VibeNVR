@@ -43,6 +43,7 @@ export const EventFilters = ({
             {/* Camera Filter */}
             <div className="relative">
                 <select
+                    aria-label={t('timeline.filter_by_camera', 'Filter by Camera')}
                     className="appearance-none pl-3 pr-8 py-2 bg-card border border-border rounded-xl text-sm min-w-[140px] focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50 text-foreground"
                     value={selectedCameraFilter}
                     onChange={(e) => {
@@ -66,6 +67,7 @@ export const EventFilters = ({
             {/* Media Type Filter */}
             <div className="relative">
                 <select
+                    aria-label={t('timeline.filter_by_media_type', 'Filter by Media Type')}
                     className="appearance-none pl-3 pr-8 py-2 bg-card border border-border rounded-xl text-sm min-w-[120px] focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50 text-foreground"
                     value={selectedTypeFilter}
                     onChange={(e) => {
@@ -88,6 +90,7 @@ export const EventFilters = ({
             {/* Event Type Filter */}
             <div className="relative">
                 <select
+                    aria-label={t('timeline.filter_by_event_type', 'Filter by Event Type')}
                     className="appearance-none pl-3 pr-8 py-2 bg-card border border-border rounded-xl text-sm min-w-[120px] focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50 text-foreground"
                     value={selectedEventTypeFilter}
                     onChange={(e) => {
@@ -110,6 +113,7 @@ export const EventFilters = ({
             {/* Object Type Filter */}
             <div className="relative">
                 <select
+                    aria-label={t('timeline.filter_by_object_type', 'Filter by Object Type')}
                     className="appearance-none pl-3 pr-8 py-2 bg-card border border-border rounded-xl text-sm min-w-[130px] focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50 text-foreground"
                     value={selectedObjectFilter}
                     onChange={(e) => {
@@ -131,6 +135,7 @@ export const EventFilters = ({
             <div className="relative flex items-center">
                 <input
                     type="date"
+                    aria-label={t('timeline.filter_by_date', 'Filter by Date')}
                     className="pl-9 pr-3 py-2 bg-card border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all hover:border-primary/50 text-foreground"
                     value={selectedDate}
                     onChange={(e) => {
