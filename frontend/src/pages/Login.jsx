@@ -21,6 +21,7 @@ export const Login = () => {
     const [trustDevice, setTrustDevice] = useState(false);
     const [deviceName, setDeviceName] = useState(`Browser on ${navigator.platform}`);
 
+
     const { login } = useAuth();
     const navigate = useNavigate();
 
@@ -180,12 +181,13 @@ export const Login = () => {
                                     />
                                     <button
                                         type="button"
-                                        className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                                        className="absolute right-3 top-3 text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
                                         onClick={() => setShowPassword(!showPassword)}
                                         aria-label={showPassword ? t('login.hide_password', 'Hide password') : t('login.show_password', 'Show password')}
                                         title={showPassword ? t('login.hide_password', 'Hide password') : t('login.show_password', 'Show password')}
+                                        aria-pressed={showPassword}
                                     >
-                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                     </button>
                                 </div>
                             </div>
