@@ -4,8 +4,6 @@ import logging
 import crud
 import database
 from sqlalchemy.orm import Session
-from routers.events import send_notifications
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -101,9 +99,9 @@ async def check_camera_health():
                         else:
                             # If sync is already happening, just wait for next iteration
                             pass
-                except Exception as e:
+                except Exception:
                     # Use warning for expected connectivity issues during restarts
-                    logger.warning(f"Health check: Cannot reach Engine (VibeEngine might be starting or stopped)")
+                    logger.warning("Health check: Cannot reach Engine (VibeEngine might be starting or stopped)")
                     continue
 
                 with database.get_db_ctx() as db:

@@ -2,7 +2,7 @@ import logging
 import os
 from datetime import timedelta
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Form, Body, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Form, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -12,7 +12,11 @@ from slowapi.util import get_remote_address
 
 logger = logging.getLogger(__name__)
 limiter = Limiter(key_func=get_remote_address)
-import auth_service, crud, database, schemas, models
+import auth_service
+import crud
+import database
+import schemas
+import models
 
 router = APIRouter(
     prefix="/auth",

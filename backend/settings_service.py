@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from fastapi import HTTPException
 import models
-import logging
 
 def get_setting(db: Session, key: str) -> Optional[str]:
     """Get a setting value by key"""

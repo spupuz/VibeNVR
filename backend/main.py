@@ -3,14 +3,12 @@ import logging
 import json
 
 import asyncio
-import io
 import re
 import threading
 from typing import Optional
-from urllib.parse import urlparse
 
 import requests
-from fastapi import FastAPI, BackgroundTasks, Depends, HTTPException, Request, WebSocket
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -23,7 +21,6 @@ import database
 from database import engine, Base
 from routers import cameras, events, stats, settings, auth, users, groups, logs, homepage, api_tokens, onvif_router, storage
 import auth_service
-import crud
 import models
 import storage_service
 import motion_service
@@ -254,7 +251,7 @@ async def lifespan(app: FastAPI):
                 logger.warning(f"Migration warning: {e}")
 
             break
-        except Exception as e:
+        except Exception:
             retry_count += 1
             logger.info(f"Waiting for Database (Attempt {retry_count})...")
             await asyncio.sleep(2)
@@ -304,7 +301,6 @@ async def lifespan(app: FastAPI):
     event_manager.stop()
 
 # Read version from package.json
-import json
 try:
     with open("package.json", "r") as f:
         data = json.load(f)
@@ -417,7 +413,6 @@ app.include_router(storage.router)
 
 from fastapi.responses import FileResponse
 import os
-from fastapi import HTTPException, Depends
 
 # Secure media serving
 @app.get("/media/{file_path:path}")
@@ -515,8 +510,8 @@ async def health_check(background_tasks: BackgroundTasks):
         else:
             health_status["components"]["engine"] = f"error: status_code {resp.status_code}"
             is_healthy = False
-    except Exception as e:
-        health_status["components"]["engine"] = f"unreachable"
+    except Exception:
+        health_status["components"]["engine"] = "unreachable"
         # Only log connectivity errors as warnings to avoid cluttering logs during restarts
         import logging
         logger = logging.getLogger("uvicorn.error")

@@ -10,6 +10,7 @@
 ## 2025-02-12 - [Optimize _generate_backup_data API with selectinload]
 **Learning:** In APIs dealing with large exports (like generating full backup dictionaries of the entire database state), accessing lazy-loaded relationships during JSON serialization can trigger thousands of O(N) queries, significantly degrading performance.
 **Action:** Always eagerly load relationships using `selectinload` (e.g. `.options(selectinload(Model.relation))`) on bulk API queries that serialize nested components, particularly when assembling large data structures like backups.
+<<<<<<< HEAD
 ## 2025-02-12 - [Optimize get_homepage_stats API with func.count]
 **Learning:** When calculating counts of database records in SQLAlchemy (e.g., for dashboards or stats), avoid fetching all records into memory using `len(query.all())` which causes O(N) memory overhead and excessive data transfer.
 **Action:** Instead, use database-level aggregations like `query.with_entities(func.count(Model.id)).scalar()` or `db.query(func.count(Model.id)).scalar()` for an efficient O(1) query.
@@ -29,3 +30,8 @@
 ## 2026-07-16 - [Fix blocking sleep in FastAPI lifespan]
 **Learning:** When refactoring blocking calls (e.g., `time.sleep`) to async equivalents (e.g., `asyncio.sleep`) in FastAPI lifespan or other async contexts, carefully check for nested synchronous functions or background threads (like `run_orphan_recovery`) in the same file that still rely on the original synchronous module before removing their imports.
 **Action:** Ensure synchronous functions inside async files correctly import and use synchronous versions of blocking operations.
+=======
+## 2026-07-16 - [N+1 query in storage cleanup loops]
+**Learning:** When refactoring database loops to fix N+1 query issues in SQLAlchemy (e.g., bulk deletions), calling single-record fetches (like `.first()`) repeatedly is inefficient.
+**Action:** Use batched queries (e.g., `.limit(100).all()`) and ensure `db.commit()` is moved outside the inner loop to execute as a single transaction.
+>>>>>>> pr-206
