@@ -23,10 +23,19 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
     return (
         <div
             id={`event-${event.id}`}
-            className={`flex items-stretch bg-card border rounded-xl overflow-hidden cursor-pointer transition-all hover:shadow-lg group
+            role="button"
+            tabIndex={0}
+            aria-pressed={isSelected}
+            className={`flex items-stretch bg-card border rounded-xl overflow-hidden cursor-pointer transition-all hover:shadow-lg group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
                 ${isSelected ? 'ring-2 ring-primary border-primary' : 'border-border hover:border-primary/50'}
             `}
             onClick={(e) => onClick(event, e)}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onClick(event, e);
+                }
+            }}
         >
             {/* Thumbnail */}
             <div className="w-24 sm:w-32 h-20 bg-black/10 flex-shrink-0 relative overflow-hidden">
@@ -55,10 +64,21 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
                 {/* Selection Checkbox (Visible on hover or if multi-selected for Admins only) */}
                 {user?.role === 'admin' && (
                     <div 
-                        className={`absolute top-2 left-2 z-20 transition-all cursor-pointer ${isMultiSelected ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-100'}`}
+                        role="checkbox"
+                        aria-checked={isMultiSelected}
+                        tabIndex={0}
+                        aria-label="Select event"
+                        className={`absolute top-2 left-2 z-20 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:opacity-100 rounded ${isMultiSelected ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-100'}`}
                         onClick={(e) => {
                             e.stopPropagation();
                             onToggleSelect(event.id, e.shiftKey);
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onToggleSelect(event.id, e.shiftKey);
+                            }
                         }}
                     >
                         <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
