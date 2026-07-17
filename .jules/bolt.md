@@ -29,3 +29,7 @@
 ## 2026-07-16 - [Fix blocking sleep in FastAPI lifespan]
 **Learning:** When refactoring blocking calls (e.g., `time.sleep`) to async equivalents (e.g., `asyncio.sleep`) in FastAPI lifespan or other async contexts, carefully check for nested synchronous functions or background threads (like `run_orphan_recovery`) in the same file that still rely on the original synchronous module before removing their imports.
 **Action:** Ensure synchronous functions inside async files correctly import and use synchronous versions of blocking operations.
+## 2026-07-17 - Optimize async ONVIF PTZ endpoints
+- **What:** Wrapped synchronous database calls (`crud.get_camera`) in FastAPI's `run_in_threadpool` for all `ptz_*` async endpoints in `onvif_router.py`.
+- **Why:** The async endpoints were executing blocking SQLAlchemy database operations, forcing the `asyncio` event loop to block. In testing, 50 concurrent requests were completely serialized, yielding a total time proportional to `n * db_delay`.
+- **Impact:** Alleviated blocking I/O on the main event loop, significantly enhancing the concurrent throughput capabilities of PTZ API controls. Throughput performance for concurrent executions dropped dramatically from ~0.90s to less than 0.20s in raw benchmarks.
