@@ -7,6 +7,7 @@ import schemas
 import database
 import os
 import requests
+import hmac
 import threading
 import models
 import utils
@@ -24,6 +25,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+
 def _send_telegram_notification(
     camera,
     event_type: str,
@@ -35,14 +37,14 @@ def _send_telegram_notification(
     global_tg_proxy_url: str,
     global_tg_proxy_retries: int,
     global_tg_proxy_retry_delay: int,
-    global_attach_telegram: bool
+    global_attach_telegram: bool,
 ):
     import datetime
     import html
     import time
 
     # Format Timestamp
-    ts_raw = details.get('timestamp')
+    ts_raw = details.get("timestamp")
     ts_formatted = ts_raw
     try:
         if ts_raw:
@@ -67,19 +69,33 @@ def _send_telegram_notification(
 
         if event_type == "event_start":
             source = details.get("source", "Standard")
-            prefix = "🤖 <b>AI</b> " if "AI Engine" in source else ("📷 <b>Edge</b> " if source == "ONVIF Edge" else "🚨 ")
+            prefix = (
+                "🤖 <b>AI</b> "
+                if "AI Engine" in source
+                else ("📷 <b>Edge</b> " if source == "ONVIF Edge" else "🚨 ")
+            )
             caption = f"{prefix}<b>Motion Detected!</b>\n📷 Camera: {safe_name}\n⏰ Time: {safe_ts}"
 
             # Add AI metadata if available
             ai_meta = details.get("ai_metadata")
             if ai_meta and isinstance(ai_meta, list):
-                labels = sorted(list(set([str(r.get("label")).capitalize() for r in ai_meta if r.get("label")])))
+                labels = sorted(
+                    list(
+                        set(
+                            [
+                                str(r.get("label")).capitalize()
+                                for r in ai_meta
+                                if r.get("label")
+                            ]
+                        )
+                    )
+                )
                 if labels:
-                    safe_labels = html.escape(', '.join(labels))
+                    safe_labels = html.escape(", ".join(labels))
                     caption += f"\n🔍 Objects: {safe_labels}"
         elif event_type == "camera_health":
-            safe_title = html.escape(details.get('title', 'Camera Alert'))
-            safe_msg = html.escape(details.get('message', ''))
+            safe_title = html.escape(details.get("title", "Camera Alert"))
+            safe_msg = html.escape(details.get("message", ""))
             caption = f"<b>{safe_title}</b>\n{safe_msg}"
         else:
             caption = html.escape(caption)
@@ -93,22 +109,37 @@ def _send_telegram_notification(
         last_err = None
         for attempt in range(max(1, global_tg_proxy_retries)):
             try:
-                if image_path and camera.notify_attach_image_telegram and global_attach_telegram:
+                if (
+                    image_path
+                    and camera.notify_attach_image_telegram
+                    and global_attach_telegram
+                ):
                     # Send Photo
                     url = f"https://api.telegram.org/bot{tg_token}/sendPhoto"
-                    with open(image_path, 'rb') as f:
-                        files = {'photo': f}
-                        data = {'chat_id': tg_chat, 'caption': caption, 'parse_mode': 'HTML'}
-                        resp = requests.post(url, data=data, files=files, proxies=proxies, timeout=10)
+                    with open(image_path, "rb") as f:
+                        files = {"photo": f}
+                        data = {
+                            "chat_id": tg_chat,
+                            "caption": caption,
+                            "parse_mode": "HTML",
+                        }
+                        resp = requests.post(
+                            url, data=data, files=files, proxies=proxies, timeout=10
+                        )
                         resp.raise_for_status()
                 else:
                     # Send Text
                     url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
-                    resp = requests.post(url, json={
-                        "chat_id": tg_chat,
-                        "text": caption,
-                        "parse_mode": "HTML"
-                    }, proxies=proxies, timeout=5)
+                    resp = requests.post(
+                        url,
+                        json={
+                            "chat_id": tg_chat,
+                            "text": caption,
+                            "parse_mode": "HTML",
+                        },
+                        proxies=proxies,
+                        timeout=5,
+                    )
                     resp.raise_for_status()
 
                 # If we succeed, break the retry loop
@@ -116,10 +147,14 @@ def _send_telegram_notification(
             except Exception as e:
                 last_err = e
                 if attempt < max(1, global_tg_proxy_retries) - 1:
-                    logger.warning(f"[NOTIFY] Telegram attempt {attempt+1} failed ({e}), retrying in {global_tg_proxy_retry_delay}s...")
+                    logger.warning(
+                        f"[NOTIFY] Telegram attempt {attempt + 1} failed ({e}), retrying in {global_tg_proxy_retry_delay}s..."
+                    )
                     time.sleep(global_tg_proxy_retry_delay)
                 else:
-                    logger.error(f"[NOTIFY] Telegram failed after {global_tg_proxy_retries} attempts: {e}")
+                    logger.error(
+                        f"[NOTIFY] Telegram failed after {global_tg_proxy_retries} attempts: {e}"
+                    )
     except Exception as e:
         logger.error(f"[NOTIFY] Telegram unexpected error: {e}")
 
@@ -136,7 +171,7 @@ def _send_email_notification(
     smtp_from: str,
     smtp_verify_cert: bool,
     email_recipient: str,
-    global_attach_email: bool
+    global_attach_email: bool,
 ):
     import os
     import smtplib
@@ -152,7 +187,7 @@ def _send_email_notification(
         body_title = "Motion Detected"
     elif event_type == "camera_health":
         should_notify_email = camera.notify_health_email
-        subject = details.get('title', f"Camera Alert: {camera.name}")
+        subject = details.get("title", f"Camera Alert: {camera.name}")
         body_title = "Camera Health Alert"
 
     if not (should_notify_email and smtp_server and email_recipient):
@@ -160,32 +195,37 @@ def _send_email_notification(
 
     try:
         msg = MIMEMultipart()
-        msg['Subject'] = subject
-        msg['From'] = smtp_from or "vibenvr@localhost"
-        msg['To'] = email_recipient
+        msg["Subject"] = subject
+        msg["From"] = smtp_from or "vibenvr@localhost"
+        msg["To"] = email_recipient
 
         html_body = f"""
         <h2>{body_title}</h2>
         <p><b>Camera:</b> {camera.name}</p>
-        <p><b>Source:</b> {details.get('source', 'Standard')}</p>
-        <p>{details.get('message', f"Event: {event_type}")}</p>
-        <p><b>Time:</b> {details.get('timestamp', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))}</p>
+        <p><b>Source:</b> {details.get("source", "Standard")}</p>
+        <p>{details.get("message", f"Event: {event_type}")}</p>
+        <p><b>Time:</b> {details.get("timestamp", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))}</p>
         <p><i>VibeNVR Alert System</i></p>
         """
-        msg.attach(MIMEText(html_body, 'html'))
+        msg.attach(MIMEText(html_body, "html"))
 
         if image_path and camera.notify_attach_image_email and global_attach_email:
-            with open(image_path, 'rb') as f:
+            with open(image_path, "rb") as f:
                 img = MIMEImage(f.read())
-                img.add_header('Content-Disposition', 'attachment', filename=os.path.basename(image_path))
+                img.add_header(
+                    "Content-Disposition",
+                    "attachment",
+                    filename=os.path.basename(image_path),
+                )
                 msg.attach(img)
 
         # Connect and send
         server = smtplib.SMTP(smtp_server, smtp_port)
         server.set_debuglevel(0)
         server.ehlo()
-        if server.has_extn('starttls'):
+        if server.has_extn("starttls"):
             import ssl
+
             context = ssl.create_default_context()
             if not smtp_verify_cert:
                 context.check_hostname = False
@@ -201,11 +241,9 @@ def _send_email_notification(
     except Exception as e:
         logger.error(f"[NOTIFY] Email failed: {e}")
 
+
 def _send_webhook_notification(
-    camera,
-    event_type: str,
-    details: dict,
-    webhook_url: str
+    camera, event_type: str, details: dict, webhook_url: str
 ):
 
     should_notify_webhook = False
@@ -224,34 +262,50 @@ def _send_webhook_notification(
         return
 
     try:
-        requests.post(webhook_url, json={
-            "camera_name": camera.name,
-            "event": event_type,
-            "title": details.get("title"),
-            "message": details.get("message"),
-            "timestamp": details.get("timestamp"),
-            "file_path": details.get("file_path"),
-            "source": details.get("source", "Standard")
-        }, timeout=5, allow_redirects=False)
+        requests.post(
+            webhook_url,
+            json={
+                "camera_name": camera.name,
+                "event": event_type,
+                "title": details.get("title"),
+                "message": details.get("message"),
+                "timestamp": details.get("timestamp"),
+                "file_path": details.get("file_path"),
+                "source": details.get("source", "Standard"),
+            },
+            timeout=5,
+            allow_redirects=False,
+        )
     except Exception as e:
         logger.error(f"[NOTIFY] Webhook failed: {e}")
 
 
 def send_notifications(camera_id: int, event_type: str, details: dict):
     """Async wrapper for sending notifications using Global + Camera settings"""
+
     def _send():
         # Open a new DB session for this thread
         db_notify = database.SessionLocal()
         try:
             # Re-fetch camera to avoid DetachedInstanceError
-            camera = db_notify.query(models.Camera).filter(models.Camera.id == camera_id).first()
+            camera = (
+                db_notify.query(models.Camera)
+                .filter(models.Camera.id == camera_id)
+                .first()
+            )
             if not camera:
-                logger.warning(f"[NOTIFY] Camera {camera_id} not found, aborting notification.")
+                logger.warning(
+                    f"[NOTIFY] Camera {camera_id} not found, aborting notification."
+                )
                 return
 
             # Helper to get setting
             def get_conf(key):
-                s = db_notify.query(models.SystemSettings).filter(models.SystemSettings.key == key).first()
+                s = (
+                    db_notify.query(models.SystemSettings)
+                    .filter(models.SystemSettings.key == key)
+                    .first()
+                )
                 return s.value if s else ""
 
             # Fetch Global Settings
@@ -260,14 +314,20 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
             smtp_user = get_conf("smtp_username")
             smtp_pass = get_conf("smtp_password")
             smtp_from = get_conf("smtp_from_email")
-            smtp_verify_cert = get_conf("smtp_verify_cert") != "false" # Default to True unless explicitly "false"
+            smtp_verify_cert = (
+                get_conf("smtp_verify_cert") != "false"
+            )  # Default to True unless explicitly "false"
 
             global_tg_token = get_conf("telegram_bot_token")
             global_tg_chat = get_conf("telegram_chat_id")
-            global_tg_proxy_enabled = str(get_conf("telegram_proxy_enabled")).lower() == "true"
+            global_tg_proxy_enabled = (
+                str(get_conf("telegram_proxy_enabled")).lower() == "true"
+            )
             global_tg_proxy_url = get_conf("telegram_proxy_url")
             global_tg_proxy_retries = int(get_conf("telegram_proxy_retries") or "3")
-            global_tg_proxy_retry_delay = int(get_conf("telegram_proxy_retry_delay") or "2")
+            global_tg_proxy_retry_delay = int(
+                get_conf("telegram_proxy_retry_delay") or "2"
+            )
             global_email_recipient = get_conf("notify_email_recipient")
             global_webhook_url = get_conf("notify_webhook_url")
 
@@ -276,13 +336,15 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
             global_attach_telegram = get_conf("global_attach_image_telegram") != "false"
 
             # Resolve effective config based on Event Type
-            is_health_event = (event_type == "camera_health")
+            is_health_event = event_type == "camera_health"
 
             if is_health_event:
                 # Health Specific -> Global Fallback
                 tg_token = camera.notify_health_telegram_token or global_tg_token
                 tg_chat = camera.notify_health_telegram_chat_id or global_tg_chat
-                email_recipient = camera.notify_health_email_recipient or global_email_recipient
+                email_recipient = (
+                    camera.notify_health_email_recipient or global_email_recipient
+                )
                 webhook_url = camera.notify_health_webhook_url or global_webhook_url
             else:
                 # Standard (Motion/Event) -> Global Fallback
@@ -299,7 +361,7 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
             if file_path:
                 # If it's a video, try to find the timestamp-based thumb or .jpg replacement
                 if file_path.endswith(".mp4") or file_path.endswith(".mkv"):
-                    possible_jpg = file_path.rsplit('.', 1)[0] + ".jpg"
+                    possible_jpg = file_path.rsplit(".", 1)[0] + ".jpg"
                     # Check if exists (need to map path first)
                     # We defer check until path mapping is done
                     image_path = possible_jpg
@@ -308,7 +370,8 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
 
             # Fix path mapping (Internal Container -> Backend /data volume)
             def map_path(p):
-                if not p: return None
+                if not p:
+                    return None
                 if p.startswith("/var/lib/motion"):
                     return p.replace("/var/lib/motion", "/data", 1)
                 elif p.startswith("/var/lib/vibe/recordings"):
@@ -320,16 +383,16 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                 if not os.path.exists(image_path):
                     # If derived jpg doesn't exist, try original file if it was a jpg
                     if file_path.endswith(".jpg"):
-                         orig_mapped = map_path(file_path)
-                         if os.path.exists(orig_mapped):
-                             image_path = orig_mapped
-                         else:
-                             image_path = None
+                        orig_mapped = map_path(file_path)
+                        if os.path.exists(orig_mapped):
+                            image_path = orig_mapped
+                        else:
+                            image_path = None
                     else:
                         image_path = None
 
             if image_path:
-                 logger.info(f"[NOTIFY] Attaching image: {image_path}")
+                logger.info(f"[NOTIFY] Attaching image: {image_path}")
 
             _send_telegram_notification(
                 camera=camera,
@@ -342,7 +405,7 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                 global_tg_proxy_url=global_tg_proxy_url,
                 global_tg_proxy_retries=global_tg_proxy_retries,
                 global_tg_proxy_retry_delay=global_tg_proxy_retry_delay,
-                global_attach_telegram=global_attach_telegram
+                global_attach_telegram=global_attach_telegram,
             )
 
             _send_email_notification(
@@ -357,14 +420,14 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                 smtp_from=smtp_from,
                 smtp_verify_cert=smtp_verify_cert,
                 email_recipient=email_recipient,
-                global_attach_email=global_attach_email
+                global_attach_email=global_attach_email,
             )
 
             _send_webhook_notification(
                 camera=camera,
                 event_type=event_type,
                 details=details,
-                webhook_url=webhook_url
+                webhook_url=webhook_url,
             )
 
         except Exception as e:
@@ -374,15 +437,16 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
 
     threading.Thread(target=_send, daemon=True).start()
 
+
 def delete_event_files(event: models.Event) -> int:
     """Helper to safely delete event files from disk with path traversal protection. Returns bytes deleted."""
     deleted_bytes = 0
     # Map internal container paths to /data volume
     paths = []
     if event.file_path:
-        paths.append(('file', event.file_path))
+        paths.append(("file", event.file_path))
     if event.thumbnail_path:
-        paths.append(('thumb', event.thumbnail_path))
+        paths.append(("thumb", event.thumbnail_path))
 
     for ptype, raw_path in paths:
         path = raw_path
@@ -395,11 +459,13 @@ def delete_event_files(event: models.Event) -> int:
             # Security Validation: Final path must be within /data/
             abs_path = os.path.abspath(path)
             if not abs_path.startswith("/data/"):
-                logger.warning(f"Security Alert: Blocked attempted deletion of file outside storage directory: {path}")
+                logger.warning(
+                    f"Security Alert: Blocked attempted deletion of file outside storage directory: {path}"
+                )
                 continue
 
             if os.path.exists(path):
-                if ptype == 'file': # Only count main file size for reporting
+                if ptype == "file":  # Only count main file size for reporting
                     try:
                         deleted_bytes += os.path.getsize(path)
                     except:
@@ -409,6 +475,7 @@ def delete_event_files(event: models.Event) -> int:
             logger.error(f"Error deleting event file {path}: {e}")
 
     return deleted_bytes
+
 
 def cleanup_orphaned_file(file_path: str, camera_id: int):
     """Helper to delete files from disk if the camera no longer exists in DB"""
@@ -425,13 +492,17 @@ def cleanup_orphaned_file(file_path: str, camera_id: int):
     if local_path:
         abs_path = os.path.abspath(local_path)
         if not abs_path.startswith("/data/"):
-            logger.warning(f"Security Alert: Blocked orphaned file cleanup outside storage: {local_path}")
+            logger.warning(
+                f"Security Alert: Blocked orphaned file cleanup outside storage: {local_path}"
+            )
             return
 
     if local_path and os.path.exists(local_path):
         try:
             os.remove(local_path)
-            logger.info(f"[WEBHOOK] Cleaned up orphaned file for deleted camera {camera_id}: {local_path}")
+            logger.info(
+                f"[WEBHOOK] Cleaned up orphaned file for deleted camera {camera_id}: {local_path}"
+            )
             # Also try to remove thumbnail if it exists
             base, _ = os.path.splitext(local_path)
             if os.path.exists(base + ".jpg"):
@@ -439,8 +510,13 @@ def cleanup_orphaned_file(file_path: str, camera_id: int):
         except Exception as e:
             logger.error(f"[WEBHOOK] Failed to cleanup orphaned file: {e}")
 
+
 @router.post("", response_model=schemas.Event)
-def create_event(event: schemas.EventCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def create_event(
+    event: schemas.EventCreate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
     return crud.create_event(db=db, event=event)
 
 
@@ -452,27 +528,44 @@ def read_events(
     type: Optional[str] = None,
     date: Optional[str] = None,
     db: Session = Depends(database.get_db),
-    auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)
+    auth_info: tuple[models.User, bool] = Depends(
+        auth_service.get_current_user_or_token
+    ),
 ):
     user, is_token = auth_info
-    events = crud.get_events(db, skip=skip, limit=limit, camera_id=camera_id, type=type, date=date)
+    events = crud.get_events(
+        db, skip=skip, limit=limit, camera_id=camera_id, type=type, date=date
+    )
 
     if user.role == "viewer" and user.restrict_camera_access:
-        allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id, permission="replay")
+        allowed_ids = crud.get_allowed_camera_ids_for_user(
+            db, user.id, permission="replay"
+        )
         if allowed_ids is not None:
             if camera_id is not None and camera_id not in allowed_ids:
-                raise HTTPException(status_code=403, detail="Not authorized to replay events for this camera")
+                raise HTTPException(
+                    status_code=403,
+                    detail="Not authorized to replay events for this camera",
+                )
             events = [e for e in events if e.camera_id in allowed_ids]
 
     return events
+
+
 # Track active motion events globally
 # camera_id -> start_timestamp
 ACTIVE_CAMERAS = {}
 # Track PURE motion detection (for UI reactive borders)
 LIVE_MOTION = {}
 
+
 @router.get("/status")
-def get_motion_status(auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token), db: Session = Depends(database.get_db)):
+def get_motion_status(
+    auth_info: tuple[models.User, bool] = Depends(
+        auth_service.get_current_user_or_token
+    ),
+    db: Session = Depends(database.get_db),
+):
     user, is_token = auth_info
     """Returns list of camera IDs currently detecting motion and/or recording, plus health info"""
     from health_service import HEALTH_CACHE
@@ -492,14 +585,17 @@ def get_motion_status(auth_info: tuple[models.User, bool] = Depends(auth_service
         allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
         if allowed_ids is not None:
             active_ids = [cid for cid in active_ids if cid in allowed_ids]
-            live_motion = {cid: v for cid, v in live_motion.items() if cid in allowed_ids}
+            live_motion = {
+                cid: v for cid, v in live_motion.items() if cid in allowed_ids
+            }
             health = {cid: v for cid, v in health.items() if cid in allowed_ids}
 
     return {
         "active_ids": active_ids,
         "live_motion": live_motion,
-        "camera_health": health
+        "camera_health": health,
     }
+
 
 def is_within_schedule(camera: models.Camera):
     """Check if motion detection is currently allowed by schedule"""
@@ -510,7 +606,15 @@ def is_within_schedule(camera: models.Camera):
 
     # Working Schedule (Day based)
     now = datetime.datetime.now()
-    days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+    days = [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+    ]
     current_day = days[now.weekday()]
 
     # Check if day is enabled
@@ -530,19 +634,26 @@ def is_within_schedule(camera: models.Camera):
         # Cross-midnight (e.g. 22:00 to 06:00)
         return current_time_str >= start_str or current_time_str <= end_str
 
+
 @router.post("/webhook")
 async def webhook_event(
     request: Request,
     payload: dict,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(database.get_db)
+    db: Session = Depends(database.get_db),
 ):
     # Verify Secret
     secret_header = request.headers.get("X-Webhook-Secret")
     # Use dedicated WEBHOOK_SECRET if set, otherwise fallback to SECRET_KEY
     expected_secret = os.getenv("WEBHOOK_SECRET", auth_service.SECRET_KEY)
 
-    if secret_header != expected_secret:
+    if (
+        not secret_header
+        or not expected_secret
+        or not hmac.compare_digest(
+            secret_header.encode("utf-8"), expected_secret.encode("utf-8")
+        )
+    ):
         # Avoid leaking existence or details, but allow local debugging if needed?
         # Strict security: 401.
         logger.warning("[WEBHOOK] Unauthorized access attempt (Invalid Secret).")
@@ -561,17 +672,23 @@ async def webhook_event(
     if not camera:
         event_type = payload.get("type")
         file_path = payload.get("file_path")
-        logger.warning(f"[WEBHOOK] Camera ID: {camera_id} not found. Event: {event_type}")
+        logger.warning(
+            f"[WEBHOOK] Camera ID: {camera_id} not found. Event: {event_type}"
+        )
         cleanup_orphaned_file(file_path, camera_id)
         return {"status": "error", "message": "camera not found, file cleaned up"}
 
-    event_type = payload.get("type") # event_start, picture_save, movie_end
-    logger.info(f"[WEBHOOK] Received: {event_type} for camera {camera.name} (ID: {camera_id})")
+    event_type = payload.get("type")  # event_start, picture_save, movie_end
+    logger.info(
+        f"[WEBHOOK] Received: {event_type} for camera {camera.name} (ID: {camera_id})"
+    )
 
     # Check schedule (Log but don't block - avoid orphaned files)
     in_schedule = is_within_schedule(camera)
     if not in_schedule:
-        logger.info(f"[WEBHOOK] Event outside schedule: {camera.name}. Saving anyway to prevent orphans.")
+        logger.info(
+            f"[WEBHOOK] Event outside schedule: {camera.name}. Saving anyway to prevent orphans."
+        )
         # return {"status": "ignored", "reason": "outside schedule"}
 
     elif event_type == "movie_end" or event_type == "picture_save":
@@ -581,21 +698,26 @@ async def webhook_event(
             camera_id=camera_id,
             event_type=event_type,
             payload=payload,
-            in_schedule=in_schedule
+            in_schedule=in_schedule,
         )
         return {"status": "processing"}
 
     elif event_type == "event_start":
-        logger.info(f"[WEBHOOK] Motion event started for camera {camera.name} (ID: {camera_id})")
+        logger.info(
+            f"[WEBHOOK] Motion event started for camera {camera.name} (ID: {camera_id})"
+        )
         ACTIVE_CAMERAS[camera_id] = payload.get("timestamp")
         if in_schedule:
             send_notifications(camera.id, "event_start", payload)
 
     elif event_type == "camera_health":
-        logger.info(f"[WEBHOOK] Health event for camera {camera.name} (ID: {camera_id}): {payload.get('message')}")
+        logger.info(
+            f"[WEBHOOK] Health event for camera {camera.name} (ID: {camera_id}): {payload.get('message')}"
+        )
         # Update Health Cache immediately for UI responsiveness
         try:
             from health_service import HEALTH_CACHE
+
             new_status = payload.get("status")
             if new_status:
                 HEALTH_CACHE[camera.id] = new_status
@@ -603,6 +725,7 @@ async def webhook_event(
                 camera.status = new_status
                 if new_status == "CONNECTED":
                     from datetime import datetime, timezone
+
                     camera.last_seen = datetime.now(timezone.utc)
                 db.commit()
         except ImportError:
@@ -616,7 +739,7 @@ async def webhook_event(
             "timestamp": payload.get("timestamp"),
             "source": payload.get("source", "standard"),
             "ai_metadata": payload.get("ai_metadata"),
-            "_updated_at": time.time()
+            "_updated_at": time.time(),
         }
         return {"status": "motion_on_captured"}
 
@@ -628,7 +751,10 @@ async def webhook_event(
 
     return {"status": "received"}
 
-def process_webhook_file_event(camera_id: int, event_type: str, payload: dict, in_schedule: bool):
+
+def process_webhook_file_event(
+    camera_id: int, event_type: str, payload: dict, in_schedule: bool
+):
     """
     Background task for heavy I/O operations (ffprobe, ffmpeg, DB writes).
     Prevents the main API event loop from blocking.
@@ -647,9 +773,9 @@ def process_webhook_file_event(camera_id: int, event_type: str, payload: dict, i
         if file_path.startswith("/var/lib/motion"):
             local_path = file_path.replace("/var/lib/motion", "/data", 1)
         elif file_path.startswith("/var/lib/vibe/recordings"):
-             local_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
+            local_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
         else:
-             local_path = None
+            local_path = None
 
         file_size = 0
         if local_path and os.path.exists(local_path):
@@ -676,7 +802,7 @@ def process_webhook_file_event(camera_id: int, event_type: str, payload: dict, i
             width=payload.get("width"),
             height=payload.get("height"),
             motion_score=0.0,
-            ai_metadata=payload.get("ai_metadata")
+            ai_metadata=payload.get("ai_metadata"),
         )
 
         if event_type == "movie_end":
@@ -690,15 +816,30 @@ def process_webhook_file_event(camera_id: int, event_type: str, payload: dict, i
                 if not os.path.basename(local_path).startswith("-"):
                     try:
                         cmd = [
-                            "ffprobe", "-v", "error", "-show_entries", "format=duration",
-                            "-of", "default=noprint_wrappers=1:nokey=1", "-i", local_path
+                            "ffprobe",
+                            "-v",
+                            "error",
+                            "-show_entries",
+                            "format=duration",
+                            "-of",
+                            "default=noprint_wrappers=1:nokey=1",
+                            "-i",
+                            local_path,
                         ]
-                        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=10)
+                        result = subprocess.run(
+                            cmd,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True,
+                            timeout=10,
+                        )
                         if result.returncode == 0:
                             duration_str = result.stdout.strip()
                             if duration_str and duration_str != "N/A":
                                 duration_sec = float(duration_str)
-                                event_data.timestamp_end = ts + datetime.timedelta(seconds=duration_sec)
+                                event_data.timestamp_end = ts + datetime.timedelta(
+                                    seconds=duration_sec
+                                )
                     except Exception as e:
                         logger.error(f"[BG-WORK] ffprobe failed: {e}")
 
@@ -710,11 +851,25 @@ def process_webhook_file_event(camera_id: int, event_type: str, payload: dict, i
                     base_db, _ = os.path.splitext(file_path)
                     db_thumb = f"{base_db}.jpg"
 
-                    subprocess.run([
-                        "ffmpeg", "-y", "-i", local_path,
-                        "-ss", "00:00:01", "-vframes", "1", "-vf", "scale=320:-1",
-                        local_thumb
-                    ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
+                    subprocess.run(
+                        [
+                            "ffmpeg",
+                            "-y",
+                            "-i",
+                            local_path,
+                            "-ss",
+                            "00:00:01",
+                            "-vframes",
+                            "1",
+                            "-vf",
+                            "scale=320:-1",
+                            local_thumb,
+                        ],
+                        check=True,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        timeout=15,
+                    )
 
                     if os.path.exists(local_thumb):
                         event_data.thumbnail_path = db_thumb
@@ -742,8 +897,13 @@ def process_webhook_file_event(camera_id: int, event_type: str, payload: dict, i
 
     return {"status": "received"}
 
+
 @router.delete("/{event_id}", response_model=schemas.Event)
-def delete_event(event_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def delete_event(
+    event_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
     # 1. Delete from DB
     event = crud.delete_event(db, event_id)
     if not event:
@@ -753,6 +913,7 @@ def delete_event(event_id: int, db: Session = Depends(database.get_db), current_
     delete_event_files(event)
 
     return event
+
 
 @router.get("/{event_id}/download")
 async def download_event(event_id: int, request: Request, token: Optional[str] = None):
@@ -769,12 +930,18 @@ async def download_event(event_id: int, request: Request, token: Optional[str] =
             raise HTTPException(status_code=404, detail="Event not found")
 
         if user.role == "viewer" and user.restrict_camera_access:
-            allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id, permission="replay")
+            allowed_ids = crud.get_allowed_camera_ids_for_user(
+                db, user.id, permission="replay"
+            )
             if allowed_ids is not None and event.camera_id not in allowed_ids:
-                raise HTTPException(status_code=403, detail="Not authorized to download this event")
+                raise HTTPException(
+                    status_code=403, detail="Not authorized to download this event"
+                )
 
         if not event.file_path:
-            raise HTTPException(status_code=404, detail="No file associated with this event")
+            raise HTTPException(
+                status_code=404, detail="No file associated with this event"
+            )
 
         file_path = event.file_path
         event_type = event.type
@@ -792,7 +959,9 @@ async def download_event(event_id: int, request: Request, token: Optional[str] =
     # Security Validation: Path must be within /data/
     if not os.path.abspath(file_path).startswith("/data/"):
         logger.warning(f"Security Alert: Attempted access to {file_path}")
-        raise HTTPException(status_code=403, detail="Access denied: File outside storage directory")
+        raise HTTPException(
+            status_code=403, detail="Access denied: File outside storage directory"
+        )
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found on disk")
@@ -807,11 +976,16 @@ async def download_event(event_id: int, request: Request, token: Optional[str] =
         path=file_path,
         filename=filename,
         media_type=media_type,
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
+
 @router.post("/bulk-delete")
-def bulk_delete_events(request: schemas.BulkDeleteRequest, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def bulk_delete_events(
+    request: schemas.BulkDeleteRequest,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
     """Delete multiple individual events by ID"""
     deleted_count = 0
     errors = []
@@ -834,8 +1008,13 @@ def bulk_delete_events(request: schemas.BulkDeleteRequest, db: Session = Depends
     db.commit()
     return {"deleted_count": deleted_count, "errors": errors}
 
+
 @router.delete("/bulk/all")
-def delete_all_events(event_type: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def delete_all_events(
+    event_type: Optional[str] = None,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
     """
     Delete all events.
     - event_type=video: Delete only video events
@@ -865,5 +1044,5 @@ def delete_all_events(event_type: Optional[str] = None, db: Session = Depends(da
         "deleted_count": deleted_count,
         "deleted_size_bytes": deleted_size,
         "deleted_size_mb": round(deleted_size / (1024 * 1024), 2),
-        "type": event_type or "all"
+        "type": event_type or "all",
     }
