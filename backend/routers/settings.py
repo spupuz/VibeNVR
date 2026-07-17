@@ -424,8 +424,18 @@ async def perform_restore(data: dict, db: Session):
 
     # 6. Restore Users
     if "users" in data:
+        usernames = list({u["username"] for u in data["users"]})
+        existing_users_map = {}
+        # Fetch in batches to prevent exceeding SQL parameter limits (e.g. 999 for SQLite)
+        batch_size = 900
+        for i in range(0, len(usernames), batch_size):
+            batch = usernames[i:i + batch_size]
+            existing_users = db.query(models.User).filter(models.User.username.in_(batch)).all()
+            for user in existing_users:
+                existing_users_map[user.username] = user
+
         for u in data["users"]:
-            existing_user = db.query(models.User).filter(models.User.username == u["username"]).first()
+            existing_user = existing_users_map.get(u["username"])
             if not existing_user:
                 new_user = models.User(
                     username=u["username"],
@@ -444,6 +454,8 @@ async def perform_restore(data: dict, db: Session):
                     mapped_grp_ids = [grp_id_map.get(gid, gid) for gid in u["allowed_group_ids"]]
                     new_user.allowed_groups = db.query(models.CameraGroup).filter(models.CameraGroup.id.in_(mapped_grp_ids)).all()
                 db.add(new_user)
+                # Add to map so duplicates in backup don't trigger a unique constraint violation
+                existing_users_map[new_user.username] = new_user
             else:
                 existing_user.role = u.get("role", existing_user.role)
                 existing_user.email = u.get("email", existing_user.email)
