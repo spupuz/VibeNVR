@@ -29,3 +29,5 @@
 ## 2026-07-16 - [Fix blocking sleep in FastAPI lifespan]
 **Learning:** When refactoring blocking calls (e.g., `time.sleep`) to async equivalents (e.g., `asyncio.sleep`) in FastAPI lifespan or other async contexts, carefully check for nested synchronous functions or background threads (like `run_orphan_recovery`) in the same file that still rely on the original synchronous module before removing their imports.
 **Action:** Ensure synchronous functions inside async files correctly import and use synchronous versions of blocking operations.
+## 2026-07-17 - [FastAPI Async Performance Optimization]
+Wrapped blocking synchronous SQLAlchemy queries (e.g. `crud.get_camera`) in FastAPI `async def` routes with `fastapi.concurrency.run_in_threadpool`. This prevents synchronous database operations from stalling the main asyncio event loop, drastically improving application concurrency and preventing deadlocks during high-load scenarios like concurrent PTZ continuous movement.
