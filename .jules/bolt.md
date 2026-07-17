@@ -29,3 +29,7 @@
 ## 2026-07-16 - [Fix blocking sleep in FastAPI lifespan]
 **Learning:** When refactoring blocking calls (e.g., `time.sleep`) to async equivalents (e.g., `asyncio.sleep`) in FastAPI lifespan or other async contexts, carefully check for nested synchronous functions or background threads (like `run_orphan_recovery`) in the same file that still rely on the original synchronous module before removing their imports.
 **Action:** Ensure synchronous functions inside async files correctly import and use synchronous versions of blocking operations.
+
+## 2025-02-12 - [Optimize async FastAPI routes handling sync DB calls]
+**Learning:** In FastAPI, asynchronous endpoints (`async def`) run on the main event loop. If these routes contain synchronous SQLAlchemy database operations (like `crud.get_camera(db)`), they directly block the entire event loop, causing poor concurrency and degraded performance for all incoming API requests.
+**Action:** Offload synchronous database calls to worker threads using `fastapi.concurrency.run_in_threadpool`. Crucially, to preserve thread-safety with SQLAlchemy (since passing `Session` objects or lazy-loaded models across threads is an anti-pattern and often leads to detached instance errors), encapsulate the database fetch and serialization into a single synchronous wrapper function that spins up its own `SessionLocal` context manager and maps the ORM model into a thread-safe plain Python dictionary or dataclass schema.

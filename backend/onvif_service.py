@@ -257,7 +257,7 @@ async def deep_scan_host(ip: str, concurrency: int = 50) -> List[int]:
     logger.info(f"Extended scan finished for {ip}, found {len(open_ports)} open ports.")
     return open_ports
 
-async def get_ptz_service(camera: "models.Camera"):
+async def get_ptz_service(camera: "schemas.Camera"):
     """Initialize and return the PTZ service for a camera."""
     host = camera.onvif_host
     port = camera.onvif_port or 80
@@ -298,7 +298,7 @@ async def get_ptz_service(camera: "models.Camera"):
         
     return ptz_service, token
 
-async def ptz_continuous_move(camera: "models.Camera", pan: float, tilt: float, zoom: float):
+async def ptz_continuous_move(camera: "schemas.Camera", pan: float, tilt: float, zoom: float):
     """Trigger continuous movement via ONVIF."""
     try:
         ptz, token = await get_ptz_service(camera)
@@ -327,7 +327,7 @@ async def ptz_continuous_move(camera: "models.Camera", pan: float, tilt: float, 
         logger.error(f"PTZ Move failed for {camera.name}: {e}", exc_info=True)
         return False
 
-async def ptz_stop(camera: "models.Camera"):
+async def ptz_stop(camera: "schemas.Camera"):
     """Stop all PTZ movement."""
     try:
         ptz, token = await get_ptz_service(camera)
@@ -337,7 +337,7 @@ async def ptz_stop(camera: "models.Camera"):
         logger.error(f"PTZ Stop failed for {camera.name}: {e}")
         return False
 
-async def ptz_set_home(camera: "models.Camera"):
+async def ptz_set_home(camera: "schemas.Camera"):
     """Set the current position as the PTZ home position with fallback to Preset 1."""
     try:
         ptz, token = await get_ptz_service(camera)
@@ -389,7 +389,7 @@ async def ptz_set_home(camera: "models.Camera"):
         logger.error(f"PTZ SetHome failed for {camera.name}: {e}")
         return False
 
-async def ptz_goto_home(camera: "models.Camera"):
+async def ptz_goto_home(camera: "schemas.Camera"):
     """Move the PTZ to the configured home position with fallback to Preset 1."""
     try:
         ptz, token = await get_ptz_service(camera)
@@ -432,7 +432,7 @@ async def ptz_goto_home(camera: "models.Camera"):
         logger.error(f"PTZ GotoHomePosition failed for {camera.name}: {e}")
         return False
 
-async def ptz_goto_preset(camera: "models.Camera", preset_token: str):
+async def ptz_goto_preset(camera: "schemas.Camera", preset_token: str):
     """Move the PTZ to a specific preset token."""
     try:
         ptz, token = await get_ptz_service(camera)
@@ -446,7 +446,7 @@ async def ptz_goto_preset(camera: "models.Camera", preset_token: str):
         logger.error(f"PTZ GotoPreset failed for {camera.name}: {e}")
         return False
 
-async def get_ptz_presets(camera: "models.Camera"):
+async def get_ptz_presets(camera: "schemas.Camera"):
     """Retrieve list of defined PTZ presets."""
     try:
         ptz, token = await get_ptz_service(camera)
@@ -557,7 +557,7 @@ async def _detect_onvif_capabilities(device: ONVIFCamera, profile_token: Optiona
         
     return features
 
-async def get_onvif_features(camera: "models.Camera"):
+async def get_onvif_features(camera: "schemas.Camera"):
     """Detect supported ONVIF features (Pan/Tilt, Zoom, Events) for a camera."""
     try:
         host = camera.onvif_host

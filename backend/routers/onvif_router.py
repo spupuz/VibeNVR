@@ -11,6 +11,26 @@ import database
 import crud
 import models
 
+from fastapi.concurrency import run_in_threadpool
+
+def _get_camera_schema(camera_id: int) -> schemas.Camera | None:
+    with database.SessionLocal() as db:
+        camera = crud.get_camera(db, camera_id)
+        if not camera:
+            return None
+        return schemas.Camera.model_validate(camera, from_attributes=True)
+
+def _update_camera_features(camera_id: int, features: dict) -> None:
+    with database.SessionLocal() as db:
+        camera = crud.get_camera(db, camera_id)
+        if not camera:
+            return
+        camera.ptz_can_pan_tilt = features["ptz_can_pan_tilt"]
+        camera.ptz_can_zoom = features["ptz_can_zoom"]
+        camera.onvif_can_events = features.get("onvif_can_events", False)
+        camera.audio_enabled = features.get("audio_enabled", False)
+        db.commit()
+
 router = APIRouter(prefix="/onvif", tags=["onvif"])
 
 
@@ -179,11 +199,10 @@ async def deep_scan_onvif(req: schemas.OnvifDeepScanRequest, current_user: schem
 async def ptz_move(
     camera_id: int, 
     req: schemas.PTZMoveRequest,
-    db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth_service.check_camera_control)
 ):
     """Trigger continuous PTZ movement."""
-    camera = crud.get_camera(db, camera_id)
+    camera = await run_in_threadpool(_get_camera_schema, camera_id)
     if not camera:
         raise HTTPException(status_code=404, detail="Camera not found")
         
@@ -195,11 +214,10 @@ async def ptz_move(
 @router.post("/ptz/stop/{camera_id}")
 async def ptz_stop(
     camera_id: int,
-    db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth_service.check_camera_control)
 ):
     """Stop PTZ movement."""
-    camera = crud.get_camera(db, camera_id)
+    camera = await run_in_threadpool(_get_camera_schema, camera_id)
     if not camera:
         raise HTTPException(status_code=404, detail="Camera not found")
         
@@ -211,11 +229,10 @@ async def ptz_stop(
 @router.post("/ptz/set-home/{camera_id}")
 async def ptz_set_home(
     camera_id: int,
-    db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth_service.check_camera_control)
 ):
     """Set the current position as the home position."""
-    camera = crud.get_camera(db, camera_id)
+    camera = await run_in_threadpool(_get_camera_schema, camera_id)
     if not camera:
         raise HTTPException(status_code=404, detail="Camera not found")
         
@@ -230,11 +247,10 @@ async def ptz_set_home(
 @router.post("/ptz/goto-home/{camera_id}")
 async def ptz_goto_home(
     camera_id: int,
-    db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth_service.check_camera_control)
 ):
     """Go to the configured home position."""
-    camera = crud.get_camera(db, camera_id)
+    camera = await run_in_threadpool(_get_camera_schema, camera_id)
     if not camera:
         raise HTTPException(status_code=404, detail="Camera not found")
         
@@ -250,11 +266,10 @@ async def ptz_goto_home(
 async def ptz_goto_preset(
     camera_id: int,
     req: schemas.PTZGotoPresetRequest,
-    db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth_service.check_camera_control)
 ):
     """Go to a specific PTZ preset."""
-    camera = crud.get_camera(db, camera_id)
+    camera = await run_in_threadpool(_get_camera_schema, camera_id)
     if not camera:
         raise HTTPException(status_code=404, detail="Camera not found")
         
@@ -266,11 +281,10 @@ async def ptz_goto_preset(
 @router.get("/ptz/presets/{camera_id}")
 async def get_ptz_presets(
     camera_id: int,
-    db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth_service.check_camera_control)
 ):
     """Get list of PTZ presets."""
-    camera = crud.get_camera(db, camera_id)
+    camera = await run_in_threadpool(_get_camera_schema, camera_id)
     if not camera:
         raise HTTPException(status_code=404, detail="Camera not found")
         
@@ -280,11 +294,10 @@ async def get_ptz_presets(
 @router.post("/ptz/probe-features/{camera_id}")
 async def probe_ptz_features(
     camera_id: int,
-    db: Session = Depends(database.get_db),
     current_user: schemas.User = Depends(auth_service.get_current_active_admin)
 ):
     """Manually trigger a probe for ONVIF features and update camera status."""
-    camera = crud.get_camera(db, camera_id)
+    camera = await run_in_threadpool(_get_camera_schema, camera_id)
     if not camera:
         raise HTTPException(status_code=404, detail="Camera not found")
     
@@ -292,12 +305,7 @@ async def probe_ptz_features(
     features = await onvif_service.get_onvif_features(camera)
     
     # 2. Update DB
-    camera.ptz_can_pan_tilt = features["ptz_can_pan_tilt"]
-    camera.ptz_can_zoom = features["ptz_can_zoom"]
-    camera.onvif_can_events = features["onvif_can_events"]
-    camera.audio_enabled = features["audio_enabled"]
-    db.commit()
-    db.refresh(camera)
+    await run_in_threadpool(_update_camera_features, camera_id, features)
     
     # Trigger subscription update if mode is ONVIF Edge
     from onvif_event_service import event_manager
