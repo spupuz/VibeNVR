@@ -29,3 +29,5 @@
 ## 2026-07-16 - [Fix blocking sleep in FastAPI lifespan]
 **Learning:** When refactoring blocking calls (e.g., `time.sleep`) to async equivalents (e.g., `asyncio.sleep`) in FastAPI lifespan or other async contexts, carefully check for nested synchronous functions or background threads (like `run_orphan_recovery`) in the same file that still rely on the original synchronous module before removing their imports.
 **Action:** Ensure synchronous functions inside async files correctly import and use synchronous versions of blocking operations.
+## 2026-07-17 - Avoid N+1 issues in batch operations
+When dealing with bulk deletions (e.g. `_cleanup_corrupted_videos` removing missing videos), avoid calling single-record operations (like `db.delete()`) inside a loop. This generates an N+1 query execution bottleneck. Instead, collect the primary keys in a Python list and execute a batched delete using an `.in_()` clause with `synchronize_session=False` (e.g. `db.query(Event).filter(Event.id.in_(batch)).delete(synchronize_session=False)`). SQLite limits the max number of variables, so batching deletions (e.g. chunks of 900) ensures stability.
