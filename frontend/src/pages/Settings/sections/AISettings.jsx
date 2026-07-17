@@ -7,6 +7,7 @@ import { SelectField, Toggle } from '../../../components/ui/FormControls';
 export const AISettings = ({
     globalSettings,
     setGlobalSettings,
+    handleSave,
     isOpen,
     onToggle
 }) => {
@@ -26,7 +27,11 @@ export const AISettings = ({
                         label={t('settings_forms.ai_activation', 'Global AI Activation')}
                         help={t('settings_forms.ai_activation_help', 'When disabled, the AI engine is completely turned off to save system resources. Individual camera AI settings will be ignored.')}
                         checked={globalSettings.ai_enabled === true || globalSettings.ai_enabled === "true"}
-                        onChange={(val) => setGlobalSettings({ ...globalSettings, ai_enabled: val })}
+                        onChange={(val) => {
+                            const newSettings = { ...globalSettings, ai_enabled: val };
+                            setGlobalSettings(newSettings);
+                            if (handleSave) handleSave(newSettings);
+                        }}
                     />
                 </div>
 

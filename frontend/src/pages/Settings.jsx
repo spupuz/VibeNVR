@@ -226,7 +226,7 @@ export const Settings = () => {
         fetchGroups();
     }, [token, fetchSettings, fetchStats, fetchUsers, fetchCameras, fetchGroups]);
 
-    const handleSave = async () => {
+    const handleSave = async (settingsToSave = globalSettings) => {
         if (user?.role !== 'admin') {
             showToast('Only admins can save settings.', 'error');
             return;
@@ -242,51 +242,51 @@ export const Settings = () => {
                     Authorization: `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    max_global_storage_gb: (globalSettings.max_global_storage_gb || 0).toString(),
-                    cleanup_enabled: globalSettings.cleanup_enabled.toString(),
-                    cleanup_interval_hours: globalSettings.cleanup_interval_hours.toString(),
-                    smtp_server: globalSettings.smtp_server,
-                    smtp_port: globalSettings.smtp_port,
-                    smtp_username: globalSettings.smtp_username,
-                    smtp_password: globalSettings.smtp_password,
-                    smtp_from_email: globalSettings.smtp_from_email,
-                    telegram_bot_token: globalSettings.telegram_bot_token || '',
-                    telegram_chat_id: globalSettings.telegram_chat_id || '',
-                    telegram_proxy_enabled: (globalSettings.telegram_proxy_enabled || 'false').toString(),
-                    telegram_proxy_url: globalSettings.telegram_proxy_url || '',
-                    telegram_proxy_retries: (globalSettings.telegram_proxy_retries || '3').toString(),
-                    telegram_proxy_retry_delay: (globalSettings.telegram_proxy_retry_delay || '2').toString(),
-                    notify_email_recipient: globalSettings.notify_email_recipient,
-                    notify_webhook_url: globalSettings.notify_webhook_url,
+                    max_global_storage_gb: (settingsToSave.max_global_storage_gb || 0).toString(),
+                    cleanup_enabled: settingsToSave.cleanup_enabled.toString(),
+                    cleanup_interval_hours: settingsToSave.cleanup_interval_hours.toString(),
+                    smtp_server: settingsToSave.smtp_server,
+                    smtp_port: settingsToSave.smtp_port,
+                    smtp_username: settingsToSave.smtp_username,
+                    smtp_password: settingsToSave.smtp_password,
+                    smtp_from_email: settingsToSave.smtp_from_email,
+                    telegram_bot_token: settingsToSave.telegram_bot_token || '',
+                    telegram_chat_id: settingsToSave.telegram_chat_id || '',
+                    telegram_proxy_enabled: (settingsToSave.telegram_proxy_enabled || 'false').toString(),
+                    telegram_proxy_url: settingsToSave.telegram_proxy_url || '',
+                    telegram_proxy_retries: (settingsToSave.telegram_proxy_retries || '3').toString(),
+                    telegram_proxy_retry_delay: (settingsToSave.telegram_proxy_retry_delay || '2').toString(),
+                    notify_email_recipient: settingsToSave.notify_email_recipient,
+                    notify_webhook_url: settingsToSave.notify_webhook_url,
 
-                    default_landing_page: globalSettings.default_landing_page,
-                    global_attach_image_email: globalSettings.global_attach_image_email.toString(),
-                    global_attach_image_telegram: globalSettings.global_attach_image_telegram.toString(),
+                    default_landing_page: settingsToSave.default_landing_page,
+                    global_attach_image_email: settingsToSave.global_attach_image_email.toString(),
+                    global_attach_image_telegram: settingsToSave.global_attach_image_telegram.toString(),
 
-                    opt_live_view_fps_throttle: globalSettings.opt_live_view_fps_throttle.toString(),
-                    opt_motion_fps_throttle: globalSettings.opt_motion_fps_throttle.toString(),
-                    opt_live_view_height_limit: globalSettings.opt_live_view_height_limit.toString(),
-                    opt_motion_analysis_height: globalSettings.opt_motion_analysis_height.toString(),
-                    opt_live_view_quality: globalSettings.opt_live_view_quality.toString(),
-                    opt_snapshot_quality: globalSettings.opt_snapshot_quality.toString(),
-                    opt_ffmpeg_preset: globalSettings.opt_ffmpeg_preset,
-                    opt_pre_capture_fps_throttle: globalSettings.opt_pre_capture_fps_throttle.toString(),
-                    opt_verbose_engine_logs: globalSettings.opt_verbose_engine_logs.toString(),
-                    telemetry_enabled: globalSettings.telemetry_enabled.toString(),
-                    default_live_view_mode: globalSettings.default_live_view_mode,
-                    backup_auto_enabled: globalSettings.backup_auto_enabled.toString(),
-                    backup_auto_frequency_hours: globalSettings.backup_auto_frequency_hours.toString(),
-                    backup_auto_retention: globalSettings.backup_auto_retention.toString(),
-                    mqtt_enabled: globalSettings.mqtt_enabled.toString(),
-                    mqtt_host: globalSettings.mqtt_host,
-                    mqtt_port: globalSettings.mqtt_port,
-                    mqtt_username: globalSettings.mqtt_username,
-                    mqtt_password: globalSettings.mqtt_password,
-                    mqtt_topic_prefix: globalSettings.mqtt_topic_prefix,
-                    ai_model: globalSettings.ai_model,
-                    ai_hardware: globalSettings.ai_hardware,
-                    ai_enabled: globalSettings.ai_enabled.toString(),
-                    go2rtc_enabled: globalSettings.go2rtc_enabled.toString()
+                    opt_live_view_fps_throttle: settingsToSave.opt_live_view_fps_throttle.toString(),
+                    opt_motion_fps_throttle: settingsToSave.opt_motion_fps_throttle.toString(),
+                    opt_live_view_height_limit: settingsToSave.opt_live_view_height_limit.toString(),
+                    opt_motion_analysis_height: settingsToSave.opt_motion_analysis_height.toString(),
+                    opt_live_view_quality: settingsToSave.opt_live_view_quality.toString(),
+                    opt_snapshot_quality: settingsToSave.opt_snapshot_quality.toString(),
+                    opt_ffmpeg_preset: settingsToSave.opt_ffmpeg_preset,
+                    opt_pre_capture_fps_throttle: settingsToSave.opt_pre_capture_fps_throttle.toString(),
+                    opt_verbose_engine_logs: settingsToSave.opt_verbose_engine_logs.toString(),
+                    telemetry_enabled: settingsToSave.telemetry_enabled.toString(),
+                    default_live_view_mode: settingsToSave.default_live_view_mode,
+                    backup_auto_enabled: settingsToSave.backup_auto_enabled.toString(),
+                    backup_auto_frequency_hours: settingsToSave.backup_auto_frequency_hours.toString(),
+                    backup_auto_retention: settingsToSave.backup_auto_retention.toString(),
+                    mqtt_enabled: settingsToSave.mqtt_enabled.toString(),
+                    mqtt_host: settingsToSave.mqtt_host,
+                    mqtt_port: settingsToSave.mqtt_port,
+                    mqtt_username: settingsToSave.mqtt_username,
+                    mqtt_password: settingsToSave.mqtt_password,
+                    mqtt_topic_prefix: settingsToSave.mqtt_topic_prefix,
+                    ai_model: settingsToSave.ai_model,
+                    ai_hardware: settingsToSave.ai_hardware,
+                    ai_enabled: settingsToSave.ai_enabled.toString(),
+                    go2rtc_enabled: settingsToSave.go2rtc_enabled.toString()
                 })
             });
             showToast('Settings saved successfully!', 'success');
@@ -629,6 +629,7 @@ export const Settings = () => {
                     <AISettings
                         globalSettings={globalSettings}
                         setGlobalSettings={setGlobalSettings}
+                        handleSave={handleSave}
                         isOpen={openSection === 'ai-settings'}
                         onToggle={toggleSection}
                     />
