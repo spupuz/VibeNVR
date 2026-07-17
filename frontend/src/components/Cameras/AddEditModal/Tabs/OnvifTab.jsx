@@ -20,7 +20,6 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
     useEffect(() => {
         const hasHost = newCamera.onvif_host && newCamera.onvif_host.trim() !== '';
         if (!hasHost && newCamera.rtsp_url) {
-            console.log("OnvifTab: Auto-filling from RTSP URL...");
             const { user, pass, host } = parseRtspUrl(newCamera.rtsp_url);
             // Extract IP/Host from RTSP host (which might include port)
             const IPOnly = host?.split(':')[0];
