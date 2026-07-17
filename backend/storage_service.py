@@ -116,16 +116,20 @@ def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None, s
             logger.info(f"Camera {camera.name} MOVIE limit exceeded: {movies_used_gb:.2f}GB > {camera.max_storage_gb:.2f}GB")
             target_gb = camera.max_storage_gb * 0.95
             while movies_used_gb > target_gb:
-                oldest = db.query(models.Event).filter(
+                # ⚡ Bolt: Use batched queries and commit per batch to avoid N+1 queries.
+                # Performance Impact: Replaces O(N) database queries and transaction commits with O(1) batched operations.
+                batch = db.query(models.Event).filter(
                     models.Event.camera_id == camera.id, 
                     models.Event.type == "video"
-                ).order_by(models.Event.timestamp_start.asc()).first()
-                if not oldest: break
+                ).order_by(models.Event.timestamp_start.asc()).limit(100).all()
+                if not batch: break
                 
-                size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0.05
-                delete_event_media(oldest, db, reason="Camera Quota (Video)")
+                for oldest in batch:
+                    if movies_used_gb <= target_gb: break
+                    size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0.05
+                    delete_event_media(oldest, db, reason="Camera Quota (Video)")
+                    movies_used_gb -= size_gb
                 db.commit()
-                movies_used_gb -= size_gb
 
     # 2. Cleanup Pictures (max_pictures_storage_gb)
     if (not media_type or media_type == 'snapshot') and camera.max_pictures_storage_gb and camera.max_pictures_storage_gb > 0:
@@ -139,16 +143,20 @@ def cleanup_camera(db: Session, camera: models.Camera, media_type: str = None, s
             logger.info(f"Camera {camera.name} PICTURE limit exceeded: {pics_used_gb:.2f}GB > {camera.max_pictures_storage_gb:.2f}GB")
             target_gb = camera.max_pictures_storage_gb * 0.95
             while pics_used_gb > target_gb:
-                oldest = db.query(models.Event).filter(
+                # ⚡ Bolt: Use batched queries and commit per batch to avoid N+1 queries.
+                # Performance Impact: Replaces O(N) database queries and transaction commits with O(1) batched operations.
+                batch = db.query(models.Event).filter(
                     models.Event.camera_id == camera.id, 
                     models.Event.type == "snapshot"
-                ).order_by(models.Event.timestamp_start.asc()).first()
-                if not oldest: break
+                ).order_by(models.Event.timestamp_start.asc()).limit(100).all()
+                if not batch: break
                 
-                size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0.001
-                delete_event_media(oldest, db, reason="Camera Quota (Snapshot)")
+                for oldest in batch:
+                    if pics_used_gb <= target_gb: break
+                    size_gb = (oldest.file_size / (1024**3)) if oldest.file_size else 0.001
+                    delete_event_media(oldest, db, reason="Camera Quota (Snapshot)")
+                    pics_used_gb -= size_gb
                 db.commit()
-                pics_used_gb -= size_gb
 
     # 3. Time-based cleanup
     if skip_time_retention:
@@ -267,11 +275,15 @@ def run_cleanup(quota_only=False):
                     # In emergency, we reduce EVERYTHING until we have 10% free
                     target_free_bytes = usage.total * 0.10
                     while usage.free < target_free_bytes:
-                        oldest = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).first()
-                        if not oldest: break
-                        delete_event_media(oldest, db, reason="Emergency Disk Space")
+                        # ⚡ Bolt: Use batched queries and commit per batch to avoid N+1 queries.
+                        # Performance Impact: Replaces O(N) database queries and transaction commits with O(1) batched operations.
+                        batch = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).limit(100).all()
+                        if not batch: break
+                        for oldest in batch:
+                            if usage.free >= target_free_bytes: break
+                            delete_event_media(oldest, db, reason="Emergency Disk Space")
+                            usage = shutil.disk_usage("/data")
                         db.commit()
-                        usage = shutil.disk_usage("/data")
             except Exception as disk_e:
                 logger.error(f"Error checking disk usage: {disk_e}")
 
@@ -299,24 +311,29 @@ def run_cleanup(quota_only=False):
                     logger.info(f"Global storage limit exceeded (App Quota): {current_used_gb:.2f}GB > {max_global_gb:.2f}GB. Cleaning up...")
                     target_gb = max_global_gb * 0.95
                     
+                    # ⚡ Bolt: max_iterations counts batches now, effectively handling up to 50k events.
                     max_iterations = 500 # Safety break
                     iterations = 0
                     while current_used_gb > target_gb and iterations < max_iterations:
                         iterations += 1
-                        oldest_event = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).first()
-                        if not oldest_event: break
                         
-                        size_gb = (oldest_event.file_size / (1024**3)) if oldest_event.file_size else 0.05
-                        success = delete_event_media(oldest_event, db, reason="Global Quota")
+                        # ⚡ Bolt: Use batched queries and commit per batch to avoid N+1 queries.
+                        # Performance Impact: Replaces O(N) database queries and transaction commits with O(1) batched operations.
+                        batch = db.query(models.Event).order_by(models.Event.timestamp_start.asc()).limit(100).all()
+                        if not batch: break
+                        
+                        for oldest_event in batch:
+                            if current_used_gb <= target_gb: break
+                            size_gb = (oldest_event.file_size / (1024**3)) if oldest_event.file_size else 0.05
+                            success = delete_event_media(oldest_event, db, reason="Global Quota")
+
+                            if success:
+                                current_used_gb -= size_gb
+                            else:
+                                # If deletion fails, we skip this event to avoid infinite loop
+                                # (The event remains in DB and on disk, which is bad, but we can't do much)
+                                logger.error(f"Failed to delete event {oldest_event.id} during global cleanup. Skipping.")
                         db.commit()
-                        
-                        if success:
-                            current_used_gb -= size_gb
-                        else:
-                            # If deletion fails, we skip this event to avoid infinite loop
-                            # (The event remains in DB and on disk, which is bad, but we can't do much)
-                            logger.error(f"Failed to delete event {oldest_event.id} during global cleanup. Skipping.")
-                            # We don't decrement current_used_gb, so iterations will eventually hit max_iterations
             
             # Priority 4: Cleanup Temp Files (Only on full run)
             if not quota_only:
