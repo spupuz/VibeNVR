@@ -51,7 +51,7 @@ def migrate_frames_to_seconds():
             
     except Exception as e:
         logger.error(f"Migration failed: {e}")
-        # sys.exit(1) # Don't crash the whole backend if this optional migration fails
+        # Don't crash the whole backend if this optional migration fails
 
 if __name__ == "__main__":
     migrate_frames_to_seconds()
