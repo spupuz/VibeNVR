@@ -316,6 +316,9 @@ class CameraThread(threading.Thread):
                             
                             # Broadcast AI metadata to WebCodecs clients
                             self.stream_reader.broadcast_metadata(ai_results)
+                        elif raw_ai_results:
+                            logger.debug(f"Camera {self.config.get('name')} (ID: {self.camera_id}): AI inference ignored (object inside mask/exclusion zone)")
+                            self.latest_ai_results = []
                     
                     # Persistence: reuse latest AI results while motion is still considered active.
                     # - If motion_detected=True: keep the box visible for up to motion_gap seconds
