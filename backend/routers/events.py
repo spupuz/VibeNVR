@@ -11,6 +11,7 @@ import threading
 import models
 import utils
 import subprocess
+import hmac
 import auth_service
 import datetime
 import logging
@@ -542,7 +543,7 @@ async def webhook_event(
     # Use dedicated WEBHOOK_SECRET if set, otherwise fallback to SECRET_KEY
     expected_secret = os.getenv("WEBHOOK_SECRET", auth_service.SECRET_KEY)
 
-    if secret_header != expected_secret:
+    if not secret_header or not hmac.compare_digest(secret_header.encode('utf-8'), expected_secret.encode('utf-8')):
         # Avoid leaking existence or details, but allow local debugging if needed?
         # Strict security: 401.
         logger.warning("[WEBHOOK] Unauthorized access attempt (Invalid Secret).")
