@@ -38,8 +38,18 @@ export const HourTimeline = React.memo(({ events, onHourClick, selectedHour }) =
                     return (
                         <div
                             key={hour}
-                            className={`flex items-center cursor-pointer group flex-1 min-h-0 ${isCurrent ? 'bg-primary/5' : ''}`}
+                            className={`flex items-center cursor-pointer group flex-1 min-h-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:z-10 ${isCurrent ? 'bg-primary/5' : ''}`}
                             onClick={() => onHourClick(hour)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onHourClick(hour);
+                                }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Filter events for ${hour}:00`}
+                            aria-pressed={selectedHour === hour}
                         >
                             <span className={`text-[8px] w-5 text-right mr-1 ${isCurrent ? 'text-primary font-bold' : 'text-muted-foreground'}`}>
                                 {hour.toString().padStart(2, '0')}
