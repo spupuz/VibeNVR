@@ -586,6 +586,10 @@ async def import_cameras(file: UploadFile = File(...), analyze_only: bool = Fals
 
         parsed_cameras = []
 
+        # Pre-fetch existing hosts to avoid N+1 queries during loop
+        all_cams = crud.get_cameras(db, limit=1000)
+        existing_hosts = {extract_host(c.rtsp_url) for c in all_cams if c.rtsp_url and extract_host(c.rtsp_url)}
+
         for cam_data in cameras_data:
             if cam_data is None:
                 skipped_count += 1
@@ -594,15 +598,12 @@ async def import_cameras(file: UploadFile = File(...), analyze_only: bool = Fals
             rtsp_url = cam_data.get("rtsp_url")
             host = extract_host(rtsp_url)
 
-            if host:
-                # Check all existing cameras for the same host
-                all_cams = crud.get_cameras(db, limit=1000)
-                existing = next((c for c in all_cams if extract_host(c.rtsp_url) == host), None)
-
-                if existing:
-                    print(f"[IMPORT] Skipping camera {cam_data.get('name')} - Host/IP already exists: {host}", flush=True)
-                    skipped_count += 1
-                    continue
+            if host and host in existing_hosts:
+                print(f"[IMPORT] Skipping camera {cam_data.get('name')} - Host/IP already exists: {host}", flush=True)
+                skipped_count += 1
+                continue
+            elif host:
+                existing_hosts.add(host)
 
             # Extract and remove groups/profiles to avoid schema validation error
             group_names = cam_data.pop("groups", [])
@@ -628,16 +629,21 @@ async def import_cameras(file: UploadFile = File(...), analyze_only: bool = Fals
 
             if not analyze_only:
                 # Handle group associations
-                for g_name in group_names:
-                    db_group = db.query(models.CameraGroup).filter(models.CameraGroup.name == g_name).first()
-                    if not db_group:
-                        db_group = models.CameraGroup(name=g_name)
-                        db.add(db_group)
-                        db.flush()
+                if group_names:
+                    existing_groups = db.query(models.CameraGroup).filter(models.CameraGroup.name.in_(group_names)).all()
+                    group_dict = {g.name: g for g in existing_groups}
 
-                    # Double check association
-                    if db_camera not in db_group.cameras:
-                        db_group.cameras.append(db_camera)
+                    for g_name in group_names:
+                        db_group = group_dict.get(g_name)
+                        if not db_group:
+                            db_group = models.CameraGroup(name=g_name)
+                            db.add(db_group)
+                            db.flush()
+                            group_dict[g_name] = db_group
+
+                        # Double check association
+                        if db_camera not in db_group.cameras:
+                            db_group.cameras.append(db_camera)
 
             count: int = int(imported_count)
             imported_count = count + 1
