@@ -104,6 +104,16 @@ class PollingSamplingFilter(logging.Filter):
         self.sample_rate = sample_rate
         self.counters = {}
 
+class SocketSendExceptionFilter(logging.Filter):
+    """
+    Silences the harmless 'socket.send() raised exception.' warning 
+    that uvicorn/websockets logs when a client disconnects abruptly.
+    """
+    def filter(self, record):
+        if "socket.send() raised exception" in str(record.msg):
+            return False
+        return True
+
     def filter(self, record):
         # record.args for uvicorn.access is (host, method, path, http_ver, status)
         if hasattr(record, "args") and len(record.args) >= 5:
@@ -124,6 +134,7 @@ def apply_security_logging():
     """
     redact_filter = TokenRedactingFilter()
     sampling_filter = PollingSamplingFilter()
+    socket_send_filter = SocketSendExceptionFilter()
 
     # Target loggers: root, uvicorn, and its sub-loggers
     target_loggers = ["", "uvicorn", "uvicorn.access", "uvicorn.error", "websockets", "fastapi"]
@@ -135,6 +146,8 @@ def apply_security_logging():
             logger_obj.addFilter(redact_filter)
         if name == "uvicorn.access" and not any(isinstance(f, PollingSamplingFilter) for f in logger_obj.filters):
             logger_obj.addFilter(sampling_filter)
+        if name in ["uvicorn.error", "uvicorn", ""] and not any(isinstance(f, SocketSendExceptionFilter) for f in logger_obj.filters):
+            logger_obj.addFilter(socket_send_filter)
 
         # 2. Add to all existing handlers
         for handler in logger_obj.handlers:
@@ -142,6 +155,8 @@ def apply_security_logging():
                 handler.addFilter(redact_filter)
             if name == "uvicorn.access" and not any(isinstance(f, PollingSamplingFilter) for f in handler.filters):
                 handler.addFilter(sampling_filter)
+            if name in ["uvicorn.error", "uvicorn", ""] and not any(isinstance(f, SocketSendExceptionFilter) for f in handler.filters):
+                handler.addFilter(socket_send_filter)
 
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)

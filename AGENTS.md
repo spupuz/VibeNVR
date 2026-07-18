@@ -115,6 +115,8 @@ def create_camera(
 
 The frontend uses `AuthContext` to manage the JWT token in memory. **Do not use `localStorage` for the token** — it is vulnerable to XSS. The token is persisted across page reloads via a `HttpOnly` cookie (`auth_token`) set by the backend on login.
 
+**SSO / OAuth**: VibeNVR supports logging in via external Identity Providers (IdP). This is handled via explicit account linking (the user or admin must map the `OAuth Subject ID` to a local account). **Auto-provisioning is strictly disabled**.
+
 All API calls — including media endpoints (`/cameras/{id}/frame`, `/cameras/{id}/stream`) — must use `Authorization: Bearer ${token}` in the request headers. The `media_token` HttpOnly cookie is maintained as a secondary fallback but should never be the sole authentication mechanism.
 
 ```jsx

@@ -23,6 +23,7 @@
 - Video files are stored in `/media/recordings` mapped in docker-compose.
 - **Privacy Masking & Motion Zones**: Privacy masks are burned into the video stream at the engine level before recording/motion analysis. Motion Zones are used to exclude areas from motion triggers. Unmasked frames for the editor are Admin-only.
 - **AI Integration**: Supports **YOLOv8** and MobileNet SSD v2 via TFLite. Implements **NMS (Non-Maximum Suppression)** to filter duplicate detections.
+- **SSO / OAuth Integration**: Allows linking external Identity Providers (e.g., Authentik, Keycloak) to local accounts. Enforces strict zero-trust mapping (no auto-provisioning) by requiring an explicitly linked `OAuth Subject ID`.
 - **Global Settings Sync**: Core parameters (AI Model, AI Hardware, MQTT, FPS Throttles) are managed as **Global System Settings** and synchronized to the engine singleton in real-time, ensuring architecture-wide consistency and stability.
 - **Configuration Backup & Restore**: Full system configuration (cameras, settings, users) can be exported, imported, and restored from automated/manual snapshots stored in `/data/backups/`.
 - **System Integrity Audit**: Integrated security, RBAC, and synchronization audits (e.g., Audio/PTZ/AI) are performed on every release to ensure system-wide consistency and safety.
@@ -38,7 +39,7 @@
 1. **Docker**: Before any major commit, suggest or perform a rebuild (`docker compose up -d --build`) to verify integrity.
 2. **Language**: Code comments in English. User interactions in Italian (or as requested).
 3. **RBAC**: Remember that `admin` (full access) and `viewer` (read-only) roles exist. Always verify permissions for destructive or configuration actions.
-4. **Security & Vulnerabilities**: **CRITICAL**. Review and adhere to `SECURITY.md`. Always verify that code changes do not introduce security vulnerabilities (e.g., IDOR, Injection, Unprotected Endpoints). Proactively sanitize inputs and verify user roles for every sensitive API or Action.
+4. **Security & Vulnerabilities**: **CRITICAL**. Review and adhere to `SECURITY.md`. Always verify that code changes do not introduce security vulnerabilities (e.g., IDOR, Injection, Unprotected Endpoints). Proactively sanitize inputs and verify user roles for every sensitive API or Action. Ensure SSO modifications respect the explicit mapping policy.
 5. **Data Masking & Privacy**: Logs, telemetry, and debugging outputs MUST ALWAYS be filtered to exclude sensitive data (passwords, tokens, credentials in RTSP URLs). Use existing filters (`TokenRedactingFilter` in `main.py`) or implement new ones as needed.
 6. **Log Rotation**: **CRITICAL**. Ensure all log outputs (Docker logs and file logs) are subject to rotation and size limits to prevent host disk exhaustion.
 
