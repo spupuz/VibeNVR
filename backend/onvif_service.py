@@ -8,6 +8,7 @@ import zeep
 from zeep.transports import Transport
 from requests import Session
 import models
+import schemas
 
 logger = logging.getLogger("VibeOnvif")
 logger.setLevel(logging.DEBUG)
