@@ -86,7 +86,11 @@
     "username": "用户名",
     "password": "密码",
     "verify_login": "验证并登录",
-    "secure_system": "安全视频监控系统"
+    "secure_system": "安全视频监控系统",
+    "hide_password": "隐藏密码",
+    "show_password": "显示密码",
+    "or_continue_with": "或者继续",
+    "sign_in_sso": "使用 {{provider}} 登录"
   },
   "nav": {
     "dashboard": "仪表板",
@@ -164,7 +168,8 @@
     "accel_rec_tooltip": "录音：硬件加速",
     "accel_live_tooltip": "实时解码：CPU（架构限制）",
     "rec_accel_tooltip": "硬件加速处于活动状态并用于视频录制编码。",
-    "rec_accel": "录音加速"
+    "rec_accel": "录音加速",
+    "req_for": "要求。持续 {{days}} 天"
   },
   "cameras": {
     "title": "相机",
@@ -525,7 +530,8 @@
     "streams_filled_both": "来自ONVIF的填充主码流和子码流",
     "streams_filled_main": "填充来自 ONVIF 的主流",
     "main_label": "主要的",
-    "sub_label": "子"
+    "sub_label": "子",
+    "found_profiles": "找到 {{count}} 个流配置文件。"
   },
   "settings": {
     "general_preferences": "常规首选项",
@@ -796,7 +802,16 @@
     "group_permissions": "群组权限",
     "settings": "设置",
     "all_events": "所有活动",
-    "continuous": "连续的"
+    "continuous": "连续的",
+    "bulk_delete_title": "删除 {{count}} 个活动",
+    "bulk_delete_msg": "您确定要删除 {{count}} 个选定的事件吗？",
+    "filter_by_camera": "按相机过滤",
+    "filter_by_media_type": "按媒体类型过滤",
+    "filter_by_event_type": "按事件类型过滤",
+    "filter_by_object_type": "按对象类型过滤",
+    "filter_by_date": "按日期过滤",
+    "playback_order": "播放顺序",
+    "playback_speed": "播放速度"
   },
   "live": {
     "title": "实时视图",
@@ -808,7 +823,13 @@
     "focus": "重点",
     "fullscreen": "全屏",
     "gallery": "画廊",
-    "videos": "视频"
+    "videos": "视频",
+    "show_all": "显示全部",
+    "take_photo": "拍照",
+    "stop_recording": "停止录音",
+    "start_recording": "开始连续录制",
+    "hide_ptz": "隐藏 PTZ 控件",
+    "show_ptz": "显示 PTZ 控件"
   },
   "settings_main": {
     "title": "设置",
@@ -1074,7 +1095,8 @@
     "destinations": "目的地",
     "primary": "主要",
     "cf_anon": "完全匿名。",
-    "recover_desc": "扫描磁盘上不在数据库中的视频文件，并将其导入时间线中。"
+    "recover_desc": "扫描磁盘上不在数据库中的视频文件，并将其导入时间线中。",
+    "storage_using": "当前使用了 {{used}} GB，其中 {{max}} GB 限制。"
   },
   "telemetry_notes": {
     "random_uuid_gen": "随机 UUID",
@@ -1235,7 +1257,8 @@
     "Selected cameras exported successfully": "成功",
     "Failed to export selected cameras": "错误",
     "No cameras found in file": "警告",
-    "No cameras found in MotionEye backup": "警告"
+    "No cameras found in MotionEye backup": "警告",
+    "OAuth account unlinked successfully": "成功"
   },
   "profile": {
     "display_language": "显示语言",
@@ -1250,5 +1273,28 @@
     "export": "导出相机设置",
     "edit": "编辑相机",
     "delete": "删除相机"
+  },
+  "settings_oauth": {
+    "title": "单点登录（OAuth / OIDC）",
+    "subtitle": "配置外部身份提供商，例如 Authentik、Keycloak 或 Google",
+    "sso_configuration": "单点登录配置",
+    "service_active": "单点登录活跃",
+    "service_disabled": "单点登录已禁用",
+    "important_note": "用户注意事项：",
+    "user_provisioning_desc": "VibeNVR 不会自动创建用户。您必须在 VibeNVR 中手动创建用户，并提供 OAuth 主题 ID 或要求用户通过其个人资料链接其帐户。",
+    "enable_sso": "启用全局 SSO 登录",
+    "provider_name": "提供商显示名称",
+    "provider_name_help": "显示在登录按钮上",
+    "metadata_url": "OpenID 配置 URL",
+    "client_id": "客户端ID",
+    "client_secret": "客户秘密",
+    "callback_url": "回调地址",
+    "callback_url_help": "在您的身份提供商设置中注册这个确切的 URI。",
+    "enable_sso_user": "为此用户启用 SSO 登录",
+    "subject_id": "OAuth 主题 ID（可选）",
+    "external_id": "来自身份提供商的外部 ID",
+    "sso": "SSO",
+    "linked": "LINKED",
+    "none": "NONE"
   }
 }

@@ -70,6 +70,24 @@ Retrieve profile information for the currently authenticated user.
 
 ---
 
+### 🌐 SSO / OAuth (`/oauth`)
+
+#### **GET** `/oauth/login`
+Initiates the OAuth 2.0 authorization flow. Redirects the user to the configured Identity Provider (IdP).
+- **Query Params**:
+  - `provider`: (Optional) Currently defaults to the globally configured IdP if not specified.
+- **Auth Required**: None
+
+#### **GET** `/oauth/callback`
+Handles the callback from the IdP. Validates the authorization code, retrieves the user profile, and matches it against the local database (`oauth_subject_id`). Sets `auth_token` and `media_token` cookies on success.
+- **Auth Required**: None (Handles state verification internally).
+
+#### **POST** `/oauth/unlink`
+Unlinks the currently authenticated user's account from the SSO provider.
+- **Auth Required**: JWT or valid session cookie.
+
+---
+
 ### 📷 Cameras (`/cameras`)
 
 #### **GET** `/cameras`

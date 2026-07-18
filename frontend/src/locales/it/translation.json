@@ -86,7 +86,11 @@
     "username": "Nome Utente",
     "password": "Password",
     "verify_login": "Verifica & Accedi",
-    "secure_system": "Sistema di Videosorveglianza Sicuro"
+    "secure_system": "Sistema di Videosorveglianza Sicuro",
+    "hide_password": "Nascondi la password",
+    "show_password": "Mostra password",
+    "or_continue_with": "Oppure continua con",
+    "sign_in_sso": "Accedi con {{provider}}"
   },
   "nav": {
     "dashboard": "Pannello di controllo",
@@ -163,7 +167,8 @@
     "video_accel_error": "ERRORE ACCEL",
     "accel_rec_tooltip": "Registrazione: hardware accelerato",
     "accel_live_tooltip": "Decodifica live: CPU (limitazione dell'architettura)",
-    "rec_accel_tooltip": "L'accelerazione hardware è attiva e utilizzata per la codifica della registrazione video."
+    "rec_accel_tooltip": "L'accelerazione hardware è attiva e utilizzata per la codifica della registrazione video.",
+    "req_for": "Richiesto per {{days}} giorni"
   },
   "cameras": {
     "title": "Telecamere",
@@ -518,7 +523,8 @@
     "use_streams_help": "Compila gli URL del flusso principale e secondario da questi profili (le credenziali vengono riutilizzate dall'URL corrente)",
     "streams_filled_both": "Flusso principale e secondario riempiti da ONVIF",
     "streams_filled_main": "Flusso principale riempito da ONVIF",
-    "main_label": "principale"
+    "main_label": "principale",
+    "found_profiles": "Trovato {{count}} profili di streaming."
   },
   "settings": {
     "general_preferences": "Preferenze Generali",
@@ -789,7 +795,16 @@
     "group_permissions": "Autorizzazioni di gruppo",
     "settings": "Impostazioni",
     "all_events": "Tutti gli eventi",
-    "continuous": "Continuo"
+    "continuous": "Continuo",
+    "bulk_delete_title": "Elimina {{count}} eventi",
+    "bulk_delete_msg": "Sei sicuro di voler eliminare {{count}} eventi selezionati?",
+    "filter_by_camera": "Filtra per fotocamera",
+    "filter_by_media_type": "Filtra per tipo di supporto",
+    "filter_by_event_type": "Filtra per tipo di evento",
+    "filter_by_object_type": "Filtra per tipo di oggetto",
+    "filter_by_date": "Filtra per data",
+    "playback_order": "Ordine di riproduzione",
+    "playback_speed": "Velocità di riproduzione"
   },
   "live": {
     "title": "Vista Live",
@@ -801,7 +816,13 @@
     "focus": "Messa a fuoco",
     "fullscreen": "A schermo intero",
     "gallery": "Galleria",
-    "videos": "Video"
+    "videos": "Video",
+    "show_all": "Mostra tutto",
+    "take_photo": "Scatta foto",
+    "stop_recording": "Interrompi la registrazione",
+    "start_recording": "Avvia la registrazione continua",
+    "hide_ptz": "Nascondi controlli PTZ",
+    "show_ptz": "Mostra controlli PTZ"
   },
   "settings_main": {
     "title": "Impostazioni",
@@ -1065,7 +1086,8 @@
     "destinations": "Destinazioni",
     "primary": "PRIMARIO",
     "cf_anon": "Completamente anonimo — l'IP viene scartato da Cloudflare, viene salvato solo il paese.",
-    "recover_desc": "Esegue la scansione dei file video sul disco che non sono nel database e li importa nella timeline."
+    "recover_desc": "Esegue la scansione dei file video sul disco che non sono nel database e li importa nella timeline.",
+    "storage_using": "Attualmente stai utilizzando {{used}} GB del tuo limite di {{max}} GB."
   },
   "telemetry_notes": {
     "random_uuid_gen": "UUID casuale generato all'avvio",
@@ -1226,7 +1248,8 @@
     "Selected cameras exported successfully": "successo",
     "Failed to export selected cameras": "errore",
     "No cameras found in file": "avvertimento",
-    "No cameras found in MotionEye backup": "avvertimento"
+    "No cameras found in MotionEye backup": "avvertimento",
+    "OAuth account unlinked successfully": "successo"
   },
   "profile": {
     "display_language": "Lingua di visualizzazione",
@@ -1241,5 +1264,28 @@
     "export": "Esporta le impostazioni della fotocamera",
     "edit": "Modifica fotocamera",
     "delete": "Elimina fotocamera"
+  },
+  "settings_oauth": {
+    "title": "Accesso singolo (OAuth/OIDC)",
+    "subtitle": "Configura provider di identità esterni come Authentik, Keycloak o Google",
+    "sso_configuration": "Configurazione SSO",
+    "service_active": "SSO attivo",
+    "service_disabled": "SSO disabilitato",
+    "important_note": "Nota sugli utenti:",
+    "user_provisioning_desc": "VibeNVR NON crea automaticamente gli utenti. È necessario creare manualmente l'utente in VibeNVR e fornire l'ID soggetto OAuth o chiedere all'utente di collegare il proprio account tramite il proprio profilo.",
+    "enable_sso": "Abilita accesso SSO globale",
+    "provider_name": "Nome visualizzato del fornitore",
+    "provider_name_help": "Mostrato sul pulsante di accesso",
+    "metadata_url": "URL di configurazione OpenID",
+    "client_id": "ID cliente",
+    "client_secret": "Segreto del cliente",
+    "callback_url": "URL di richiamata",
+    "callback_url_help": "Registra questo URI esatto nelle impostazioni del tuo provider di identità.",
+    "enable_sso_user": "Abilita l'accesso SSO per questo utente",
+    "subject_id": "ID oggetto OAuth (facoltativo)",
+    "external_id": "ID esterno dal provider di identità",
+    "sso": "SSO",
+    "linked": "LINKED",
+    "none": "NONE"
   }
 }

@@ -86,7 +86,11 @@
     "username": "Ім'я користувача",
     "password": "Пароль",
     "verify_login": "Підтвердити та увійти",
-    "secure_system": "Захищена система відеоспостереження"
+    "secure_system": "Захищена система відеоспостереження",
+    "hide_password": "Приховати пароль",
+    "show_password": "Показати пароль",
+    "or_continue_with": "Або продовжити",
+    "sign_in_sso": "Увійдіть за допомогою {{provider}}"
   },
   "nav": {
     "dashboard": "Панель",
@@ -163,7 +167,8 @@
     "video_accel_error": "ПОМИЛКА ПРИСКОШЕННЯ",
     "accel_rec_tooltip": "Запис: апаратне прискорення",
     "accel_live_tooltip": "Живе декодування: ЦП (обмеження архітектури)",
-    "rec_accel_tooltip": "Апаратне прискорення активне і використовується для кодування запису відео."
+    "rec_accel_tooltip": "Апаратне прискорення активне і використовується для кодування запису відео.",
+    "req_for": "Req. протягом {{days}} днів"
   },
   "cameras": {
     "title": "Камери",
@@ -526,7 +531,8 @@
     "import_selected": "Імпорт вибрано",
     "requires_passthrough": "(ПОТРІБНО ПРОХОДЖЕННЯ)",
     "ai_requires_passthrough": "AI вимагає проходження",
-    "ai_passthrough_desc": "Виявлення об’єктів штучного інтелекту вимагає, щоб на вкладці «Запис» було ввімкнено функцію Movie Passthrough, щоб запобігти стрибкам процесора та збоям TPU. Увімкніть Passthrough або перейдіть на OpenCV."
+    "ai_passthrough_desc": "Виявлення об’єктів штучного інтелекту вимагає, щоб на вкладці «Запис» було ввімкнено функцію Movie Passthrough, щоб запобігти стрибкам процесора та збоям TPU. Увімкніть Passthrough або перейдіть на OpenCV.",
+    "found_profiles": "Знайдено {{count}} профілів потоку."
   },
   "settings": {
     "general_preferences": "Загальні налаштування",
@@ -797,7 +803,16 @@
     "group_permissions": "Дозволи групи",
     "settings": "Налаштування",
     "all_events": "Всі події",
-    "continuous": "Безперервний"
+    "continuous": "Безперервний",
+    "bulk_delete_title": "Видалити {{count}} подій",
+    "bulk_delete_msg": "Ви впевнені, що бажаєте видалити {{count}} вибраних подій?",
+    "filter_by_camera": "Фільтрувати за камерою",
+    "filter_by_media_type": "Фільтрувати за типом носія",
+    "filter_by_event_type": "Фільтрувати за типом події",
+    "filter_by_object_type": "Фільтрувати за типом об'єкта",
+    "filter_by_date": "Фільтрувати за датою",
+    "playback_order": "Порядок відтворення",
+    "playback_speed": "Швидкість відтворення"
   },
   "live": {
     "title": "Прямий ефір",
@@ -809,7 +824,13 @@
     "focus": "Фокус",
     "fullscreen": "Повний екран",
     "gallery": "Галерея",
-    "videos": "Відео"
+    "videos": "Відео",
+    "show_all": "Показати все",
+    "take_photo": "Зробити фото",
+    "stop_recording": "Зупинити запис",
+    "start_recording": "Почніть безперервний запис",
+    "hide_ptz": "Приховати елементи керування PTZ",
+    "show_ptz": "Показати елементи керування PTZ"
   },
   "settings_main": {
     "title": "Налаштування",
@@ -1079,7 +1100,8 @@
     "destinations": "Призначення",
     "primary": "PRIMARY",
     "cf_anon": "Повністю анонімно — IP обробляється Cloudflare edge та відкидається, зберігається лише код країни.",
-    "recover_desc": "Сканує відеофайли на диску, яких немає в базі даних, та імпортує їх у хронологію."
+    "recover_desc": "Сканує відеофайли на диску, яких немає в базі даних, та імпортує їх у хронологію.",
+    "storage_using": "Зараз використовується {{used}} ГБ із вашого ліміту {{max}} ГБ."
   },
   "telemetry_notes": {
     "random_uuid_gen": "Випадковий UUID, що генерується при завантаженні",
@@ -1240,7 +1262,8 @@
     "Selected cameras exported successfully": "успіх",
     "Failed to export selected cameras": "помилка",
     "No cameras found in file": "УВАГА",
-    "No cameras found in MotionEye backup": "УВАГА"
+    "No cameras found in MotionEye backup": "УВАГА",
+    "OAuth account unlinked successfully": "успіх"
   },
   "profile": {
     "display_language": "Мова інтерфейсу",
@@ -1251,5 +1274,28 @@
     "export": "Експорт налаштувань камери",
     "edit": "Редагувати камеру",
     "delete": "Видалити камеру"
+  },
+  "settings_oauth": {
+    "title": "Єдиний вхід (OAuth / OIDC)",
+    "subtitle": "Налаштуйте зовнішні постачальники ідентифікаційної інформації, такі як Authentik, Keycloak або Google",
+    "sso_configuration": "Конфігурація SSO",
+    "service_active": "Система єдиного входу активна",
+    "service_disabled": "SSO вимкнено",
+    "important_note": "Примітка для користувачів:",
+    "user_provisioning_desc": "VibeNVR НЕ створює користувачів автоматично. Ви повинні створити користувача вручну у VibeNVR і надати ідентифікатор суб’єкта OAuth або попросити користувача пов’язати свій обліковий запис через його профіль.",
+    "enable_sso": "Увімкніть глобальний вхід SSO",
+    "provider_name": "Відображуване ім'я постачальника",
+    "provider_name_help": "Відображається на кнопці входу",
+    "metadata_url": "URL-адреса конфігурації OpenID",
+    "client_id": "ID клієнта",
+    "client_secret": "Секрет клієнта",
+    "callback_url": "URL зворотного виклику",
+    "callback_url_help": "Зареєструйте цей точний URI в налаштуваннях постачальника ідентифікаційної інформації.",
+    "enable_sso_user": "Увімкнути SSO Login для цього користувача",
+    "subject_id": "Ідентифікатор суб’єкта OAuth (необов’язково)",
+    "external_id": "Зовнішній ідентифікатор від постачальника ідентифікаційної інформації",
+    "sso": "SSO",
+    "linked": "LINKED",
+    "none": "NONE"
   }
 }

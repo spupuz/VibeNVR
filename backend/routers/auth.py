@@ -275,7 +275,14 @@ def revoke_trusted_device(
 def auth_status(db: Session = Depends(database.get_db)):
     """Check if the system requires initial setup (no users)."""
     user_count = db.query(models.User).count()
-    return {"setup_required": user_count == 0}
+    oauth_enabled = db.query(models.SystemSettings).filter_by(key="oauth_global_enabled").first()
+    oauth_provider_name = db.query(models.SystemSettings).filter_by(key="oauth_provider_name").first()
+    
+    return {
+        "setup_required": user_count == 0,
+        "oauth_enabled": oauth_enabled.value.lower() == "true" if oauth_enabled else False,
+        "oauth_provider_name": oauth_provider_name.value if oauth_provider_name else "SSO"
+    }
 
 @router.get("/me", response_model=schemas.User)
 async def read_users_me(current_user: models.User = Depends(auth_service.get_current_user)):

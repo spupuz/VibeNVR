@@ -47,6 +47,20 @@ export const Profile = () => {
         variant: 'danger'
     });
 
+    const [oauthStatus, setOauthStatus] = useState({ enabled: false, provider_name: 'SSO' });
+
+    React.useEffect(() => {
+        fetch('/api/auth/status')
+            .then(res => res.json())
+            .then(data => {
+                setOauthStatus({
+                    enabled: data.oauth_enabled,
+                    provider_name: data.oauth_provider_name || 'SSO'
+                });
+            })
+            .catch(err => console.error(err));
+    }, []);
+
     const closeConfirmModal = () => {
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
     };
@@ -107,6 +121,24 @@ export const Profile = () => {
             }
         } catch (err) {
             showToast('Failed to revoke device: ' + err.message, 'error');
+        }
+    };
+
+    const handleUnlinkOAuth = async () => {
+        try {
+            const res = await fetch('/api/oauth/unlink', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                showToast('OAuth account unlinked successfully', 'success');
+                await checkAuth();
+            } else {
+                const err = await res.json();
+                showToast('Failed to unlink account: ' + err.detail, 'error');
+            }
+        } catch (err) {
+            showToast('Failed to unlink account: ' + err.message, 'error');
         }
     };
 
@@ -634,6 +666,41 @@ export const Profile = () => {
                                         )}
                                     </div>
                                 </div>
+
+                                {/* SSO Linking Row */}
+                                {oauthStatus.enabled && user.oauth_enabled !== false && (
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted/30 rounded-lg border border-border mt-2 gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-purple-100 text-purple-600 dark:bg-purple-900/30 rounded-full shrink-0">
+                                                <Shield className="w-4 h-4" />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <p className="font-medium">Single Sign-On (SSO)</p>
+                                                    {user.oauth_subject_id && (
+                                                        <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold border border-green-200">LINKED</span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {user.oauth_subject_id 
+                                                        ? `Your account is linked to ${oauthStatus.provider_name}.`
+                                                        : `Link your account to ${oauthStatus.provider_name} for easy login.`}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-3 sm:mt-0">
+                                            {user.oauth_subject_id ? (
+                                                <Button variant="outline" onClick={handleUnlinkOAuth} className="w-full sm:w-auto px-6 font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-900">
+                                                    Unlink Account
+                                                </Button>
+                                            ) : (
+                                                <Button variant="outline" onClick={() => window.location.href = '/api/oauth/login'} className="w-full sm:w-auto px-6 font-semibold">
+                                                    Link Account
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Trusted Devices List */}
                                 {user.is_2fa_enabled && (

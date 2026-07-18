@@ -86,7 +86,11 @@
     "username": "Имя пользователя",
     "password": "Пароль",
     "verify_login": "Подтвердить и войти",
-    "secure_system": "Безопасная система видеонаблюдения"
+    "secure_system": "Безопасная система видеонаблюдения",
+    "hide_password": "Скрыть пароль",
+    "show_password": "Показать пароль",
+    "or_continue_with": "Или продолжить с",
+    "sign_in_sso": "Войдите через {{provider}}"
   },
   "nav": {
     "dashboard": "Панель управления",
@@ -164,7 +168,8 @@
     "accel_rec_tooltip": "Запись: аппаратное ускорение",
     "accel_live_tooltip": "Живое декодирование: ЦП (ограничение архитектуры)",
     "rec_accel_tooltip": "Аппаратное ускорение активно и используется для кодирования видеозаписи.",
-    "rec_accel": "УСКОРЕНИЕ ЗАПИСИ"
+    "rec_accel": "УСКОРЕНИЕ ЗАПИСИ",
+    "req_for": "Треб. на {{days}} дней"
   },
   "cameras": {
     "title": "Камеры",
@@ -523,7 +528,8 @@
     "streams_filled_both": "Заполнены основной и дополнительный поток из ONVIF",
     "streams_filled_main": "Заполнен основной поток из ONVIF",
     "main_label": "основной",
-    "sub_label": "суб"
+    "sub_label": "суб",
+    "found_profiles": "Найдено профилей потоков: {{count}}."
   },
   "settings": {
     "general_preferences": "Общие настройки",
@@ -794,7 +800,16 @@
     "group_permissions": "Разрешения группы",
     "settings": "Настройки",
     "all_events": "Все события",
-    "continuous": "Непрерывный"
+    "continuous": "Непрерывный",
+    "bulk_delete_title": "Удалить {{count}} событий",
+    "bulk_delete_msg": "Вы уверены, что хотите удалить выбранные события: {{count}}?",
+    "filter_by_camera": "Фильтровать по камере",
+    "filter_by_media_type": "Фильтровать по типу носителя",
+    "filter_by_event_type": "Фильтровать по типу события",
+    "filter_by_object_type": "Фильтровать по типу объекта",
+    "filter_by_date": "Фильтровать по дате",
+    "playback_order": "Порядок воспроизведения",
+    "playback_speed": "Скорость воспроизведения"
   },
   "live": {
     "title": "Прямой эфир",
@@ -806,7 +821,13 @@
     "focus": "Фокус",
     "fullscreen": "Полноэкранный",
     "gallery": "Галерея",
-    "videos": "Видео"
+    "videos": "Видео",
+    "show_all": "Показать все",
+    "take_photo": "Сфотографироваться",
+    "stop_recording": "Остановить запись",
+    "start_recording": "Начать непрерывную запись",
+    "hide_ptz": "Скрыть элементы управления PTZ",
+    "show_ptz": "Показать элементы управления PTZ"
   },
   "settings_main": {
     "title": "Настройки",
@@ -1072,7 +1093,8 @@
     "destinations": "Назначения",
     "primary": "ОСНОВНОЙ",
     "cf_anon": "Полностью анонимно.",
-    "recover_desc": "Сканирует видеофайлы на диске, которых нет в базе данных, и импортирует их на временную шкалу."
+    "recover_desc": "Сканирует видеофайлы на диске, которых нет в базе данных, и импортирует их на временную шкалу.",
+    "storage_using": "В настоящее время используется {{used}} ГБ из вашего лимита в {{max}} ГБ."
   },
   "telemetry_notes": {
     "random_uuid_gen": "Случайный UUID",
@@ -1233,7 +1255,8 @@
     "Selected cameras exported successfully": "успех",
     "Failed to export selected cameras": "ошибка",
     "No cameras found in file": "предупреждение",
-    "No cameras found in MotionEye backup": "предупреждение"
+    "No cameras found in MotionEye backup": "предупреждение",
+    "OAuth account unlinked successfully": "успех"
   },
   "profile": {
     "display_language": "Язык дисплея",
@@ -1248,5 +1271,28 @@
     "export": "Экспорт настроек камеры",
     "edit": "Редактировать камеру",
     "delete": "Удалить камеру"
+  },
+  "settings_oauth": {
+    "title": "Единый вход (OAuth/OIDC)",
+    "subtitle": "Настройте внешних поставщиков удостоверений, таких как Authentik, Keycloak или Google.",
+    "sso_configuration": "Конфигурация единого входа",
+    "service_active": "Система единого входа активна",
+    "service_disabled": "Система единого входа отключена",
+    "important_note": "Примечание для пользователей:",
+    "user_provisioning_desc": "VibeNVR НЕ создает пользователей автоматически. Вы должны создать пользователя вручную в VibeNVR и либо предоставить идентификатор субъекта OAuth, либо попросить пользователя связать свою учетную запись через свой профиль.",
+    "enable_sso": "Включить глобальный вход в систему единого входа",
+    "provider_name": "Отображаемое имя поставщика",
+    "provider_name_help": "Отображается на кнопке входа в систему",
+    "metadata_url": "URL-адрес конфигурации OpenID",
+    "client_id": "Идентификатор клиента",
+    "client_secret": "Секрет клиента",
+    "callback_url": "URL обратного вызова",
+    "callback_url_help": "Зарегистрируйте этот точный URI в настройках вашего поставщика удостоверений.",
+    "enable_sso_user": "Включить единый вход для этого пользователя",
+    "subject_id": "Идентификатор субъекта OAuth (необязательно)",
+    "external_id": "Внешний идентификатор от поставщика удостоверений",
+    "sso": "SSO",
+    "linked": "LINKED",
+    "none": "NONE"
   }
 }

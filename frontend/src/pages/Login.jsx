@@ -16,6 +16,8 @@ export const Login = () => {
     const [useRecoveryCode, setUseRecoveryCode] = useState(false);
     const [require2FA, setRequire2FA] = useState(false);
     const [error, setError] = useState('');
+    const [oauthEnabled, setOauthEnabled] = useState(false);
+    const [oauthProviderName, setOauthProviderName] = useState('SSO');
     const { t } = useTranslation();
 
     // Trusted Device State
@@ -34,6 +36,10 @@ export const Login = () => {
                     const data = await res.json();
                     if (data.setup_required) {
                         navigate('/setup');
+                    }
+                    if (data.oauth_enabled) {
+                        setOauthEnabled(true);
+                        setOauthProviderName(data.oauth_provider_name || 'SSO');
                     }
                 }
             } catch (err) {
@@ -265,6 +271,23 @@ export const Login = () => {
                         <Button className="w-full py-2.5" type="submit">
                             {require2FA ? t('login.verify_login', 'Verify & Login') : t('login.sign_in', 'Sign In')}
                         </Button>
+
+                        {!require2FA && oauthEnabled && (
+                            <>
+                                <div className="relative flex items-center py-2">
+                                    <div className="flex-grow border-t border-gray-300"></div>
+                                    <span className="flex-shrink-0 mx-4 text-gray-400 text-sm">{t('login.or_continue_with', 'Or continue with')}</span>
+                                    <div className="flex-grow border-t border-gray-300"></div>
+                                </div>
+                                <Button 
+                                    className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white border-none" 
+                                    type="button"
+                                    onClick={() => window.location.href = '/api/oauth/login'}
+                                >
+                                    {t('login.sign_in_sso', 'Sign in with {{provider}}', { provider: oauthProviderName })}
+                                </Button>
+                            </>
+                        )}
 
                         {require2FA && (
                             <div className="flex flex-col space-y-2 pt-2">

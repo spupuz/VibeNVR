@@ -44,7 +44,10 @@ def _generate_backup_data(db: Session) -> dict:
             "avatar_path": u.avatar_path,
             "restrict_camera_access": u.restrict_camera_access,
             "allowed_camera_ids": [c.id for c in u.allowed_cameras],
-            "allowed_group_ids": [g.id for g in u.allowed_groups]
+            "allowed_group_ids": [g.id for g in u.allowed_groups],
+            "auth_source": u.auth_source,
+            "oauth_subject_id": u.oauth_subject_id,
+            "oauth_enabled": u.oauth_enabled
         } for u in db.query(models.User).options(selectinload(models.User.allowed_cameras), selectinload(models.User.allowed_groups)).all()],
         "api_tokens": [{
             "name": t.name,

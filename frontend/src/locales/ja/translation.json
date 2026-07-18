@@ -86,7 +86,11 @@
     "username": "ユーザー名",
     "password": "パスワード",
     "verify_login": "確認してログイン",
-    "secure_system": "安全なビデオ監視システム"
+    "secure_system": "安全なビデオ監視システム",
+    "hide_password": "パスワードを隠す",
+    "show_password": "パスワードを表示",
+    "or_continue_with": "または続行してください",
+    "sign_in_sso": "{{プロバイダー}} でサインインします"
   },
   "nav": {
     "dashboard": "ダッシュボード",
@@ -164,7 +168,8 @@
     "accel_rec_tooltip": "録音: ハードウェアアクセラレーション",
     "accel_live_tooltip": "ライブ デコーディング: CPU (アーキテクチャの制限)",
     "rec_accel_tooltip": "ハードウェア アクセラレーションがアクティブであり、ビデオ録画のエンコードに使用されます。",
-    "rec_accel": "RECアクセル"
+    "rec_accel": "RECアクセル",
+    "req_for": "必須{{days}}日間"
   },
   "cameras": {
     "title": "カメラ",
@@ -519,7 +524,8 @@
     "streams_filled_both": "ONVIF からのメインストリームとサブストリームを埋め込む",
     "streams_filled_main": "ONVIF からのメインストリームを満たした",
     "main_label": "主要",
-    "sub_label": "サブ"
+    "sub_label": "サブ",
+    "found_profiles": "{{count}} 個のストリーム プロファイルが見つかりました。"
   },
   "settings": {
     "general_preferences": "一般設定",
@@ -790,7 +796,16 @@
     "group_permissions": "グループ権限",
     "settings": "設定",
     "all_events": "すべてのイベント",
-    "continuous": "継続的"
+    "continuous": "継続的",
+    "bulk_delete_title": "{{count}} 件のイベントを削除",
+    "bulk_delete_msg": "{{count}} 個の選択したイベントを削除してもよろしいですか?",
+    "filter_by_camera": "カメラによるフィルター",
+    "filter_by_media_type": "メディアタイプでフィルタリングする",
+    "filter_by_event_type": "イベントタイプでフィルタリングする",
+    "filter_by_object_type": "オブジェクトタイプによるフィルタリング",
+    "filter_by_date": "日付でフィルターする",
+    "playback_order": "再生順序",
+    "playback_speed": "再生速度"
   },
   "live": {
     "title": "ライブビュー",
@@ -802,7 +817,13 @@
     "focus": "集中",
     "fullscreen": "全画面表示",
     "gallery": "ギャラリー",
-    "videos": "動画"
+    "videos": "動画",
+    "show_all": "すべて表示",
+    "take_photo": "写真を撮る",
+    "stop_recording": "録音を停止する",
+    "start_recording": "連続録画を開始する",
+    "hide_ptz": "PTZ コントロールを非表示にする",
+    "show_ptz": "PTZ コントロールを表示"
   },
   "settings_main": {
     "title": "設定",
@@ -1068,7 +1089,8 @@
     "destinations": "宛先",
     "primary": "プライマリ",
     "cf_anon": "完全に匿名。",
-    "recover_desc": "データベースにないディスク上のビデオ ファイルをスキャンし、タイムラインにインポートします。"
+    "recover_desc": "データベースにないディスク上のビデオ ファイルをスキャンし、タイムラインにインポートします。",
+    "storage_using": "現在、{{max}} GB 制限のうち {{used}} GB を使用しています。"
   },
   "telemetry_notes": {
     "random_uuid_gen": "ランダムUUID",
@@ -1229,7 +1251,8 @@
     "Selected cameras exported successfully": "成功",
     "Failed to export selected cameras": "エラー",
     "No cameras found in file": "警告",
-    "No cameras found in MotionEye backup": "警告"
+    "No cameras found in MotionEye backup": "警告",
+    "OAuth account unlinked successfully": "成功"
   },
   "profile": {
     "display_language": "表示言語",
@@ -1244,5 +1267,28 @@
     "export": "カメラ設定をエクスポートする",
     "edit": "カメラを編集する",
     "delete": "カメラの削除"
+  },
+  "settings_oauth": {
+    "title": "シングルサインオン (OAuth / OIDC)",
+    "subtitle": "Authentik、Keycloak、Google などの外部 ID プロバイダーを構成する",
+    "sso_configuration": "SSO 設定",
+    "service_active": "SSO アクティブ",
+    "service_disabled": "SSO 無効",
+    "important_note": "ユーザーへの注意:",
+    "user_provisioning_desc": "VibeNVR はユーザーを自動的に作成しません。 VibeNVR でユーザーを手動で作成し、OAuth サブジェクト ID を指定するか、プロフィール経由でアカウントをリンクするようユーザーに依頼する必要があります。",
+    "enable_sso": "グローバル SSO ログインを有効にする",
+    "provider_name": "プロバイダーの表示名",
+    "provider_name_help": "ログインボタンに表示されます",
+    "metadata_url": "OpenID 設定 URL",
+    "client_id": "クライアントID",
+    "client_secret": "クライアントシークレット",
+    "callback_url": "コールバック URL",
+    "callback_url_help": "この正確な URI をアイデンティティ プロバイダー設定に登録します。",
+    "enable_sso_user": "このユーザーの SSO ログインを有効にする",
+    "subject_id": "OAuth サブジェクト ID (オプション)",
+    "external_id": "ID プロバイダーからの外部 ID",
+    "sso": "SSO",
+    "linked": "LINKED",
+    "none": "NONE"
   }
 }

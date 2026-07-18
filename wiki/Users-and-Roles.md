@@ -25,6 +25,18 @@ The `viewer` role is designed for standard monitoring purposes and is strictly *
 
 ---
 
+## 🔐 Single Sign-On (SSO / OAuth) Integration
+
+VibeNVR supports linking local accounts to external Identity Providers (IdP) via OAuth 2.0 / OIDC.
+
+- **No Auto-Provisioning**: For security, users cannot simply sign in with an IdP and automatically gain access to VibeNVR. A local account must exist first.
+- **Account Linking**: The user (via self-service in their Profile) or the Admin (via User Management) must explicitly link the `OAuth Subject ID` provided by the IdP to the local VibeNVR account.
+- **Role Inheritance**: Once linked, logging in via SSO simply grants access to the underlying local VibeNVR account, inheriting its assigned role (`admin` or `viewer`) and any granular restrictions.
+
+For setup details, see the [SSO & OAuth Integration](SSO-OAuth-Integration.md) guide.
+
+---
+
 ## Granular Restricted Viewer Access
 
 By default, Viewers can see all cameras configured in the system. However, Admins can explicitly restrict a Viewer's access using a granular permissions model per Camera or per Group.

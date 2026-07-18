@@ -235,6 +235,12 @@ class User(Base):
     is_2fa_enabled = Column(Boolean, default=False)
     restrict_camera_access = Column(Boolean, default=False)
     language = Column(String, default="en")
+    
+    # OAuth / SSO
+    auth_source = Column(String, default="local") # "local" or "oauth"
+    oauth_subject_id = Column(String, unique=True, index=True, nullable=True)
+    oauth_enabled = Column(Boolean, default=True)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     allowed_cameras = relationship("Camera", secondary="user_camera_access", backref="allowed_users", viewonly=True)

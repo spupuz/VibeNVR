@@ -86,7 +86,11 @@
     "username": "Username",
     "password": "Password",
     "verify_login": "Verify & Login",
-    "secure_system": "Secure Video Surveillance System"
+    "secure_system": "Secure Video Surveillance System",
+    "hide_password": "Hide password",
+    "show_password": "Show password",
+    "or_continue_with": "Or continue with",
+    "sign_in_sso": "Sign in with {{provider}}"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -136,7 +140,7 @@
     "recent_events": "Recent Events",
     "no_recent_events": "No recent events",
     "widgets_title": "Dashboard Widgets",
-    "issues_detected": "{{count}} issue(s) detected', { count: stats.total_errors }) : t('dashboard.operational', 'Operational",
+    "issues_detected": "{{count}} issue(s) detected",
     "out": "Out",
     "events": "Events",
     "engine": "Engine",
@@ -164,7 +168,8 @@
     "accel_rec_tooltip": "Recording: Hardware Accelerated",
     "accel_live_tooltip": "Live Decoding: CPU (Architecture Limitation)",
     "rec_accel_tooltip": "Hardware acceleration is active and used for video recording encoding.",
-    "rec_accel": "REC ACCEL"
+    "rec_accel": "REC ACCEL",
+    "req_for": "Req. for {{days}} days"
   },
   "cameras": {
     "title": "Cameras",
@@ -282,7 +287,7 @@
     "overlay": "Overlay",
     "edit_camera": "Edit Camera",
     "add_new_camera": "Add New Camera",
-    "configuring_camera": "Configuring {{name}}', { name: newCamera.name }) : t('cameras.connect_configure', 'Connect and configure your RTSP camera",
+    "configuring_camera": "Configuring {{name}}",
     "connect_configure": "Connect and configure your RTSP camera",
     "start_fresh": "-- Start Fresh --",
     "privacy_masking": "Privacy Masking",
@@ -527,7 +532,8 @@
     "import_selected": "Import Selected",
     "requires_passthrough": "(REQUIRES PASSTHROUGH)",
     "ai_requires_passthrough": "AI Requires Passthrough",
-    "ai_passthrough_desc": "AI Object Detection requires Movie Passthrough to be enabled in the Recording tab to prevent CPU spikes and TPU crashes. Please enable Passthrough or switch to OpenCV."
+    "ai_passthrough_desc": "AI Object Detection requires Movie Passthrough to be enabled in the Recording tab to prevent CPU spikes and TPU crashes. Please enable Passthrough or switch to OpenCV.",
+    "found_profiles": "Found {{count}} stream profiles."
   },
   "settings": {
     "general_preferences": "General Preferences",
@@ -774,9 +780,9 @@
     "2x": "2x",
     "3x": "3x",
     "24h": "24h",
-    "delete_error": "Error deleting event: {{error}}', { error: err.message }), 'error",
+    "delete_error": "Error deleting event: {{error}}",
     "bulk_deleted": "Successfully deleted {{count}} events",
-    "bulk_error": "Error during bulk delete: {{error}}', { error: err.message }), 'error",
+    "bulk_error": "Error during bulk delete: {{error}}",
     "the_selected_model_will_b": "The selected model will be used by all cameras that have the \"AI Engine\" enabled. Specific camera settings can still be tuned individually.",
     "change_password": "Change Password",
     "add_an_extra_layer_of_sec": "Add an extra layer of security.",
@@ -798,7 +804,16 @@
     "group_permissions": "Group Permissions",
     "settings": "Settings",
     "all_events": "All Events",
-    "continuous": "Continuous"
+    "continuous": "Continuous",
+    "bulk_delete_title": "Delete {{count}} Events",
+    "bulk_delete_msg": "Are you sure you want to delete {{count}} selected events?",
+    "filter_by_camera": "Filter by Camera",
+    "filter_by_media_type": "Filter by Media Type",
+    "filter_by_event_type": "Filter by Event Type",
+    "filter_by_object_type": "Filter by Object Type",
+    "filter_by_date": "Filter by Date",
+    "playback_order": "Playback Order",
+    "playback_speed": "Playback Speed"
   },
   "live": {
     "title": "Live View",
@@ -811,7 +826,12 @@
     "fullscreen": "Fullscreen",
     "gallery": "Gallery",
     "videos": "Videos",
-    "show_all": "Show All"
+    "show_all": "Show All",
+    "take_photo": "Take Photo",
+    "stop_recording": "Stop Recording",
+    "start_recording": "Start Continuous Recording",
+    "hide_ptz": "Hide PTZ Controls",
+    "show_ptz": "Show PTZ Controls"
   },
   "settings_main": {
     "title": "Settings",
@@ -1081,7 +1101,8 @@
     "destinations": "Destinations",
     "primary": "PRIMARY",
     "cf_anon": "Fully anonymous — IP is processed by Cloudflare edge and discarded, only the country code is stored.",
-    "recover_desc": "Scans for video files on disk that aren\\'t in the database and imports them into the timeline."
+    "recover_desc": "Scans for video files on disk that aren\\'t in the database and imports them into the timeline.",
+    "storage_using": "Currently using {{used}} GB of your {{max}} GB limit."
   },
   "telemetry_notes": {
     "random_uuid_gen": "Random UUID generated at boot",
@@ -1242,7 +1263,8 @@
     "Selected cameras exported successfully": "success",
     "Failed to export selected cameras": "error",
     "No cameras found in file": "warning",
-    "No cameras found in MotionEye backup": "warning"
+    "No cameras found in MotionEye backup": "warning",
+    "OAuth account unlinked successfully": "success"
   },
   "profile": {
     "display_language": "Display Language",
@@ -1253,5 +1275,28 @@
     "export": "Export camera settings",
     "edit": "Edit camera",
     "delete": "Delete camera"
+  },
+  "settings_oauth": {
+    "title": "Single Sign-On (OAuth / OIDC)",
+    "subtitle": "Configure external identity providers like Authentik, Keycloak, or Google",
+    "sso_configuration": "SSO Configuration",
+    "service_active": "SSO Active",
+    "service_disabled": "SSO Disabled",
+    "important_note": "Note on Users:",
+    "user_provisioning_desc": "VibeNVR does NOT automatically create users. You must create the user manually in VibeNVR and either provide the OAuth Subject ID or ask the user to link their account via their Profile.",
+    "enable_sso": "Enable Global SSO Login",
+    "provider_name": "Provider Display Name",
+    "provider_name_help": "Shown on the login button",
+    "metadata_url": "OpenID Configuration URL",
+    "client_id": "Client ID",
+    "client_secret": "Client Secret",
+    "callback_url": "Callback URL",
+    "callback_url_help": "Register this exact URI in your Identity Provider settings.",
+    "enable_sso_user": "Enable SSO Login for this user",
+    "subject_id": "OAuth Subject ID (Optional)",
+    "external_id": "External ID from Identity Provider",
+    "sso": "SSO",
+    "linked": "LINKED",
+    "none": "NONE"
   }
 }

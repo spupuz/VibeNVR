@@ -114,7 +114,7 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
                 raise HTTPException(status_code=400, detail=f"Value for {key} must be a number")
 
         # Force lowercase for boolean fields
-        boolean_keys = ["opt_verbose_engine_logs", "telemetry_enabled", "mqtt_enabled", "cleanup_enabled", "ai_enabled", "go2rtc_enabled", "backup_auto_enabled"]
+        boolean_keys = ["opt_verbose_engine_logs", "telemetry_enabled", "mqtt_enabled", "cleanup_enabled", "ai_enabled", "go2rtc_enabled", "backup_auto_enabled", "oauth_global_enabled"]
         if key in boolean_keys:
             value = str(value).lower()
         
@@ -218,6 +218,13 @@ DEFAULT_SETTINGS = {
     "mqtt_username": {"value": "", "description": "MQTT Username (optional)"},
     "mqtt_password": {"value": "", "description": "MQTT Password (optional)"},
     "mqtt_topic_prefix": {"value": "vibenvr", "description": "MQTT Topic Prefix (default: vibenvr)"},
+    
+    # OAuth Settings
+    "oauth_global_enabled": {"value": "false", "description": "Enable global OAuth/SSO login"},
+    "oauth_provider_name": {"value": "Authentik", "description": "Name of the OAuth provider (e.g. Authentik)"},
+    "oauth_client_id": {"value": "", "description": "OAuth Client ID"},
+    "oauth_client_secret": {"value": "", "description": "OAuth Client Secret"},
+    "oauth_metadata_url": {"value": "", "description": "OAuth OpenID Connect Metadata URL (.well-known/openid-configuration)"},
 }
 
 @router.post("/init-defaults")
@@ -445,7 +452,10 @@ async def perform_restore(data: dict, db: Session):
                     is_2fa_enabled=u.get("is_2fa_enabled", False),
                     totp_secret=u.get("totp_secret"),
                     avatar_path=u.get("avatar_path"),
-                    restrict_camera_access=u.get("restrict_camera_access", False)
+                    restrict_camera_access=u.get("restrict_camera_access", False),
+                    auth_source=u.get("auth_source", "local"),
+                    oauth_subject_id=u.get("oauth_subject_id"),
+                    oauth_enabled=u.get("oauth_enabled", True)
                 )
                 if "allowed_camera_ids" in u:
                     mapped_cam_ids = [cam_id_map.get(cid, cid) for cid in u["allowed_camera_ids"]]
@@ -459,8 +469,16 @@ async def perform_restore(data: dict, db: Session):
             else:
                 existing_user.role = u.get("role", existing_user.role)
                 existing_user.email = u.get("email", existing_user.email)
-                if "restrict_camera_access" in u:
-                    existing_user.restrict_camera_access = u.get("restrict_camera_access")
+                existing_user.is_2fa_enabled = u.get("is_2fa_enabled", existing_user.is_2fa_enabled)
+                existing_user.totp_secret = u.get("totp_secret", existing_user.totp_secret)
+                existing_user.avatar_path = u.get("avatar_path", existing_user.avatar_path)
+                existing_user.restrict_camera_access = u.get("restrict_camera_access", existing_user.restrict_camera_access)
+                if "auth_source" in u:
+                    existing_user.auth_source = u["auth_source"]
+                if "oauth_subject_id" in u:
+                    existing_user.oauth_subject_id = u["oauth_subject_id"]
+                if "oauth_enabled" in u:
+                    existing_user.oauth_enabled = u["oauth_enabled"]
                 if "allowed_camera_ids" in u:
                     mapped_cam_ids = [cam_id_map.get(cid, cid) for cid in u["allowed_camera_ids"]]
                     existing_user.allowed_cameras = db.query(models.Camera).filter(models.Camera.id.in_(mapped_cam_ids)).all()

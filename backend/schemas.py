@@ -472,6 +472,9 @@ class UserBase(BaseModel):
     is_2fa_enabled: Optional[bool] = False
     restrict_camera_access: Optional[bool] = False
     language: Optional[str] = "en"
+    auth_source: Optional[str] = "local"
+    oauth_subject_id: Optional[str] = None
+    oauth_enabled: Optional[bool] = True
 
 class TOTPSetupResponse(BaseModel):
     secret: str

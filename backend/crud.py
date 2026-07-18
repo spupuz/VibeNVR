@@ -186,6 +186,14 @@ def update_user(db: Session, user_id: int, user: schemas.UserUpdate):
     db_user.role = user.role
     db_user.restrict_camera_access = user.restrict_camera_access
     
+    # OAuth
+    if hasattr(user, 'oauth_enabled') and user.oauth_enabled is not None:
+        db_user.oauth_enabled = user.oauth_enabled
+    if hasattr(user, 'oauth_subject_id'):
+        db_user.oauth_subject_id = user.oauth_subject_id
+    if hasattr(user, 'auth_source') and user.auth_source:
+        db_user.auth_source = user.auth_source
+    
     # Note: password update is handled separately, but if provided here, we could update it.
     if user.password and user.password != "********":
         import auth_service

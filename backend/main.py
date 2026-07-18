@@ -378,6 +378,9 @@ app.add_middleware(
     expose_headers=["Content-Disposition"],
 )
 
+from starlette.middleware.sessions import SessionMiddleware
+app.add_middleware(SessionMiddleware, secret_key=auth_service.SECRET_KEY)
+
 @app.exception_handler(OperationalError)
 async def database_exception_handler(request: Request, exc: OperationalError):
     import logging
@@ -410,6 +413,8 @@ app.include_router(homepage.router, prefix="/v1")
 app.include_router(api_tokens.router, prefix="/v1")
 app.include_router(onvif_router.router)
 app.include_router(storage.router)
+from routers import oauth
+app.include_router(oauth.router)
 
 from fastapi.responses import FileResponse
 import os

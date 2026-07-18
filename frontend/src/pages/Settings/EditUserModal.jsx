@@ -61,6 +61,30 @@ export const EditUserModal = ({
                             />
                         </div>
                         
+                        <div className="pt-4 border-t border-border/50">
+                            <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">{t('settings_oauth.sso_configuration', 'SSO / OAuth Config')}</h4>
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        aria-checked={editingUser.oauth_enabled !== false} // default true
+                                        onClick={() => setEditingUser({ ...editingUser, oauth_enabled: editingUser.oauth_enabled === false ? true : false })}
+                                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${editingUser.oauth_enabled !== false ? 'bg-primary' : 'bg-muted'}`}
+                                    >
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${editingUser.oauth_enabled !== false ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    </button>
+                                    <span className="text-sm font-bold">{t('settings_oauth.enable_sso_user', 'Enable SSO Login for this user')}</span>
+                                </div>
+                                <InputField
+                                    label={t('settings_oauth.subject_id', 'OAuth Subject ID (Optional)')}
+                                    placeholder={t('settings_oauth.external_id', 'External ID from Identity Provider')}
+                                    value={editingUser.oauth_subject_id || ''}
+                                    onChange={(val) => setEditingUser({ ...editingUser, oauth_subject_id: val })}
+                                />
+                            </div>
+                        </div>
+                        
                         {editingUser.role === 'viewer' && (
                             <div className="space-y-4 pt-4 border-t border-border/50">
                                 <div className="flex flex-col sm:flex-row sm:items-center gap-3">

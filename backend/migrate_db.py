@@ -206,6 +206,10 @@ def migrate():
     add_column_if_not_exists(engine, "users", "restrict_camera_access", "BOOLEAN", False)
     add_column_if_not_exists(engine, "users", "language", "VARCHAR", "en")
     
+    add_column_if_not_exists(engine, "users", "auth_source", "VARCHAR", "local")
+    add_column_if_not_exists(engine, "users", "oauth_subject_id", "VARCHAR")
+    add_column_if_not_exists(engine, "users", "oauth_enabled", "BOOLEAN", True)
+    
     # Granular User Access associations
     add_column_if_not_exists(engine, "user_camera_access", "can_view", "BOOLEAN", True)
     add_column_if_not_exists(engine, "user_camera_access", "can_replay", "BOOLEAN", True)

@@ -17,6 +17,7 @@ import { MqttSettings } from './Settings/sections/MqttSettings';
 import { AdvancedSettings } from './Settings/sections/AdvancedSettings';
 import { BackupSettings } from './Settings/sections/BackupSettings';
 import { AISettings } from './Settings/sections/AISettings';
+import { OAuthSettings } from './Settings/sections/OAuthSettings';
 
 // Modularized Modals
 import { PasswordChangeModal } from './Settings/PasswordChangeModal';
@@ -78,7 +79,12 @@ export const Settings = () => {
         ai_model: 'mobilenet_ssd_v2',
         ai_hardware: 'auto',
         ai_enabled: false,
-        go2rtc_enabled: false
+        go2rtc_enabled: false,
+        oauth_global_enabled: false,
+        oauth_provider_name: 'SSO',
+        oauth_client_id: '',
+        oauth_client_secret: '',
+        oauth_metadata_url: ''
     });
 
     const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0 });
@@ -207,7 +213,12 @@ export const Settings = () => {
                     ai_model: data.ai_model?.value || prev.ai_model,
                     ai_hardware: data.ai_hardware?.value || prev.ai_hardware,
                     ai_enabled: data.ai_enabled?.value !== undefined ? String(data.ai_enabled.value).toLowerCase() === 'true' : prev.ai_enabled,
-                    go2rtc_enabled: data.go2rtc_enabled?.value !== undefined ? String(data.go2rtc_enabled.value).toLowerCase() === 'true' : prev.go2rtc_enabled
+                    go2rtc_enabled: data.go2rtc_enabled?.value !== undefined ? String(data.go2rtc_enabled.value).toLowerCase() === 'true' : prev.go2rtc_enabled,
+                    oauth_global_enabled: data.oauth_global_enabled?.value !== undefined ? String(data.oauth_global_enabled.value).toLowerCase() === 'true' : prev.oauth_global_enabled,
+                    oauth_provider_name: data.oauth_provider_name?.value || prev.oauth_provider_name,
+                    oauth_client_id: data.oauth_client_id?.value || prev.oauth_client_id,
+                    oauth_client_secret: data.oauth_client_secret?.value || prev.oauth_client_secret,
+                    oauth_metadata_url: data.oauth_metadata_url?.value || prev.oauth_metadata_url
                 }));
             }
         } catch (err) {
@@ -274,10 +285,10 @@ export const Settings = () => {
                     opt_verbose_engine_logs: settingsToSave.opt_verbose_engine_logs.toString(),
                     telemetry_enabled: settingsToSave.telemetry_enabled.toString(),
                     default_live_view_mode: settingsToSave.default_live_view_mode,
-                    backup_auto_enabled: settingsToSave.backup_auto_enabled.toString(),
+                    backup_auto_enabled: Boolean(settingsToSave.backup_auto_enabled).toString(),
                     backup_auto_frequency_hours: settingsToSave.backup_auto_frequency_hours.toString(),
                     backup_auto_retention: settingsToSave.backup_auto_retention.toString(),
-                    mqtt_enabled: settingsToSave.mqtt_enabled.toString(),
+                    mqtt_enabled: Boolean(settingsToSave.mqtt_enabled).toString(),
                     mqtt_host: settingsToSave.mqtt_host,
                     mqtt_port: settingsToSave.mqtt_port,
                     mqtt_username: settingsToSave.mqtt_username,
@@ -285,8 +296,13 @@ export const Settings = () => {
                     mqtt_topic_prefix: settingsToSave.mqtt_topic_prefix,
                     ai_model: settingsToSave.ai_model,
                     ai_hardware: settingsToSave.ai_hardware,
-                    ai_enabled: settingsToSave.ai_enabled.toString(),
-                    go2rtc_enabled: settingsToSave.go2rtc_enabled.toString()
+                    ai_enabled: Boolean(settingsToSave.ai_enabled).toString(),
+                    go2rtc_enabled: Boolean(settingsToSave.go2rtc_enabled).toString(),
+                    oauth_global_enabled: Boolean(settingsToSave.oauth_global_enabled).toString(),
+                    oauth_provider_name: settingsToSave.oauth_provider_name || '',
+                    oauth_client_id: settingsToSave.oauth_client_id,
+                    oauth_client_secret: settingsToSave.oauth_client_secret,
+                    oauth_metadata_url: settingsToSave.oauth_metadata_url
                 })
             });
             showToast('Settings saved successfully!', 'success');
@@ -626,6 +642,15 @@ export const Settings = () => {
                 )}
 
                 {user?.role === 'admin' && (
+                    <OAuthSettings
+                        globalSettings={globalSettings}
+                        setGlobalSettings={setGlobalSettings}
+                        isOpen={openSection === 'oauth'}
+                        onToggle={toggleSection}
+                    />
+                )}
+
+                {user?.role === 'admin' && (
                     <AISettings
                         globalSettings={globalSettings}
                         setGlobalSettings={setGlobalSettings}
@@ -659,7 +684,7 @@ export const Settings = () => {
             {user?.role === 'admin' && (
                 <div className="fixed bottom-6 inset-x-5 sm:inset-x-auto sm:right-8 z-50 flex justify-center sm:justify-end pointer-events-none">
                     <button
-                        onClick={handleSave}
+                        onClick={() => handleSave()}
                         className="pointer-events-auto h-12 flex items-center justify-center space-x-3 bg-primary text-primary-foreground px-10 rounded-xl hover:bg-primary/90 transition-all active:scale-95 font-bold text-base shadow-2xl shadow-primary/30 border border-primary/20 ring-4 ring-background/50 backdrop-blur-sm"
                     >
                         <Save className="w-5 h-5" />

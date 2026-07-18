@@ -246,6 +246,7 @@ export const UserManager = ({
                             <tr>
                                 <th className="p-3 font-medium text-muted-foreground">{t('timeline.username', 'Username')}</th>
                                 <th className="p-3 font-medium text-muted-foreground">{t('timeline.role', 'Role')}</th>
+                                <th className="p-3 font-medium text-muted-foreground hidden sm:table-cell">{t('settings_oauth.sso', 'SSO')}</th>
                                 <th className="p-3 font-medium text-muted-foreground hidden sm:table-cell">{t('timeline.created', 'Created')}</th>
                                 <th className="p-3 font-medium text-muted-foreground text-right">{t('timeline.actions', 'Actions')}</th>
                             </tr>
@@ -264,6 +265,13 @@ export const UserManager = ({
                                         }>
                                             {u.role}
                                         </span>
+                                    </td>
+                                    <td className="p-3 hidden sm:table-cell">
+                                        {u.oauth_subject_id ? (
+                                            <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold border border-green-200">{t('settings_oauth.linked', 'LINKED')}</span>
+                                        ) : (
+                                            <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-bold border border-border/50">{t('settings_oauth.none', 'NONE')}</span>
+                                        )}
                                     </td>
                                     <td className="p-3 text-muted-foreground hidden sm:table-cell">
                                         {new Date(u.created_at).toLocaleDateString()}
