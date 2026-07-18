@@ -29,3 +29,6 @@
 ## 2026-07-16 - [Fix blocking sleep in FastAPI lifespan]
 **Learning:** When refactoring blocking calls (e.g., `time.sleep`) to async equivalents (e.g., `asyncio.sleep`) in FastAPI lifespan or other async contexts, carefully check for nested synchronous functions or background threads (like `run_orphan_recovery`) in the same file that still rely on the original synchronous module before removing their imports.
 **Action:** Ensure synchronous functions inside async files correctly import and use synchronous versions of blocking operations.
+## 2025-02-12 - [Optimize bulk deletions in storage cleanup]
+**Learning:** In backend loops processing storage cleanup deletions, querying the database for the oldest item individually inside a `while` loop with `.first()` causes severe N+1 query performance degradation.
+**Action:** Always refactor iterative single-record fetches in deletion loops to batched queries using `.limit(100).all()` and defer `db.commit()` outside the inner batch loop to execute as a single efficient transaction.
