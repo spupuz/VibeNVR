@@ -29,9 +29,11 @@
 ## 2026-07-16 - [Fix blocking sleep in FastAPI lifespan]
 **Learning:** When refactoring blocking calls (e.g., `time.sleep`) to async equivalents (e.g., `asyncio.sleep`) in FastAPI lifespan or other async contexts, carefully check for nested synchronous functions or background threads (like `run_orphan_recovery`) in the same file that still rely on the original synchronous module before removing their imports.
 **Action:** Ensure synchronous functions inside async files correctly import and use synchronous versions of blocking operations.
-
 ## 2024-05-24 - Batch Query Optimization in Camera Import
 When processing bulk creation or updates (like importing cameras), always lift repeated database queries out of loops. We improved `import_cameras` by hoisting `crud.get_cameras` out of the loop and batch-fetching existing `CameraGroup` instances using `.in_()`. This significantly reduced N+1 database queries, improving batch import times from ~10.8s to ~7.7s in our benchmarks.
 
 ## 2026-07-17 - Optimize Backup Restore N+1 Query
 Optimized the 'Restore Users' loop in settings.py which suffered from an N+1 query issue during the backup restoration process. By pre-fetching all users mentioned in the backup using a single `in_` query and performing O(1) Python lookups, the process time was significantly reduced (roughly 25x faster in benchmarks for 1000 users). Found that using `usernames = [u['username'] for u in data['users']]; db.query(models.User).filter(models.User.username.in_(usernames)).all()` is a safe, effective, and zero-regression strategy for these backup restore iterations.
+
+## 2026-07-17 - Avoid N+1 issues in batch operations
+When dealing with bulk deletions (e.g. `_cleanup_corrupted_videos` removing missing videos), avoid calling single-record operations (like `db.delete()`) inside a loop. This generates an N+1 query execution bottleneck. Instead, collect the primary keys in a Python list and execute a batched delete using an `.in_()` clause with `synchronize_session=False` (e.g. `db.query(Event).filter(Event.id.in_(batch)).delete(synchronize_session=False)`). SQLite limits the max number of variables, so batching deletions (e.g. chunks of 900) ensures stability.

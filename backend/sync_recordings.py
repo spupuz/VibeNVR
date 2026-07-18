@@ -299,6 +299,7 @@ def _cleanup_corrupted_videos(db, dry_run: bool) -> tuple[int, int]:
     logger.info("Checking for corrupted/incomplete videos...")
     corrupted_count = 0
     corrupted_size = 0
+    events_to_delete = []
     all_video_events = db.query(Event).filter(Event.type == "video").all()
 
     for event in all_video_events:
@@ -313,9 +314,9 @@ def _cleanup_corrupted_videos(db, dry_run: bool) -> tuple[int, int]:
             file_path = file_path.replace('/var/lib/motion', '/data', 1)
 
         if not os.path.exists(file_path):
-            # File missing - delete DB entry
+            # File missing - prepare to delete DB entry
             if not dry_run:
-                db.delete(event)
+                events_to_delete.append(event.id)
             corrupted_count += 1
             logger.info(f"  🗑️  Missing file, removing DB entry: {os.path.basename(event.file_path)}")
             continue
@@ -351,13 +352,20 @@ def _cleanup_corrupted_videos(db, dry_run: bool) -> tuple[int, int]:
                 except Exception as e:
                     logger.warning(f"  ⚠️  Failed to delete file: {e}")
 
-                # Delete DB entry
-                db.delete(event)
+                # Prepare to delete DB entry
+                events_to_delete.append(event.id)
                 logger.info(f"  🗑️  Deleted corrupted: {os.path.basename(file_path)}")
 
             corrupted_count += 1
 
-    if not dry_run and corrupted_count > 0:
+    if not dry_run and events_to_delete:
+        # Optimization: Bulk delete via IN clause to avoid N+1 DB operations
+        # SQLite has a limit on variables per query (SQLITE_MAX_VARIABLE_NUMBER, default 999 or 32766)
+        # It's safest to batch deletes.
+        batch_size = 900
+        for i in range(0, len(events_to_delete), batch_size):
+            batch = events_to_delete[i:i + batch_size]
+            db.query(Event).filter(Event.id.in_(batch)).delete(synchronize_session=False)
         db.commit()
 
     return corrupted_count, corrupted_size
