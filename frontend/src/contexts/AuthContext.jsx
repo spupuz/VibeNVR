@@ -124,6 +124,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = async () => {
+        const wasOauth = user && user.auth_source === 'oauth';
         setToken(null);
         setUser(null);
         // Clear HttpOnly cookies server-side — JS cannot delete httpOnly cookies directly
@@ -132,6 +133,11 @@ export const AuthProvider = ({ children }) => {
                 method: 'POST',
                 credentials: 'include'
             });
+            if (wasOauth) {
+                window.location.href = '/api/oauth/logout';
+            } else {
+                window.location.href = '/login?local=true';
+            }
         } catch (err) {
             console.error("Logout cookie clear failed", err);
         }

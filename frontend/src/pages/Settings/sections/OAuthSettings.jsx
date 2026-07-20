@@ -37,11 +37,17 @@ export const OAuthSettings = ({
                         <span className="font-semibold text-primary">{t('settings_oauth.important_note', 'Note on Users:')}</span> {t('settings_oauth.user_provisioning_desc', 'VibeNVR does NOT automatically create users. You must create the user manually in VibeNVR and either provide the OAuth Subject ID or ask the user to link their account via their Profile.')}
                     </p>
 
-                    <div className="mb-6">
+                    <div className="mb-6 space-y-4">
                         <Toggle
                             label={t('settings_oauth.enable_sso', 'Enable Global SSO Login')}
                             checked={globalSettings.oauth_global_enabled === "true" || globalSettings.oauth_global_enabled === true}
                             onChange={(val) => setGlobalSettings({ ...globalSettings, oauth_global_enabled: val ? "true" : "false" })}
+                        />
+                        <Toggle
+                            label={t('settings_oauth.enable_auto_redirect', 'Enable Auto-Redirect to SSO')}
+                            checked={globalSettings.oauth_auto_redirect === "true" || globalSettings.oauth_auto_redirect === true}
+                            onChange={(val) => setGlobalSettings({ ...globalSettings, oauth_auto_redirect: val ? "true" : "false" })}
+                            help={t('settings_oauth.enable_auto_redirect_help', 'Bypasses the local login page and redirects directly to the SSO provider. Use ?local=true in the URL to bypass this setting.')}
                         />
                     </div>
 

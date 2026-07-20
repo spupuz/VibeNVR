@@ -114,7 +114,7 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
                 raise HTTPException(status_code=400, detail=f"Value for {key} must be a number")
 
         # Force lowercase for boolean fields
-        boolean_keys = ["opt_verbose_engine_logs", "telemetry_enabled", "mqtt_enabled", "cleanup_enabled", "ai_enabled", "go2rtc_enabled", "backup_auto_enabled", "oauth_global_enabled"]
+        boolean_keys = ["opt_verbose_engine_logs", "telemetry_enabled", "mqtt_enabled", "cleanup_enabled", "ai_enabled", "go2rtc_enabled", "backup_auto_enabled", "oauth_global_enabled", "oauth_auto_redirect"]
         if key in boolean_keys:
             value = str(value).lower()
         
@@ -221,6 +221,7 @@ DEFAULT_SETTINGS = {
     
     # OAuth Settings
     "oauth_global_enabled": {"value": "false", "description": "Enable global OAuth/SSO login"},
+    "oauth_auto_redirect": {"value": "false", "description": "Bypass local login page and redirect to OAuth provider"},
     "oauth_provider_name": {"value": "Authentik", "description": "Name of the OAuth provider (e.g. Authentik)"},
     "oauth_client_id": {"value": "", "description": "OAuth Client ID"},
     "oauth_client_secret": {"value": "", "description": "OAuth Client Secret"},

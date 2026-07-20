@@ -1295,6 +1295,8 @@
     "external_id": "来自身份提供商的外部 ID",
     "sso": "SSO",
     "linked": "LINKED",
-    "none": "NONE"
+    "none": "NONE",
+    "enable_auto_redirect": "启用自动重定向到 SSO",
+    "enable_auto_redirect_help": "绕过本地登录页面并直接重定向到 SSO 提供商。在 URL 中使用 ?local=true 可以绕过此设置。"
   }
 }

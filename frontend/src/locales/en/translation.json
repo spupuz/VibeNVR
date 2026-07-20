@@ -1297,6 +1297,8 @@
     "external_id": "External ID from Identity Provider",
     "sso": "SSO",
     "linked": "LINKED",
-    "none": "NONE"
+    "none": "NONE",
+    "enable_auto_redirect": "Enable Auto-Redirect to SSO",
+    "enable_auto_redirect_help": "Bypasses the local login page and redirects directly to the SSO provider. Use ?local=true in the URL to bypass this setting."
   }
 }

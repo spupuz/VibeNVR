@@ -40,6 +40,14 @@ export const Login = () => {
                     if (data.oauth_enabled) {
                         setOauthEnabled(true);
                         setOauthProviderName(data.oauth_provider_name || 'SSO');
+
+                        // Check for auto-redirect and bypass parameter
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const bypassLocal = urlParams.get('local') === 'true';
+
+                        if (data.oauth_auto_redirect && !bypassLocal) {
+                            window.location.href = '/api/oauth/login';
+                        }
                     }
                 }
             } catch (err) {

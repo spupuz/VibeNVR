@@ -174,3 +174,34 @@ def unlink_oauth(db: Session = Depends(database.get_db), current_user: models.Us
     current_user.auth_source = "local"
     db.commit()
     return {"message": "OAuth unlinked successfully"}
+
+@router.get("/logout")
+async def oauth_logout(request: Request, db: Session = Depends(database.get_db)):
+    """Redirect to the OAuth provider's end_session_endpoint if available."""
+    try:
+        client = get_oauth_client(db)
+        metadata = await client.load_server_metadata()
+        end_session_endpoint = metadata.get("end_session_endpoint")
+        
+        base_url = str(request.base_url)
+        host = request.headers.get("host", "")
+        import re
+        if not re.match(r"^[0-9\.]+(:\d+)?$", host) and not host.startswith("localhost"):
+            if base_url.startswith("http://"):
+                base_url = base_url.replace("http://", "https://", 1)
+        if base_url.endswith('/'):
+            base_url = base_url[:-1]
+            
+        post_logout = f"{base_url}/login?local=true"
+        
+        if end_session_endpoint:
+            # We also pass client_id as many providers like Authentik require it.
+            redirect_url = f"{end_session_endpoint}?post_logout_redirect_uri={post_logout}&client_id={client.client_id}"
+            return RedirectResponse(url=redirect_url)
+            
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to redirect to OAuth end_session_endpoint: {e}")
+        
+    # Fallback to standard login redirect with local bypass
+    return RedirectResponse(url="/login?local=true")

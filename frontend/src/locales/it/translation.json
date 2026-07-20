@@ -1286,6 +1286,8 @@
     "external_id": "ID esterno dal provider di identità",
     "sso": "SSO",
     "linked": "LINKED",
-    "none": "NONE"
+    "none": "NONE",
+    "enable_auto_redirect": "Abilita il reindirizzamento automatico a SSO",
+    "enable_auto_redirect_help": "Ignora la pagina di accesso locale e reindirizza direttamente al provider SSO. Utilizza ?local=true nell'URL per ignorare questa impostazione."
   }
 }

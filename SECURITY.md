@@ -17,7 +17,7 @@ VibeNVR employs a defense-in-depth strategy, isolating components and ensuring s
 VibeNVR's primary defense against unauthorized access is a strict authentication flow enforced by `backend/auth_service.py`:
 - **Password Hashing**: User passwords are encrypted using the Argon2 hashing algorithm (`passlib`), providing robust defense against theoretical brute-force and dictionary attacks.
 - **Rate-Limiting by Design (Argon2)**: Validation requires evaluating the Argon2 hash *before* any other fallback mechanisms, which inherently increases the computational cost for attackers attempting password sprays.
-- **Single Sign-On (SSO / OAuth)**: Integration with OIDC providers (Authentik, Keycloak, etc.) acts as a secure login bridge. Just-In-Time (JIT) provisioning is strictly disabled; external identities must explicitly map to existing local users via `OAuth Subject ID`.
+- **Single Sign-On (SSO / OAuth)**: Integration with OIDC providers (Authentik, Keycloak, etc.) acts as a secure login bridge. Supports **Auto-Redirect** and **RP-Initiated Logout** for seamless session management. Just-In-Time (JIT) provisioning is strictly disabled; external identities must explicitly map to existing local users via `OAuth Subject ID`.
 - **Two-Factor Authentication (2FA)**: VibeNVR supports Time-based One-Time Passwords (TOTP).
     - **Trusted Devices**: Users can cryptographically mark personal devices as "trusted" by storing a SHA256 hashed 32-byte URL-safe token in the database. This skips 2FA on recognized devices without compromising base security.
     - **Recovery Codes**: 2FA setup automatically provisions 10 hashed, single-use fallback codes (128-bit entropy) directly into the database as a fail-safe mechanism against administrative lockout.

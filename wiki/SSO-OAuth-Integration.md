@@ -111,6 +111,16 @@ With the IdP configured, you now need to instruct VibeNVR to use it.
 
 At this point, a **"Sign in with [Provider Name]"** button will appear on the VibeNVR login page.
 
+### Enable Auto-Redirect to SSO
+
+If you want users to be immediately redirected to your Identity Provider (bypassing the local VibeNVR login screen entirely), you can enable the **Enable Auto-Redirect to SSO** toggle.
+
+> **Important (Escape Hatch)**: If your Identity Provider goes offline and you need to access VibeNVR using a local admin account, you can bypass the auto-redirect by appending `?local=true` to the URL. For example: `http://<VIBENVR_IP>:8080/login?local=true`
+
+### RP-Initiated Logout (OIDC)
+
+VibeNVR supports RP-Initiated Logout. When a user who logged in via SSO clicks "Logout" in VibeNVR, they will be redirected to the Identity Provider's end-session endpoint (if supported by the provider, e.g., Authentik). This allows the user to securely terminate their session at the IdP level or easily switch accounts. If the provider doesn't support this, they will be safely redirected to the local VibeNVR login screen.
+
 ---
 
 ## 4. User Provisioning and Linking

@@ -1289,6 +1289,8 @@
     "external_id": "ID プロバイダーからの外部 ID",
     "sso": "SSO",
     "linked": "LINKED",
-    "none": "NONE"
+    "none": "NONE",
+    "enable_auto_redirect": "SSO への自動リダイレクトを有効にする",
+    "enable_auto_redirect_help": "ローカルのログイン ページをバイパスし、SSO プロバイダーに直接リダイレクトします。この設定をバイパスするには、URL で ?local=true を使用します。"
   }
 }
