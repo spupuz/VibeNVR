@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
@@ -16,6 +16,7 @@ export const Login = () => {
     const [useRecoveryCode, setUseRecoveryCode] = useState(false);
     const [require2FA, setRequire2FA] = useState(false);
     const [error, setError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { t } = useTranslation();
 
     // Trusted Device State
@@ -46,6 +47,7 @@ export const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setIsSubmitting(true);
 
         try {
             const formData = new FormData();
@@ -129,6 +131,8 @@ export const Login = () => {
             }
         } catch (err) {
             setError('Login failed. Please check your connection.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -262,8 +266,15 @@ export const Login = () => {
                     {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
                     <div className="space-y-3">
-                        <Button className="w-full py-2.5" type="submit">
-                            {require2FA ? t('login.verify_login', 'Verify & Login') : t('login.sign_in', 'Sign In')}
+                        <Button className="w-full py-2.5" type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    {t('login.signing_in', 'Signing In...')}
+                                </>
+                            ) : (
+                                require2FA ? t('login.verify_login', 'Verify & Login') : t('login.sign_in', 'Sign In')
+                            )}
                         </Button>
 
                         {require2FA && (
