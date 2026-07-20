@@ -5,10 +5,12 @@ import database
 import models
 import auth_service
 from authlib.integrations.starlette_client import OAuth
-import json
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 router = APIRouter(prefix="/oauth", tags=["oauth"])
 
+limiter = Limiter(key_func=get_remote_address)
 oauth = OAuth()
 
 def get_oauth_client(db: Session):
@@ -43,6 +45,7 @@ def get_oauth_client(db: Session):
     return oauth.sso_provider
 
 @router.get("/login")
+@limiter.limit("10/minute")
 async def oauth_login(request: Request, db: Session = Depends(database.get_db)):
     client = get_oauth_client(db)
     base_url = str(request.base_url)
@@ -71,6 +74,7 @@ async def oauth_login(request: Request, db: Session = Depends(database.get_db)):
     return await client.authorize_redirect(request, str(redirect_uri))
 
 @router.get("/callback")
+@limiter.limit("10/minute")
 async def oauth_callback(request: Request, db: Session = Depends(database.get_db)):
     client = get_oauth_client(db)
     
@@ -169,13 +173,15 @@ async def oauth_callback(request: Request, db: Session = Depends(database.get_db
     return response
 
 @router.post("/unlink")
-def unlink_oauth(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
+@limiter.limit("5/minute")
+def unlink_oauth(request: Request, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_user)):
     current_user.oauth_subject_id = None
     current_user.auth_source = "local"
     db.commit()
     return {"message": "OAuth unlinked successfully"}
 
 @router.get("/logout")
+@limiter.limit("10/minute")
 async def oauth_logout(request: Request, db: Session = Depends(database.get_db)):
     """Redirect to the OAuth provider's end_session_endpoint if available."""
     try:
