@@ -44,6 +44,8 @@
     "vite": "^8.1.1"
   },
   "pnpm": {
-    "approvedBuilds": "['esbuild']"
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }
