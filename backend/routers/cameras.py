@@ -1,19 +1,41 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse, Response
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    UploadFile,
+    File,
+    BackgroundTasks,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+)
+from fastapi.responses import Response
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
-import crud, schemas, database, motion_service, storage_service, probe_service, auth_service, models, health_service
-import json, asyncio, tarfile, io, re, os, websockets
+import crud
+import schemas
+import database
+import motion_service
+import storage_service
+import probe_service
+import auth_service
+import models
+import health_service
+import json
+import tarfile
+import io
+import re
+import os
+import websockets
 from utils import mask_url
 import logging
 from urllib.parse import urlparse
 from typing import Optional, List, Any
-import typing as t
 import datetime
 
 logger = logging.getLogger(__name__)
 
-MAX_IMPORT_SIZE = 10 * 1024 * 1024        # 10 MB  — JSON camera import
+MAX_IMPORT_SIZE = 10 * 1024 * 1024  # 10 MB  — JSON camera import
 MAX_MOTIONEYE_IMPORT_SIZE = 200 * 1024 * 1024  # 200 MB — MotionEye .tar.gz backup
 
 router = APIRouter(
@@ -22,10 +44,12 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+
 def extract_host(url: str) -> Optional[str]:
     """Helper to extract hostname/IP from RTSP/HTTP URL"""
     try:
-        if not url: return None
+        if not url:
+            return None
         # Handle cases where protocol might be missing or weird
         if "://" not in url:
             url = "rtsp://" + url
@@ -34,33 +58,36 @@ def extract_host(url: str) -> Optional[str]:
     except:
         return None
 
+
 def sanitize_rtsp_url(url: str) -> str:
     """
     Ensure RTSP credentials are URL-encoded.
     Handles special characters in password (e.g. @, :, /) which break cv2/ffmpeg parsing.
     """
-    if not url or '://' not in url or '@' not in url:
+    if not url or "://" not in url or "@" not in url:
         return url
 
     try:
         # Split into [scheme]://[credentials]@[host_part]
         # We find the LAST @ to separate credentials from host
-        last_at_index = url.rfind('@')
-        if last_at_index == -1: return url
+        last_at_index = url.rfind("@")
+        if last_at_index == -1:
+            return url
 
-        scheme_end_index = url.find('://')
-        if scheme_end_index == -1: return url
+        scheme_end_index = url.find("://")
+        if scheme_end_index == -1:
+            return url
 
         credentials_part = url[scheme_end_index + 3 : last_at_index]
-        host_part = url[last_at_index + 1:]
+        host_part = url[last_at_index + 1 :]
         scheme = url[:scheme_end_index]
 
         # Credentials should be user:pass
-        if ':' in credentials_part:
+        if ":" in credentials_part:
             from urllib.parse import quote, unquote
 
             # Split by first colon
-            user, password = credentials_part.split(':', 1)
+            user, password = credentials_part.split(":", 1)
 
             # FIRST decode (in case already encoded), THEN encode
             # This prevents double-encoding when saving an already-encoded URL
@@ -69,8 +96,8 @@ def sanitize_rtsp_url(url: str) -> str:
 
             # Now encode properly
             # safe='' ensures even / is encoded, which is crucial for passwords
-            user_enc = quote(user_decoded, safe='')
-            pass_enc = quote(pass_decoded, safe='')
+            user_enc = quote(user_decoded, safe="")
+            pass_enc = quote(pass_decoded, safe="")
 
             return f"{scheme}://{user_enc}:{pass_enc}@{host_part}"
 
@@ -79,20 +106,22 @@ def sanitize_rtsp_url(url: str) -> str:
         logger.error(f"Error sanitizing URL: {mask_url(str(e))}")
         return url
 
+
 @router.post("", response_model=schemas.Camera)
 def create_camera(
     camera: schemas.CameraCreate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(database.get_db),
-    current_user: models.User = Depends(auth_service.get_current_active_admin)
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
 ):
     # Sanitize URL credentials
     if camera.rtsp_url:
         camera.rtsp_url = sanitize_rtsp_url(camera.rtsp_url)
 
     # Use global default for live_view_mode if not provided
-    if not camera.live_view_mode or camera.live_view_mode == 'auto':
+    if not camera.live_view_mode or camera.live_view_mode == "auto":
         from routers.settings import get_setting
+
         global_default = get_setting(db, "default_live_view_mode")
         if global_default:
             camera.live_view_mode = global_default
@@ -101,33 +130,49 @@ def create_camera(
     # Auto-detect resolution if enabled
     if camera.auto_resolution and camera.rtsp_url:
         logger.info(f"Probing stream for camera {camera.name}...")
-        dims = probe_service.probe_stream(camera.rtsp_url, rtsp_transport=camera.rtsp_transport)
+        dims = probe_service.probe_stream(
+            camera.rtsp_url, rtsp_transport=camera.rtsp_transport
+        )
         if dims:
             logger.info(f"Detected resolution: {dims['width']}x{dims['height']}")
-            camera.resolution_width = dims['width']
-            camera.resolution_height = dims['height']
+            camera.resolution_width = dims["width"]
+            camera.resolution_height = dims["height"]
         else:
             logger.info("Probe failed, using provided resolution.")
 
     new_camera = crud.create_camera(db=db, camera=camera)
     if new_camera.onvif_host:
         import onvif_service
-        background_tasks.add_task(onvif_service.probe_and_update_onvif_features, new_camera.id, None)
+
+        background_tasks.add_task(
+            onvif_service.probe_and_update_onvif_features, new_camera.id, None
+        )
 
     # Update ONVIF Event subscription if needed
     from onvif_event_service import event_manager
+
     event_manager.update_subscription(new_camera.id)
 
     motion_service.generate_motion_config(db)
     return new_camera
 
+
 @router.get("", response_model=List[Any])
-def read_cameras(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
+def read_cameras(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(database.get_db),
+    auth_info: tuple[models.User, bool] = Depends(
+        auth_service.get_current_user_or_token
+    ),
+):
     user, is_token = auth_info
     cameras = crud.get_cameras(db, skip=skip, limit=limit)
 
     if user.role == "viewer" and user.restrict_camera_access:
-        allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id, permission="view")
+        allowed_ids = crud.get_allowed_camera_ids_for_user(
+            db, user.id, permission="view"
+        )
         if allowed_ids is not None:
             cameras = [c for c in cameras if c.id in allowed_ids]
 
@@ -136,48 +181,77 @@ def read_cameras(skip: int = 0, limit: int = 100, db: Session = Depends(database
         return [schemas.CameraSummary.model_validate(c) for c in cameras]
     return [schemas.Camera.model_validate(c) for c in cameras]
 
+
 @router.get("/{camera_id}", response_model=Any)
-def read_camera(camera_id: int, db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
+def read_camera(
+    camera_id: int,
+    db: Session = Depends(database.get_db),
+    auth_info: tuple[models.User, bool] = Depends(
+        auth_service.get_current_user_or_token
+    ),
+):
     user, is_token = auth_info
     db_camera = crud.get_camera(db, camera_id=camera_id)
     if db_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
 
     if user.role == "viewer" and user.restrict_camera_access:
-        allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id, permission="view")
+        allowed_ids = crud.get_allowed_camera_ids_for_user(
+            db, user.id, permission="view"
+        )
         if allowed_ids is not None and camera_id not in allowed_ids:
-            raise HTTPException(status_code=403, detail="Not authorized to view this camera")
+            raise HTTPException(
+                status_code=403, detail="Not authorized to view this camera"
+            )
 
     if is_token:
         # Return sanitized summary for 3rd party integrations
         return schemas.CameraSummary.model_validate(db_camera)
     return schemas.Camera.model_validate(db_camera)
 
+
 def _probe_resolution_if_needed(camera: schemas.CameraCreate, existing_camera: Any):
     """Probes the RTSP stream for resolution if URL changed or auto-resolution was enabled."""
     rtsp_changed = existing_camera.rtsp_url != camera.rtsp_url
-    auto_res_just_enabled = camera.auto_resolution and not existing_camera.auto_resolution
-    is_res_default = existing_camera.resolution_width in (0, 1920) and existing_camera.resolution_height in (0, 1080)
+    auto_res_just_enabled = (
+        camera.auto_resolution and not existing_camera.auto_resolution
+    )
+    is_res_default = existing_camera.resolution_width in (
+        0,
+        1920,
+    ) and existing_camera.resolution_height in (0, 1080)
 
-    if camera.auto_resolution and camera.rtsp_url and (rtsp_changed or auto_res_just_enabled or is_res_default):
-        logger.info(f"Probing stream for camera {camera.name} (Trigger: {'URL Change' if rtsp_changed else 'Auto-Res Enabled/Default'})...")
-        dims = probe_service.probe_stream(camera.rtsp_url, rtsp_transport=camera.rtsp_transport)
+    if (
+        camera.auto_resolution
+        and camera.rtsp_url
+        and (rtsp_changed or auto_res_just_enabled or is_res_default)
+    ):
+        logger.info(
+            f"Probing stream for camera {camera.name} (Trigger: {'URL Change' if rtsp_changed else 'Auto-Res Enabled/Default'})..."
+        )
+        dims = probe_service.probe_stream(
+            camera.rtsp_url, rtsp_transport=camera.rtsp_transport
+        )
         if dims:
             logger.info(f"Detected resolution: {dims['width']}x{dims['height']}")
-            camera.resolution_width = dims['width']
-            camera.resolution_height = dims['height']
+            camera.resolution_width = dims["width"]
+            camera.resolution_height = dims["height"]
         else:
             logger.info("Probe failed, using provided resolution.")
 
 
-def _sync_camera_engine_state(camera_id: int, db_camera: Any, was_active: bool, background_tasks: BackgroundTasks):
+def _sync_camera_engine_state(
+    camera_id: int, db_camera: Any, was_active: bool, background_tasks: BackgroundTasks
+):
     """Synchronizes the camera's active state with the motion/engine service."""
     # If active status changed, we might need to start/stop the camera in Engine
     # If it was inactive and now active -> Start
     # If it was active and now inactive -> Stop? (Sync handles it?)
     # For now, let's just Sync All if active status changes, simpler.
     if was_active != db_camera.is_active:
-        logger.info(f"Camera {db_camera.name} active status changed ({was_active} -> {db_camera.is_active}). Syncing Engine...")
+        logger.info(
+            f"Camera {db_camera.name} active status changed ({was_active} -> {db_camera.is_active}). Syncing Engine..."
+        )
         if db_camera.is_active:
             motion_service.update_camera_runtime(db_camera)
         else:
@@ -189,16 +263,25 @@ def _sync_camera_engine_state(camera_id: int, db_camera: Any, was_active: bool, 
             motion_service.update_camera_runtime(db_camera)
             # Update ONVIF Event subscription if needed
             from onvif_event_service import event_manager
+
             event_manager.update_subscription(camera_id)
             # Immediate health refresh
             background_tasks.add_task(health_service.refresh_camera_health, camera_id)
         else:
-            logger.info(f"Camera {db_camera.name} updated (inactive). Ensuring it is stopped...")
+            logger.info(
+                f"Camera {db_camera.name} updated (inactive). Ensuring it is stopped..."
+            )
             motion_service.stop_camera(db_camera.id)
 
 
 @router.put("/{camera_id}", response_model=schemas.Camera)
-def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks: BackgroundTasks, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def update_camera(
+    camera_id: int,
+    camera: schemas.CameraCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
     # Sanitize URL credentials
     if camera.rtsp_url:
         camera.rtsp_url = sanitize_rtsp_url(camera.rtsp_url)
@@ -224,15 +307,23 @@ def update_camera(camera_id: int, camera: schemas.CameraCreate, background_tasks
     # Trigger PTZ probe if ONVIF host changed or was just added
     if db_camera.onvif_host and (db_camera.onvif_host != old_onvif_host):
         import onvif_service
-        background_tasks.add_task(onvif_service.probe_and_update_onvif_features, db_camera.id, None)
+
+        background_tasks.add_task(
+            onvif_service.probe_and_update_onvif_features, db_camera.id, None
+        )
     if db_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
     _sync_camera_engine_state(camera_id, db_camera, was_active, background_tasks)
 
     return db_camera
 
+
 @router.post("/{camera_id}/recording")
-def toggle_camera_recording(camera_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def toggle_camera_recording(
+    camera_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
     """
     Toggle recording mode for a specific camera.
     Uses Motion's per-camera config API to avoid full restart.
@@ -245,16 +336,16 @@ def toggle_camera_recording(camera_id: int, db: Session = Depends(database.get_d
     # Continuous = manual "record now" mode
     # Off = stop recording
     # This is for quick manual control; Motion Triggered is set via settings modal
-    is_continuous = db_camera.recording_mode in ('Always', 'Continuous')
+    is_continuous = db_camera.recording_mode in ("Always", "Continuous")
 
     if is_continuous:
         # Turning OFF: restore previous mode (Off or Motion Triggered)
-        new_mode = db_camera.previous_recording_mode or 'Off'
+        new_mode = db_camera.previous_recording_mode or "Off"
         db_camera.previous_recording_mode = None  # Clear saved state
     else:
         # Turning ON: save current mode and switch to Continuous
         db_camera.previous_recording_mode = db_camera.recording_mode
-        new_mode = 'Continuous'
+        new_mode = "Continuous"
 
     # Update DB
     db_camera.recording_mode = new_mode
@@ -271,8 +362,13 @@ def toggle_camera_recording(camera_id: int, db: Session = Depends(database.get_d
 
     return db_camera
 
+
 @router.delete("/{camera_id}", response_model=schemas.Camera)
-def delete_camera(camera_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def delete_camera(
+    camera_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
     # 1. Get camera first and stop if running
     db_camera = db.query(models.Camera).filter(models.Camera.id == camera_id).first()
     if db_camera is None:
@@ -294,8 +390,13 @@ def delete_camera(camera_id: int, db: Session = Depends(database.get_db), curren
 
     return camera_data
 
+
 @router.post("/bulk-delete")
-def bulk_delete_cameras(camera_ids: List[int], db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def bulk_delete_cameras(
+    camera_ids: List[int],
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
     """Delete multiple cameras at once"""
     for camera_id in camera_ids:
         # 1. Stop the camera if running
@@ -309,18 +410,30 @@ def bulk_delete_cameras(camera_ids: List[int], db: Session = Depends(database.ge
 
     # 4. Sync engine config once
     motion_service.generate_motion_config(db)
-    return {"message": f"Successfully deleted {deleted_count} camera(s)", "count": deleted_count}
+    return {
+        "message": f"Successfully deleted {deleted_count} camera(s)",
+        "count": deleted_count,
+    }
+
 
 @router.post("/reorder")
-def reorder_cameras(request: schemas.CameraReorderRequest, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def reorder_cameras(
+    request: schemas.CameraReorderRequest,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
     """Reorder cameras in the database"""
     for index, cam_id in enumerate(request.camera_ids):
-        db.query(models.Camera).filter(models.Camera.id == cam_id).update({models.Camera.sort_order: index}, synchronize_session=False)
+        db.query(models.Camera).filter(models.Camera.id == cam_id).update(
+            {models.Camera.sort_order: index}, synchronize_session=False
+        )
     db.commit()
     return {"message": "Cameras reordered successfully"}
 
-from fastapi.responses import StreamingResponse, Response
+
+from fastapi.responses import StreamingResponse
 import httpx
+
 
 @router.websocket("/{camera_id}/ws")
 async def websocket_camera_stream(websocket: WebSocket, camera_id: int):
@@ -342,7 +455,9 @@ async def websocket_camera_stream(websocket: WebSocket, camera_id: int):
                 await websocket.close(code=1008)
                 return
             if user.role == "viewer" and user.restrict_camera_access:
-                allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id, permission="view")
+                allowed_ids = crud.get_allowed_camera_ids_for_user(
+                    db, user.id, permission="view"
+                )
                 if allowed_ids is not None and camera_id not in allowed_ids:
                     await websocket.close(code=1008)
                     return
@@ -354,19 +469,27 @@ async def websocket_camera_stream(websocket: WebSocket, camera_id: int):
     # Connect to Engine WS
     engine_ws_url = f"ws://engine:8000/cameras/{camera_id}/ws"
     try:
-        async with websockets.connect(engine_ws_url, ping_interval=60.0, ping_timeout=60.0) as engine_ws:
+        async with websockets.connect(
+            engine_ws_url, ping_interval=60.0, ping_timeout=60.0
+        ) as engine_ws:
             logging.info(f"WS Proxy connected to Engine SDK for camera {camera_id}")
             async for message in engine_ws:
                 await websocket.send_bytes(message)
     except websockets.exceptions.ConnectionClosed:
         logging.info(f"Engine WS closed for camera {camera_id}")
-    except (ConnectionResetError, websockets.exceptions.ConnectionClosedError, WebSocketDisconnect):
+    except (
+        ConnectionResetError,
+        websockets.exceptions.ConnectionClosedError,
+        WebSocketDisconnect,
+    ):
         logging.info(f"WS Client gracefully disconnected from camera {camera_id}")
     except Exception as e:
         if "104" in str(e) or "reset by peer" in str(e).lower():
             logging.info(f"WS Client abruptly disconnected from camera {camera_id}")
         else:
-            logging.error(f"WS Proxy error for camera {camera_id} ({type(e).__name__}): {e}")
+            logging.error(
+                f"WS Proxy error for camera {camera_id} ({type(e).__name__}): {e}"
+            )
     finally:
         try:
             await websocket.close()
@@ -375,17 +498,21 @@ async def websocket_camera_stream(websocket: WebSocket, camera_id: int):
         except:
             pass
 
+
 @router.get("/{camera_id}/frame")
-async def get_camera_frame(camera_id: int, request: Request, token: Optional[str] = None, raw: bool = False):
+async def get_camera_frame(
+    camera_id: int, request: Request, token: Optional[str] = None, raw: bool = False
+):
     """Proxy a single JPEG frame from the engine (for polling mode)"""
     # Accept token from: Authorization: Bearer header > ?token= query param > media_token cookie
     auth_header = request.headers.get("Authorization", "")
     bearer_token = auth_header[7:] if auth_header.startswith("Bearer ") else None
     media_token = bearer_token or token or request.cookies.get("media_token")
     if not media_token:
-        logging.warning(f"Frame Auth Fail: No token for camera {camera_id}. Cookies present: {list(request.cookies.keys())}")
+        logging.warning(
+            f"Frame Auth Fail: No token for camera {camera_id}. Cookies present: {list(request.cookies.keys())}"
+        )
         raise HTTPException(status_code=401, detail="Missing media authentication")
-
 
     # Verify authentication and camera existence
     db = database.SessionLocal()
@@ -396,9 +523,13 @@ async def get_camera_frame(camera_id: int, request: Request, token: Optional[str
             raise HTTPException(status_code=404, detail="Camera not found")
 
         if user.role == "viewer" and user.restrict_camera_access:
-            allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id, permission="view")
+            allowed_ids = crud.get_allowed_camera_ids_for_user(
+                db, user.id, permission="view"
+            )
             if allowed_ids is not None and camera_id not in allowed_ids:
-                raise HTTPException(status_code=403, detail="Not authorized to view this camera")
+                raise HTTPException(
+                    status_code=403, detail="Not authorized to view this camera"
+                )
 
         frame_url = f"http://engine:8000/cameras/{camera_id}/frame"
 
@@ -407,7 +538,9 @@ async def get_camera_frame(camera_id: int, request: Request, token: Optional[str
             if user.role == "admin":
                 frame_url += "?raw=true"
             else:
-                logging.warning(f"Security: Non-admin user {user.username} (ID: {user.id}) attempted to access raw frame for camera {camera_id}")
+                logging.warning(
+                    f"Security: Non-admin user {user.username} (ID: {user.id}) attempted to access raw frame for camera {camera_id}"
+                )
     finally:
         db.close()
 
@@ -421,13 +554,14 @@ async def get_camera_frame(camera_id: int, request: Request, token: Optional[str
                 content=response.content,
                 status_code=response.status_code,
                 media_type="image/jpeg",
-                headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+                headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
             )
     except Exception as e:
         logger.error(f"[FRAME] Error getting frame for camera {camera_id}: {e}")
         # Return error status so frontend can show "Connection Error" overlay
         # instead of loading a black placeholder frame
         raise HTTPException(status_code=503, detail=f"Frame unavailable: {e}")
+
 
 @router.get("/{camera_id}/stream")
 async def stream_camera(camera_id: int, request: Request, token: Optional[str] = None):
@@ -448,13 +582,19 @@ async def stream_camera(camera_id: int, request: Request, token: Optional[str] =
                 raise HTTPException(status_code=404, detail="Camera not found")
 
             if user.role == "viewer" and user.restrict_camera_access:
-                allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id, permission="view")
+                allowed_ids = crud.get_allowed_camera_ids_for_user(
+                    db, user.id, permission="view"
+                )
                 if allowed_ids is not None and camera_id not in allowed_ids:
-                    raise HTTPException(status_code=403, detail="Not authorized to view this camera")
+                    raise HTTPException(
+                        status_code=403, detail="Not authorized to view this camera"
+                    )
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Stream Auth Fail: Invalid token for camera {camera_id} - {str(e)}")
+        logging.error(
+            f"Stream Auth Fail: Invalid token for camera {camera_id} - {str(e)}"
+        )
         raise HTTPException(status_code=401, detail="Invalid media authentication")
 
     # Use explicit container name for hostname stability
@@ -462,7 +602,9 @@ async def stream_camera(camera_id: int, request: Request, token: Optional[str] =
     motion_stream_url = f"http://engine:8000/cameras/{camera_id}/stream"
 
     async def generate():
-        logger.info(f"[STREAM] Starting proxy for camera {camera_id} from {motion_stream_url}")
+        logger.info(
+            f"[STREAM] Starting proxy for camera {camera_id} from {motion_stream_url}"
+        )
         try:
             # Connection timeout 5s, Read timeout None (infinite stream)
             timeout = httpx.Timeout(None, connect=5.0)
@@ -470,7 +612,9 @@ async def stream_camera(camera_id: int, request: Request, token: Optional[str] =
                 try:
                     async with client.stream("GET", motion_stream_url) as response:
                         if response.status_code != 200:
-                            logger.error(f"[STREAM] Motion returned status {response.status_code}, aborting.")
+                            logger.error(
+                                f"[STREAM] Motion returned status {response.status_code}, aborting."
+                            )
                             return
 
                         count: int = 0
@@ -478,11 +622,15 @@ async def stream_camera(camera_id: int, request: Request, token: Optional[str] =
                             yield chunk
                             count += 1
                             if count % 100 == 0:
-                                logger.debug(f"[STREAM] Camera {camera_id} proxy active, chunk {count}")
+                                logger.debug(
+                                    f"[STREAM] Camera {camera_id} proxy active, chunk {count}"
+                                )
                 except Exception as e:
                     logger.error(f"[STREAM] Proxy error loop for {camera_id}: {e}")
         except Exception as e:
-            logger.error(f"[STREAM] Proxy error for camera {camera_id}: {type(e).__name__}: {e}")
+            logger.error(
+                f"[STREAM] Proxy error for camera {camera_id}: {type(e).__name__}: {e}"
+            )
         finally:
             logger.info(f"[STREAM] Proxy finished for camera {camera_id}")
 
@@ -493,19 +641,23 @@ async def stream_camera(camera_id: int, request: Request, token: Optional[str] =
             "Cache-Control": "no-cache, no-store, must-revalidate",
             "Pragma": "no-cache",
             "Expires": "0",
-        }
+        },
     )
 
 
 # ============ IMPORT/EXPORT ENDPOINTS ============
 
+
 @router.get("/export/all")
-def export_all_cameras(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def export_all_cameras(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
     """Export all cameras settings as JSON"""
     cameras = crud.get_cameras(db)
     export_data = []
 
-    fields_to_exclude = {'id', 'created_at', 'groups', 'events'}
+    fields_to_exclude = {"id", "created_at", "groups", "events"}
 
     for cam in cameras:
         # Pydantic v2 validation (excludes relationships and system fields like ID automatically)
@@ -516,15 +668,22 @@ def export_all_cameras(db: Session = Depends(database.get_db), current_user: mod
             cam_data["storage_profile_name"] = cam.storage_profile.name
         export_data.append(cam_data)
 
-    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     return Response(
         content=json.dumps({"cameras": export_data, "version": "1.1"}, indent=2),
         media_type="application/json",
-        headers={"Content-Disposition": f"attachment; filename=vibenvr_cameras_export_{timestamp}.json"}
+        headers={
+            "Content-Disposition": f"attachment; filename=vibenvr_cameras_export_{timestamp}.json"
+        },
     )
 
+
 @router.post("/export/bulk")
-def export_bulk_cameras(camera_ids: List[int], db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def export_bulk_cameras(
+    camera_ids: List[int],
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
     """Export selected cameras settings as JSON"""
     export_data = []
 
@@ -537,21 +696,28 @@ def export_bulk_cameras(camera_ids: List[int], db: Session = Depends(database.ge
                 cam_data["storage_profile_name"] = cam.storage_profile.name
             export_data.append(cam_data)
 
-    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     return Response(
         content=json.dumps({"cameras": export_data, "version": "1.1"}, indent=2),
         media_type="application/json",
-        headers={"Content-Disposition": f"attachment; filename=vibenvr_cameras_export_{timestamp}.json"}
+        headers={
+            "Content-Disposition": f"attachment; filename=vibenvr_cameras_export_{timestamp}.json"
+        },
     )
 
+
 @router.get("/{camera_id}/export")
-def export_single_camera(camera_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def export_single_camera(
+    camera_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
     """Export single camera settings as JSON"""
     cam = crud.get_camera(db, camera_id)
     if cam is None:
         raise HTTPException(status_code=404, detail="Camera not found")
 
-    fields_to_exclude = {'id', 'created_at', 'groups', 'events'}
+    fields_to_exclude = {"id", "created_at", "groups", "events"}
 
     # Use schema to serialize without relationships
     filtered_data = jsonable_encoder(schemas.CameraCreate.model_validate(cam))
@@ -560,15 +726,23 @@ def export_single_camera(camera_id: int, db: Session = Depends(database.get_db),
     if cam.storage_profile:
         filtered_data["storage_profile_name"] = cam.storage_profile.name
 
-    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     return Response(
         content=json.dumps({"camera": filtered_data, "version": "1.1"}, indent=2),
         media_type="application/json",
-        headers={"Content-Disposition": f"attachment; filename=vibenvr_camera_{cam.name.replace(' ', '_')}_{timestamp}.json"}
+        headers={
+            "Content-Disposition": f"attachment; filename=vibenvr_camera_{cam.name.replace(' ', '_')}_{timestamp}.json"
+        },
     )
 
+
 @router.post("/import")
-async def import_cameras(file: UploadFile = File(...), analyze_only: bool = False, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+async def import_cameras(
+    file: UploadFile = File(...),
+    analyze_only: bool = False,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
     """Import cameras from JSON file"""
     try:
         content = await file.read(MAX_IMPORT_SIZE + 1)
@@ -582,13 +756,21 @@ async def import_cameras(file: UploadFile = File(...), analyze_only: bool = Fals
 
         imported_count: int = 0
         skipped_count: int = 0
-        cameras_data = data.get("cameras", [data.get("camera")]) if "cameras" in data else [data.get("camera")]
+        cameras_data = (
+            data.get("cameras", [data.get("camera")])
+            if "cameras" in data
+            else [data.get("camera")]
+        )
 
         parsed_cameras = []
 
         # Pre-fetch existing hosts to avoid N+1 queries during loop
         all_cams = crud.get_cameras(db, limit=1000)
-        existing_hosts = {extract_host(c.rtsp_url) for c in all_cams if c.rtsp_url and extract_host(c.rtsp_url)}
+        existing_hosts = {
+            extract_host(c.rtsp_url)
+            for c in all_cams
+            if c.rtsp_url and extract_host(c.rtsp_url)
+        }
 
         for cam_data in cameras_data:
             if cam_data is None:
@@ -599,7 +781,10 @@ async def import_cameras(file: UploadFile = File(...), analyze_only: bool = Fals
             host = extract_host(rtsp_url)
 
             if host and host in existing_hosts:
-                print(f"[IMPORT] Skipping camera {cam_data.get('name')} - Host/IP already exists: {host}", flush=True)
+                print(
+                    f"[IMPORT] Skipping camera {cam_data.get('name')} - Host/IP already exists: {host}",
+                    flush=True,
+                )
                 skipped_count += 1
                 continue
             elif host:
@@ -622,7 +807,11 @@ async def import_cameras(file: UploadFile = File(...), analyze_only: bool = Fals
 
             # Handle storage profile matching by name
             if profile_name:
-                db_profile = db.query(models.StorageProfile).filter(models.StorageProfile.name == profile_name).first()
+                db_profile = (
+                    db.query(models.StorageProfile)
+                    .filter(models.StorageProfile.name == profile_name)
+                    .first()
+                )
                 if db_profile:
                     db_camera.storage_profile_id = db_profile.id
             db.commit()
@@ -630,7 +819,11 @@ async def import_cameras(file: UploadFile = File(...), analyze_only: bool = Fals
             if not analyze_only:
                 # Handle group associations
                 if group_names:
-                    existing_groups = db.query(models.CameraGroup).filter(models.CameraGroup.name.in_(group_names)).all()
+                    existing_groups = (
+                        db.query(models.CameraGroup)
+                        .filter(models.CameraGroup.name.in_(group_names))
+                        .all()
+                    )
                     group_dict = {g.name: g for g in existing_groups}
 
                     for g_name in group_names:
@@ -649,7 +842,12 @@ async def import_cameras(file: UploadFile = File(...), analyze_only: bool = Fals
             imported_count = count + 1
 
         if analyze_only:
-            return {"message": "Analysis complete", "cameras": parsed_cameras, "count": imported_count, "skipped": skipped_count}
+            return {
+                "message": "Analysis complete",
+                "cameras": parsed_cameras,
+                "count": imported_count,
+                "skipped": skipped_count,
+            }
 
         motion_service.generate_motion_config(db)
 
@@ -663,15 +861,24 @@ async def import_cameras(file: UploadFile = File(...), analyze_only: bool = Fals
         raise e
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         logger.error(f"[IMPORT] Unexpected Error: {e}")
         raise HTTPException(status_code=400, detail=f"Import failed: {str(e)}")
 
+
 @router.post("/import/motioneye")
-async def import_motioneye_cameras(file: UploadFile = File(...), analyze_only: bool = False, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+async def import_motioneye_cameras(
+    file: UploadFile = File(...),
+    analyze_only: bool = False,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
     """Import cameras from MotionEye backup (.tar.gz)"""
-    if not file.filename.endswith('.tar.gz'):
-        raise HTTPException(status_code=400, detail="File must be a .tar.gz backup from MotionEye")
+    if not file.filename.endswith(".tar.gz"):
+        raise HTTPException(
+            status_code=400, detail="File must be a .tar.gz backup from MotionEye"
+        )
 
     try:
         content = await file.read(MAX_MOTIONEYE_IMPORT_SIZE + 1)
@@ -682,82 +889,145 @@ async def import_motioneye_cameras(file: UploadFile = File(...), analyze_only: b
         skipped_count: int = 0
         parsed_cameras = []
 
-        with tarfile.open(fileobj=tar_stream, mode='r:gz') as tar:
+        # Pre-fetch existing hosts to avoid N+1 queries during loop
+        # ⚡ Bolt: Fetch existing cameras once instead of inside the O(N) loop
+        all_cams = crud.get_cameras(db, limit=1000)
+        existing_hosts = {
+            extract_host(c.rtsp_url)
+            for c in all_cams
+            if c.rtsp_url and extract_host(c.rtsp_url)
+        }
+
+        with tarfile.open(fileobj=tar_stream, mode="r:gz") as tar:
             members = tar.getmembers()
             print(f"[IMPORT] Tar contains {len(members)} entries", flush=True)
 
             for member in members:
                 # Zip Slip / TAR path traversal guard
-                if ".." in member.name or member.name.startswith("/") or os.path.isabs(member.name):
-                    print(f"[IMPORT] Security: Skipping suspicious path in tar: {member.name}", flush=True)
+                if (
+                    ".." in member.name
+                    or member.name.startswith("/")
+                    or os.path.isabs(member.name)
+                ):
+                    print(
+                        f"[IMPORT] Security: Skipping suspicious path in tar: {member.name}",
+                        flush=True,
+                    )
                     continue
                 filename = os.path.basename(member.name)
-                print(f"[IMPORT] Checking member: {member.name} (file: {filename})", flush=True)
+                print(
+                    f"[IMPORT] Checking member: {member.name} (file: {filename})",
+                    flush=True,
+                )
 
                 # Check for camera-X.conf or camera_X.conf
-                if filename.endswith('.conf') and (filename.startswith('camera-') or filename.startswith('camera_')):
+                if filename.endswith(".conf") and (
+                    filename.startswith("camera-") or filename.startswith("camera_")
+                ):
                     print(f"[IMPORT] Parsing config: {member.name}", flush=True)
                     f = tar.extractfile(member)
                     if f:
-                        conf_text = f.read().decode('utf-8', errors='ignore')
+                        conf_text = f.read().decode("utf-8", errors="ignore")
 
                         # Parsing Logic
                         # Extract basic info using regex - case insensitive for robustness
-                        cam_name_match = re.search(r'^camera_name\s+(.*)', conf_text, re.MULTILINE | re.IGNORECASE)
-                        url_match = re.search(r'^netcam_url\s+(.*)', conf_text, re.MULTILINE | re.IGNORECASE)
-                        userpass_match = re.search(r'^netcam_userpass\s+(.*)', conf_text, re.MULTILINE | re.IGNORECASE)
-                        width_match = re.search(r'^width\s+(\d+)', conf_text, re.MULTILINE | re.IGNORECASE)
-                        height_match = re.search(r'^height\s+(\d+)', conf_text, re.MULTILINE | re.IGNORECASE)
-                        fps_match = re.search(r'^framerate\s+(\d+)', conf_text, re.MULTILINE | re.IGNORECASE)
-                        rotation_match = re.search(r'^rotate\s+(\d+)', conf_text, re.MULTILINE | re.IGNORECASE)
+                        cam_name_match = re.search(
+                            r"^camera_name\s+(.*)",
+                            conf_text,
+                            re.MULTILINE | re.IGNORECASE,
+                        )
+                        url_match = re.search(
+                            r"^netcam_url\s+(.*)",
+                            conf_text,
+                            re.MULTILINE | re.IGNORECASE,
+                        )
+                        userpass_match = re.search(
+                            r"^netcam_userpass\s+(.*)",
+                            conf_text,
+                            re.MULTILINE | re.IGNORECASE,
+                        )
+                        width_match = re.search(
+                            r"^width\s+(\d+)", conf_text, re.MULTILINE | re.IGNORECASE
+                        )
+                        height_match = re.search(
+                            r"^height\s+(\d+)", conf_text, re.MULTILINE | re.IGNORECASE
+                        )
+                        fps_match = re.search(
+                            r"^framerate\s+(\d+)",
+                            conf_text,
+                            re.MULTILINE | re.IGNORECASE,
+                        )
+                        rotation_match = re.search(
+                            r"^rotate\s+(\d+)", conf_text, re.MULTILINE | re.IGNORECASE
+                        )
 
                         if not url_match:
-                            print(f"[IMPORT] No netcam_url found in {member.name}, skipping.", flush=True)
+                            print(
+                                f"[IMPORT] No netcam_url found in {member.name}, skipping.",
+                                flush=True,
+                            )
                             continue
 
                         # Build VibeNVR Schema
-                        name = cam_name_match.group(1).strip() if cam_name_match else f"Imported {filename}"
+                        name = (
+                            cam_name_match.group(1).strip()
+                            if cam_name_match
+                            else f"Imported {filename}"
+                        )
                         rtsp_url = url_match.group(1).strip()
 
                         # Handle userpass injection if present in netcam_userpass but not in URL
-                        if userpass_match and '@' not in rtsp_url:
+                        if userpass_match and "@" not in rtsp_url:
                             userpass = userpass_match.group(1).strip()
-                            if '://' in rtsp_url:
-                                proto, rest = rtsp_url.split('://', 1)
+                            if "://" in rtsp_url:
+                                proto, rest = rtsp_url.split("://", 1)
                                 rtsp_url = f"{proto}://{userpass}@{rest}"
 
                         # Duplicate check (after URL is finalized)
                         host = extract_host(rtsp_url)
-                        if host:
-                            all_cams = crud.get_cameras(db, limit=1000)
-                            existing = next((c for c in all_cams if extract_host(c.rtsp_url) == host), None)
-
-                            if existing:
-                                print(f"[IMPORT] Skipping camera {name} - Host/IP already exists: {host}", flush=True)
-                                count: int = int(skipped_count)
-                                skipped_count = count + 1
-                                continue
+                        if host and host in existing_hosts:
+                            print(
+                                f"[IMPORT] Skipping camera {name} - Host/IP already exists: {host}",
+                                flush=True,
+                            )
+                            count: int = int(skipped_count)
+                            skipped_count = count + 1
+                            continue
 
                         # Check for sensitive info in URL and mask it for logs
                         safe_url_log = mask_url(rtsp_url)
-                        print(f"[IMPORT] Found camera: {name} with URL: {safe_url_log}", flush=True)
+                        print(
+                            f"[IMPORT] Found camera: {name} with URL: {safe_url_log}",
+                            flush=True,
+                        )
 
                         # Create Camera
                         new_cam = schemas.CameraCreate(
                             name=name,
                             rtsp_url=rtsp_url,
-                            resolution_width=int(width_match.group(1)) if width_match else 800,
-                            resolution_height=int(height_match.group(1)) if height_match else 600,
+                            resolution_width=int(width_match.group(1))
+                            if width_match
+                            else 800,
+                            resolution_height=int(height_match.group(1))
+                            if height_match
+                            else 600,
                             framerate=int(fps_match.group(1)) if fps_match else 15,
-                            rotation=int(rotation_match.group(1)) if rotation_match else 0,
-                            auto_resolution=True if not (width_match and height_match) else False
+                            rotation=int(rotation_match.group(1))
+                            if rotation_match
+                            else 0,
+                            auto_resolution=True
+                            if not (width_match and height_match)
+                            else False,
                         )
 
                         # Additional detections from MotionEye comments
-                        if '# @enabled off' in conf_text:
+                        if "# @enabled off" in conf_text:
                             new_cam.is_active = False
 
-                        if 'movie_output on' in conf_text or 'movie_output_motion on' in conf_text:
+                        if (
+                            "movie_output on" in conf_text
+                            or "movie_output_motion on" in conf_text
+                        ):
                             new_cam.recording_mode = "Motion Triggered"
                         else:
                             new_cam.recording_mode = "Off"
@@ -774,15 +1044,26 @@ async def import_motioneye_cameras(file: UploadFile = File(...), analyze_only: b
                                 crud.create_camera(db, validated_cam)
                                 count: int = int(imported_count)
                                 imported_count = count + 1
+
+                            if host:
+                                existing_hosts.add(host)
                         except Exception as e:
-                             print(f"[IMPORT] Security/Validation Error for {filename}: {e}", flush=True)
-                             continue
+                            print(
+                                f"[IMPORT] Security/Validation Error for {filename}: {e}",
+                                flush=True,
+                            )
+                            continue
 
         final_imported: int = int(imported_count)
         print(f"[IMPORT] Total imported: {final_imported}", flush=True)
 
         if analyze_only:
-            return {"message": "Analysis complete", "cameras": parsed_cameras, "count": final_imported, "skipped": skipped_count}
+            return {
+                "message": "Analysis complete",
+                "cameras": parsed_cameras,
+                "count": final_imported,
+                "skipped": skipped_count,
+            }
 
         motion_service.generate_motion_config(db)
 
@@ -796,22 +1077,41 @@ async def import_motioneye_cameras(file: UploadFile = File(...), analyze_only: b
 
     except Exception as e:
         logger.error(f"MotionEye Import Error: {e}")
-        raise HTTPException(status_code=400, detail=f"Failed to parse MotionEye backup: {str(e)}")
+        raise HTTPException(
+            status_code=400, detail=f"Failed to parse MotionEye backup: {str(e)}"
+        )
+
 
 @router.post("/{camera_id}/cleanup")
-def cleanup_camera(camera_id: int, type: Optional[str] = None, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def cleanup_camera(
+    camera_id: int,
+    type: Optional[str] = None,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
     db_camera = crud.get_camera(db, camera_id=camera_id)
     if db_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
 
-    if type and type not in ['video', 'snapshot']:
-        raise HTTPException(status_code=400, detail="Invalid cleanup type. Must be 'video' or 'snapshot'")
+    if type and type not in ["video", "snapshot"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid cleanup type. Must be 'video' or 'snapshot'",
+        )
 
     storage_service.cleanup_camera(db, db_camera, media_type=type)
-    return {"status": "success", "message": f"Cleanup triggered for camera {db_camera.name} (type={type})"}
+    return {
+        "status": "success",
+        "message": f"Cleanup triggered for camera {db_camera.name} (type={type})",
+    }
+
 
 @router.post("/{camera_id}/snapshot")
-def manual_snapshot(camera_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def manual_snapshot(
+    camera_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
     db_camera = crud.get_camera(db, camera_id=camera_id)
     if db_camera is None:
         raise HTTPException(status_code=404, detail="Camera not found")
@@ -820,4 +1120,6 @@ def manual_snapshot(camera_id: int, db: Session = Depends(database.get_db), curr
     if success:
         return {"status": "success", "message": "Snapshot triggered"}
     else:
-        raise HTTPException(status_code=500, detail="Failed to trigger snapshot via Motion")
+        raise HTTPException(
+            status_code=500, detail="Failed to trigger snapshot via Motion"
+        )
