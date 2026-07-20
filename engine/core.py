@@ -189,7 +189,7 @@ class CameraManager:
                 if WEBHOOK_SECRET:
                     headers['X-Webhook-Secret'] = WEBHOOK_SECRET
                 
-                requests.post(url, json=data, timeout=5, headers=headers)
+                requests.post(url, json=data, timeout=5, headers=headers, allow_redirects=False)
                 logger.debug(f"Sent webhook {webhook_type} to {url}")
             except Exception as e:
                 logger.error(f"Failed to send webhook: {e}")
