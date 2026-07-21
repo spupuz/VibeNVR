@@ -823,6 +823,8 @@ def bulk_delete_events(request: schemas.BulkDeleteRequest, db: Session = Depends
     events = db.query(models.Event).filter(models.Event.id.in_(request.event_ids)).all()
     events_map = {event.id: event for event in events}
 
+    events_to_delete_ids = []
+
     for event_id in request.event_ids:
         event = events_map.get(event_id)
         if not event:
@@ -831,8 +833,16 @@ def bulk_delete_events(request: schemas.BulkDeleteRequest, db: Session = Depends
 
         # Safely delete files and then the DB record
         delete_event_files(event)
-        db.delete(event)
+        events_to_delete_ids.append(event.id)
         deleted_count += 1
+
+    # Bulk delete via IN clause to avoid N+1 DB operations
+    # SQLite has a limit on variables per query (SQLITE_MAX_VARIABLE_NUMBER, default 999)
+    # Batch deletes in chunks of 900
+    batch_size = 900
+    for i in range(0, len(events_to_delete_ids), batch_size):
+        batch = events_to_delete_ids[i:i + batch_size]
+        db.query(models.Event).filter(models.Event.id.in_(batch)).delete(synchronize_session=False)
 
     db.commit()
     return {"deleted_count": deleted_count, "errors": errors}
@@ -850,17 +860,29 @@ def delete_all_events(event_type: Optional[str] = None, db: Session = Depends(da
     if event_type:
         query = query.filter(models.Event.type == event_type)
 
-    events = query.all()
+    # Bolt: Fix N+1 queries during massive deletions and eliminate memory loading of massive dataset
+    # We load IDs and size attributes selectively to limit memory footprint.
+    events_metadata = query.with_entities(models.Event.id, models.Event.file_path, models.Event.thumbnail_path).all()
     deleted_count = 0
     deleted_size = 0
+    events_to_delete_ids = []
 
-    for event in events:
+    for event_id, file_path, thumbnail_path in events_metadata:
+        # create a dummy event for file deletion logic
+        dummy_event = models.Event(id=event_id, file_path=file_path, thumbnail_path=thumbnail_path)
+
         # Safely delete files and track size
-        deleted_size += delete_event_files(event)
-
-        # Delete from DB
-        db.delete(event)
+        deleted_size += delete_event_files(dummy_event)
+        events_to_delete_ids.append(event_id)
         deleted_count += 1
+
+    # Bulk delete via IN clause to avoid N+1 DB operations
+    # SQLite has a limit on variables per query (SQLITE_MAX_VARIABLE_NUMBER, default 999)
+    # Batch deletes in chunks of 900
+    batch_size = 900
+    for i in range(0, len(events_to_delete_ids), batch_size):
+        batch = events_to_delete_ids[i:i + batch_size]
+        db.query(models.Event).filter(models.Event.id.in_(batch)).delete(synchronize_session=False)
 
     db.commit()
 
