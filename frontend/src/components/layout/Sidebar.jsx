@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     <button
         onClick={onClick}
-        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group
+        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card
       ${active
                 ? 'bg-primary/10 text-primary'
                 : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
@@ -66,7 +66,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                 {/* Close button for mobile - absolute positioned */}
                 <button
                     onClick={onClose}
-                    className="lg:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-accent"
+                    className="lg:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     aria-label={t("nav.close_sidebar", "Close Sidebar")}
                 >
                     <X className="w-5 h-5" />
@@ -89,7 +89,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
             <div className="p-4 border-t border-border space-y-2">
                 <button
                     onClick={() => onTabChange('profile')}
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card
                     ${activeTab === 'profile'
                             ? 'bg-primary/10 text-primary'
                             : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
@@ -103,7 +103,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
 
                 <button
                     onClick={toggleTheme}
-                    className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-200 group"
+                    className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                 >
                     {theme === 'dark' ? (
                         <Sun className="w-5 h-5 group-hover:text-yellow-500 transition-colors" />
@@ -121,7 +121,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                             href="https://github.com/spupuz/VibeNVR"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="hover:text-foreground transition-colors"
+                            className="hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
                             title={t("nav.github_repo", "GitHub Repository")}
                             aria-label={t("nav.github_repo", "GitHub Repository")}
                         >
@@ -131,7 +131,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                             href={`https://github.com/spupuz/VibeNVR/releases/tag/v${packageJson.version}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs hover:text-foreground font-mono tracking-wider transition-colors"
+                            className="text-xs hover:text-foreground font-mono tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
                             title={t('nav.view_release', 'View release on GitHub')}
                             aria-label={t('nav.view_release', 'View release on GitHub')}
                         >
@@ -141,7 +141,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                             href="https://www.buymeacoffee.com/spupuz"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="hover:text-yellow-500 transition-colors"
+                            className="hover:text-yellow-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
                             title={t("nav.buy_coffee", "Buy Me a Coffee")}
                             aria-label={t("nav.buy_coffee", "Buy Me a Coffee")}
                         >
@@ -154,7 +154,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                             target="_blank"
                             rel="noopener noreferrer"
                             title={`New version ${latestVersion} is available`}
-                            className="text-[10px] text-primary animate-pulse font-semibold hover:underline bg-primary/10 px-2 py-0.5 rounded-full"
+                            className="text-[10px] text-primary animate-pulse font-semibold hover:underline bg-primary/10 px-2 py-0.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         >
                             New version available!
                         </a>
