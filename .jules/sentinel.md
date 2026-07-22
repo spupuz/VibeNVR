@@ -36,3 +36,8 @@
 **Vulnerability:** A timing attack vulnerability was identified in the webhook verification endpoint (`backend/routers/events.py`), where standard string comparison `==` or `!=` was used to compare the provided `X-Webhook-Secret` against the expected secret.
 **Learning:** Using standard string comparison operators allows an attacker to deduce the expected secret by measuring the time it takes for the comparison to fail.
 **Prevention:** Always use constant-time comparison functions like `hmac.compare_digest()` for security-sensitive string comparisons, such as API keys, tokens, or webhook secrets. Also, remember to encode strings to bytes before comparing if there's a chance they could contain Unicode characters.
+
+## 2025-06-30 - Fix Missing Rate Limiting on OAuth Endpoints
+**Vulnerability:** The OAuth endpoints in `backend/routers/oauth.py` (`/login`, `/callback`, `/unlink`, `/logout`) lacked rate limiting entirely. While standard authentication endpoints were protected, this omission left the OAuth flows vulnerable to brute force and denial of service attacks.
+**Learning:** When adding new authentication or integration endpoints (like OAuth), it is critical to ensure they inherit the same level of protection (such as rate limiting) as the core local authentication flows.
+**Prevention:** Always verify that the `@limiter.limit()` decorator is applied to newly introduced authentication/authorization endpoints. Furthermore, when adding `slowapi` rate limiting decorators to FastAPI endpoints, explicitly ensure the function signature includes the `request: Request` parameter, as `slowapi` relies on it to extract the client IP via `get_remote_address`.
