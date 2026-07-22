@@ -42,6 +42,8 @@ frontend/.env
 
 # VibeNVR Specific
 /scripts/
+scripts/test_motion_service.py
+scripts/test_schemas.py
 engine/scripts/
 backend/scripts/
 frontend/scripts/
@@ -84,3 +86,11 @@ engine/go2rtc.yaml
 .gemini/
 
 .jules/
+
+omnistate.config.json
+
+.opencode/
+
+.kilo/
+
+.omnistate/
