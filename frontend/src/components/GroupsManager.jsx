@@ -265,11 +265,22 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                         {/* Selection Checkbox */}
                         {user?.role === 'admin' && (
                             <div
-                                className={`absolute top-4 left-4 z-10 w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer ${selectedGroupIds.includes(group.id) ? 'bg-primary border-primary' : 'bg-background/80 border-border group-hover:border-primary/50'
+                                role="checkbox"
+                                aria-checked={selectedGroupIds.includes(group.id)}
+                                tabIndex={0}
+                                aria-label={t('timeline.select_group', 'Select group')}
+                                className={`absolute top-4 left-4 z-10 w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${selectedGroupIds.includes(group.id) ? 'bg-primary border-primary' : 'bg-background/80 border-border group-hover:border-primary/50'
                                     }`}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     handleSelectGroup(group.id);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleSelectGroup(group.id);
+                                    }
                                 }}
                             >
                                 {selectedGroupIds.includes(group.id) && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
