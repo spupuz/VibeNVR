@@ -907,7 +907,7 @@
     "service_disabled": "Service désactivé",
     "ha_discovery_desc": "Lorsqu'il est activé, VibeNVR publiera automatiquement les messages de découverte. Vos caméras apparaîtront comme de nouveaux appareils dans Home Assistant avec des capteurs de mouvement et d'état.",
     "broker_host": "Broker hôte",
-    "broker_host_help": "Adresse IP ou nom d'hôte de votre brocker MQTT",
+    "broker_host_help": "Adresse IP ou nom d'hôte de votre broker MQTT",
     "broker_port": "Port du courtier",
     "username": "Nom d'utilisateur",
     "password": "Mot de passe",
@@ -1290,7 +1290,7 @@
     "subject_id": "ID de sujet OAuth (facultatif)",
     "external_id": "ID externe du fournisseur d'identité",
     "sso": "SSO",
-    "linked": "LIEÉ",
+    "linked": "LIÉ",
     "none": "AUCUN",
     "enable_auto_redirect": "Activer la redirection automatique vers SSO",
     "enable_auto_redirect_help": "Contourne la page de connexion locale et redirige directement vers le fournisseur SSO. Utilisez ?local=true dans l'URL pour contourner ce paramètre."
