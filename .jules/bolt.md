@@ -44,3 +44,11 @@ When dealing with bulk deletions (e.g. `_cleanup_corrupted_videos` removing miss
 ## 2024-11-20 - Hoisting DB Queries from Import Loops
 **Learning:** Performing database queries like `crud.get_cameras()` inside loops (like tarball extraction processing) causes a massive O(N) performance bottleneck and N+1 query patterns.
 **Action:** Always hoist table-wide data retrieval operations outside of loops into O(1) structures like dictionaries or sets to check for existence/duplicates.
+
+## 2025-05-18 - Avoid full table scans when replacing multiple Count queries
+**Learning:** When attempting to consolidate multiple SQLAlchemy count queries into a single query using conditional aggregations (`func.sum(case(...))`), ensure you do not inadvertently remove `.filter()` clauses on indexed columns (like timestamps). Removing the `WHERE` clause forces a full table scan and causes severe performance regressions.
+**Action:** When trying to optimize multiple queries, only combine them if they share the same filter criteria, or if avoiding the full table scan is impossible. Otherwise, executing multiple queries that leverage database indexes is much faster than one query with a full table scan.
+
+## 2025-05-18 - Hoist database aggregates out of loops for large tables
+**Learning:** Performing `db.query(func.sum(...))` or other aggregates inside a loop (like `for camera in cameras:` in `run_cleanup`) causes an N+1 query issue. If the aggregate query does not depend on data changing within the loop, it's highly inefficient to run it repeatedly.
+**Action:** Hoist the aggregate query out of the loop using a SQL `GROUP BY` clause. Fetch all required sums or counts in a single O(1) query upfront, store them in a Python dictionary mapped by the grouping key (e.g., `camera_id`), and pass these pre-calculated values into the loop functions to prevent database hammering.
