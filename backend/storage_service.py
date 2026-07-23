@@ -107,6 +107,8 @@ def cleanup_camera(
     camera: models.Camera,
     media_type: str = None,
     skip_time_retention: bool = False,
+    precalc_movies_size: int = None,
+    precalc_pics_size: int = None,
 ):
     """
     Enforce storage limits and retention for a specific camera.
@@ -119,12 +121,15 @@ def cleanup_camera(
         and camera.max_storage_gb
         and camera.max_storage_gb > 0
     ):
-        total_movies_size = (
-            db.query(func.sum(models.Event.file_size))
-            .filter(models.Event.camera_id == camera.id, models.Event.type == "video")
-            .scalar()
-            or 0
-        )
+        if precalc_movies_size is not None:
+            total_movies_size = precalc_movies_size
+        else:
+            total_movies_size = (
+                db.query(func.sum(models.Event.file_size))
+                .filter(models.Event.camera_id == camera.id, models.Event.type == "video")
+                .scalar()
+                or 0
+            )
 
         movies_used_gb = total_movies_size / (1024**3)
         if movies_used_gb > camera.max_storage_gb:
@@ -162,14 +167,17 @@ def cleanup_camera(
         and camera.max_pictures_storage_gb
         and camera.max_pictures_storage_gb > 0
     ):
-        total_pics_size = (
-            db.query(func.sum(models.Event.file_size))
-            .filter(
-                models.Event.camera_id == camera.id, models.Event.type == "snapshot"
+        if precalc_pics_size is not None:
+            total_pics_size = precalc_pics_size
+        else:
+            total_pics_size = (
+                db.query(func.sum(models.Event.file_size))
+                .filter(
+                    models.Event.camera_id == camera.id, models.Event.type == "snapshot"
+                )
+                .scalar()
+                or 0
             )
-            .scalar()
-            or 0
-        )
 
         pics_used_gb = total_pics_size / (1024**3)
         if pics_used_gb > camera.max_pictures_storage_gb:
@@ -388,10 +396,31 @@ def run_cleanup(quota_only=False):
 
             # Priority 1: Enforce Per-Camera Quotas
             cameras = db.query(models.Camera).all()
+
+            # Pre-calculate sizes for all cameras in an O(1) query to avoid N+1 issues
+            sizes_query = db.query(
+                models.Event.camera_id,
+                models.Event.type,
+                func.sum(models.Event.file_size)
+            ).group_by(models.Event.camera_id, models.Event.type).all()
+
+            movies_sizes = {}
+            pics_sizes = {}
+            for cam_id, event_type, total_size in sizes_query:
+                if event_type == "video":
+                    movies_sizes[cam_id] = total_size or 0
+                elif event_type == "snapshot":
+                    pics_sizes[cam_id] = total_size or 0
+
             for camera in cameras:
                 # Quota enforcement (always runs)
                 cleanup_camera(
-                    db, camera, media_type=None, skip_time_retention=quota_only
+                    db,
+                    camera,
+                    media_type=None,
+                    skip_time_retention=quota_only,
+                    precalc_movies_size=movies_sizes.get(camera.id, 0),
+                    precalc_pics_size=pics_sizes.get(camera.id, 0)
                 )
 
             # Priority 2: Enforce Profile-level Limits
