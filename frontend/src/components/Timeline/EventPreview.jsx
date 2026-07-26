@@ -85,7 +85,7 @@ export const EventPreview = ({
                                     }}
                                     onClick={(e) => e.stopPropagation()}
                                     className="ml-1 h-3.5 text-[9px] bg-transparent border-none focus:ring-0 cursor-pointer text-muted-foreground hover:text-foreground p-0 pr-1 pl-1"
-                                    title="Playback Order"
+                                    title={t('timeline.playback_order', 'Playback Order')}
                                 >
                                     <option value="desc" className="bg-card text-foreground">{t('timeline.newest_oldest', 'Newest → Oldest')}</option>
                                     <option value="asc" className="bg-card text-foreground">{t('timeline.oldest_newest', 'Oldest → Newest')}</option>
@@ -128,7 +128,7 @@ export const EventPreview = ({
                                 value={playbackSpeed}
                                 onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
                                 className="bg-transparent text-xs font-black text-white/90 border-none focus:ring-0 cursor-pointer p-0 text-center w-8 appearance-none"
-                                title="Playback Speed"
+                                title={t('timeline.playback_speed', 'Playback Speed')}
                             >
                                 <option value={1} className="!bg-card !text-foreground">{t('timeline.1x', '1x')}</option>
                                 <option value={2} className="!bg-card !text-foreground">{t('timeline.2x', '2x')}</option>
@@ -176,7 +176,7 @@ export const EventPreview = ({
                                 value={autoplayDirection}
                                 onChange={(e) => setAutoplayDirection(e.target.value)}
                                 className="ml-1 h-5 text-[10px] bg-transparent border-none focus:ring-0 cursor-pointer text-muted-foreground hover:text-foreground p-0 pr-1 pl-1"
-                                title="Playback Order"
+                                title={t('timeline.playback_order', 'Playback Order')}
                             >
                                 <option value="desc" className="bg-card text-foreground">{t('timeline.newest_oldest', 'Newest → Oldest')}</option>
                                 <option value="asc" className="bg-card text-foreground">{t('timeline.oldest_newest', 'Oldest → Newest')}</option>
@@ -192,7 +192,7 @@ export const EventPreview = ({
                                 value={playbackSpeed}
                                 onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
                                 className="bg-transparent text-xs font-bold text-foreground border-none focus:ring-0 cursor-pointer p-0 text-center w-12 appearance-none"
-                                title="Playback Speed"
+                                title={t('timeline.playback_speed', 'Playback Speed')}
                             >
                                 <option value={1} className="!bg-card !text-foreground">{t('timeline.1x', '1x')}</option>
                                 <option value={2} className="!bg-card !text-foreground">{t('timeline.2x', '2x')}</option>

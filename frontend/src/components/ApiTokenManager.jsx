@@ -155,7 +155,7 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                             </p>
                             <div className="flex items-center gap-2 mt-3 bg-background p-2 rounded border border-border">
                                 <code className="flex-1 font-mono text-sm break-all">{createdToken.token}</code>
-                                <Button size="sm" variant="ghost" title="Copy" aria-label="Copy" onClick={() => copyToClipboard(createdToken.token)}>
+                                <Button size="sm" variant="ghost" title={t('common.copy', 'Copy')} aria-label={t('common.copy', 'Copy')} onClick={() => copyToClipboard(createdToken.token)}>
                                     <Copy className="w-4 h-4" />
                                 </Button>
                             </div>
@@ -245,8 +245,8 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                                         <button
                                             onClick={() => setConfirmDelete({ isOpen: true, tokenId: apiToken.id })}
                                             className="p-2 hover:bg-red-100 text-red-500 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center ml-auto"
-                                            title="Revoke Token"
-                                            aria-label="Revoke Token"
+                                            title={t('settings_apitokensettings.revoke_token', 'Revoke Token')}
+                                            aria-label={t('settings_apitokensettings.revoke_token', 'Revoke Token')}
                                         >
                                             <Trash2 className="w-5 h-5" />
                                         </button>
@@ -282,8 +282,8 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                                 <button
                                     onClick={() => setConfirmDelete({ isOpen: true, tokenId: apiToken.id })}
                                     className="p-3 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors min-w-[44px] min-h-[44px]"
-                                    title="Revoke Token"
-                                    aria-label="Revoke Token"
+                                    title={t('settings_apitokensettings.revoke_token', 'Revoke Token')}
+                                    aria-label={t('settings_apitokensettings.revoke_token', 'Revoke Token')}
                                 >
                                     <Trash2 className="w-5 h-5" />
                                 </button>
