@@ -42,7 +42,7 @@ export const Tooltip = ({ text, children }) => {
                 onMouseEnter={() => { updateCoords(); setShow(true); }}
                 onMouseLeave={() => setShow(false)}
                 onClick={() => { updateCoords(); setShow(!show); }}
-                className="ml-2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                className="ml-2 text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
             >
                 <HelpCircle className="w-4 h-4" />
             </button>
@@ -180,7 +180,7 @@ export const InputField = ({ value, onChange, label, type = 'text', placeholder 
                         aria-label={showPassword ? "Hide password" : "Show password"}
                         aria-pressed={showPassword}
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
                     >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
