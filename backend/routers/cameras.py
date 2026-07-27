@@ -423,11 +423,14 @@ def reorder_cameras(
     current_user: models.User = Depends(auth_service.get_current_active_admin),
 ):
     """Reorder cameras in the database"""
-    for index, cam_id in enumerate(request.camera_ids):
-        db.query(models.Camera).filter(models.Camera.id == cam_id).update(
-            {models.Camera.sort_order: index}, synchronize_session=False
-        )
-    db.commit()
+    # ⚡ Bolt: Bulk update to prevent N+1 queries when reordering multiple cameras
+    mappings = [
+        {"id": cam_id, "sort_order": index}
+        for index, cam_id in enumerate(request.camera_ids)
+    ]
+    if mappings:
+        db.bulk_update_mappings(models.Camera, mappings)
+        db.commit()
     return {"message": "Cameras reordered successfully"}
 
 
