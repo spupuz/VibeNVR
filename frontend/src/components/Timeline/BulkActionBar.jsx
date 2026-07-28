@@ -38,6 +38,7 @@ export const BulkActionBar = ({
                 <div className="flex-1 flex items-center justify-end gap-1 sm:gap-4">
                     <button
                         onClick={handleSelectAll}
+                        aria-label={selectedIds.size === filteredEvents.length ? t('timeline.deselect_all', 'Deselect All') : t('timeline.select_all', 'Select All')}
                         className="px-1.5 py-1.5 hover:bg-white/10 rounded-xl transition-colors flex items-center gap-1 sm:gap-1.5"
                     >
                         {selectedIds.size === filteredEvents.length ? (
@@ -67,6 +68,7 @@ export const BulkActionBar = ({
                         <button
                             onClick={handleBulkDelete}
                             disabled={isBulkDeleting}
+                            aria-label={t('timeline.delete_selected', 'Delete {{count}} selected items', { count: selectedIds.size })}
                             className={`flex-shrink-0 px-3 py-2 sm:px-4 sm:py-2 bg-white text-primary hover:bg-white/90 rounded-xl text-xs sm:text-sm font-bold shadow-lg transition-all flex items-center gap-1.5 sm:gap-2 ${isBulkDeleting ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}`}
                         >
                             {isBulkDeleting ? (
