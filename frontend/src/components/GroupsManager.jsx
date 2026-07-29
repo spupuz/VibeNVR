@@ -234,6 +234,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                     {user?.role === 'admin' && groups.length > 0 && (
                         <button
                             onClick={handleSelectAllGroups}
+                            aria-label={selectedGroupIds.length === groups.length ? t('timeline.deselect_all', 'Deselect All') : t('timeline.select_all', 'Select All')}
                             className="flex items-center justify-center space-x-2 bg-muted hover:bg-secondary text-foreground px-3 h-8 rounded-lg transition-all whitespace-nowrap text-xs font-bold border border-border shadow-sm active:scale-95"
                         >
                             <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-colors ${selectedGroupIds.length === groups.length ? 'bg-primary border-primary' : 'bg-background border-border'}`}>
@@ -347,6 +348,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                 {user?.role === 'admin' && (
                                     <button
                                         onClick={() => setCopyingGroup(group)}
+                                        aria-label={t('timeline.copy_settings', 'Copy Settings')}
                                         className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40"
                                         title={t('timeline.copy_settings_title', 'Copy Settings to all cameras in group')}
                                     >
