@@ -294,7 +294,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                 </div>
 
                                 {/* Motion Toggle in Top Right */}
-                                <div className="flex items-center bg-muted/30 rounded-lg p-1 border border-border flex-shrink-0" title="Toggle Motion Detection for Group">
+                                <div className="flex items-center bg-muted/30 rounded-lg p-1 border border-border flex-shrink-0" title={t('timeline.toggle_motion', 'Toggle Motion Detection for Group')}>
                                     <div className="mr-2 flex items-center">
                                         {group.cameras.length > 0 && group.cameras.every(c => c.recording_mode !== 'Off') ? (
                                             <Play className="w-3 h-3 text-green-500 mr-1" />
@@ -348,7 +348,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                     <button
                                         onClick={() => setCopyingGroup(group)}
                                         className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40"
-                                        title="Copy Settings to all cameras in group"
+                                        title={t('timeline.copy_settings_title', 'Copy Settings to all cameras in group')}
                                     >
                                         <Copy className="w-3.5 h-3.5" />
                                         <span>{t('timeline.copy_settings', 'Copy Settings')}</span>
@@ -363,16 +363,16 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                         <button
                                             onClick={() => openManageModal(group)}
                                             className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-colors"
-                                            title="Edit Group"
-                                            aria-label="Edit Group"
+                                            title={t('timeline.edit_group', 'Edit Group')}
+                                            aria-label={t('timeline.edit_group', 'Edit Group')}
                                         >
                                             <Edit className="w-5 h-5" />
                                         </button>
                                         <button
                                             onClick={() => handleDeleteGroup(group.id)}
                                             className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
-                                            title="Delete Group"
-                                            aria-label="Delete Group"
+                                            title={t('timeline.delete_group', 'Delete Group')}
+                                            aria-label={t('timeline.delete_group', 'Delete Group')}
                                         >
                                             <Trash2 className="w-5 h-5" />
                                         </button>

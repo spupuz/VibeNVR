@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Video, Image as ImageIcon, Download, Trash2, Camera, HardDrive, Brain } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -15,6 +16,7 @@ import { useAuth } from '../../contexts/AuthContext';
  * @param {Function} props.onDelete - Handler for single event deletion
  */
 export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMultiSelected, onToggleSelect, getMediaUrl, onDelete }) => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const [imgError, setImgError] = useState(false);
     const time = new Date(event.timestamp_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -67,7 +69,7 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
                         role="checkbox"
                         aria-checked={isMultiSelected}
                         tabIndex={0}
-                        aria-label="Select event"
+                        aria-label={t('timeline.select_event', 'Select event')}
                         className={`absolute top-2 left-2 z-20 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:opacity-100 rounded ${isMultiSelected ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-100'}`}
                         onClick={(e) => {
                             e.stopPropagation();
@@ -99,8 +101,8 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
                         download
                         onClick={(e) => e.stopPropagation()}
                         className="p-1 bg-black/50 hover:bg-black/70 text-white rounded backdrop-blur-sm transition-colors"
-                        title="Download"
-                        aria-label="Download"
+                        title={t('common.download', 'Download')}
+                        aria-label={t('common.download', 'Download')}
                     >
                         <Download className="w-3 h-3" />
                     </a>
@@ -113,8 +115,8 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
                                 onDelete(event.id);
                             }}
                             className="p-1 bg-black/50 hover:bg-red-500/80 text-white rounded backdrop-blur-sm transition-colors"
-                            title="Delete"
-                            aria-label="Delete"
+                            title={t('common.delete', 'Delete')}
+                            aria-label={t('common.delete', 'Delete')}
                         >
                             <Trash2 className="w-3 h-3" />
                         </button>

@@ -15,36 +15,38 @@ export const BulkActionsBar = ({ selectedCameraIds, setSelectedCameraIds, handle
                     <button
                         onClick={() => setSelectedCameraIds([])}
                         className="sm:hidden px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 rounded-lg transition-colors"
-                        aria-label="Clear"
+                        aria-label={t('common.clear', 'Clear')}
                     >
-                        Clear
+                        {t('common.clear', 'Clear')}
                     </button>
                 </div>
                 <div className="flex items-center justify-center gap-2 w-full sm:w-auto">
                     <button
                         onClick={() => setSelectedCameraIds([])}
                         className="hidden sm:block px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 rounded-lg transition-colors"
-                        aria-label="Clear"
+                        aria-label={t('common.clear', 'Clear')}
                     >
-                        Clear
+                        {t('common.clear', 'Clear')}
                     </button>
                     <button
                         onClick={handleBulkExport}
                         className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center shadow-lg shadow-green-500/20 active:scale-95 whitespace-nowrap"
-                        aria-label="Export Selected"
+                        aria-label={t('cameras.export_selected', 'Export Selected')}
+                        title={t('cameras.export_selected', 'Export Selected')}
                     >
                         <Download className="w-3.5 h-3.5 sm:mr-1.5 mr-1" />
-                        <span className="hidden sm:inline">Export Selected</span>
-                        <span className="sm:hidden">Export</span>
+                        <span className="hidden sm:inline">{t('cameras.export_selected', 'Export Selected')}</span>
+                        <span className="sm:hidden">{t('common.export', 'Export')}</span>
                     </button>
                     <button
                         onClick={handleBulkDelete}
                         className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center shadow-lg shadow-red-500/20 active:scale-95 whitespace-nowrap"
-                        aria-label="Delete Selected"
+                        aria-label={t('cameras.delete_selected', 'Delete Selected')}
+                        title={t('cameras.delete_selected', 'Delete Selected')}
                     >
                         <Trash2 className="w-3.5 h-3.5 sm:mr-1.5 mr-1" />
-                        <span className="hidden sm:inline">Delete Selected</span>
-                        <span className="sm:hidden">Delete</span>
+                        <span className="hidden sm:inline">{t('cameras.delete_selected', 'Delete Selected')}</span>
+                        <span className="sm:hidden">{t('common.delete', 'Delete')}</span>
                     </button>
                 </div>
             </div>
