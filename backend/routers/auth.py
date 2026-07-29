@@ -272,7 +272,8 @@ def revoke_trusted_device(
     return {"status": "Device revoked"}
 
 @router.get("/status")
-def auth_status(db: Session = Depends(database.get_db)):
+@limiter.limit("20/minute")
+def auth_status(request: Request, db: Session = Depends(database.get_db)):
     """Check if the system requires initial setup (no users)."""
     user_count = db.query(models.User).count()
     oauth_enabled = db.query(models.SystemSettings).filter_by(key="oauth_global_enabled").first()
@@ -305,13 +306,15 @@ async def update_my_language(
     return current_user
 
 @router.post("/logout")
-def logout(response: Response):
+@limiter.limit("10/minute")
+def logout(request: Request, response: Response):
     """Clear all auth cookies (call on frontend logout)."""
     response.delete_cookie("auth_token", path="/")
     response.delete_cookie("media_token", path="/")
     return {"status": "logged out"}
 
 @router.get("/me-from-cookie")
+@limiter.limit("30/minute")
 async def me_from_cookie(request: Request, response: Response, db: Session = Depends(database.get_db)):
     """
     Bootstrap endpoint: validates the HttpOnly auth_token cookie and returns
@@ -362,7 +365,8 @@ async def me_from_cookie(request: Request, response: Response, db: Session = Dep
     }
 
 @router.post("/setup", response_model=schemas.User)
-def setup_admin(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
+@limiter.limit("5/minute")
+def setup_admin(request: Request, user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     """
     Initial setup endpoint to create the first admin user.
     Only allows creation if no users exist in the database.
