@@ -76,7 +76,9 @@
     "restore": "Wiederherstellen",
     "delete": "Löschen",
     "close": "Schließen",
-    "download": "Herunterladen"
+    "download": "Herunterladen",
+    "copy": "Kopie",
+    "clear": "Klar"
   },
   "login": {
     "welcome_back": "Willkommen zurück",
@@ -522,7 +524,9 @@
     "streams_filled_both": "Gefüllter Haupt- und Substream von ONVIF",
     "streams_filled_main": "Gefüllter Hauptstrom von ONVIF",
     "main_label": "hauptsächlich",
-    "found_profiles": "{{count}} Stream-Profile gefunden."
+    "found_profiles": "{{count}} Stream-Profile gefunden.",
+    "export_selected": "Ausgewählte exportieren",
+    "delete_selected": "Ausgewählte löschen"
   },
   "settings": {
     "general_preferences": "Allgemeine Einstellungen",
@@ -802,7 +806,14 @@
     "filter_by_object_type": "Nach Objekttyp filtern",
     "filter_by_date": "Nach Datum filtern",
     "playback_order": "Wiedergabereihenfolge",
-    "playback_speed": "Wiedergabegeschwindigkeit"
+    "playback_speed": "Wiedergabegeschwindigkeit",
+    "select_group": "Gruppe auswählen",
+    "toggle_motion": "Bewegungserkennung für Gruppe umschalten",
+    "copy_settings_title": "Kopieren Sie die Einstellungen auf alle Kameras in der Gruppe",
+    "edit_group": "Gruppe bearbeiten",
+    "delete_group": "Gruppe löschen",
+    "cancel_selection": "Auswahl abbrechen",
+    "delete_selected_items": "{{count}} ausgewählte Elemente löschen"
   },
   "live": {
     "title": "Live-Ansicht",
@@ -844,7 +855,8 @@
     "never": "Niemals",
     "revoke_title": "API-Token widerrufen",
     "revoke_message": "Sind Sie sicher, dass Sie dieses Token löschen möchten? Jede Anwendung, die es verwendet, verliert sofort den Zugriff.",
-    "revoke": "Widerrufen"
+    "revoke": "Widerrufen",
+    "revoke_token": "Token widerrufen"
   },
   "settings_privacysettings": {
     "title": "Datenschutz & Telemetrie",

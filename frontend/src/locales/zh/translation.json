@@ -76,7 +76,10 @@
     "restore": "恢复",
     "delete": "删除",
     "close": "关闭",
-    "download": "下载"
+    "download": "下载",
+    "copy": "复制",
+    "clear": "清除",
+    "export": "出口"
   },
   "login": {
     "welcome_back": "欢迎回来",
@@ -531,7 +534,9 @@
     "streams_filled_main": "填充来自 ONVIF 的主流",
     "main_label": "主要的",
     "sub_label": "子",
-    "found_profiles": "找到 {{count}} 个流配置文件。"
+    "found_profiles": "找到 {{count}} 个流配置文件。",
+    "export_selected": "导出选定的内容",
+    "delete_selected": "删除所选内容"
   },
   "settings": {
     "general_preferences": "常规首选项",
@@ -811,7 +816,14 @@
     "filter_by_object_type": "按对象类型过滤",
     "filter_by_date": "按日期过滤",
     "playback_order": "播放顺序",
-    "playback_speed": "播放速度"
+    "playback_speed": "播放速度",
+    "select_group": "选择组",
+    "toggle_motion": "切换群组运动检测",
+    "copy_settings_title": "将设置复制到组中的所有摄像机",
+    "edit_group": "编辑组",
+    "delete_group": "删除组",
+    "cancel_selection": "取消选择",
+    "delete_selected_items": "删除 {{count}} 个所选项目"
   },
   "live": {
     "title": "实时视图",
@@ -854,7 +866,8 @@
     "never": "绝不",
     "revoke_title": "撤销 API 令牌",
     "revoke_message": "您确定要删除此令牌吗？任何使用它的应用程序将立即失去访问权限。",
-    "revoke": "撤销"
+    "revoke": "撤销",
+    "revoke_token": "撤销令牌"
   },
   "settings_privacysettings": {
     "title": "隐私与遥测",

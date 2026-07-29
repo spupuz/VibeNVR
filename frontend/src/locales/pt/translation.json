@@ -75,7 +75,10 @@
     "settings": "Configurações",
     "restore": "Restaurar",
     "delete": "Excluir",
-    "close": "Fechar"
+    "close": "Fechar",
+    "copy": "Cópia",
+    "clear": "Claro",
+    "export": "Exportar"
   },
   "login": {
     "welcome_back": "Bem-vindo de volta",
@@ -524,7 +527,9 @@
     "streams_filled_both": "Fluxo principal e secundário preenchido do ONVIF",
     "streams_filled_main": "Fluxo principal preenchido do ONVIF",
     "main_label": "principal",
-    "found_profiles": "Foram encontrados {{count}} perfis de stream."
+    "found_profiles": "Foram encontrados {{count}} perfis de stream.",
+    "export_selected": "Exportar selecionado",
+    "delete_selected": "Excluir selecionado"
   },
   "settings": {
     "general_preferences": "Preferências gerais",
@@ -804,7 +809,14 @@
     "filter_by_object_type": "Filtrar por tipo de objeto",
     "filter_by_date": "Filtrar por data",
     "playback_order": "Ordem de reprodução",
-    "playback_speed": "Velocidade de reprodução"
+    "playback_speed": "Velocidade de reprodução",
+    "select_group": "Selecione o grupo",
+    "toggle_motion": "Alternar detecção de movimento para grupo",
+    "copy_settings_title": "Copiar configurações para todas as câmeras do grupo",
+    "edit_group": "Editar grupo",
+    "delete_group": "Excluir grupo",
+    "cancel_selection": "Cancelar seleção",
+    "delete_selected_items": "Excluir {{count}} itens selecionados"
   },
   "live": {
     "title": "Exibição ao vivo",
@@ -847,7 +859,8 @@
     "never": "Nunca",
     "revoke_title": "Revogar token de API",
     "revoke_message": "Tem certeza de que deseja excluir este token? Qualquer aplicativo que o utilize perderá o acesso imediatamente.",
-    "revoke": "Revogar"
+    "revoke": "Revogar",
+    "revoke_token": "Revogar token"
   },
   "settings_privacysettings": {
     "title": "Privacidade e Telemetria",

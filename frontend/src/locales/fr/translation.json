@@ -76,7 +76,10 @@
     "restore": "Restaurer",
     "delete": "Supprimer",
     "close": "Fermer",
-    "download": "Télécharger"
+    "download": "Télécharger",
+    "copy": "Copie",
+    "clear": "Clair",
+    "export": "Exporter"
   },
   "login": {
     "welcome_back": "Bon retour",
@@ -230,7 +233,7 @@
     "onvif_edge": "ONVIF Edge",
     "ai_engine_is_disabled": "Moteur IA désactivé",
     "off": "DÉSACTIVÉ",
-    "opencv": "OpenCV",
+    "opencv": "OuvrirCV",
     "object_filters": "Filtres d'objets",
     "note": "Note:",
     "only": "seulement",
@@ -527,7 +530,9 @@
     "streams_filled_main": "Flux principal rempli depuis ONVIF",
     "main_label": "principal",
     "sub_label": "sous",
-    "found_profiles": "{{count}} profils de flux trouvés."
+    "found_profiles": "{{count}} profils de flux trouvés.",
+    "export_selected": "Exporter la sélection",
+    "delete_selected": "Supprimer la sélection"
   },
   "settings": {
     "general_preferences": "Préférences générales",
@@ -614,15 +619,15 @@
     "public_telemetry": "Télémétrie publique",
     "technical_credits_stack": "Crédits techniques et pile technologique",
     "backend": "Architecture technique",
-    "python_fastapi": "Python FastAPI",
+    "python_fastapi": "API rapide Python",
     "sqlalchemy": "SQLAlchimie",
     "postgresql": "PostgreSQL",
     "frontend": "Interface utilisateur",
-    "react_vite": "React + Vite",
+    "react_vite": "Réagir + Vite",
     "tailwindcss": "Tailwindcss",
-    "lucide_icons": "Lucide Icons",
-    "loop": "Loop",
-    "opencv": "OpenCV",
+    "lucide_icons": "Icônes Lucides",
+    "loop": "Boucle",
+    "opencv": "OuvrirCV",
     "ffmpeg": "FFmpeg",
     "docker": "Docker",
     "author": "Auteur",
@@ -807,7 +812,14 @@
     "filter_by_object_type": "Filtrer par type d'objet",
     "filter_by_date": "Filtrer par date",
     "playback_order": "Ordre de lecture",
-    "playback_speed": "Vitesse de lecture"
+    "playback_speed": "Vitesse de lecture",
+    "select_group": "Sélectionner un groupe",
+    "toggle_motion": "Basculer la détection de mouvement pour le groupe",
+    "copy_settings_title": "Copier les paramètres sur toutes les caméras du groupe",
+    "edit_group": "Modifier le groupe",
+    "delete_group": "Supprimer le groupe",
+    "cancel_selection": "Annuler la sélection",
+    "delete_selected_items": "Supprimer {{count}} éléments sélectionnés"
   },
   "live": {
     "title": "Vue en direct",
@@ -850,7 +862,8 @@
     "never": "Jamais",
     "revoke_title": "Révoquer le jeton API",
     "revoke_message": "Êtes-vous sûr de vouloir supprimer ce jeton ? Toute application l’utilisant perdra immédiatement l’accès.",
-    "revoke": "Révoquer"
+    "revoke": "Révoquer",
+    "revoke_token": "Révoquer le jeton"
   },
   "settings_privacysettings": {
     "title": "Confidentialité & Télémétrie",

@@ -22,7 +22,7 @@ VibeNVR's primary defense against unauthorized access is a strict authentication
     - **Trusted Devices**: Users can cryptographically mark personal devices as "trusted" by storing a SHA256 hashed 32-byte URL-safe token in the database. This skips 2FA on recognized devices without compromising base security.
     - **Recovery Codes**: 2FA setup automatically provisions 10 hashed, single-use fallback codes (128-bit entropy) directly into the database as a fail-safe mechanism against administrative lockout.
     - **Secure Disabling**: Disabling 2FA requires the user to re-enter their current password for confirmation, preventing accidental or unauthorized disabling by standard users.
-- **Rate-Limiting**: The login endpoint is protected by **SlowAPI**, limiting attempts to **10 requests per minute** to prevent brute-force and credential stuffing.
+- **Rate-Limiting**: The authentication endpoints are protected by **SlowAPI** to prevent brute-force, credential stuffing, and enumeration attacks. The `login` endpoint is limited to **10 requests per minute**. Additional rate limits enforce strict boundaries on `me-from-cookie` (30/min), `auth_status` (20/min), `logout` (10/min), and `setup` (5/min).
 
 ### 2. Media & API Protection
 Static media files (historical recordings, snapshots, and live proxy streams) are **never** served via public, unauthenticated directories.

@@ -76,7 +76,10 @@
     "restore": "Восстановить",
     "delete": "Удалить",
     "close": "Закрывать",
-    "download": "Скачать"
+    "download": "Скачать",
+    "copy": "Копировать",
+    "clear": "Прозрачный",
+    "export": "Экспорт"
   },
   "login": {
     "welcome_back": "С возвращением",
@@ -529,7 +532,9 @@
     "streams_filled_main": "Заполнен основной поток из ONVIF",
     "main_label": "основной",
     "sub_label": "суб",
-    "found_profiles": "Найдено профилей потоков: {{count}}."
+    "found_profiles": "Найдено профилей потоков: {{count}}.",
+    "export_selected": "Экспортировать выбранное",
+    "delete_selected": "Удалить выбранное"
   },
   "settings": {
     "general_preferences": "Общие настройки",
@@ -809,7 +814,14 @@
     "filter_by_object_type": "Фильтровать по типу объекта",
     "filter_by_date": "Фильтровать по дате",
     "playback_order": "Порядок воспроизведения",
-    "playback_speed": "Скорость воспроизведения"
+    "playback_speed": "Скорость воспроизведения",
+    "select_group": "Выберите группу",
+    "toggle_motion": "Переключить обнаружение движения для группы",
+    "copy_settings_title": "Скопировать настройки на все камеры в группе",
+    "edit_group": "Редактировать группу",
+    "delete_group": "Удалить группу",
+    "cancel_selection": "Отменить выбор",
+    "delete_selected_items": "Удалить {{count}} выбранных элементов"
   },
   "live": {
     "title": "Прямой эфир",
@@ -852,7 +864,8 @@
     "never": "Никогда",
     "revoke_title": "Отозвать токен API",
     "revoke_message": "Вы уверены, что хотите удалить этот токен? Любое приложение, использующее его, немедленно потеряет доступ.",
-    "revoke": "Отозвать"
+    "revoke": "Отозвать",
+    "revoke_token": "Отозвать токен"
   },
   "settings_privacysettings": {
     "title": "Конфиденциальность и телеметрия",

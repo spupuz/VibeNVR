@@ -76,7 +76,10 @@
     "restore": "復元する",
     "delete": "消去",
     "close": "近い",
-    "download": "ダウンロード"
+    "download": "ダウンロード",
+    "copy": "コピー",
+    "clear": "クリア",
+    "export": "輸出"
   },
   "login": {
     "welcome_back": "お帰りなさい",
@@ -525,7 +528,9 @@
     "streams_filled_main": "ONVIF からのメインストリームを満たした",
     "main_label": "主要",
     "sub_label": "サブ",
-    "found_profiles": "{{count}} 個のストリーム プロファイルが見つかりました。"
+    "found_profiles": "{{count}} 個のストリーム プロファイルが見つかりました。",
+    "export_selected": "選択したものをエクスポート",
+    "delete_selected": "選択したものを削除"
   },
   "settings": {
     "general_preferences": "一般設定",
@@ -805,7 +810,14 @@
     "filter_by_object_type": "オブジェクトタイプによるフィルタリング",
     "filter_by_date": "日付でフィルターする",
     "playback_order": "再生順序",
-    "playback_speed": "再生速度"
+    "playback_speed": "再生速度",
+    "select_group": "グループを選択",
+    "toggle_motion": "グループの動き検出の切り替え",
+    "copy_settings_title": "グループ内のすべてのカメラに設定をコピー",
+    "edit_group": "グループの編集",
+    "delete_group": "グループの削除",
+    "cancel_selection": "選択をキャンセルする",
+    "delete_selected_items": "選択した {{count}} 個のアイテムを削除します"
   },
   "live": {
     "title": "ライブビュー",
@@ -848,7 +860,8 @@
     "never": "一度もない",
     "revoke_title": "APIトークンを取り消す",
     "revoke_message": "このトークンを削除してもよろしいですか?これを使用しているアプリケーションはすぐにアクセスできなくなります。",
-    "revoke": "取り消す"
+    "revoke": "取り消す",
+    "revoke_token": "トークンの取り消し"
   },
   "settings_privacysettings": {
     "title": "プライバシーとテレメトリ",

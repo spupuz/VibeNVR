@@ -76,7 +76,10 @@
     "restore": "Ripristinare",
     "delete": "Eliminare",
     "close": "Vicino",
-    "download": "Scaricamento"
+    "download": "Scaricamento",
+    "copy": "Copia",
+    "clear": "Chiaro",
+    "export": "Esportare"
   },
   "login": {
     "welcome_back": "Bentornato",
@@ -524,7 +527,9 @@
     "streams_filled_both": "Flusso principale e secondario riempiti da ONVIF",
     "streams_filled_main": "Flusso principale riempito da ONVIF",
     "main_label": "principale",
-    "found_profiles": "Trovato {{count}} profili di streaming."
+    "found_profiles": "Trovato {{count}} profili di streaming.",
+    "export_selected": "Esporta selezionato",
+    "delete_selected": "Elimina selezionato"
   },
   "settings": {
     "general_preferences": "Preferenze Generali",
@@ -804,7 +809,14 @@
     "filter_by_object_type": "Filtra per tipo di oggetto",
     "filter_by_date": "Filtra per data",
     "playback_order": "Ordine di riproduzione",
-    "playback_speed": "Velocità di riproduzione"
+    "playback_speed": "Velocità di riproduzione",
+    "select_group": "Seleziona gruppo",
+    "toggle_motion": "Attiva/disattiva il rilevamento del movimento per il gruppo",
+    "copy_settings_title": "Copia le impostazioni su tutte le telecamere del gruppo",
+    "edit_group": "Modifica gruppo",
+    "delete_group": "Elimina gruppo",
+    "cancel_selection": "Annulla la selezione",
+    "delete_selected_items": "Elimina {{count}} elementi selezionati"
   },
   "live": {
     "title": "Vista Live",
@@ -847,7 +859,8 @@
     "never": "Mai",
     "revoke_title": "Revoca il token API",
     "revoke_message": "Sei sicuro di voler eliminare questo token? Qualsiasi applicazione che lo utilizza perderà immediatamente l'accesso.",
-    "revoke": "Revocare"
+    "revoke": "Revocare",
+    "revoke_token": "Revoca token"
   },
   "settings_privacysettings": {
     "title": "Privacy e Telemetria",

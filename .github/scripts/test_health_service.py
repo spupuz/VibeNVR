@@ -1,6 +1,9 @@
 import pytest
+import sys
+import os
+sys.path.insert(0, os.path.abspath('backend'))
 from unittest.mock import patch, MagicMock
-from backend.health_service import check_camera_health, refresh_camera_health, _fetch_and_update_health
+from health_service import check_camera_health, refresh_camera_health, _fetch_and_update_health
 import asyncio
 
 @pytest.mark.asyncio

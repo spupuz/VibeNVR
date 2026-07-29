@@ -76,7 +76,10 @@
     "restore": "Відновити",
     "delete": "Видалити",
     "close": "Закрити",
-    "download": "Завантажити"
+    "download": "Завантажити",
+    "copy": "Копія",
+    "clear": "ясно",
+    "export": "Експорт"
   },
   "login": {
     "welcome_back": "З поверненням",
@@ -532,7 +535,9 @@
     "requires_passthrough": "(ПОТРІБНО ПРОХОДЖЕННЯ)",
     "ai_requires_passthrough": "AI вимагає проходження",
     "ai_passthrough_desc": "Виявлення об’єктів штучного інтелекту вимагає, щоб на вкладці «Запис» було ввімкнено функцію Movie Passthrough, щоб запобігти стрибкам процесора та збоям TPU. Увімкніть Passthrough або перейдіть на OpenCV.",
-    "found_profiles": "Знайдено {{count}} профілів потоку."
+    "found_profiles": "Знайдено {{count}} профілів потоку.",
+    "export_selected": "Експорт вибраного",
+    "delete_selected": "Видалити вибране"
   },
   "settings": {
     "general_preferences": "Загальні налаштування",
@@ -812,7 +817,14 @@
     "filter_by_object_type": "Фільтрувати за типом об'єкта",
     "filter_by_date": "Фільтрувати за датою",
     "playback_order": "Порядок відтворення",
-    "playback_speed": "Швидкість відтворення"
+    "playback_speed": "Швидкість відтворення",
+    "select_group": "Виберіть групу",
+    "toggle_motion": "Увімкнути виявлення руху для групи",
+    "copy_settings_title": "Копіювати налаштування до всіх камер у групі",
+    "edit_group": "Редагувати групу",
+    "delete_group": "Видалити групу",
+    "cancel_selection": "Скасувати вибір",
+    "delete_selected_items": "Видалити вибрані елементи ({{count}})."
   },
   "live": {
     "title": "Прямий ефір",
@@ -855,7 +867,8 @@
     "never": "Ніколи",
     "revoke_title": "Відкликати API токен",
     "revoke_message": "Ви впевнені, що хочете видалити цей токен? Будь-який застосунок, що його використовує, негайно втратить доступ.",
-    "revoke": "Відкликати"
+    "revoke": "Відкликати",
+    "revoke_token": "Відкликати маркер"
   },
   "settings_privacysettings": {
     "title": "Конфіденційність та аналітика",
