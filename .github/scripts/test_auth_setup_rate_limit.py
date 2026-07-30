@@ -3,20 +3,21 @@ from fastapi.testclient import TestClient
 from fastapi import Request
 from main import app
 import database
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone
 import crud
 import models
 
 client = TestClient(app)
 
-def test_setup_admin_rate_limit(mocker):
+@patch("crud.create_user")
+def test_setup_admin_rate_limit(mock_create_user):
     # Set Limiter enabled
     app.state.limiter.enabled = True
 
     # Mock database
-    mock_db = mocker.MagicMock()
-    mock_query = mocker.MagicMock()
+    mock_db = MagicMock()
+    mock_query = MagicMock()
     mock_db.query.return_value = mock_query
     # simulate existing_user is None
     mock_query.first.return_value = None
@@ -35,7 +36,7 @@ def test_setup_admin_rate_limit(mocker):
         is_2fa_enabled=False
     )
 
-    mocker.patch("crud.create_user", return_value=mock_user)
+    mock_create_user.return_value = mock_user
 
     # Send 6 requests quickly
     for i in range(10):
