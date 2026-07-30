@@ -16,6 +16,8 @@ import auth_service
 import datetime
 import logging
 import time
+import jwt
+from fastapi.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +26,46 @@ router = APIRouter(
     tags=["events"],
     responses={404: {"description": "Not found"}},
 )
+
+def _verify_event_access_sync(token: str, event_id: int) -> dict:
+    """Thread-safe synchronous wrapper for verifying event download access."""
+    db = database.SessionLocal()
+    try:
+        # Decode JWT token
+        try:
+            payload = jwt.decode(token, auth_service.SECRET_KEY, algorithms=[auth_service.ALGORITHM])
+            username: str = payload.get("sub")
+            if not username:
+                return {"status": 401, "detail": "Invalid token"}
+        except jwt.PyJWTError:
+            return {"status": 401, "detail": "Invalid token"}
+
+        # Get User
+        user = db.query(models.User).filter(models.User.username == username).first()
+        if user is None:
+            return {"status": 401, "detail": "User not found"}
+
+        # Get Event
+        event = db.query(models.Event).filter(models.Event.id == event_id).first()
+        if not event:
+            return {"status": 404, "detail": "Event not found"}
+
+        # Check access
+        if user.role == "viewer" and user.restrict_camera_access:
+            allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id, permission="replay")
+            if allowed_ids is not None and event.camera_id not in allowed_ids:
+                return {"status": 403, "detail": "Not authorized to download this event"}
+
+        if not event.file_path:
+            return {"status": 404, "detail": "No file associated with this event"}
+
+        return {
+            "status": 200,
+            "file_path": event.file_path,
+            "event_type": event.type
+        }
+    finally:
+        db.close()
 
 
 def _send_telegram_notification(
@@ -930,30 +972,13 @@ async def download_event(event_id: int, request: Request, token: Optional[str] =
     if not media_token:
         raise HTTPException(status_code=401, detail="Missing media authentication")
 
-    with database.get_db_ctx() as db:
-        user = await auth_service.get_user_from_token(media_token, db)
-        event = db.query(models.Event).filter(models.Event.id == event_id).first()
-        if not event:
-            raise HTTPException(status_code=404, detail="Event not found")
+    access_result = await run_in_threadpool(_verify_event_access_sync, media_token, event_id)
+    if access_result["status"] != 200:
+        raise HTTPException(status_code=access_result["status"], detail=access_result["detail"])
 
-        if user.role == "viewer" and user.restrict_camera_access:
-            allowed_ids = crud.get_allowed_camera_ids_for_user(
-                db, user.id, permission="replay"
-            )
-            if allowed_ids is not None and event.camera_id not in allowed_ids:
-                raise HTTPException(
-                    status_code=403, detail="Not authorized to download this event"
-                )
+    file_path = access_result["file_path"]
+    event_type = access_result["event_type"]
 
-        if not event.file_path:
-            raise HTTPException(
-                status_code=404, detail="No file associated with this event"
-            )
-
-        file_path = event.file_path
-        event_type = event.type
-
-    # db is closed here
     # Convert DB path to backend filesystem path
     prefix = "/var/lib/motion"
     backend_prefix = "/data"
