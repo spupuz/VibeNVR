@@ -529,7 +529,8 @@
     "main_label": "principal",
     "found_profiles": "Foram encontrados {{count}} perfis de stream.",
     "export_selected": "Exportar selecionado",
-    "delete_selected": "Excluir selecionado"
+    "delete_selected": "Excluir selecionado",
+    "system_only_trigger_recordings": "O sistema só acionará gravações quando objetos específicos forem identificados."
   },
   "settings": {
     "general_preferences": "Preferências gerais",

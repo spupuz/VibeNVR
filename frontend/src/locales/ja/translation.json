@@ -530,7 +530,8 @@
     "sub_label": "サブ",
     "found_profiles": "{{count}} 個のストリーム プロファイルが見つかりました。",
     "export_selected": "選択したものをエクスポート",
-    "delete_selected": "選択したものを削除"
+    "delete_selected": "選択したものを削除",
+    "system_only_trigger_recordings": "システムは、特定のオブジェクトが識別された場合にのみ記録をトリガーします。"
   },
   "settings": {
     "general_preferences": "一般設定",

@@ -532,7 +532,8 @@
     "sub_label": "sous",
     "found_profiles": "{{count}} profils de flux trouvés.",
     "export_selected": "Exporter la sélection",
-    "delete_selected": "Supprimer la sélection"
+    "delete_selected": "Supprimer la sélection",
+    "system_only_trigger_recordings": "Le système ne déclenchera des enregistrements que lorsque des objets spécifiques seront identifiés."
   },
   "settings": {
     "general_preferences": "Préférences générales",

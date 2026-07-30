@@ -534,7 +534,8 @@
     "sub_label": "суб",
     "found_profiles": "Найдено профилей потоков: {{count}}.",
     "export_selected": "Экспортировать выбранное",
-    "delete_selected": "Удалить выбранное"
+    "delete_selected": "Удалить выбранное",
+    "system_only_trigger_recordings": "Система запускает запись только при обнаружении конкретных объектов."
   },
   "settings": {
     "general_preferences": "Общие настройки",

@@ -529,7 +529,8 @@
     "main_label": "principal",
     "found_profiles": "Se encontraron {{count}} perfiles de transmisión.",
     "export_selected": "Exportar seleccionado",
-    "delete_selected": "Eliminar seleccionado"
+    "delete_selected": "Eliminar seleccionado",
+    "system_only_trigger_recordings": "El sistema solo activará grabaciones cuando se identifiquen objetos específicos."
   },
   "settings": {
     "general_preferences": "Preferencias generales",

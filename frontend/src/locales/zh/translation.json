@@ -536,7 +536,8 @@
     "sub_label": "子",
     "found_profiles": "找到 {{count}} 个流配置文件。",
     "export_selected": "导出选定的内容",
-    "delete_selected": "删除所选内容"
+    "delete_selected": "删除所选内容",
+    "system_only_trigger_recordings": "系统仅在识别出特定对象时才会触发录音。"
   },
   "settings": {
     "general_preferences": "常规首选项",

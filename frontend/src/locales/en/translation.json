@@ -538,7 +538,8 @@
     "ai_passthrough_desc": "AI Object Detection requires Movie Passthrough to be enabled in the Recording tab to prevent CPU spikes and TPU crashes. Please enable Passthrough or switch to OpenCV.",
     "found_profiles": "Found {{count}} stream profiles.",
     "export_selected": "Export Selected",
-    "delete_selected": "Delete Selected"
+    "delete_selected": "Delete Selected",
+    "system_only_trigger_recordings": "The system will only trigger recordings when specific objects are identified."
   },
   "settings": {
     "general_preferences": "General Preferences",

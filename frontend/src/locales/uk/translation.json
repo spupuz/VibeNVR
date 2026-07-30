@@ -537,7 +537,8 @@
     "ai_passthrough_desc": "Виявлення об’єктів штучного інтелекту вимагає, щоб на вкладці «Запис» було ввімкнено функцію Movie Passthrough, щоб запобігти стрибкам процесора та збоям TPU. Увімкніть Passthrough або перейдіть на OpenCV.",
     "found_profiles": "Знайдено {{count}} профілів потоку.",
     "export_selected": "Експорт вибраного",
-    "delete_selected": "Видалити вибране"
+    "delete_selected": "Видалити вибране",
+    "system_only_trigger_recordings": "Система запускатиме записи лише тоді, коли будуть ідентифіковані певні об’єкти."
   },
   "settings": {
     "general_preferences": "Загальні налаштування",

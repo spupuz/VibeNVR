@@ -529,7 +529,8 @@
     "main_label": "principale",
     "found_profiles": "Trovato {{count}} profili di streaming.",
     "export_selected": "Esporta selezionato",
-    "delete_selected": "Elimina selezionato"
+    "delete_selected": "Elimina selezionato",
+    "system_only_trigger_recordings": "Il sistema attiverà le registrazioni solo quando verranno identificati oggetti specifici."
   },
   "settings": {
     "general_preferences": "Preferenze Generali",

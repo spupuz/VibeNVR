@@ -526,7 +526,8 @@
     "main_label": "hauptsächlich",
     "found_profiles": "{{count}} Stream-Profile gefunden.",
     "export_selected": "Ausgewählte exportieren",
-    "delete_selected": "Ausgewählte löschen"
+    "delete_selected": "Ausgewählte löschen",
+    "system_only_trigger_recordings": "Das System löst nur dann Aufnahmen aus, wenn bestimmte Objekte identifiziert werden."
   },
   "settings": {
     "general_preferences": "Allgemeine Einstellungen",
