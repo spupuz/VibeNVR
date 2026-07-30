@@ -32,6 +32,10 @@ import logging
 from urllib.parse import urlparse
 from typing import Optional, List, Any
 import datetime
+import jwt
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import StreamingResponse
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +59,47 @@ def extract_host(url: str) -> Optional[str]:
             url = "rtsp://" + url
         parsed = urlparse(url)
         return parsed.hostname
-    except:
+    except Exception:
         return None
+
+
+def _verify_camera_access_sync(token: str, camera_id: int) -> dict:
+    """Thread-safe synchronous wrapper for verifying camera access and extracting user."""
+    db = database.SessionLocal()
+    try:
+        # Decode JWT token
+        try:
+            payload = jwt.decode(token, auth_service.SECRET_KEY, algorithms=[auth_service.ALGORITHM])
+            username: str = payload.get("sub")
+            if not username:
+                return {"status": 401, "detail": "Invalid token"}
+        except jwt.PyJWTError:
+            return {"status": 401, "detail": "Invalid token"}
+
+        # Get User
+        user = db.query(models.User).filter(models.User.username == username).first()
+        if user is None:
+            return {"status": 401, "detail": "User not found"}
+
+        # Get Camera
+        db_camera = crud.get_camera(db, camera_id=camera_id)
+        if db_camera is None:
+            return {"status": 404, "detail": "Camera not found"}
+
+        # Check access
+        if user.role == "viewer" and user.restrict_camera_access:
+            allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id, permission="view")
+            if allowed_ids is not None and camera_id not in allowed_ids:
+                return {"status": 403, "detail": "Not authorized to view this camera"}
+
+        return {
+            "status": 200,
+            "user_role": user.role,
+            "user_username": user.username,
+            "user_id": user.id,
+        }
+    finally:
+        db.close()
 
 
 def sanitize_rtsp_url(url: str) -> str:
@@ -431,10 +474,6 @@ def reorder_cameras(
     return {"message": "Cameras reordered successfully"}
 
 
-from fastapi.responses import StreamingResponse
-import httpx
-
-
 @router.websocket("/{camera_id}/ws")
 async def websocket_camera_stream(websocket: WebSocket, camera_id: int):
     """Proxy raw H.264 PyAV packets from engine to the frontend via WebSockets"""
@@ -448,19 +487,11 @@ async def websocket_camera_stream(websocket: WebSocket, camera_id: int):
         return
 
     try:
-        with database.get_db_ctx() as db:
-            user = await auth_service.get_user_from_token(token, db)
-            db_camera = crud.get_camera(db, camera_id=camera_id)
-            if db_camera is None:
-                await websocket.close(code=1008)
-                return
-            if user.role == "viewer" and user.restrict_camera_access:
-                allowed_ids = crud.get_allowed_camera_ids_for_user(
-                    db, user.id, permission="view"
-                )
-                if allowed_ids is not None and camera_id not in allowed_ids:
-                    await websocket.close(code=1008)
-                    return
+        access_info = await run_in_threadpool(_verify_camera_access_sync, token, camera_id)
+        if access_info["status"] != 200:
+            logging.error(f"WS Auth Fail: {access_info['detail']} for camera {camera_id}")
+            await websocket.close(code=1008)
+            return
     except Exception as e:
         logging.error(f"WS Auth Fail: Invalid token for camera {camera_id} - {str(e)}")
         await websocket.close(code=1008)
@@ -495,8 +526,6 @@ async def websocket_camera_stream(websocket: WebSocket, camera_id: int):
             await websocket.close()
         except Exception:
             pass
-        except:
-            pass
 
 
 @router.get("/{camera_id}/frame")
@@ -514,35 +543,21 @@ async def get_camera_frame(
         )
         raise HTTPException(status_code=401, detail="Missing media authentication")
 
-    # Verify authentication and camera existence
-    db = database.SessionLocal()
-    try:
-        user = await auth_service.get_user_from_token(media_token, db)
-        db_camera = crud.get_camera(db, camera_id=camera_id)
-        if db_camera is None:
-            raise HTTPException(status_code=404, detail="Camera not found")
+    # Verify authentication and camera existence (using thread-safe sync wrapper)
+    access_info = await run_in_threadpool(_verify_camera_access_sync, media_token, camera_id)
+    if access_info["status"] != 200:
+        raise HTTPException(status_code=access_info["status"], detail=access_info["detail"])
 
-        if user.role == "viewer" and user.restrict_camera_access:
-            allowed_ids = crud.get_allowed_camera_ids_for_user(
-                db, user.id, permission="view"
+    frame_url = f"http://engine:8000/cameras/{camera_id}/frame"
+
+    if raw:
+        # Security: Only admins can view unmasked (raw) frames
+        if access_info["user_role"] == "admin":
+            frame_url += "?raw=true"
+        else:
+            logging.warning(
+                f"Security: Non-admin user {access_info['user_username']} (ID: {access_info['user_id']}) attempted to access raw frame for camera {camera_id}"
             )
-            if allowed_ids is not None and camera_id not in allowed_ids:
-                raise HTTPException(
-                    status_code=403, detail="Not authorized to view this camera"
-                )
-
-        frame_url = f"http://engine:8000/cameras/{camera_id}/frame"
-
-        if raw:
-            # Security: Only admins can view unmasked (raw) frames
-            if user.role == "admin":
-                frame_url += "?raw=true"
-            else:
-                logging.warning(
-                    f"Security: Non-admin user {user.username} (ID: {user.id}) attempted to access raw frame for camera {camera_id}"
-                )
-    finally:
-        db.close()
 
     try:
         async with httpx.AsyncClient(timeout=2.0) as client:
@@ -575,20 +590,9 @@ async def stream_camera(camera_id: int, request: Request, token: Optional[str] =
         raise HTTPException(status_code=401, detail="Missing media authentication")
 
     try:
-        with database.get_db_ctx() as db:
-            user = await auth_service.get_user_from_token(media_token, db)
-            db_camera = crud.get_camera(db, camera_id=camera_id)
-            if db_camera is None:
-                raise HTTPException(status_code=404, detail="Camera not found")
-
-            if user.role == "viewer" and user.restrict_camera_access:
-                allowed_ids = crud.get_allowed_camera_ids_for_user(
-                    db, user.id, permission="view"
-                )
-                if allowed_ids is not None and camera_id not in allowed_ids:
-                    raise HTTPException(
-                        status_code=403, detail="Not authorized to view this camera"
-                    )
+        access_info = await run_in_threadpool(_verify_camera_access_sync, media_token, camera_id)
+        if access_info["status"] != 200:
+            raise HTTPException(status_code=access_info["status"], detail=access_info["detail"])
     except HTTPException:
         raise
     except Exception as e:
@@ -657,8 +661,6 @@ def export_all_cameras(
     cameras = crud.get_cameras(db)
     export_data = []
 
-    fields_to_exclude = {"id", "created_at", "groups", "events"}
-
     for cam in cameras:
         # Pydantic v2 validation (excludes relationships and system fields like ID automatically)
         cam_data = jsonable_encoder(schemas.CameraCreate.model_validate(cam))
@@ -716,8 +718,6 @@ def export_single_camera(
     cam = crud.get_camera(db, camera_id)
     if cam is None:
         raise HTTPException(status_code=404, detail="Camera not found")
-
-    fields_to_exclude = {"id", "created_at", "groups", "events"}
 
     # Use schema to serialize without relationships
     filtered_data = jsonable_encoder(schemas.CameraCreate.model_validate(cam))
