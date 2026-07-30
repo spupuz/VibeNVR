@@ -15,6 +15,12 @@ def get_cameras(db: Session, skip: int = 0, limit: int = 100):
         selectinload(models.Camera.storage_profile)
     ).order_by(models.Camera.sort_order.asc(), models.Camera.id.asc()).offset(skip).limit(limit).all()
 
+def get_cameras_by_ids(db: Session, camera_ids: list[int]):
+    return db.query(models.Camera).options(
+        selectinload(models.Camera.groups),
+        selectinload(models.Camera.storage_profile)
+    ).filter(models.Camera.id.in_(camera_ids)).all()
+
 def get_camera_by_rtsp_url(db: Session, rtsp_url: str):
     return db.query(models.Camera).filter(models.Camera.rtsp_url == rtsp_url).first()
 

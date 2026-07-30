@@ -690,14 +690,15 @@ def export_bulk_cameras(
     """Export selected cameras settings as JSON"""
     export_data = []
 
-    for cam_id in camera_ids:
-        cam = crud.get_camera(db, cam_id)
-        if cam is not None:
-            cam_data = jsonable_encoder(schemas.CameraCreate.model_validate(cam))
-            cam_data["groups"] = [g.name for g in cam.groups]
-            if cam.storage_profile:
-                cam_data["storage_profile_name"] = cam.storage_profile.name
-            export_data.append(cam_data)
+    # ⚡ Bolt: Fetch all requested cameras in a single O(1) query instead of O(N) queries inside the loop
+    cameras = crud.get_cameras_by_ids(db, camera_ids)
+
+    for cam in cameras:
+        cam_data = jsonable_encoder(schemas.CameraCreate.model_validate(cam))
+        cam_data["groups"] = [g.name for g in cam.groups]
+        if cam.storage_profile:
+            cam_data["storage_profile_name"] = cam.storage_profile.name
+        export_data.append(cam_data)
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     return Response(
