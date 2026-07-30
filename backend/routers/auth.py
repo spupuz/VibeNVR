@@ -362,7 +362,8 @@ async def me_from_cookie(request: Request, response: Response, db: Session = Dep
     }
 
 @router.post("/setup", response_model=schemas.User)
-def setup_admin(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
+@limiter.limit("5/minute")
+def setup_admin(request: Request, user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     """
     Initial setup endpoint to create the first admin user.
     Only allows creation if no users exist in the database.
