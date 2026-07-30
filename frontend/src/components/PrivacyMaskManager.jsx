@@ -294,6 +294,7 @@ export const PrivacyMaskManager = ({
                                 size="sm" 
                                 onClick={() => deleteMask(idx)}
                                 className="h-9 w-9 p-0 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                aria-label={t('common.delete', 'Delete')}
                             >
                                 <Trash2 className="w-5 h-5" />
                             </Button>
