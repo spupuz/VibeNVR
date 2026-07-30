@@ -4,8 +4,11 @@ from unittest.mock import patch, MagicMock
 import copy
 
 # We will need to set PYTHONPATH=engine when running this test
-import sys, os; sys.path.insert(0, os.path.abspath("engine")); from main import app, GLOBAL_CONFIG
-
+import sys, os
+sys.path.insert(0, os.path.abspath("engine"))
+if "main" in sys.modules:
+    del sys.modules["main"]
+from main import app, GLOBAL_CONFIG
 client = TestClient(app)
 
 @pytest.fixture(autouse=True)
