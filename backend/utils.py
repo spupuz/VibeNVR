@@ -18,10 +18,10 @@ def is_safe_webhook_url(url: str) -> bool:
         ip = socket.gethostbyname(hostname)
         ip_obj = ipaddress.ip_address(ip)
 
-        # Block link-local (169.254.x.x) and multicast to prevent SSRF against cloud metadata and sensitive internal addresses.
+        # Block link-local (169.254.x.x), multicast, loopback, and unspecified to prevent SSRF against cloud metadata and sensitive internal addresses.
         # Note: We intentionally allow private IPs (like 192.168.x.x) because users of this NVR system
         # rely on webhooks to trigger local home automation services (e.g. Home Assistant).
-        if ip_obj.is_link_local or ip_obj.is_multicast:
+        if ip_obj.is_link_local or ip_obj.is_multicast or ip_obj.is_loopback or ip_obj.is_unspecified:
             return False
 
         return True
