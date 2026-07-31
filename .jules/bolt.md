@@ -4,3 +4,7 @@
 ## 2024-05-15 - N+1 optimization in Bulk Export Endpoints
 **Learning:** In bulk export operations (like `export_bulk_cameras`), iterating through a list of IDs and fetching each entity individually creates an N+1 query bottleneck. While `selectinload` is used in `get_cameras`, it's not leveraged if fetching each entity independently.
 **Action:** Created `get_cameras_by_ids` which leverages `selectinload` for relationships (like `groups`, `storage_profile`) and uses a bulk `.in_()` query to fetch all relevant entities in a single O(1) query before iterating.
+
+## 2024-07-31 - Background Task Query Optimization
+**Learning:** Reusing API-oriented CRUD functions (like `crud.get_cameras`) that eagerly load relationships (`selectinload`) in tight background loops (like `health_service`) causes unnecessary memory bloat and database load.
+**Action:** Create lightweight queries (e.g., `crud.get_active_cameras_lightweight`) tailored to fetch only the required models for performance-sensitive background tasks.
