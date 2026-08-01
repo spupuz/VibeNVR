@@ -45,7 +45,7 @@ def test_validate_setting_valid():
     validate_setting("mqtt_port", "65535")
 
     # notify_webhook_url
-    validate_setting("notify_webhook_url", "http://localhost:8080/webhook")
+    validate_setting("notify_webhook_url", "http://192.168.1.100/webhook")
     validate_setting("notify_webhook_url", "https://example.com/api")
     validate_setting("notify_webhook_url", "")  # empty value is allowed for clearing
 
@@ -122,7 +122,15 @@ def test_validate_webhook_url_valid_ip():
     # Should not raise any exception
     _validate_webhook_url("http://192.168.1.100")
     _validate_webhook_url("https://8.8.8.8:8080/webhook")
-    _validate_webhook_url("http://127.0.0.1")
+
+def test_validate_webhook_url_blocked_ips():
+    """Test that link-local, loopback, and unspecified IPs are blocked."""
+    with pytest.raises(ValueError, match="Unsafe Webhook URL"):
+        _validate_webhook_url("http://169.254.169.254")
+    with pytest.raises(ValueError, match="Unsafe Webhook URL"):
+        _validate_webhook_url("http://127.0.0.1")
+    with pytest.raises(ValueError, match="Unsafe Webhook URL"):
+        _validate_webhook_url("http://0.0.0.0")
 
 def test_validate_webhook_url_invalid_format():
     """Test invalid URL format."""

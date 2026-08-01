@@ -29,8 +29,8 @@ def _validate_webhook_url(value: str):
                 ip_addr = ipaddress.ip_address(socket.gethostbyname(host))
             except Exception:
                 return
-        if ip_addr.is_loopback or ip_addr.is_private or ip_addr.is_reserved or ip_addr.is_link_local:
-            pass
+        if ip_addr.is_loopback or ip_addr.is_unspecified or ip_addr.is_link_local or ip_addr.is_multicast:
+            raise ValueError('Unsafe Webhook URL')
     except Exception as e:
         if isinstance(e, ValueError): raise e
         raise ValueError(f'Invalid or unreachable URL: {str(e)}')
