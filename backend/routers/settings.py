@@ -369,6 +369,15 @@ async def perform_restore(data: dict, db: Session):
         except: return None
 
     if "cameras" in data:
+        # Pre-fetch existing cameras to avoid O(N) database queries during loop
+        all_cams = db.query(models.Camera).all()
+        # Create an O(1) lookup dictionary mapping host -> camera
+        cams_by_host = {
+            get_host(c.rtsp_url): c
+            for c in all_cams
+            if c.rtsp_url and get_host(c.rtsp_url)
+        }
+
         for c in data["cameras"]:
             backup_id = c.get("id")
             rtsp_url = c.get("rtsp_url")
@@ -376,8 +385,7 @@ async def perform_restore(data: dict, db: Session):
             
             existing_cam = db.query(models.Camera).filter(models.Camera.id == backup_id).first()
             if not existing_cam and cam_host:
-                all_cams = db.query(models.Camera).all()
-                existing_cam = next((cam for cam in all_cams if get_host(cam.rtsp_url) == cam_host), None)
+                existing_cam = cams_by_host.get(cam_host)
             
             if not existing_cam:
                 id_conflict = db.query(models.Camera).filter(models.Camera.id == backup_id).first()
