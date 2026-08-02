@@ -100,7 +100,7 @@ def _send_telegram_notification(
                     with open(image_path, 'rb') as f:
                         files = {'photo': f}
                         data = {'chat_id': tg_chat, 'caption': caption, 'parse_mode': 'HTML'}
-                        resp = requests.post(url, data=data, files=files, proxies=proxies, timeout=10)
+                        resp = requests.post(url, data=data, files=files, proxies=proxies, timeout=10, allow_redirects=False)
                         resp.raise_for_status()
                 else:
                     # Send Text
@@ -109,7 +109,7 @@ def _send_telegram_notification(
                         "chat_id": tg_chat,
                         "text": caption,
                         "parse_mode": "HTML"
-                    }, proxies=proxies, timeout=5)
+                    }, proxies=proxies, timeout=5, allow_redirects=False)
                     resp.raise_for_status()
 
                 # If we succeed, break the retry loop
