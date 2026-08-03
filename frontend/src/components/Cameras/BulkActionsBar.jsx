@@ -14,7 +14,7 @@ export const BulkActionsBar = ({ selectedCameraIds, setSelectedCameraIds, handle
                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider hidden sm:block">{t('cameras.bulk_actions', 'Bulk Actions')}</p>
                     <button
                         onClick={() => setSelectedCameraIds([])}
-                        className="sm:hidden px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 rounded-lg transition-colors"
+                        className="sm:hidden px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                         aria-label={t('common.clear', 'Clear')}
                     >
                         {t('common.clear', 'Clear')}
@@ -23,14 +23,14 @@ export const BulkActionsBar = ({ selectedCameraIds, setSelectedCameraIds, handle
                 <div className="flex items-center justify-center gap-2 w-full sm:w-auto">
                     <button
                         onClick={() => setSelectedCameraIds([])}
-                        className="hidden sm:block px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 rounded-lg transition-colors"
+                        className="hidden sm:block px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                         aria-label={t('common.clear', 'Clear')}
                     >
                         {t('common.clear', 'Clear')}
                     </button>
                     <button
                         onClick={handleBulkExport}
-                        className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center shadow-lg shadow-green-500/20 active:scale-95 whitespace-nowrap"
+                        className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center shadow-lg shadow-green-500/20 active:scale-95 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                         aria-label={t('cameras.export_selected', 'Export Selected')}
                         title={t('cameras.export_selected', 'Export Selected')}
                     >
@@ -40,7 +40,7 @@ export const BulkActionsBar = ({ selectedCameraIds, setSelectedCameraIds, handle
                     </button>
                     <button
                         onClick={handleBulkDelete}
-                        className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center shadow-lg shadow-red-500/20 active:scale-95 whitespace-nowrap"
+                        className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center shadow-lg shadow-red-500/20 active:scale-95 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                         aria-label={t('cameras.delete_selected', 'Delete Selected')}
                         title={t('cameras.delete_selected', 'Delete Selected')}
                     >
