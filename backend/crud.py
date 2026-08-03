@@ -36,6 +36,10 @@ def get_cameras_by_ids(db: Session, camera_ids: list[int]):
         selectinload(models.Camera.storage_profile)
     ).filter(models.Camera.id.in_(camera_ids)).all()
 
+def get_active_cameras_lightweight(db: Session):
+    # ⚡ Bolt: Provide a lightweight O(1) query without eager loading overhead for background periodic tasks
+    return db.query(models.Camera).filter(models.Camera.is_active == True).all()  # noqa: E712
+
 def get_camera_by_rtsp_url(db: Session, rtsp_url: str):
     return db.query(models.Camera).filter(models.Camera.rtsp_url == rtsp_url).first()
 
