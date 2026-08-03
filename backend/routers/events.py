@@ -166,7 +166,7 @@ def _send_telegram_notification(
                             "parse_mode": "HTML",
                         }
                         resp = requests.post(
-                            url, data=data, files=files, proxies=proxies, timeout=10
+                            url, data=data, files=files, proxies=proxies, timeout=10, allow_redirects=False
                         )
                         resp.raise_for_status()
                 else:
@@ -181,6 +181,7 @@ def _send_telegram_notification(
                         },
                         proxies=proxies,
                         timeout=5,
+                        allow_redirects=False
                     )
                     resp.raise_for_status()
 

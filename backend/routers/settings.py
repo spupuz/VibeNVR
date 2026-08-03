@@ -851,7 +851,7 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
             import time
             for attempt in range(max(1, retries)):
                 try:
-                    resp = requests.post(api_url, json=payload, proxies=proxies, timeout=10)
+                    resp = requests.post(api_url, json=payload, proxies=proxies, timeout=10, allow_redirects=False)
                     if not resp.ok:
                         raise ValueError(f"Telegram API Error: {resp.text}")
                     return {"status": "success", "message": "Test Telegram message sent"}
