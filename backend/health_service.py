@@ -140,7 +140,7 @@ async def check_camera_health():
                 with database.get_db_ctx() as db:
                     # Process each camera reported by engine
                     # Note: We only care about cameras that are supposed to be active
-                    cameras = crud.get_cameras(db)
+                    cameras = crud.get_active_cameras_lightweight(db)
 
                     for camera in cameras:
                         await _fetch_and_update_health(db, engine_status, camera=camera)

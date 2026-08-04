@@ -15,6 +15,16 @@ def get_cameras(db: Session, skip: int = 0, limit: int = 100):
         selectinload(models.Camera.storage_profile)
     ).order_by(models.Camera.sort_order.asc(), models.Camera.id.asc()).offset(skip).limit(limit).all()
 
+def get_active_cameras_lightweight(db: Session, skip: int = 0, limit: int = 100):
+    """
+    Performance Optimization: Fetch only active cameras without eagerly loading relationships
+    (groups, storage_profile). Use this for background tasks where relationships are not needed
+    to avoid memory bloat.
+    """
+    return db.query(models.Camera).filter(
+        models.Camera.is_active == True  # noqa: E712
+    ).order_by(models.Camera.sort_order.asc(), models.Camera.id.asc()).offset(skip).limit(limit).all()
+
 def get_camera_by_rtsp_url(db: Session, rtsp_url: str):
     return db.query(models.Camera).filter(models.Camera.rtsp_url == rtsp_url).first()
 
