@@ -40,6 +40,16 @@ def get_active_cameras_lightweight(db: Session):
     # ⚡ Bolt: Provide a lightweight O(1) query without eager loading overhead for background periodic tasks
     return db.query(models.Camera).filter(models.Camera.is_active == True).all()  # noqa: E712
 
+def get_active_cameras_lightweight(db: Session, skip: int = 0, limit: int = 100):
+    """
+    Performance Optimization: Fetch only active cameras without eagerly loading relationships
+    (groups, storage_profile). Use this for background tasks where relationships are not needed
+    to avoid memory bloat.
+    """
+    return db.query(models.Camera).filter(
+        models.Camera.is_active == True  # noqa: E712
+    ).order_by(models.Camera.sort_order.asc(), models.Camera.id.asc()).offset(skip).limit(limit).all()
+
 def get_camera_by_rtsp_url(db: Session, rtsp_url: str):
     return db.query(models.Camera).filter(models.Camera.rtsp_url == rtsp_url).first()
 
