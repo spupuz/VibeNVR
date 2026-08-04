@@ -176,7 +176,7 @@ export const Logs = () => {
                 <div className="flex items-center gap-2 ml-auto">
                     <button
                         onClick={() => setAutoScroll(!autoScroll)}
-                        className={`p-2 rounded-md border transition-colors ${autoScroll ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-background border-border text-muted-foreground'}`}
+                        className={`p-2 rounded-md border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${autoScroll ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-background border-border text-muted-foreground'}`}
                         title={autoScroll ? t('logs.pause_scroll', 'Pause Auto-scroll') : t('logs.resume_scroll', 'Resume Auto-scroll')}
                         aria-label={autoScroll ? t('logs.pause_scroll', 'Pause Auto-scroll') : t('logs.resume_scroll', 'Resume Auto-scroll')}
                     >
@@ -184,7 +184,7 @@ export const Logs = () => {
                     </button>
                     <button
                         onClick={fetchLogs}
-                        className="p-2 rounded-md hover:bg-accent text-muted-foreground"
+                        className="p-2 rounded-md hover:bg-accent text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                         title={t('logs.refresh_now', 'Refresh Now')}
                         aria-label={t('logs.refresh_now', 'Refresh Now')}
                     >
@@ -192,7 +192,7 @@ export const Logs = () => {
                     </button>
                     <button
                         onClick={() => setShowSettings(true)}
-                        className="p-2 rounded-md hover:bg-accent text-muted-foreground"
+                        className="p-2 rounded-md hover:bg-accent text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                         title={t('logs.log_rotation_settings', 'Log Rotation Settings')}
                         aria-label={t('logs.log_rotation_settings', 'Log Rotation Settings')}
                     >

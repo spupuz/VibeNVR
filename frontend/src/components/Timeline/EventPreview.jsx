@@ -94,7 +94,7 @@ export const EventPreview = ({
                         </label>
                         <button
                             onClick={() => setSelectedEvent(null)}
-                            className="p-1 hover:bg-accent rounded-lg text-muted-foreground transition-colors"
+                            className="p-1 hover:bg-accent rounded-lg text-muted-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             title={t('common.close', 'Close')}
                             aria-label={t('common.close', 'Close')}
                         >
@@ -206,7 +206,7 @@ export const EventPreview = ({
                     <a
                         href={`/api/events/${selectedEvent.id}/download`}
                         download
-                        className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                        className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                         title={t('common.download', 'Download')}
                         aria-label={t('common.download', 'Download')}
                     >
@@ -215,7 +215,7 @@ export const EventPreview = ({
                     {user?.role === 'admin' && (
                         <button
                             onClick={() => handleDelete(selectedEvent.id)}
-                            className="p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-lg transition-colors"
+                            className="p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2"
                             title={t('common.delete', 'Delete')}
                             aria-label={t('common.delete', 'Delete')}
                         >
