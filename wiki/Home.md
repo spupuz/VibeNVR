@@ -39,8 +39,8 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **Dual-Stream Optimization**: Dedicated sub-streams for lightweight dashboard grids, saving CPU and bandwidth.
 - **Advanced PTZ**: Native ONVIF support for low-latency Pan, Tilt, Zoom, and **Home Positions** with resident hardware fallbacks.
 - **MQTT & Home Automation**: Native integration with Home Assistant via **MQTT Discovery**. Instant motion sensors and AI object metadata reporting.
-- **System Integrity Assurance**: Integrated security, RBAC, and path-sanitization audits running on every release. **New**: Hardened Notification Pipeline and Sanitized Camera Exports.
-- **Stability & Efficiency**: Adaptive RTSP retry logic for Wyze/Battery cameras and dynamic zero-buffer memory optimization for passthrough recording.
+- **System Integrity Assurance**: Integrated security, RBAC, and path-sanitization audits running on every release. **New**: Hardened Notification Pipeline with explicit SSRF protections and Sanitized Camera Exports.
+- **Stability & Efficiency**: Adaptive RTSP retry logic for Wyze/Battery cameras, dynamic zero-buffer memory optimization for passthrough recording, and O(1) Database Query optimization for background tasks to prevent OOM errors.
 
 ## ⚠️ Important Notes
 
