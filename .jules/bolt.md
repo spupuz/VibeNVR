@@ -8,3 +8,6 @@
 ## 2024-07-31 - Background Task Query Optimization
 **Learning:** Reusing API-oriented CRUD functions (like `crud.get_cameras`) that eagerly load relationships (`selectinload`) in tight background loops (like `health_service`) causes unnecessary memory bloat and database load.
 **Action:** Create lightweight queries (e.g., `crud.get_active_cameras_lightweight`) tailored to fetch only the required models for performance-sensitive background tasks.
+## 2026-08-06 - Python Function Redefinition Regression
+**Learning:** When cleaning up seemingly duplicate function definitions in Python files (e.g., in `crud.py`), Python binds the function name to the final definition. If earlier definitions had a different signature, keeping an early one and deleting the later ones can cause `TypeError` regressions in the codebase.
+**Action:** Always retain the signature and implementation of the *last* defined version when removing duplicate definitions.

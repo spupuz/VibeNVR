@@ -25,20 +25,16 @@ def get_cameras(db: Session, skip: int = 0, limit: int = 100):
     )
 
 
-def get_active_cameras_lightweight(db: Session):
-    # ⚡ Bolt: Fetch active cameras without eagerly loading relationships for performance-sensitive background tasks
-    return db.query(models.Camera).filter(models.Camera.is_active == True).all()  # noqa: E712
+def get_cameras_lightweight(db: Session, skip: int = 0, limit: int = 100):
+    # ⚡ Bolt: Provide a lightweight query without eager loading overhead for performance-sensitive tasks
+    return (
+        db.query(models.Camera)
+        .order_by(models.Camera.sort_order.asc(), models.Camera.id.asc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
-
-def get_cameras_by_ids(db: Session, camera_ids: list[int]):
-    return db.query(models.Camera).options(
-        selectinload(models.Camera.groups),
-        selectinload(models.Camera.storage_profile)
-    ).filter(models.Camera.id.in_(camera_ids)).all()
-
-def get_active_cameras_lightweight(db: Session):
-    # ⚡ Bolt: Provide a lightweight O(1) query without eager loading overhead for background periodic tasks
-    return db.query(models.Camera).filter(models.Camera.is_active == True).all()  # noqa: E712
 
 def get_active_cameras_lightweight(db: Session, skip: int = 0, limit: int = 100):
     """
@@ -49,6 +45,13 @@ def get_active_cameras_lightweight(db: Session, skip: int = 0, limit: int = 100)
     return db.query(models.Camera).filter(
         models.Camera.is_active == True  # noqa: E712
     ).order_by(models.Camera.sort_order.asc(), models.Camera.id.asc()).offset(skip).limit(limit).all()
+
+
+def get_cameras_by_ids(db: Session, camera_ids: list[int]):
+    return db.query(models.Camera).options(
+        selectinload(models.Camera.groups),
+        selectinload(models.Camera.storage_profile)
+    ).filter(models.Camera.id.in_(camera_ids)).all()
 
 def get_camera_by_rtsp_url(db: Session, rtsp_url: str):
     return db.query(models.Camera).filter(models.Camera.rtsp_url == rtsp_url).first()
