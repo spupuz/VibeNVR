@@ -168,10 +168,11 @@ export const Login = () => {
                     {!require2FA ? (
                         <>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">{t('login.username', 'Username')}</label>
+                                <label htmlFor="username" className="text-sm font-medium cursor-pointer">{t('login.username', 'Username')}</label>
                                 <div className="relative">
                                     <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                     <input
+                                        id="username"
                                         type="text"
                                         className="w-full pl-9 pr-3 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
                                         placeholder="admin"
@@ -183,10 +184,11 @@ export const Login = () => {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">{t('login.password', 'Password')}</label>
+                                <label htmlFor="password" className="text-sm font-medium cursor-pointer">{t('login.password', 'Password')}</label>
                                 <div className="relative">
                                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                     <input
+                                        id="password"
                                         type={showPassword ? "text" : "password"}
                                         className="w-full pl-9 pr-10 py-2.5 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
                                         placeholder="••••••••"
@@ -211,8 +213,9 @@ export const Login = () => {
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                             {useRecoveryCode ? (
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-center block">{t('timeline.recovery_code', 'Recovery Code')}</label>
+                                    <label htmlFor="recoveryCode" className="text-sm font-medium text-center block cursor-pointer">{t('timeline.recovery_code', 'Recovery Code')}</label>
                                     <input
+                                        id="recoveryCode"
                                         type="text"
                                         className="w-full text-center text-xl tracking-wider font-mono py-3 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
                                         placeholder="Enter recovery code"
@@ -227,8 +230,9 @@ export const Login = () => {
                                 </div>
                             ) : (
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-center block">{t('timeline.two_factor_authenticator', 'Two-Factor Authenticator Code')}</label>
+                                    <label htmlFor="totpCode" className="text-sm font-medium text-center block cursor-pointer">{t('timeline.two_factor_authenticator', 'Two-Factor Authenticator Code')}</label>
                                     <input
+                                        id="totpCode"
                                         type="text"
                                         className="w-full text-center text-2xl tracking-[0.5em] font-mono py-3 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all"
                                         placeholder="000000"
@@ -259,8 +263,9 @@ export const Login = () => {
 
                                 {trustDevice && (
                                     <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                                        <label className="text-xs font-medium text-muted-foreground mb-1 block">{t('timeline.device_name', 'Device Name')}</label>
+                                        <label htmlFor="deviceName" className="text-xs font-medium text-muted-foreground mb-1 block cursor-pointer">{t('timeline.device_name', 'Device Name')}</label>
                                         <input
+                                            id="deviceName"
                                             type="text"
                                             className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                                             placeholder="e.g. My MacBook"
