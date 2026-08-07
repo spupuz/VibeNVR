@@ -349,7 +349,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                     <button
                                         onClick={() => setCopyingGroup(group)}
                                         aria-label={t('timeline.copy_settings', 'Copy Settings')}
-                                        className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40"
+                                        className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                                         title={t('timeline.copy_settings_title', 'Copy Settings to all cameras in group')}
                                     >
                                         <Copy className="w-3.5 h-3.5" />
@@ -364,7 +364,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                     <>
                                         <button
                                             onClick={() => openManageModal(group)}
-                                            className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-colors"
+                                            className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                                             title={t('timeline.edit_group', 'Edit Group')}
                                             aria-label={t('timeline.edit_group', 'Edit Group')}
                                         >
@@ -372,7 +372,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                         </button>
                                         <button
                                             onClick={() => handleDeleteGroup(group.id)}
-                                            className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
+                                            className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                                             title={t('timeline.delete_group', 'Delete Group')}
                                             aria-label={t('timeline.delete_group', 'Delete Group')}
                                         >
@@ -400,8 +400,8 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                             onChange={e => setNewGroupName(e.target.value)}
                         />
                         <div className="flex justify-end space-x-2">
-                            <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md">{t('timeline.cancel', 'Cancel')}</button>
-                            <button type="submit" disabled={!newGroupName} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md disabled:opacity-50">{t('timeline.create', 'Create')}</button>
+                            <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">{t('timeline.cancel', 'Cancel')}</button>
+                            <button type="submit" disabled={!newGroupName} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">{t('timeline.create', 'Create')}</button>
                         </div>
                     </form>
                 </div>
@@ -458,8 +458,8 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                             })()}
                         </div>
                         <div className="flex justify-end space-x-2 pt-4 border-t border-border">
-                            <button onClick={() => setManagingGroup(null)} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md">{t('timeline.cancel', 'Cancel')}</button>
-                            <button onClick={saveGroupCameras} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md">{t('timeline.save_changes', 'Save Changes')}</button>
+                            <button onClick={() => setManagingGroup(null)} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">{t('timeline.cancel', 'Cancel')}</button>
+                            <button onClick={saveGroupCameras} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">{t('timeline.save_changes', 'Save Changes')}</button>
                         </div>
                     </div>
                 </div>
@@ -499,8 +499,8 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('timeline.2_settings_categories', '2. Settings Categories')}</span>
                                     <div className="flex gap-2">
-                                        <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline" onClick={() => setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id))}>{t('timeline.all', 'All')}</button>
-                                        <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline" onClick={() => setSelectedCategories([])}>{t('timeline.none', 'None')}</button>
+                                        <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded" onClick={() => setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id))}>{t('timeline.all', 'All')}</button>
+                                        <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded" onClick={() => setSelectedCategories([])}>{t('timeline.none', 'None')}</button>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-1 gap-1.5 bg-muted/20 p-2 rounded-lg border border-border/50">
@@ -521,11 +521,11 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                         </div>
 
                         <div className="flex justify-end space-x-2 pt-4 border-t border-border">
-                            <button onClick={() => { setCopyingGroup(null); setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); }} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md transition-colors">{t('timeline.cancel', 'Cancel')}</button>
+                            <button onClick={() => { setCopyingGroup(null); setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); }} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">{t('timeline.cancel', 'Cancel')}</button>
                             <button
                                 onClick={() => handleAction(copyingGroup.id, 'copy_settings', sourceCameraId, selectedCategories)}
                                 disabled={!sourceCameraId || selectedCategories.length === 0}
-                                className="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50 disabled:bg-muted disabled:text-muted-foreground shadow-lg shadow-blue-500/10 transition-all font-medium"
+                                className="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50 disabled:bg-muted disabled:text-muted-foreground shadow-lg shadow-blue-500/10 transition-all font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             >
                                 {t('timeline.apply_to_group', 'Apply to Group')}
                             </button>
@@ -545,13 +545,13 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                             <div className="flex items-center space-x-2">
                                 <button
                                     onClick={() => setSelectedGroupIds([])}
-                                    className="px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 rounded-lg transition-colors"
+                                    className="px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                                 >
                                     {t('timeline.clear', 'Clear')}
                                 </button>
                                 <button
                                     onClick={handleBulkDeleteGroups}
-                                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-all flex items-center shadow-lg shadow-red-500/20 active:scale-95"
+                                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-all flex items-center shadow-lg shadow-red-500/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                                 >
                                     <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                                     {t('timeline.delete_selected', 'Delete Selected')}
