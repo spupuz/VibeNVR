@@ -11,3 +11,7 @@
 **Vulnerability:** The webhook URL validation logic explicitly blocked link-local and multicast IPs but failed to block loopback (`127.0.0.1`) and unspecified (`0.0.0.0`) addresses.
 **Learning:** This omission allowed potential SSRF attacks targeting internal services running on the loopback interface, bypassing external network controls.
 **Prevention:** Ensure all non-routable, non-private internal address ranges (loopback, unspecified, link-local, multicast) are explicitly blocked when validating external URLs provided by users.
+## 2024-05-24 - Missing SSRF protection in Telemetry requests
+**Vulnerability:** The telemetry service in the backend uses `requests.get` to send data to a user-configurable URL (`CLOUDFLARE_TELEMETRY_URL` from env variables) but fails to explicitly disable HTTP redirects (`allow_redirects=False`).
+**Learning:** `requests.get` follows HTTP redirects by default, which can be exploited by an attacker to bypass basic SSRF checks (like checking the initial URL) by having the external server redirect the request to internal addresses (e.g. `127.0.0.1` or `169.254.169.254`).
+**Prevention:** Always set `allow_redirects=False` on `requests.get` and `requests.post` calls to external or user-configurable URLs, regardless of if they are parsed or validated beforehand.
