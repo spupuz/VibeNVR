@@ -8,3 +8,7 @@
 ## 2024-07-31 - Background Task Query Optimization
 **Learning:** Reusing API-oriented CRUD functions (like `crud.get_cameras`) that eagerly load relationships (`selectinload`) in tight background loops (like `health_service`) causes unnecessary memory bloat and database load.
 **Action:** Create lightweight queries (e.g., `crud.get_active_cameras_lightweight`) tailored to fetch only the required models for performance-sensitive background tasks.
+
+## 2024-08-25 - Pagination and Authorization Filtering
+**Learning:** In paginated endpoints (like fetching events with a `limit`), performing role-based authorization filtering (e.g., checking `allowed_ids`) in memory via a Python list comprehension *after* the DB fetch causes severe issues: it loads potentially thousands of useless records into memory (O(N) memory bloat), and more importantly, it causes implicit data truncation (returning fewer than `limit` events even if more authorized events exist in the database).
+**Action:** Always pass authorized entity IDs (like `allowed_camera_ids`) down to the DB query layer (CRUD function) to filter natively via `.in_()` before `.limit()` is applied.

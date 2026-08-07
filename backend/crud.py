@@ -139,10 +139,16 @@ def get_events(
     camera_id: int = None,
     type: str = None,
     date: str = None,
+    allowed_camera_ids: list[int] = None,
 ):
     query = db.query(models.Event)
     if camera_id:
         query = query.filter(models.Event.camera_id == camera_id)
+    elif allowed_camera_ids is not None:
+        # ⚡ Bolt: Optimize by filtering authorized cameras natively in DB instead of Python
+        # to eliminate memory bloat and fix implicit pagination truncation.
+        query = query.filter(models.Event.camera_id.in_(allowed_camera_ids))
+
     if type:
         query = query.filter(models.Event.type == type)
     if date:

@@ -576,10 +576,8 @@ def read_events(
     ),
 ):
     user, is_token = auth_info
-    events = crud.get_events(
-        db, skip=skip, limit=limit, camera_id=camera_id, type=type, date=date
-    )
 
+    allowed_ids = None
     if user.role == "viewer" and user.restrict_camera_access:
         allowed_ids = crud.get_allowed_camera_ids_for_user(
             db, user.id, permission="replay"
@@ -590,7 +588,12 @@ def read_events(
                     status_code=403,
                     detail="Not authorized to replay events for this camera",
                 )
-            events = [e for e in events if e.camera_id in allowed_ids]
+
+    # ⚡ Bolt: Pass allowed_ids down to crud layer to filter natively in DB query.
+    # This prevents O(N) memory allocation and filtering on massive datasets.
+    events = crud.get_events(
+        db, skip=skip, limit=limit, camera_id=camera_id, type=type, date=date, allowed_camera_ids=allowed_ids
+    )
 
     return events
 
