@@ -587,13 +587,13 @@ class CameraThread(threading.Thread):
             abs_cx = int(cx * self.width)
             abs_cy = int(cy * self.height)
             
+            # ⚡ Bolt: Pre-calculate scalar for scaling normalized numpy arrays
+            wh_scalar = np.array([self.width, self.height], dtype=np.float32)
+
             is_excluded = False
             for poly in self.motion_polygons:
-                # Ensure poly is a numpy array of type int32 for OpenCV
-                if not isinstance(poly, np.ndarray):
-                    poly_np = np.array(poly, dtype=np.int32).reshape((-1, 1, 2))
-                else:
-                    poly_np = poly.astype(np.int32).reshape((-1, 1, 2))
+                # ⚡ Bolt: Use vectorized array multiplication instead of reshaping repeatedly
+                poly_np = (poly * wh_scalar).astype(np.int32).reshape((-1, 1, 2))
                 
                 if cv2.pointPolygonTest(poly_np, (abs_cx, abs_cy), False) >= 0:
                     is_excluded = True

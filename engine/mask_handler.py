@@ -24,7 +24,8 @@ def parse_polygons(mask_json, camera_name="Unknown"):
                         elif isinstance(pt, (list, tuple)) and len(pt) >= 2:
                             normalized_points.append([pt[0], pt[1]])
                     if normalized_points:
-                        polygons.append(normalized_points)
+                        # ⚡ Bolt: Cache as float32 numpy array for vectorized scaling operations
+                        polygons.append(np.array(normalized_points, dtype=np.float32))
                 elif isinstance(p, list):
                     snapped_points = []
                     for pt in p:
@@ -35,7 +36,8 @@ def parse_polygons(mask_json, camera_name="Unknown"):
                             if y < 0.02: y = 0.0
                             elif y > 0.98: y = 1.0
                             snapped_points.append([x, y])
-                    polygons.append(snapped_points)
+                    if snapped_points:
+                        polygons.append(np.array(snapped_points, dtype=np.float32))
     except Exception as e:
         logger.error(f"Camera {camera_name}: Error parsing masks JSON: {e}")
     return polygons
@@ -46,11 +48,14 @@ def apply_masks(frame, polygons, alpha=1.0, color=(0, 0, 0), camera_name="Unknow
         return
         
     h, w = frame.shape[:2]
+    # ⚡ Bolt: Pre-calculate the scalar multiplier for vectorized operations
+    wh_scalar = np.array([w, h], dtype=np.float32)
+
     if alpha >= 1.0:
         for poly in polygons:
             try:
-                pts = np.array([[int(p[0] * w), int(p[1] * h)] for p in poly], np.int32)
-                pts = pts.reshape((-1, 1, 2))
+                # ⚡ Bolt: O(1) Vectorized multiplication instead of O(N) list comprehension loop
+                pts = (poly * wh_scalar).astype(np.int32).reshape((-1, 1, 2))
                 cv2.fillPoly(frame, [pts], color)
             except Exception as e:
                 logger.error(f"Camera {camera_name}: Error applying mask: {e}")
@@ -58,8 +63,7 @@ def apply_masks(frame, polygons, alpha=1.0, color=(0, 0, 0), camera_name="Unknow
         overlay = frame.copy()
         for poly in polygons:
             try:
-                pts = np.array([[int(p[0] * w), int(p[1] * h)] for p in poly], np.int32)
-                pts = pts.reshape((-1, 1, 2))
+                pts = (poly * wh_scalar).astype(np.int32).reshape((-1, 1, 2))
                 cv2.fillPoly(overlay, [pts], color)
             except Exception as e:
                 logger.error(f"Camera {camera_name}: Error applying mask: {e}")

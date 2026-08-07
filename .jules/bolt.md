@@ -8,3 +8,7 @@
 ## 2024-07-31 - Background Task Query Optimization
 **Learning:** Reusing API-oriented CRUD functions (like `crud.get_cameras`) that eagerly load relationships (`selectinload`) in tight background loops (like `health_service`) causes unnecessary memory bloat and database load.
 **Action:** Create lightweight queries (e.g., `crud.get_active_cameras_lightweight`) tailored to fetch only the required models for performance-sensitive background tasks.
+
+## 2024-08-05 - Vectorized Polygon Scaling for Masks
+**Learning:** In high-frequency, per-frame video processing loops (like `apply_masks` or `_filter_ai_results_by_zones`), parsing normalized JSON polygons and calculating absolute pixel coordinates point-by-point via Python list comprehensions (`[[int(p[0] * w), int(p[1] * h)] for p in poly]`) creates an O(N) bottleneck that severely delays frame processing and increases CPU load.
+**Action:** Pre-cache normalized coordinates as `numpy.ndarray` (`dtype=np.float32`) during initial parsing and use vectorized NumPy array multiplication (e.g., `(poly * wh_scalar).astype(np.int32).reshape((-1, 1, 2))`) in the main loop to perform the scaling across all points simultaneously in O(1) time.
