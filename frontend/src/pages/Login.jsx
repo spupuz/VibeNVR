@@ -312,14 +312,14 @@ export const Login = () => {
                                         setRecoveryCode('');
                                         setError('');
                                     }}
-                                    className="w-full text-sm text-primary hover:text-primary/80 transition-colors"
+                                    className="w-full text-sm text-primary hover:text-primary/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
                                 >
                                     {useRecoveryCode ? "Use Authenticator App Instead" : "Lost device? Use Recovery Code"}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => { setRequire2FA(false); setTotpCode(''); setRecoveryCode(''); setError(''); setUseRecoveryCode(false); }}
-                                    className="w-full text-sm text-muted-foreground hover:text-primary transition-colors"
+                                    className="w-full text-sm text-muted-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
                                 >
                                     Back to Login
                                 </button>
