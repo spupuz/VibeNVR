@@ -273,7 +273,8 @@ def _get_disk_usage_stats(global_movies: tuple, global_pics: tuple) -> tuple:
 
 def _get_retention_estimates(db: Session, cameras: list, storage_total_gb: float, camera_stats: dict, allowed_ids: list | None = None) -> dict:
     """Calculates retention estimates and storage requirements based on daily usage."""
-    now = datetime.now()
+    from datetime import timezone
+    now = datetime.now(timezone.utc)
     one_day_ago = now - timedelta(days=1)
     
     daily_stats_query = db.query(models.Event.camera_id, func.sum(models.Event.file_size))\
@@ -572,7 +573,8 @@ def get_stats_history(db: Session = Depends(database.get_db), auth_info: tuple[m
     """
     Returns hourly event counts for the last 24 hours.
     """
-    now = datetime.now()
+    from datetime import timezone
+    now = datetime.now(timezone.utc)
     twenty_four_hours_ago = now - timedelta(hours=24)
     
     allowed_ids = None

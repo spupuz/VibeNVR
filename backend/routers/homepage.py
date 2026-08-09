@@ -40,7 +40,8 @@ def get_homepage_stats(
     cameras_recording = len(events.ACTIVE_CAMERAS)
 
     # Event Stats
-    now = datetime.now()
+    from datetime import timezone
+    now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     week_start = now - timedelta(days=7)
     month_start = now - timedelta(days=30)
