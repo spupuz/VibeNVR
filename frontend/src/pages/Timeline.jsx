@@ -54,7 +54,7 @@ export const Timeline = () => {
         if (selectedCameraFilter !== 'all') results = results.filter(e => e.camera_id === parseInt(selectedCameraFilter));
         if (selectedHour !== null) results = results.filter(e => new Date(e.timestamp_start).getHours() === selectedHour);
         if (selectedTypeFilter !== 'all') results = results.filter(e => e.type === selectedTypeFilter);
-        if (selectedEventTypeFilter !== 'all') results = results.filter(e => e.event_type === selectedEventTypeFilter);
+        if (selectedEventTypeFilter !== 'all') results = results.filter(e => e.event_type?.toLowerCase() === selectedEventTypeFilter.toLowerCase());
         if (selectedObjectFilter !== 'all') {
             results = results.filter(e => e.ai_metadata && e.ai_metadata.toLowerCase().includes(selectedObjectFilter.toLowerCase()));
         }

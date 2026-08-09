@@ -62,7 +62,7 @@ class RecordingManager:
     def handle_recording(self, frame, motion_detected, last_motion_time, stop_recording_cb, trigger_source=None, ai_results=None, pre_buffer_frames=None):
         mode = self.config.get('recording_mode', 'Off')
         should_record = False
-        reason = "Continuous" if mode in ['Always', 'Continuous'] else ("Motion" if mode == 'Motion Triggered' and motion_detected else None)
+        reason = "continuous" if mode in ['Always', 'Continuous'] else ("motion" if mode == 'Motion Triggered' and motion_detected else None)
         if reason:
             should_record = True
 
