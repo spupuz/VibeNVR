@@ -149,8 +149,9 @@ export const Timeline = () => {
                     }
                 } catch (err) {
                     showToast(t('timeline.delete_error', 'Error deleting event: {{error}}', { error: err.message }), 'error');
+                } finally {
+                    setConfirmConfig({ isOpen: false });
                 }
-                setConfirmConfig({ isOpen: false });
             },
             onCancel: () => setConfirmConfig({ isOpen: false })
         });
