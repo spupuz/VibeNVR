@@ -405,7 +405,19 @@ def get_allowed_camera_ids_for_user(
 
 
 def delete_user(db: Session, user_id: int):
-    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    db_user = (
+        db.query(models.User)
+        .options(
+            selectinload(models.User.camera_accesses).selectinload(
+                models.UserCameraAccess.camera
+            ),
+            selectinload(models.User.group_accesses).selectinload(
+                models.UserGroupAccess.group
+            ),
+        )
+        .filter(models.User.id == user_id)
+        .first()
+    )
     if db_user:
         db.delete(db_user)
         db.commit()
