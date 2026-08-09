@@ -9,9 +9,9 @@ def test_parse_polygons_valid():
     polygons = parse_polygons(mask_json)
     assert len(polygons) == 1
     assert len(polygons[0]) == 3
-    assert polygons[0][0] == [0.1, 0.1]
-    assert polygons[0][1] == [0.9, 0.1]
-    assert polygons[0][2] == [0.5, 0.9]
+    np.testing.assert_allclose(polygons[0][0], [0.1, 0.1], rtol=1e-5)
+    np.testing.assert_allclose(polygons[0][1], [0.9, 0.1], rtol=1e-5)
+    np.testing.assert_allclose(polygons[0][2], [0.5, 0.9], rtol=1e-5)
 
 
 def test_parse_polygons_empty():
@@ -35,7 +35,7 @@ def test_apply_masks_success():
     """Test normal application of masks."""
     frame = np.zeros((100, 100, 3), dtype=np.uint8)
     # Valid polygon
-    polygons = [[[0.1, 0.1], [0.9, 0.1], [0.5, 0.9]]]
+    polygons = [np.array([[0.1, 0.1], [0.9, 0.1], [0.5, 0.9]], dtype=np.float32)]
 
     # Should not raise any exceptions
     apply_masks(frame, polygons, alpha=1.0, color=(255, 255, 255))

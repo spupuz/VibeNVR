@@ -11,3 +11,7 @@
 ## 2026-08-06 - Python Function Redefinition Regression
 **Learning:** When cleaning up seemingly duplicate function definitions in Python files (e.g., in `crud.py`), Python binds the function name to the final definition. If earlier definitions had a different signature, keeping an early one and deleting the later ones can cause `TypeError` regressions in the codebase.
 **Action:** Always retain the signature and implementation of the *last* defined version when removing duplicate definitions.
+
+## 2024-08-05 - Vectorized Polygon Scaling for Masks
+**Learning:** In high-frequency, per-frame video processing loops (like `apply_masks` or `_filter_ai_results_by_zones`), parsing normalized JSON polygons and calculating absolute pixel coordinates point-by-point via Python list comprehensions (`[[int(p[0] * w), int(p[1] * h)] for p in poly]`) creates an O(N) bottleneck that severely delays frame processing and increases CPU load.
+**Action:** Pre-cache normalized coordinates as `numpy.ndarray` (`dtype=np.float32`) during initial parsing and use vectorized NumPy array multiplication (e.g., `(poly * wh_scalar).astype(np.int32).reshape((-1, 1, 2))`) in the main loop to perform the scaling across all points simultaneously in O(1) time.
