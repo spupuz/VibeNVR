@@ -470,11 +470,31 @@ async def _detect_onvif_capabilities(device: ONVIFCamera, profile_token: Optiona
     # 1. Detect Events Capability
     try:
         # Pass Category='All' to GetCapabilities, which is required for many Tapo/TP-Link cameras
-        capabilities = await asyncio.to_thread(device.devicemgmt.GetCapabilities, {'Category': 'All'})
-        if hasattr(capabilities, 'Events') and capabilities.Events:
-            # To be absolutely sure, try to create the events service
+        try:
+            capabilities = await asyncio.to_thread(device.devicemgmt.GetCapabilities, {'Category': 'All'})
+            has_events = hasattr(capabilities, 'Events') and capabilities.Events
+        except Exception:
+            has_events = False
+            
+        if not has_events:
+            # Fallback 1: Try specific category (Some Hikvision cams need this)
+            try:
+                capabilities = await asyncio.to_thread(device.devicemgmt.GetCapabilities, {'Category': 'Events'})
+                has_events = hasattr(capabilities, 'Events') and capabilities.Events
+            except Exception:
+                has_events = False
+
+        if has_events:
+            # Ensure the service can actually be created
             await asyncio.to_thread(device.create_events_service)
             features["onvif_can_events"] = True
+        else:
+            # Fallback 2: Just try to create the service directly (Hikvision/Dahua sometimes hide capabilities)
+            try:
+                await asyncio.to_thread(device.create_events_service)
+                features["onvif_can_events"] = True
+            except Exception:
+                pass
     except Exception as e:
         logger.debug(f"Event capability detection failed: {e}")
 

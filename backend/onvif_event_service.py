@@ -171,6 +171,11 @@ class OnvifEventManager:
             address = subscription_reference.Address._value_1
             logger.info(f"Camera {camera.name}: PullPoint Address: {address}")
             
+            # Extract ReferenceParameters for Hikvision compatibility
+            ref_params = None
+            if hasattr(subscription_reference, 'ReferenceParameters') and subscription_reference.ReferenceParameters:
+                ref_params = subscription_reference.ReferenceParameters._value_1
+
             # Create specialized PullPoint service (binds the events wsdl to the pullpoint address)
             pullpoint_service = await asyncio.to_thread(device.create_onvif_service, 'pullpoint', address)
         except zeep.exceptions.Fault as f:
@@ -206,9 +211,13 @@ class OnvifEventManager:
                     logger.info(f"Camera {camera.name}: Pulling ONVIF messages...")
                     # Note: Using raw dictionary parameter here is an intentional workaround for a known upstream
                     # issue in the python-zeep library regarding wsdl inheritance parsing for rw-2 elements.
+                    kwargs = {'Timeout': 'PT5S', 'MessageLimit': 10}
+                    if ref_params is not None:
+                        kwargs['_soapheaders'] = ref_params
+
                     response = await asyncio.to_thread(
                         pullpoint_service.PullMessages,
-                        {'Timeout': 'PT5S', 'MessageLimit': 10}
+                        kwargs
                     )
                     
                     # Process notifications

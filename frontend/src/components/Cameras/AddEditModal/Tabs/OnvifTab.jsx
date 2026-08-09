@@ -201,6 +201,7 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                 showToast(errorMsg, 'error');
             }
         } catch (err) {
+            console.error("[ONVIF Probe] Unhandled UI Exception:", err);
             setProbeStatus('error');
             showToast('Network error during probe', 'error');
         } finally {
