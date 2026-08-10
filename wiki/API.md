@@ -126,6 +126,18 @@ Download a live JPEG frame from the camera.
   - `raw`: (Optional, Admin only) Set to `true` to get the unmasked frame for editing.
 - **Auth Required**: Admin privileges or valid `media_token` cookie.
 
+#### **POST** `/cameras/probe-stream`
+Validate an RTSP URL and fetch its resolution via ffprobe before saving.
+- **Auth Required**: Admin privileges.
+- **Payload Example**:
+  ```json
+  {
+    "rtsp_url": "rtsp://admin:pass@192.168.1.10:554/main",
+    "rtsp_transport": "tcp"
+  }
+  ```
+- **Response**: `{"success": true, "width": 1920, "height": 1080}`
+
 #### **POST** `/cameras`
 Create a new camera configuration.
 - **Auth Required**: Admin privileges.

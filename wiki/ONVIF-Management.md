@@ -82,6 +82,9 @@ VibeNVR significantly simplifies the process of configuring camera streams by in
 4.  The system will list all available streaming profiles provided by the camera (e.g., `mainStream`, `minorStream`, `profile1`).
 5.  Click the **"Use these streams"** button next to a profile to instantly auto-fill the RTSP URL fields in the **General** tab.
 
+> [!NOTE]
+> VibeNVR automatically validates the new RTSP URL using ffprobe before applying it. If the raw ONVIF URI fails validation (e.g., due to unsupported query parameters), VibeNVR will attempt to sanitize the URL and fallback safely, ensuring you never overwrite a working stream with a broken one.
+
 > [!TIP]
 > If your camera requires credentials for the RTSP stream, VibeNVR will automatically construct the complete URL using the username and password you provided in the ONVIF or General tab, ensuring a ready-to-use stream.
 

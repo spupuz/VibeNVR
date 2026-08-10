@@ -72,7 +72,7 @@ Standard users pass the `Depends(auth_service.get_current_user)` check but fail 
 VibeNVR's code includes specific mitigations against common attack vectors:
 
 1. **Path Traversal & SSRF Prevention**:
-   - The Pydantic Schema validators (`schemas.py`) actively scan `rtsp_url` inputs, webhook destinations, and **Storage Profile paths**. Local file access attempts and internal network probes are explicitly blocked. Storage paths must be absolute (starting with `/`) and are restricted from using `..` traversal sequences.
+   - The Pydantic Schema validators (`schemas.py`) actively scan `rtsp_url` inputs (including manual camera additions and ONVIF stream probes), webhook destinations, and **Storage Profile paths**. Local file access attempts and internal network probes are explicitly blocked. Storage paths must be absolute (starting with `/`) and are restricted from using `..` traversal sequences.
 2. **IP Ban Protection & DoS Mitigation**:
     - The VibeEngine (`camera_thread.py`) performs a mandatory **ffprobe pre-flight check** before initiating a full video stream connection. This prevents rapid authentication retries that trigger IP bans on many camera firmwares (e.g., Tapo/TP-Link).
     - If a 401 Unauthorized or 403 Forbidden is detected, the thread enters a **5-minute backoff period** before retrying. This mitigates accidental or malicious "denial of service" scenarios through camera lockouts while allowing for eventual recovery if credentials are corrected in the UI.

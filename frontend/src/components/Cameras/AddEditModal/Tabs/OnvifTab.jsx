@@ -2,16 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { InputField, SectionHeader } from '../../../ui/FormControls';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useToast } from '../../../../contexts/ToastContext';
-import { Settings, ShieldCheck, ShieldAlert, Loader2, Crosshair, Wand2 } from 'lucide-react';
+import { Settings, ShieldCheck, ShieldAlert, Loader2, Crosshair, Wand2, Check, RefreshCw } from 'lucide-react';
 import { Button } from '../../../ui/Button';
 import { parseRtspUrl } from '../../../../utils/cameraUtils';
 import { useTranslation } from 'react-i18next';
 
 export const OnvifTab = ({ newCamera, setNewCamera }) => {
-  const { t } = useTranslation();
+    const { t } = useTranslation();
     const { token } = useAuth();
     const { showToast } = useToast();
     const [probing, setProbing] = useState(false);
+    const [validatingStreams, setValidatingStreams] = useState(false);
     const [probingPort, setProbingPort] = useState(false);
     const [probeStatus, setProbeStatus] = useState(null); // 'success' | 'error'
     const [probeResult, setProbeResult] = useState(null);
@@ -112,7 +113,7 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
 
     // Auto-fill the main + sub RTSP URLs from the detected ONVIF profiles.
     // Convention across cameras: first profile = main (highest res), second = sub.
-    const handleUseStreams = () => {
+    const handleUseStreams = async () => {
         const profiles = probeResult?.profiles || [];
         if (profiles.length === 0) return;
 
@@ -121,16 +122,73 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
         const user = existing.user || newCamera.onvif_username || '';
         const pass = existing.pass || newCamera.onvif_password || '';
 
-        const mainUrl = injectCreds(profiles[0].url, user, pass);
-        const subUrl = profiles.length > 1 ? injectCreds(profiles[1].url, user, pass) : null;
+        const sanitizeUrl = (url) => {
+            try {
+                // Remove query parameters known to cause 401 on certain cameras (e.g. Hikvision)
+                const urlObj = new URL(url);
+                urlObj.searchParams.delete('transportmode');
+                urlObj.searchParams.delete('profile');
+                return urlObj.toString();
+            } catch (e) {
+                return url;
+            }
+        };
+
+        const validateUrl = async (url) => {
+            try {
+                const res = await fetch('/api/cameras/probe-stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        rtsp_url: url,
+                        rtsp_transport: 'tcp' // assume TCP for probing
+                    })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    return data.success;
+                }
+            } catch (e) {
+                console.error("Stream probe error", e);
+            }
+            return false;
+        };
+
+        const checkAndFallback = async (url) => {
+            if (!url) return null;
+            if (await validateUrl(url)) return url;
+            const sanitizedUrl = sanitizeUrl(url);
+            if (sanitizedUrl !== url && await validateUrl(sanitizedUrl)) {
+                return sanitizedUrl;
+            }
+            return null; // Both validation attempts failed
+        };
+
+        setValidatingStreams(true);
+        
+        const initialMainUrl = injectCreds(profiles[0].url, user, pass);
+        const initialSubUrl = profiles.length > 1 ? injectCreds(profiles[1].url, user, pass) : null;
+
+        const validatedMainUrl = await checkAndFallback(initialMainUrl);
+        const validatedSubUrl = await checkAndFallback(initialSubUrl);
+
+        setValidatingStreams(false);
+
+        if (!validatedMainUrl) {
+            showToast(t('cameras.stream_validation_failed', 'Failed to validate stream URLs. Retaining existing working configuration.'), 'error');
+            return;
+        }
 
         setNewCamera(prev => ({
             ...prev,
-            rtsp_url: mainUrl,
-            ...(subUrl ? { sub_rtsp_url: subUrl } : {})
+            rtsp_url: validatedMainUrl,
+            ...(validatedSubUrl ? { sub_rtsp_url: validatedSubUrl } : {})
         }));
         showToast(
-            subUrl
+            validatedSubUrl
                 ? t('cameras.streams_filled_both', 'Filled main and sub-stream from ONVIF')
                 : t('cameras.streams_filled_main', 'Filled main stream from ONVIF'),
             'success'
@@ -376,12 +434,17 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                                 <Button
                                     type="button"
                                     variant="outline"
+                                    disabled={validatingStreams}
                                     onClick={handleUseStreams}
-                                    className="h-7 px-2.5 text-[11px] shrink-0"
+                                    className="h-7 px-2.5 text-[11px] shrink-0 gap-1.5"
                                     title={t('cameras.use_streams_help', 'Fill the main and sub-stream URLs from these profiles (credentials are reused from the current URL)')}
                                 >
-                                    <Wand2 className="w-3.5 h-3.5 mr-1.5" />
-                                    {t('cameras.use_these_streams', 'Use these streams')}
+                                    {validatingStreams ? (
+                                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <Wand2 className="h-3.5 w-3.5" />
+                                    )}
+                                    {validatingStreams ? t('common.validating', 'Validating...') : t('cameras.use_these_streams', 'Use these streams')}
                                 </Button>
                             </div>
                             <div className="space-y-2">

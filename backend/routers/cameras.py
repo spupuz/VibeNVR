@@ -148,6 +148,22 @@ def sanitize_rtsp_url(url: str) -> str:
     except Exception as e:
         logger.error(f"Error sanitizing URL: {mask_url(str(e))}")
         return url
+@router.post("/probe-stream", response_model=schemas.StreamProbeResponse)
+def probe_stream_endpoint(
+    req: schemas.StreamProbeRequest,
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
+    """Probes the RTSP stream URL to check if it's accessible and gets its resolution."""
+    try:
+        # Sanitize before probing just in case
+        url_to_probe = sanitize_rtsp_url(req.rtsp_url)
+        dims = probe_service.probe_stream(url_to_probe, req.rtsp_transport)
+        if dims:
+            return {"success": True, "width": dims["width"], "height": dims["height"]}
+        return {"success": False, "error": "Failed to probe stream. Check credentials and URL."}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 
 
 @router.post("", response_model=schemas.Camera)
