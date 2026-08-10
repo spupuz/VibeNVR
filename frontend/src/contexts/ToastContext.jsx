@@ -3,11 +3,23 @@ import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 const ToastContext = createContext();
 
+const generateId = () => {
+    if (window.crypto && window.crypto.randomUUID) {
+        return window.crypto.randomUUID();
+    }
+    if (window.crypto && window.crypto.getRandomValues) {
+        const array = new Uint32Array(4);
+        window.crypto.getRandomValues(array);
+        return Array.from(array, dec => dec.toString(16).padStart(8, '0')).join('');
+    }
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
+};
+
 export const ToastProvider = ({ children }) => {
     const [toasts, setToasts] = useState([]);
 
     const showToast = useCallback((message, type = 'success', duration = 4000) => {
-        const id = window.crypto?.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).substring(2);
+        const id = generateId();
         setToasts((prev) => [...prev, { id, message, type }]);
 
         setTimeout(() => {
