@@ -66,9 +66,12 @@ class MotionDetector:
                 self.motion_detected = True
                 self.last_trigger_source = source or "ONVIF Edge"
                 logger.info(f"[DETECTION] Camera {self.camera_name} (ID: {self.camera_id}): Motion START (Source: {self.last_trigger_source})")
+                pic_mode = self.config.get('picture_recording_mode', 'Manual')
                 vid_mode = self.config.get('recording_mode', 'Off')
                 snap_path = None
-                if vid_mode != 'Off':
+                if pic_mode == 'Motion Triggered':
+                    snap_path = save_snapshot_cb(frame, is_temp=False)
+                elif vid_mode != 'Off':
                     snap_path = save_snapshot_cb(frame, is_temp=True)
                 if event_callback:
                     payload = {'file_path': snap_path, 'source': self.last_trigger_source} if snap_path else {'source': self.last_trigger_source}

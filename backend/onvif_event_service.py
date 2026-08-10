@@ -164,30 +164,25 @@ class OnvifEventManager:
             except Exception as e:
                 logger.warning(f"Camera {camera.name}: Could not fetch EventProperties: {e}")
 
-            # PT5M = 5 minute initial termination time (better for recovering from crashes)
-            pull_point = await asyncio.to_thread(events_service.CreatePullPointSubscription, 
-                                               {'InitialTerminationTime': 'PT5M'})
-            subscription_reference = pull_point.SubscriptionReference
-            address = subscription_reference.Address._value_1
-            logger.info(f"Camera {camera.name}: PullPoint Address: {address}")
-            
-            # Extract ReferenceParameters for Hikvision compatibility
-            ref_params = None
-            if hasattr(subscription_reference, 'ReferenceParameters') and subscription_reference.ReferenceParameters:
-                ref_params = subscription_reference.ReferenceParameters._value_1
-
-            # Create specialized PullPoint service (binds the events wsdl to the pullpoint address)
-            pullpoint_service = await asyncio.to_thread(device.create_onvif_service, 'pullpoint', address)
+            # Use native onvif-zeep flow to create PullPoint service
+            pullpoint_service = await asyncio.to_thread(device.create_pullpoint_service)
+            logger.info(f"Camera {camera.name}: PullPoint service created successfully.")
         except zeep.exceptions.Fault as f:
-            if "error" in str(f).lower() or "limit" in str(f).lower() or "capacity" in str(f).lower():
-                logger.warning(f"Camera {camera.name}: Camera rejected subscription. It has likely reached its max ONVIF subscriptions limit. Please check camera settings or reboot the camera. Retrying in 1 minute...")
+            fault_str = str(f).lower()
+            if "resourceunknownfault" in fault_str:
+                logger.error(f"Camera {camera.name}: Subscription failed with ResourceUnknownFault. Check ONVIF compatibility: {f}")
+            elif "error" in fault_str or "limit" in fault_str or "capacity" in fault_str:
+                logger.warning(f"Camera {camera.name}: Camera rejected subscription. It has likely reached its max ONVIF subscriptions limit. Please check camera settings or reboot the camera. Retrying in 1 minute... (Fault: {f})")
             else:
                 logger.error(f"Camera {camera.name}: SOAP Fault during subscription: {f}")
             raise f
         except Exception as e:
-            if "error" in str(e).lower() and "unknown" in str(e).lower():
-                logger.warning(f"Camera {camera.name}: Camera rejected subscription (Unknown error). The camera's subscription limit is likely full. Auto-recovering in 1 minute...")
-            elif "RemoteDisconnected" in str(e) or "Connection aborted" in str(e):
+            err_str = str(e).lower()
+            if "resourceunknownfault" in err_str:
+                logger.error(f"Camera {camera.name}: Subscription failed with ResourceUnknownFault. Check ONVIF compatibility: {e}")
+            elif "error" in err_str and "unknown" in err_str:
+                logger.warning(f"Camera {camera.name}: Camera rejected subscription (Unknown error). The camera's subscription limit is likely full. Auto-recovering in 1 minute... (Error: {e})")
+            elif "remotedisconnected" in err_str or "connection aborted" in err_str:
                 logger.warning(f"Camera {camera.name}: Connection lost during subscription setup. Retrying...")
             else:
                 logger.error(f"Camera {camera.name}: Failed to create PullPoint: {e}")
@@ -212,8 +207,6 @@ class OnvifEventManager:
                     # Note: Using raw dictionary parameter here is an intentional workaround for a known upstream
                     # issue in the python-zeep library regarding wsdl inheritance parsing for rw-2 elements.
                     kwargs = {'Timeout': 'PT5S', 'MessageLimit': 10}
-                    if ref_params is not None:
-                        kwargs['_soapheaders'] = ref_params
 
                     response = await asyncio.to_thread(
                         pullpoint_service.PullMessages,
@@ -252,9 +245,10 @@ class OnvifEventManager:
                         raise e
 
                 except zeep.exceptions.Fault as fault:
+                    fault_str = str(fault)
                     # Often happens if subscription expires
-                    if "NoSubscription" in str(fault) or "Subscription" in str(fault) or "InvalidReference" in str(fault):
-                        logger.warning(f"Camera {camera.name}: Subscription expired or invalid, renewing...")
+                    if "ResourceUnknownFault" in fault_str or "NoSubscription" in fault_str or "Subscription" in fault_str or "InvalidReference" in fault_str:
+                        logger.warning(f"Camera {camera.name}: Subscription expired or invalid ({fault_str}), renewing...")
                     else:
                         logger.error(f"Camera {camera.name}: SOAP Fault in polling: {fault}")
                     break # Break to renew subscription
