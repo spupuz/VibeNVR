@@ -128,7 +128,7 @@ export const CameraAddEditModal = ({
                         </div>
                         <button
                             onClick={() => { setShowAddModal(false); setEditingId(null); setCloneSourceId(''); }}
-                            className="p-2 hover:bg-muted rounded-full transition-colors"
+                            className="p-2 hover:bg-muted rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             aria-label={t('common.close', 'Close')}
                         >
                             <X className="w-5 h-5" />
@@ -162,8 +162,8 @@ export const CameraAddEditModal = ({
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-primary/70">{t('cameras.categories_to_import', 'Categories to Import')}</span>
                                         <div className="flex gap-2">
-                                            <button type="button" className="text-[10px] uppercase font-bold text-blue-600 hover:underline" onClick={() => { setSelectedCloneCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); performClone(cloneSourceId, CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); }}>{t('cameras.all', 'All')}</button>
-                                            <button type="button" className="text-[10px] uppercase font-bold text-muted-foreground hover:underline" onClick={() => { setSelectedCloneCategories([]); performClone(cloneSourceId, []); }}>{t('cameras.none', 'None')}</button>
+                                            <button type="button" className="text-[10px] uppercase font-bold text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm" onClick={() => { setSelectedCloneCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); performClone(cloneSourceId, CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); }}>{t('cameras.all', 'All')}</button>
+                                            <button type="button" className="text-[10px] uppercase font-bold text-muted-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm" onClick={() => { setSelectedCloneCategories([]); performClone(cloneSourceId, []); }}>{t('cameras.none', 'None')}</button>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 bg-background/50 p-2 rounded-lg border border-primary/10">
@@ -186,11 +186,17 @@ export const CameraAddEditModal = ({
                         </div>
                     )}
 
-                    <div className="flex space-x-4 mb-4 border-b border-border text-[11px] overflow-x-auto flex-nowrap min-h-[40px] pb-1 scrollbar-hide scroll-smooth relative">
+                    <div
+                        role="tablist"
+                        aria-label={t('cameras.settings_categories', 'Settings Categories')}
+                        className="flex space-x-4 mb-4 border-b border-border text-[11px] overflow-x-auto flex-nowrap min-h-[40px] pb-1 scrollbar-hide scroll-smooth relative"
+                    >
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
-                                className={`pb-2 flex items-center gap-1.5 flex-shrink-0 transition-all ${activeTab === tab.id ? 'border-b-2 border-primary font-bold text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                                role="tab"
+                                aria-selected={activeTab === tab.id}
+                                className={`pb-2 flex items-center gap-1.5 flex-shrink-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-t-sm ${activeTab === tab.id ? 'border-b-2 border-primary font-bold text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                                 onClick={() => setActiveTab(tab.id)}
                             >
                                 <tab.icon className="w-3.5 h-3.5" />
