@@ -8,17 +8,18 @@ def get_camera(db: Session, camera_id: int):
     return db.query(models.Camera).filter(models.Camera.id == camera_id).first()
 
 
-def get_cameras(db: Session, skip: int = 0, limit: int = 100):
+def get_cameras(db: Session, skip: int = 0, limit: int = 100, allowed_camera_ids: list[int] = None):
     # Performance Optimization: Use selectinload to eagerly load the groups and
     # storage_profile relationships. This prevents N+1 queries and avoids the Cartesian
     # product explosion that joinedload would cause for collections.
+    query = db.query(models.Camera).options(
+        selectinload(models.Camera.groups),
+        selectinload(models.Camera.storage_profile),
+    )
+    if allowed_camera_ids is not None:
+        query = query.filter(models.Camera.id.in_(allowed_camera_ids))
     return (
-        db.query(models.Camera)
-        .options(
-            selectinload(models.Camera.groups),
-            selectinload(models.Camera.storage_profile),
-        )
-        .order_by(models.Camera.sort_order.asc(), models.Camera.id.asc())
+        query.order_by(models.Camera.sort_order.asc(), models.Camera.id.asc())
         .offset(skip)
         .limit(limit)
         .all()
@@ -142,10 +143,13 @@ def get_events(
     camera_id: int = None,
     type: str = None,
     date: str = None,
+    allowed_camera_ids: list[int] = None,
 ):
     query = db.query(models.Event)
     if camera_id:
         query = query.filter(models.Event.camera_id == camera_id)
+    if allowed_camera_ids is not None:
+        query = query.filter(models.Event.camera_id.in_(allowed_camera_ids))
     if type:
         query = query.filter(models.Event.type == type)
     if date:
