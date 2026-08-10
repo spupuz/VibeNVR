@@ -698,6 +698,27 @@ class OnvifDeepScanRequest(BaseModel):
                 raise ValueError('Invalid IP address or unreachable hostname')
         return v
 
+class StreamProbeRequest(BaseModel):
+    rtsp_url: str
+    rtsp_transport: str = "tcp"
+
+    @field_validator('rtsp_url')
+    @classmethod
+    def validate_rtsp_url(cls, v: str) -> str:
+        if v:
+            v_lower = v.strip().lower()
+            if not v_lower.startswith(('rtsp://', 'rtsps://', 'http://', 'https://')):
+                raise ValueError('URL must start with valid protocols')
+            if 'localhost' in v_lower or '127.0.0.1' in v_lower or '::1' in v_lower:
+                raise ValueError('Localhost access is not allowed')
+        return v
+
+class StreamProbeResponse(BaseModel):
+    success: bool
+    width: Optional[int] = None
+    height: Optional[int] = None
+    error: Optional[str] = None
+
 class OnvifProbeRequest(BaseModel):
     ip: str
     port: int
