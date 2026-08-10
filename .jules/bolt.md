@@ -15,3 +15,7 @@
 ## 2024-08-05 - Vectorized Polygon Scaling for Masks
 **Learning:** In high-frequency, per-frame video processing loops (like `apply_masks` or `_filter_ai_results_by_zones`), parsing normalized JSON polygons and calculating absolute pixel coordinates point-by-point via Python list comprehensions (`[[int(p[0] * w), int(p[1] * h)] for p in poly]`) creates an O(N) bottleneck that severely delays frame processing and increases CPU load.
 **Action:** Pre-cache normalized coordinates as `numpy.ndarray` (`dtype=np.float32`) during initial parsing and use vectorized NumPy array multiplication (e.g., `(poly * wh_scalar).astype(np.int32).reshape((-1, 1, 2))`) in the main loop to perform the scaling across all points simultaneously in O(1) time.
+
+## 2026-08-10 - DB Level Filtering for Paginated Endpoints
+**Learning:** When implementing paginated endpoints in SQLAlchemy (using skip/limit), role-based access filtering (like filtering by allowed_camera_ids) must be performed natively at the database query layer (e.g., using .in_()) before the limit is applied. Filtering results in Python memory after a DB fetch causes implicit data truncation bugs and O(N) memory bloat.
+**Action:** Apply filtering in the database query using .in_() before applying offset and limit.

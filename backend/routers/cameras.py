@@ -210,14 +210,14 @@ def read_cameras(
     ),
 ):
     user, is_token = auth_info
-    cameras = crud.get_cameras(db, skip=skip, limit=limit)
 
+    allowed_ids = None
     if user.role == "viewer" and user.restrict_camera_access:
         allowed_ids = crud.get_allowed_camera_ids_for_user(
             db, user.id, permission="view"
         )
-        if allowed_ids is not None:
-            cameras = [c for c in cameras if c.id in allowed_ids]
+
+    cameras = crud.get_cameras(db, skip=skip, limit=limit, allowed_camera_ids=allowed_ids)
 
     if is_token:
         # Return sanitized summary for 3rd party integrations
