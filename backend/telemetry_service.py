@@ -186,7 +186,7 @@ def send_telemetry():
             
             # --- Primary: Cloudflare Analytics Worker ---
             try:
-                cf_response = requests.get(cf_telemetry_url, params=payload, headers=headers, timeout=10)
+                cf_response = requests.get(cf_telemetry_url, params=payload, headers=headers, timeout=10, allow_redirects=False)
                 if cf_response.ok:
                     logger.info(f"Telemetry sent to Cloudflare Worker (Status: {cf_response.status_code})")
                 else:
