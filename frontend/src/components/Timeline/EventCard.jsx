@@ -123,12 +123,19 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
                     )}
                 </div>
 
-                {/* Type badge */}
                 <div className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase
                 ${event.type === 'video' ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white'}
             `}>
                     {event.type === 'video' ? 'Vid' : 'Img'}
                 </div>
+
+                {/* Event Type badge */}
+                {event.event_type && (
+                    <div className={`absolute top-1 left-9 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase border bg-black/50 backdrop-blur-sm text-white/90 border-white/20`}
+                         title={t('timeline.recording_reason', 'Recording Reason')}>
+                        {event.event_type}
+                    </div>
+                )}
 
                 {/* Motion indicator */}
                 {event.event_type === 'motion' && (

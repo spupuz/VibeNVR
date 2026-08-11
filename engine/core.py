@@ -86,7 +86,7 @@ class CameraManager:
 
     def take_snapshot(self, camera_id: int):
         if camera_id in self.cameras:
-            return self.cameras[camera_id].save_snapshot()
+            return self.cameras[camera_id].save_snapshot(reason="Manual")
         return None
 
     def handle_event(self, camera_id, event_type, payload=None):
@@ -172,6 +172,7 @@ class CameraManager:
                     data["file_path"] = payload.get("file_path")
                     data["width"] = payload.get("width")
                     data["height"] = payload.get("height")
+                    data["reason"] = payload.get("reason", "unknown")
                     if "ai_metadata" in payload:
                         data["ai_metadata"] = payload["ai_metadata"]
                 else:

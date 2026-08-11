@@ -71,6 +71,12 @@ export const Timeline = () => {
         params.append('limit', '1000');
         if (cameraId) params.append('camera_id', cameraId);
         if (type) params.append('type', type);
+        
+        const eventType = searchParams.get('event_type');
+        if (eventType && eventType !== 'all') {
+            params.append('event_type', eventType);
+        }
+
         if (selectedDate) params.append('date', selectedDate);
 
         if (Array.from(params).length > 0) url += `?${params.toString()}`;
@@ -91,7 +97,7 @@ export const Timeline = () => {
                 }
             })
             .catch(err => console.error(err));
-    }, [cameraId, type, selectedDate, token, eventId]);
+    }, [cameraId, type, searchParams, selectedDate, token, eventId]);
 
     const fetchCameras = useCallback(() => {
         fetch(`${API_BASE}/cameras`, { headers: { Authorization: `Bearer ${token}` } })

@@ -291,7 +291,7 @@ class CameraThread(threading.Thread):
                                 if self.config.get('picture_recording_mode', 'Manual') == 'Motion Triggered':
                                     snap_frame = frame.copy()
                                     self._draw_ai_boxes(snap_frame, ai_results)
-                                    snap_path = self.save_snapshot(snap_frame, is_temp=False)
+                                    snap_path = self.save_snapshot(snap_frame, is_temp=False, reason="Motion")
                                 else:
                                     snap_path = self.save_snapshot(frame, is_temp=True)
                                 if self.event_callback:
@@ -693,7 +693,7 @@ class CameraThread(threading.Thread):
     def get_raw_frame_bytes(self):
         with self.lock: return self.latest_raw_frame_jpeg
 
-    def save_snapshot(self, frame=None, is_temp=False):
+    def save_snapshot(self, frame=None, is_temp=False, reason=None):
         try:
             if frame is not None:
                 snap_qual = self.config.get('opt_snapshot_quality', 90)
@@ -718,7 +718,10 @@ class CameraThread(threading.Thread):
             if not is_temp:
                 logger.info(f"Camera {self.config.get('name')}: Snapshot saved to {filepath}")
                 if self.event_callback:
-                    self.event_callback(self.camera_id, "snapshot_save", {"file_path": filepath, "width": self.width, "height": self.height})
+                    payload = {"file_path": filepath, "width": self.width, "height": self.height}
+                    if reason:
+                        payload["reason"] = reason
+                    self.event_callback(self.camera_id, "snapshot_save", payload)
             return filepath
         except Exception as e:
             logger.error(f"Snapshot error for {self.camera_id}: {e}")

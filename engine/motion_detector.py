@@ -132,7 +132,7 @@ class MotionDetector:
                     vid_mode = self.config.get('recording_mode', 'Off')
                     snap_path = None
                     if pic_mode == 'Motion Triggered':
-                        snap_path = save_snapshot_cb(frame, is_temp=False)
+                        snap_path = save_snapshot_cb(frame, is_temp=False, reason="Motion")
                     elif vid_mode != 'Off':
                         snap_path = save_snapshot_cb(frame, is_temp=True)
                     if event_callback:

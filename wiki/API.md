@@ -217,7 +217,7 @@ Internal endpoint to receive event triggers (like motion detection) from the Eng
 
 #### **GET** `/events`
 List motion events and recordings.
-- **Filters**: `camera_id`, `type` (video/snapshot), `date` (YYYY-MM-DD).
+- **Filters**: `camera_id`, `type` (video/snapshot), `event_type` (motion/continuous/manual), `date` (YYYY-MM-DD).
 - **Response Example**:
 ```json
 [

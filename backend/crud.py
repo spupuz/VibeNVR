@@ -142,6 +142,7 @@ def get_events(
     limit: int = 100,
     camera_id: int = None,
     type: str = None,
+    event_type: str = None,
     date: str = None,
     allowed_camera_ids: list[int] = None,
 ):
@@ -152,6 +153,8 @@ def get_events(
         query = query.filter(models.Event.camera_id.in_(allowed_camera_ids))
     if type:
         query = query.filter(models.Event.type == type)
+    if event_type:
+        query = query.filter(models.Event.event_type == event_type)
     if date:
         # Assuming date is YYYY-MM-DD
         # Use a range to handle timezone correctly

@@ -17,7 +17,7 @@ These fields are specific to each hardware device or system-managed and are **ne
 *   **Hardware/Video**: Resolution (Width/Height), Auto-resolution setting.
 *   **ONVIF Configuration**: Host, Port, Username, Password, and Profile Tokens.
 *   **Capabilities**: Hardware-detected flags for PTZ (Pan/Tilt/Zoom) and ONVIF Event support.
-*   **Relations**: Group assignments and assigned Storage Profiles.
+*   **Relations**: Group assignments.
 *   **Layout**: Visual Sort Order (Drag-and-drop position).
 
 ### ✅ What IS copied (Categories)
@@ -30,6 +30,7 @@ Users can selectively pick which categories of settings to propagate. The availa
 *   **Snapshots**: Frequency and quality for still images.
 *   **Alerts/Notifications**: Telegram, Email, and Webhook dispatch settings.
 *   **Overlay (OSD)**: Timestamp and text overlays on the video stream.
+*   **Storage Routing**: Assignment of Primary, Motion, Continuous, Snapshot, and Archive Storage Profiles.
 *   **Advanced/Schedule**: Weekly schedules and other low-level system flags.
 
 ---

@@ -346,8 +346,6 @@ class RecordingManager:
 
         if valid_recording and event_callback:
              reason = getattr(self, 'current_recording_reason', 'unknown')
-             if getattr(self, 'motion_during_current_recording', False):
-                 reason = "Motion"
 
              event_callback(self.camera_id, 'recording_end', {
                  "file_path": self.recording_filename, 

@@ -698,6 +698,7 @@ def read_events(
     limit: int = 100,
     camera_id: Optional[int] = None,
     type: Optional[str] = None,
+    event_type: Optional[str] = None,
     date: Optional[str] = None,
     db: Session = Depends(database.get_db),
     auth_info: tuple[models.User, bool] = Depends(
@@ -719,7 +720,7 @@ def read_events(
                 )
 
     events = crud.get_events(
-        db, skip=skip, limit=limit, camera_id=camera_id, type=type, date=date, allowed_camera_ids=allowed_ids
+        db, skip=skip, limit=limit, camera_id=camera_id, type=type, event_type=event_type, date=date, allowed_camera_ids=allowed_ids
     )
 
     return events
@@ -962,10 +963,13 @@ def process_webhook_file_event(
         except:
             ts = datetime.datetime.now().astimezone()
 
-        reason = payload.get("reason", "unknown")
-        db_event_type = "motion"
-        if reason.lower() == "continuous":
-            db_event_type = "continuous"
+        reason = str(payload.get("reason", "unknown")).lower()
+        if reason in ["continuous", "motion", "manual"]:
+            db_event_type = reason
+        else:
+            if reason != "unknown":
+                logger.warning(f"Unrecognized recording reason '{reason}', defaulting to 'unknown'")
+            db_event_type = "unknown"
 
         event_data = schemas.EventCreate(
             camera_id=camera_id,
