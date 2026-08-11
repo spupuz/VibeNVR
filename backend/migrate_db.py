@@ -289,6 +289,11 @@ def migrate():
             
     # Add storage_profile_id to cameras
     add_column_if_not_exists(engine, "cameras", "storage_profile_id", "INTEGER")
+    add_column_if_not_exists(engine, "cameras", "motion_storage_profile_id", "INTEGER")
+    add_column_if_not_exists(engine, "cameras", "continuous_storage_profile_id", "INTEGER")
+    add_column_if_not_exists(engine, "cameras", "snapshot_storage_profile_id", "INTEGER")
+    add_column_if_not_exists(engine, "cameras", "archive_storage_profile_id", "INTEGER")
+    add_column_if_not_exists(engine, "cameras", "archive_after_hours", "INTEGER")
 
     # [v1.28.0] Global AI Activation
     # Ensure ai_enabled setting exists in system_settings if any camera has it enabled

@@ -79,7 +79,8 @@
     "download": "Скачать",
     "copy": "Копировать",
     "clear": "Прозрачный",
-    "export": "Экспорт"
+    "export": "Экспорт",
+    "validating": "Проверка..."
   },
   "login": {
     "welcome_back": "С возвращением",
@@ -535,7 +536,18 @@
     "found_profiles": "Найдено профилей потоков: {{count}}.",
     "export_selected": "Экспортировать выбранное",
     "delete_selected": "Удалить выбранное",
-    "system_only_trigger_recordings": "Система запускает запись только при обнаружении конкретных объектов."
+    "system_only_trigger_recordings": "Система запускает запись только при обнаружении конкретных объектов.",
+    "tiered_storage_routing": "Многоуровневая маршрутизация хранилища",
+    "motion_storage_profile": "Профиль хранения движений",
+    "use_default_profile": "Использовать профиль по умолчанию",
+    "continuous_storage_profile": "Профиль непрерывного хранения",
+    "snapshot_storage_profile": "Профиль хранилища моментальных снимков",
+    "archive_storage_profile": "Профиль архивного хранилища",
+    "none_disabled": "Нет (отключено)",
+    "archive_help": "Автоматически перемещать старые записи в этот профиль.",
+    "archive_after_hours": "Архив через (часов)",
+    "archive_hours_help": "Несколько часов ожидания перед переездом.",
+    "stream_validation_failed": "Не удалось проверить URL-адреса потоков. Сохранение существующей рабочей конфигурации."
   },
   "settings": {
     "general_preferences": "Общие настройки",

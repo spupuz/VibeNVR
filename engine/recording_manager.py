@@ -272,7 +272,15 @@ class RecordingManager:
             self.last_event_callback = event_callback
         format_str = self.config.get('movie_file_name', '%Y-%m-%d/%H-%M-%S').replace('%q', '00')
         timestamp_path = datetime.now().strftime(format_str)
-        output_dir = f"/var/lib/vibe/recordings/{self.camera_id}"
+        
+        # Determine output directory based on tiered storage configuration
+        base_dir = self.config.get('storage_path', '/var/lib/vibe/recordings')
+        if reason == "Motion":
+            base_dir = self.config.get('motion_storage_path') or base_dir
+        elif reason == "Continuous":
+            base_dir = self.config.get('continuous_storage_path') or base_dir
+            
+        output_dir = os.path.join(base_dir, str(self.camera_id))
         full_path = os.path.join(output_dir, f"{timestamp_path}.mp4")
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
         

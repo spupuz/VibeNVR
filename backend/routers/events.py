@@ -592,7 +592,26 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
     threading.Thread(target=_send, daemon=True).start()
 
 
-def delete_event_files(event: models.Event) -> int:
+def is_path_safe(path: str, db: Session = None) -> bool:
+    """Check if a path is safe to access (inside /data/ or a valid storage profile)."""
+    if not path:
+        return False
+    abs_path = os.path.abspath(path)
+    if abs_path.startswith("/data/"):
+        return True
+    
+    session = db or database.SessionLocal()
+    try:
+        profiles = session.query(models.StorageProfile).all()
+        for p in profiles:
+            if p.path and abs_path.startswith(os.path.abspath(p.path)):
+                return True
+        return False
+    finally:
+        if db is None:
+            session.close()
+
+def delete_event_files(event: models.Event, db: Session = None) -> int:
     """Helper to safely delete event files from disk with path traversal protection. Returns bytes deleted."""
     deleted_bytes = 0
     # Map internal container paths to /data volume
@@ -610,11 +629,10 @@ def delete_event_files(event: models.Event) -> int:
             path = path.replace("/var/lib/vibe/recordings", "/data", 1)
 
         try:
-            # Security Validation: Final path must be within /data/
-            abs_path = os.path.abspath(path)
-            if not abs_path.startswith("/data/"):
+            # Security Validation: Final path must be safe
+            if not is_path_safe(path, db):
                 logger.warning(
-                    f"Security Alert: Blocked attempted deletion of file outside storage directory: {path}"
+                    f"Security Alert: Blocked attempted deletion of file outside allowed storage directories: {path}"
                 )
                 continue
 
@@ -923,19 +941,14 @@ def process_webhook_file_event(
             return
 
         # Map path
-        if file_path.startswith("/var/lib/motion"):
-            local_path = file_path.replace("/var/lib/motion", "/data", 1)
-        elif file_path.startswith("/var/lib/vibe/recordings"):
-            local_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
-        else:
-            local_path = None
+        import storage_service
+        local_path = storage_service.translate_path(file_path)
 
         # Security Validation
         if local_path:
-            abs_path = os.path.abspath(local_path)
-            if not abs_path.startswith("/data/"):
+            if not is_path_safe(local_path, db):
                 logger.warning(
-                    f"Security Alert: Blocked attempted access to file outside storage directory: {local_path}"
+                    f"Security Alert: Blocked attempted access to file outside allowed storage directories: {local_path}"
                 )
                 local_path = None
 

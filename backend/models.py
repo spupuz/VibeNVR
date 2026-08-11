@@ -165,9 +165,23 @@ class Camera(Base):
     # Groups (Many-to-Many)
     groups = relationship("CameraGroup", secondary="camera_group_association", back_populates="cameras")
     
-    # Storage Profile
     storage_profile_id = Column(Integer, ForeignKey("storage_profiles.id", ondelete="SET NULL"), nullable=True)
-    storage_profile = relationship("StorageProfile", back_populates="cameras")
+    storage_profile = relationship("StorageProfile", back_populates="cameras", foreign_keys=[storage_profile_id])
+
+    # Tiered Storage Profiles
+    motion_storage_profile_id = Column(Integer, ForeignKey("storage_profiles.id", ondelete="SET NULL"), nullable=True)
+    motion_storage_profile = relationship("StorageProfile", foreign_keys=[motion_storage_profile_id])
+
+    continuous_storage_profile_id = Column(Integer, ForeignKey("storage_profiles.id", ondelete="SET NULL"), nullable=True)
+    continuous_storage_profile = relationship("StorageProfile", foreign_keys=[continuous_storage_profile_id])
+
+    snapshot_storage_profile_id = Column(Integer, ForeignKey("storage_profiles.id", ondelete="SET NULL"), nullable=True)
+    snapshot_storage_profile = relationship("StorageProfile", foreign_keys=[snapshot_storage_profile_id])
+
+    archive_storage_profile_id = Column(Integer, ForeignKey("storage_profiles.id", ondelete="SET NULL"), nullable=True)
+    archive_storage_profile = relationship("StorageProfile", foreign_keys=[archive_storage_profile_id])
+    
+    archive_after_hours = Column(Integer, nullable=True)
 
 # Association Table
 class CameraGroupAssociation(Base):
@@ -193,7 +207,7 @@ class StorageProfile(Base):
     description = Column(String, nullable=True)
     max_size_gb = Column(Float, default=0) # 0 = unlimited
 
-    cameras = relationship("Camera", back_populates="storage_profile")
+    cameras = relationship("Camera", back_populates="storage_profile", foreign_keys="[Camera.storage_profile_id]")
 
 class Event(Base):
     __tablename__ = "events"

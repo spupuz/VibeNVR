@@ -79,7 +79,8 @@
     "download": "Download",
     "copy": "Copy",
     "clear": "Clear",
-    "export": "Export"
+    "export": "Export",
+    "validating": "Validating..."
   },
   "login": {
     "welcome_back": "Welcome Back",
@@ -539,7 +540,18 @@
     "found_profiles": "Found {{count}} stream profiles.",
     "export_selected": "Export Selected",
     "delete_selected": "Delete Selected",
-    "system_only_trigger_recordings": "The system will only trigger recordings when specific objects are identified."
+    "system_only_trigger_recordings": "The system will only trigger recordings when specific objects are identified.",
+    "tiered_storage_routing": "Tiered Storage Routing",
+    "motion_storage_profile": "Motion Storage Profile",
+    "use_default_profile": "Use Default Profile",
+    "continuous_storage_profile": "Continuous Storage Profile",
+    "snapshot_storage_profile": "Snapshot Storage Profile",
+    "archive_storage_profile": "Archive Storage Profile",
+    "none_disabled": "None (Disabled)",
+    "archive_help": "Automatically move old recordings to this profile.",
+    "archive_after_hours": "Archive After (Hours)",
+    "archive_hours_help": "Hours to wait before moving.",
+    "stream_validation_failed": "Failed to validate stream URLs. Retaining existing working configuration."
   },
   "settings": {
     "general_preferences": "General Preferences",

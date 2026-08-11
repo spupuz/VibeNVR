@@ -78,7 +78,8 @@
     "close": "Fechar",
     "copy": "Cópia",
     "clear": "Claro",
-    "export": "Exportar"
+    "export": "Exportar",
+    "validating": "Validando..."
   },
   "login": {
     "welcome_back": "Bem-vindo de volta",
@@ -530,7 +531,18 @@
     "found_profiles": "Foram encontrados {{count}} perfis de stream.",
     "export_selected": "Exportar selecionado",
     "delete_selected": "Excluir selecionado",
-    "system_only_trigger_recordings": "O sistema só acionará gravações quando objetos específicos forem identificados."
+    "system_only_trigger_recordings": "O sistema só acionará gravações quando objetos específicos forem identificados.",
+    "tiered_storage_routing": "Roteamento de armazenamento em camadas",
+    "motion_storage_profile": "Perfil de armazenamento de movimento",
+    "use_default_profile": "Usar perfil padrão",
+    "continuous_storage_profile": "Perfil de armazenamento contínuo",
+    "snapshot_storage_profile": "Perfil de armazenamento de instantâneo",
+    "archive_storage_profile": "Perfil de armazenamento de arquivo",
+    "none_disabled": "Nenhum (Desativado)",
+    "archive_help": "Mova automaticamente gravações antigas para este perfil.",
+    "archive_after_hours": "Arquivar após (horas)",
+    "archive_hours_help": "Horas de espera antes de mudar.",
+    "stream_validation_failed": "Falha ao validar URLs de stream. Mantendo a configuração de trabalho existente."
   },
   "settings": {
     "general_preferences": "Preferências gerais",

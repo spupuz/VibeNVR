@@ -79,7 +79,8 @@
     "download": "Descargar",
     "copy": "Copiar",
     "clear": "Claro",
-    "export": "Exportar"
+    "export": "Exportar",
+    "validating": "Validando..."
   },
   "login": {
     "welcome_back": "Bienvenido de nuevo",
@@ -530,7 +531,18 @@
     "found_profiles": "Se encontraron {{count}} perfiles de transmisión.",
     "export_selected": "Exportar seleccionado",
     "delete_selected": "Eliminar seleccionado",
-    "system_only_trigger_recordings": "El sistema solo activará grabaciones cuando se identifiquen objetos específicos."
+    "system_only_trigger_recordings": "El sistema solo activará grabaciones cuando se identifiquen objetos específicos.",
+    "tiered_storage_routing": "Enrutamiento de almacenamiento por niveles",
+    "motion_storage_profile": "Perfil de almacenamiento de movimiento",
+    "use_default_profile": "Usar perfil predeterminado",
+    "continuous_storage_profile": "Perfil de almacenamiento continuo",
+    "snapshot_storage_profile": "Perfil de almacenamiento de instantáneas",
+    "archive_storage_profile": "Perfil de almacenamiento de archivos",
+    "none_disabled": "Ninguno (deshabilitado)",
+    "archive_help": "Mueve automáticamente grabaciones antiguas a este perfil.",
+    "archive_after_hours": "Archivar después (horas)",
+    "archive_hours_help": "Horas de espera antes de mudarse.",
+    "stream_validation_failed": "No se pudieron validar las URL de transmisión. Conservar la configuración de trabajo existente."
   },
   "settings": {
     "general_preferences": "Preferencias generales",

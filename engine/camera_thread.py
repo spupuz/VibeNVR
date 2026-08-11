@@ -708,7 +708,8 @@ class CameraThread(threading.Thread):
             format_str = self.config.get('picture_file_name', '%Y-%m-%d/%H-%M-%S-%q').replace('%q', '00')
             timestamp_path = datetime.now().strftime(format_str)
             
-            output_dir = f"/var/lib/vibe/recordings/{'temp_snaps/' if is_temp else ''}{self.camera_id}"
+            base_dir = self.config.get('snapshot_storage_path') or self.config.get('storage_path', '/var/lib/vibe/recordings')
+            output_dir = os.path.join(base_dir, "temp_snaps" if is_temp else str(self.camera_id))
             filepath = os.path.join(output_dir, f"{timestamp_path}.jpg")
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             

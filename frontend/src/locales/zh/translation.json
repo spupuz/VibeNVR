@@ -79,7 +79,8 @@
     "download": "下载",
     "copy": "复制",
     "clear": "清除",
-    "export": "出口"
+    "export": "出口",
+    "validating": "正在验证..."
   },
   "login": {
     "welcome_back": "欢迎回来",
@@ -537,7 +538,18 @@
     "found_profiles": "找到 {{count}} 个流配置文件。",
     "export_selected": "导出选定的内容",
     "delete_selected": "删除所选内容",
-    "system_only_trigger_recordings": "系统仅在识别出特定对象时才会触发录音。"
+    "system_only_trigger_recordings": "系统仅在识别出特定对象时才会触发录音。",
+    "tiered_storage_routing": "分层存储路由",
+    "motion_storage_profile": "运动存储配置文件",
+    "use_default_profile": "使用默认配置文件",
+    "continuous_storage_profile": "连续存储配置文件",
+    "snapshot_storage_profile": "快照存储配置文件",
+    "archive_storage_profile": "存档存储配置文件",
+    "none_disabled": "无（禁用）",
+    "archive_help": "自动将旧录音移至此配置文件。",
+    "archive_after_hours": "存档后（小时）",
+    "archive_hours_help": "搬家前要等几个小时。",
+    "stream_validation_failed": "无法验证流 URL。保留现有的工作配置。"
   },
   "settings": {
     "general_preferences": "常规首选项",

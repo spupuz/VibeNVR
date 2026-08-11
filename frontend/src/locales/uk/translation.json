@@ -79,7 +79,8 @@
     "download": "Завантажити",
     "copy": "Копія",
     "clear": "ясно",
-    "export": "Експорт"
+    "export": "Експорт",
+    "validating": "Перевірка..."
   },
   "login": {
     "welcome_back": "З поверненням",
@@ -538,7 +539,18 @@
     "found_profiles": "Знайдено {{count}} профілів потоку.",
     "export_selected": "Експорт вибраного",
     "delete_selected": "Видалити вибране",
-    "system_only_trigger_recordings": "Система запускатиме записи лише тоді, коли будуть ідентифіковані певні об’єкти."
+    "system_only_trigger_recordings": "Система запускатиме записи лише тоді, коли будуть ідентифіковані певні об’єкти.",
+    "tiered_storage_routing": "Багаторівнева маршрутизація зберігання",
+    "motion_storage_profile": "Профіль збереження руху",
+    "use_default_profile": "Використовувати профіль за умовчанням",
+    "continuous_storage_profile": "Безперервний профіль зберігання",
+    "snapshot_storage_profile": "Профіль зберігання знімків",
+    "archive_storage_profile": "Профіль архівного зберігання",
+    "none_disabled": "Немає (вимкнено)",
+    "archive_help": "Автоматично переміщувати старі записи в цей профіль.",
+    "archive_after_hours": "Архів через (годин)",
+    "archive_hours_help": "Години очікування перед переїздом.",
+    "stream_validation_failed": "Не вдалося перевірити URL-адреси потоку. Збереження існуючої робочої конфігурації."
   },
   "settings": {
     "general_preferences": "Загальні налаштування",

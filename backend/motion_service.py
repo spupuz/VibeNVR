@@ -185,6 +185,9 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
         "audio_enabled": cam.audio_enabled if cam.audio_enabled is not None else False,
         "enable_audio": cam.enable_audio if cam.enable_audio is not None else False,
         "storage_path": cam.storage_profile.path if cam.storage_profile else "/var/lib/vibe/recordings",
+        "motion_storage_path": cam.motion_storage_profile.path if getattr(cam, "motion_storage_profile", None) else None,
+        "continuous_storage_path": cam.continuous_storage_profile.path if getattr(cam, "continuous_storage_profile", None) else None,
+        "snapshot_storage_path": cam.snapshot_storage_profile.path if getattr(cam, "snapshot_storage_profile", None) else None,
         # AI & Tracking
         "ai_enabled": cam.ai_enabled if cam.ai_enabled is not None else False,
         "ai_object_types": _parse_ai_object_types(cam.ai_object_types),

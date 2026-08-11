@@ -79,7 +79,8 @@
     "download": "ダウンロード",
     "copy": "コピー",
     "clear": "クリア",
-    "export": "輸出"
+    "export": "輸出",
+    "validating": "検証中..."
   },
   "login": {
     "welcome_back": "お帰りなさい",
@@ -531,7 +532,18 @@
     "found_profiles": "{{count}} 個のストリーム プロファイルが見つかりました。",
     "export_selected": "選択したものをエクスポート",
     "delete_selected": "選択したものを削除",
-    "system_only_trigger_recordings": "システムは、特定のオブジェクトが識別された場合にのみ記録をトリガーします。"
+    "system_only_trigger_recordings": "システムは、特定のオブジェクトが識別された場合にのみ記録をトリガーします。",
+    "tiered_storage_routing": "階層型ストレージルーティング",
+    "motion_storage_profile": "モーションストレージプロファイル",
+    "use_default_profile": "デフォルトのプロファイルを使用する",
+    "continuous_storage_profile": "継続的ストレージプロファイル",
+    "snapshot_storage_profile": "スナップショットストレージプロファイル",
+    "archive_storage_profile": "アーカイブストレージプロファイル",
+    "none_disabled": "なし (無効)",
+    "archive_help": "古い録音をこのプロファイルに自動的に移動します。",
+    "archive_after_hours": "アーカイブ後 (時間)",
+    "archive_hours_help": "移動するまで何時間も待つ。",
+    "stream_validation_failed": "ストリーム URL の検証に失敗しました。既存の作業構成を保持します。"
   },
   "settings": {
     "general_preferences": "一般設定",

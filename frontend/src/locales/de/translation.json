@@ -78,7 +78,8 @@
     "close": "Schließen",
     "download": "Herunterladen",
     "copy": "Kopie",
-    "clear": "Klar"
+    "clear": "Klar",
+    "validating": "Validierung..."
   },
   "login": {
     "welcome_back": "Willkommen zurück",
@@ -527,7 +528,18 @@
     "found_profiles": "{{count}} Stream-Profile gefunden.",
     "export_selected": "Ausgewählte exportieren",
     "delete_selected": "Ausgewählte löschen",
-    "system_only_trigger_recordings": "Das System löst nur dann Aufnahmen aus, wenn bestimmte Objekte identifiziert werden."
+    "system_only_trigger_recordings": "Das System löst nur dann Aufnahmen aus, wenn bestimmte Objekte identifiziert werden.",
+    "tiered_storage_routing": "Abgestuftes Speicherrouting",
+    "motion_storage_profile": "Bewegungsspeicherprofil",
+    "use_default_profile": "Standardprofil verwenden",
+    "continuous_storage_profile": "Kontinuierliches Speicherprofil",
+    "snapshot_storage_profile": "Snapshot-Speicherprofil",
+    "archive_storage_profile": "Archivspeicherprofil",
+    "none_disabled": "Keine (deaktiviert)",
+    "archive_help": "Alte Aufnahmen automatisch in dieses Profil verschieben.",
+    "archive_after_hours": "Archiv nach (Stunden)",
+    "archive_hours_help": "Stundenlanges Warten vor dem Umzug.",
+    "stream_validation_failed": "Stream-URLs konnten nicht validiert werden. Beibehaltung der vorhandenen Arbeitskonfiguration."
   },
   "settings": {
     "general_preferences": "Allgemeine Einstellungen",

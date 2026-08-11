@@ -79,7 +79,8 @@
     "download": "Scaricamento",
     "copy": "Copia",
     "clear": "Chiaro",
-    "export": "Esportare"
+    "export": "Esportare",
+    "validating": "Convalida..."
   },
   "login": {
     "welcome_back": "Bentornato",
@@ -530,7 +531,18 @@
     "found_profiles": "Trovato {{count}} profili di streaming.",
     "export_selected": "Esporta selezionato",
     "delete_selected": "Elimina selezionato",
-    "system_only_trigger_recordings": "Il sistema attiverà le registrazioni solo quando verranno identificati oggetti specifici."
+    "system_only_trigger_recordings": "Il sistema attiverà le registrazioni solo quando verranno identificati oggetti specifici.",
+    "tiered_storage_routing": "Routing di archiviazione a livelli",
+    "motion_storage_profile": "Profilo di memorizzazione del movimento",
+    "use_default_profile": "Utilizza profilo predefinito",
+    "continuous_storage_profile": "Profilo di archiviazione continua",
+    "snapshot_storage_profile": "Profilo di archiviazione dell'istantanea",
+    "archive_storage_profile": "Profilo di archiviazione archivio",
+    "none_disabled": "Nessuno (disabilitato)",
+    "archive_help": "Sposta automaticamente le vecchie registrazioni su questo profilo.",
+    "archive_after_hours": "Archivia dopo (ore)",
+    "archive_hours_help": "Ore da aspettare prima di muoversi.",
+    "stream_validation_failed": "Impossibile convalidare gli URL dello streaming. Mantenimento della configurazione di lavoro esistente."
   },
   "settings": {
     "general_preferences": "Preferenze Generali",

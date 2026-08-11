@@ -358,6 +358,69 @@ def cleanup_temp_files():
     except Exception as e:
         logger.error(f"Error cleaning temp files: {e}")
 
+def run_archival(db: Session):
+    """Move old recordings to the designated archive storage profile."""
+    try:
+        cameras = db.query(models.Camera).filter(
+            models.Camera.archive_storage_profile_id.isnot(None),
+            models.Camera.archive_after_hours > 0
+        ).all()
+        for camera in cameras:
+            if not camera.archive_storage_profile or not camera.archive_storage_profile.path:
+                continue
+            
+            archive_dir = os.path.abspath(camera.archive_storage_profile.path)
+            cutoff = datetime.utcnow() - timedelta(hours=camera.archive_after_hours)
+            
+            events = db.query(models.Event).filter(
+                models.Event.camera_id == camera.id,
+                models.Event.timestamp_start < cutoff
+            ).all()
+            
+            for event in events:
+                try:
+                    if not event.file_path or event.file_path.startswith(archive_dir):
+                        continue
+                        
+                    src = translate_path(event.file_path)
+                    if not src or not os.path.exists(src):
+                        continue
+                        
+                    filename = os.path.basename(src)
+                    date_folder = os.path.basename(os.path.dirname(src))
+                    dest_dir = os.path.join(archive_dir, str(camera.id), date_folder)
+                    os.makedirs(dest_dir, exist_ok=True)
+                    dest = os.path.join(dest_dir, filename)
+                    
+                    if src != dest:
+                        shutil.copy2(src, dest)
+                        dest_thumb = None
+                        src_thumb = None
+                        if event.thumbnail_path:
+                            src_thumb = translate_path(event.thumbnail_path)
+                            if src_thumb and os.path.exists(src_thumb):
+                                dest_thumb = os.path.join(dest_dir, os.path.basename(src_thumb))
+                                shutil.copy2(src_thumb, dest_thumb)
+                        
+                        event.file_path = dest
+                        if dest_thumb:
+                            event.thumbnail_path = dest_thumb
+                        db.commit()
+                        
+                        os.remove(src)
+                        if dest_thumb and src_thumb:
+                            try:
+                                os.remove(src_thumb)
+                            except:
+                                pass
+                        
+                        logger.info(f"Archived event {event.id} to {dest}")
+                except Exception as e:
+                    logger.error(f"Error archiving event {event.id}: {e}")
+                    db.rollback()
+    except Exception as e:
+        logger.error(f"Error in archival job: {e}")
+
 
 def run_cleanup(quota_only=False):
     """Main cleanup task to be run periodically. If quota_only=True, skips time-based retention."""
@@ -393,6 +456,10 @@ def run_cleanup(quota_only=False):
                         db.commit()
             except Exception as disk_e:
                 logger.error(f"Error checking disk usage: {disk_e}")
+
+            # Priority 0.5: Run Archival before quota enforcement so we don't delete files that could be archived
+            if not quota_only:
+                run_archival(db)
 
             # Priority 1: Enforce Per-Camera Quotas
             cameras = db.query(models.Camera).all()

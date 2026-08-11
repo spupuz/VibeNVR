@@ -79,7 +79,8 @@
     "download": "Télécharger",
     "copy": "Copie",
     "clear": "Clair",
-    "export": "Exporter"
+    "export": "Exporter",
+    "validating": "Validation..."
   },
   "login": {
     "welcome_back": "Bon retour",
@@ -533,7 +534,18 @@
     "found_profiles": "{{count}} profils de flux trouvés.",
     "export_selected": "Exporter la sélection",
     "delete_selected": "Supprimer la sélection",
-    "system_only_trigger_recordings": "Le système ne déclenchera des enregistrements que lorsque des objets spécifiques seront identifiés."
+    "system_only_trigger_recordings": "Le système ne déclenchera des enregistrements que lorsque des objets spécifiques seront identifiés.",
+    "tiered_storage_routing": "Routage du stockage hiérarchisé",
+    "motion_storage_profile": "Profil de stockage de mouvement",
+    "use_default_profile": "Utiliser le profil par défaut",
+    "continuous_storage_profile": "Profil de stockage continu",
+    "snapshot_storage_profile": "Profil de stockage d'instantanés",
+    "archive_storage_profile": "Profil de stockage d'archives",
+    "none_disabled": "Aucun (désactivé)",
+    "archive_help": "Déplacez automatiquement les anciens enregistrements vers ce profil.",
+    "archive_after_hours": "Archiver après (heures)",
+    "archive_hours_help": "Des heures à attendre avant de déménager.",
+    "stream_validation_failed": "Échec de la validation des URL de flux. Conserver la configuration de travail existante."
   },
   "settings": {
     "general_preferences": "Préférences générales",

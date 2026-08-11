@@ -2,6 +2,7 @@ export const CAMERA_SETTINGS_CATEGORIES = [
     { id: 'recording', label: 'Recording' },
     { id: 'snapshots', label: 'Snapshots' },
     { id: 'motion', label: 'Motion Detection' },
+    { id: 'storage', label: 'Storage Routing' },
     { id: 'masks', label: 'Privacy & Masks' },
     { id: 'overlay', label: 'Text Overlay' },
     { id: 'alerts', label: 'Notifications' },
@@ -18,6 +19,7 @@ export const CATEGORY_FIELD_MAP = {
         'auto_noise_detection', 'light_switch_detection', 'detect_motion_mode', 'detect_engine',
         'framerate', 'rotation'
     ],
+    storage: ['storage_profile_id', 'motion_storage_profile_id', 'continuous_storage_profile_id', 'snapshot_storage_profile_id', 'archive_storage_profile_id', 'archive_after_hours'],
     masks: ['mask', 'privacy_masks', 'motion_masks'],
     overlay: ['text_left', 'text_right', 'text_scale'],
     alerts: [
@@ -41,7 +43,7 @@ export const CATEGORY_FIELD_MAP = {
 
 export const EXCLUDED_FIELDS = [
     'id', 'name', 'rtsp_url', 'sub_rtsp_url', 'created_at', 'location', 'status', 'last_seen',
-    'is_active', 'groups', 'storage_profile_id', 'onvif_host', 'onvif_port', 'onvif_username', 'onvif_password', 'onvif_profile_token',
+    'is_active', 'groups', 'onvif_host', 'onvif_port', 'onvif_username', 'onvif_password', 'onvif_profile_token',
     'resolution_width', 'resolution_height', 'auto_resolution', 'rtsp_username', 'rtsp_password', 'rtsp_host',
     'ptz_can_pan_tilt', 'ptz_can_zoom', 'onvif_can_events', '_sa_instance_state', 'previous_recording_mode'
 ];
