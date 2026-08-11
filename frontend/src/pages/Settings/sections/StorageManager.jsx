@@ -78,10 +78,49 @@ export const StorageManager = ({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border/50">
+                    {/* Archival Settings */}
+                    <div>
+                        <label className="block text-sm font-medium mb-2">{t('settings_forms.archival_interval', 'Archival Interval (Hours)')}</label>
+                        <select
+                            value={globalSettings.archival_interval_hours || 24}
+                            onChange={(e) => setGlobalSettings({ ...globalSettings, archival_interval_hours: parseFloat(e.target.value) })}
+                            className="w-full max-w-full sm:max-w-xs bg-background border border-input rounded-lg px-3 py-2"
+                        >
+                            <option value="0.5">{t('settings_forms.every_30m', 'Every 30 Minutes')}</option>
+                            <option value="1">{t('settings_forms.every_1h', 'Every Hour')}</option>
+                            <option value="6">{t('settings_forms.every_6h', 'Every 6 Hours')}</option>
+                            <option value="12">{t('settings_forms.every_12h', 'Every 12 Hours')}</option>
+                            <option value="24">{t('settings_forms.every_24h', 'Every 24 Hours')}</option>
+                            <option value="48">{t('settings_forms.every_2d', 'Every 2 Days')}</option>
+                            <option value="168">{t('settings_forms.every_1w', 'Every Week')}</option>
+                        </select>
+                        <p className="text-xs text-muted-foreground mt-2">
+                            {t('settings.archival_interval_desc', 'How often to check for archiving recordings to secondary storage')}
+                        </p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="block text-sm font-medium">{t('settings_forms.storage_enable_archival', 'Enable Automatic Archival')}</label>
+                        <div className="flex items-center gap-3">
+                            <Toggle
+                                checked={globalSettings.archival_enabled !== false}
+                                onChange={(val) => setGlobalSettings({ ...globalSettings, archival_enabled: val })}
+                            />
+                            <span className={`text-xs font-medium ${globalSettings.archival_enabled !== false ? 'text-green-500' : 'text-amber-500'}`}>
+                                {globalSettings.archival_enabled !== false ? t('settings_forms.enabled', 'ENABLED') : t('settings_forms.disabled', 'DISABLED')}
+                            </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">
+                            {t('settings_forms.archival_enable_desc', 'When enabled, the system will automatically move old recordings to their assigned Storage Profiles (Tier 2).')}
+                        </p>
+                    </div>
+
+                    {/* Cleanup Settings */}
+                    <div className="pt-4 border-t border-border/50 col-span-1 md:col-span-2"></div>
                     <div>
                         <label className="block text-sm font-medium mb-2">{t('settings_forms.storage_interval', 'Cleanup Interval (Hours)')}</label>
                         <select
-                            value={globalSettings.cleanup_interval_hours}
+                            value={globalSettings.cleanup_interval_hours || 24}
                             onChange={(e) => setGlobalSettings({ ...globalSettings, cleanup_interval_hours: parseFloat(e.target.value) })}
                             className="w-full max-w-full sm:max-w-xs bg-background border border-input rounded-lg px-3 py-2"
                         >
@@ -93,8 +132,8 @@ export const StorageManager = ({
                             <option value="48">{t('settings_forms.every_2d', 'Every 2 Days')}</option>
                             <option value="168">{t('settings_forms.every_1w', 'Every Week')}</option>
                         </select>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            {t('settings_forms.storage_interval_desc', 'How often to check and clean up old recordings')}
+                        <p className="text-xs text-muted-foreground mt-2">
+                            {t('settings.storage_interval_desc', 'How often to check for cleaning up old recordings')}
                         </p>
                     </div>
 
@@ -102,11 +141,11 @@ export const StorageManager = ({
                         <label className="block text-sm font-medium">{t('settings_forms.storage_enable_clean', 'Enable Automatic Cleanup')}</label>
                         <div className="flex items-center gap-3">
                             <Toggle
-                                checked={globalSettings.cleanup_enabled}
+                                checked={globalSettings.cleanup_enabled !== false}
                                 onChange={(val) => setGlobalSettings({ ...globalSettings, cleanup_enabled: val })}
                             />
-                            <span className={`text-xs font-medium ${globalSettings.cleanup_enabled ? 'text-green-500' : 'text-amber-500'}`}>
-                                {globalSettings.cleanup_enabled ? t('settings_forms.enabled', 'ENABLED') : t('settings_forms.disabled', 'DISABLED')}
+                            <span className={`text-xs font-medium ${globalSettings.cleanup_enabled !== false ? 'text-green-500' : 'text-amber-500'}`}>
+                                {globalSettings.cleanup_enabled !== false ? t('settings_forms.enabled', 'ENABLED') : t('settings_forms.disabled', 'DISABLED')}
                             </span>
                         </div>
                         <p className="text-[10px] text-muted-foreground">
@@ -117,6 +156,41 @@ export const StorageManager = ({
 
                 <div className="pt-4 border-t border-border mt-4">
                     <StorageProfileManager />
+                </div>
+
+                
+                {/* Per-Profile Storage Breakdown */}
+                <div className="pt-4 border-t border-border mt-4">
+                    <h4 className="text-sm font-semibold mb-3">{t("settings.storage_breakdown_by_profile", "Storage Breakdown by Profile")}</h4>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wider">
+                                    <th className="py-2 px-1 font-semibold">{t("settings.profile", "Profile")}</th>
+                                    <th className="py-2 px-1 font-semibold text-right">{t("settings.path", "Path")}</th>
+                                    <th className="py-2 px-1 font-semibold text-right">{t("settings.used_space", "Used Space")}</th>
+                                    <th className="py-2 px-1 font-semibold text-right">{t("settings.files", "Files")}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {storageStats.details?.profiles && Object.entries(storageStats.details.profiles).map(([key, profile]) => (
+                                    <tr key={key} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                                        <td className="py-3 px-1 font-medium">{profile.name}</td>
+                                        <td className="py-3 px-1 text-right text-muted-foreground font-mono text-xs">{profile.path}</td>
+                                        <td className="py-3 px-1 text-right font-semibold">{profile.size_gb} GB</td>
+                                        <td className="py-3 px-1 text-right text-muted-foreground">{profile.count} {t("settings.files", "files").toLowerCase()}</td>
+                                    </tr>
+                                ))}
+                                {(!storageStats.details?.profiles || Object.keys(storageStats.details.profiles).length === 0) && (
+                                    <tr>
+                                        <td colSpan="4" className="py-8 text-center text-muted-foreground italic">
+                                            {t("settings_forms.no_data", "No data available.")}
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 {/* Per-Camera Storage Breakdown */}

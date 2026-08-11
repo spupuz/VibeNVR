@@ -552,7 +552,17 @@
     "email": "E-mail",
     "role": "Ruolo",
     "viewer_read_only": "Visualizzatore (sola lettura)",
-    "admin_full_access": "Amministratore (accesso completo)"
+    "admin_full_access": "Amministratore (accesso completo)",
+    "storage_interval_desc": "Con quale frequenza verificare l'archiviazione e la pulizia delle vecchie registrazioni",
+    "storage_breakdown_by_profile": "Suddivisione dell'archiviazione per profilo",
+    "profile": "Profilo",
+    "path": "Percorso",
+    "used_space": "Spazio utilizzato",
+    "files": "file",
+    "delete_profile_title": "Elimina profilo di archiviazione",
+    "delete_profile_msg": "Sei sicuro di voler eliminare questo profilo? Le telecamere che utilizzano questo profilo torneranno al percorso di archiviazione predefinito. Le registrazioni esistenti NON verranno cancellate.",
+    "archival_interval_desc": "La frequenza con cui verificare l'archiviazione delle registrazioni nell'archivio secondario",
+    "unlimited": "Illimitato"
   },
   "timeline": {
     "title": "Cronologia",
@@ -1113,7 +1123,11 @@
     "primary": "PRIMARIO",
     "cf_anon": "Completamente anonimo — l'IP viene scartato da Cloudflare, viene salvato solo il paese.",
     "recover_desc": "Esegue la scansione dei file video sul disco che non sono nel database e li importa nella timeline.",
-    "storage_using": "Attualmente stai utilizzando {{used}} GB del tuo limite di {{max}} GB."
+    "storage_using": "Attualmente stai utilizzando {{used}} GB del tuo limite di {{max}} GB.",
+    "no_data": "Nessun dato disponibile.",
+    "archival_interval": "Intervallo di archiviazione (ore)",
+    "storage_enable_archival": "Abilita archiviazione automatica",
+    "archival_enable_desc": "Se abilitato, il sistema sposterà automaticamente le vecchie registrazioni nei profili di archiviazione assegnati (Livello 2)."
   },
   "telemetry_notes": {
     "random_uuid_gen": "UUID casuale generato all'avvio",

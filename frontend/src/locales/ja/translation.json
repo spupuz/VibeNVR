@@ -553,7 +553,17 @@
     "email": "電子メール",
     "role": "役割",
     "viewer_read_only": "ビューア (読み取り専用)",
-    "admin_full_access": "管理者 (フルアクセス)"
+    "admin_full_access": "管理者 (フルアクセス)",
+    "storage_interval_desc": "古い録画のアーカイブとクリーンアップをチェックする頻度",
+    "storage_breakdown_by_profile": "プロファイル別のストレージの内訳",
+    "profile": "プロフィール",
+    "path": "パス",
+    "used_space": "使用済みスペース",
+    "files": "ファイル",
+    "delete_profile_title": "ストレージプロファイルの削除",
+    "delete_profile_msg": "このプロファイルを削除してもよろしいですか?このプロファイルを使用するカメラは、デフォルトのストレージ パスに戻ります。既存の録音は削除されません。",
+    "archival_interval_desc": "セカンダリ ストレージへの録画のアーカイブを確認する頻度",
+    "unlimited": "無制限"
   },
   "timeline": {
     "title": "タイムライン",
@@ -1116,7 +1126,11 @@
     "primary": "プライマリ",
     "cf_anon": "完全に匿名。",
     "recover_desc": "データベースにないディスク上のビデオ ファイルをスキャンし、タイムラインにインポートします。",
-    "storage_using": "現在、{{max}} GB 制限のうち {{used}} GB を使用しています。"
+    "storage_using": "現在、{{max}} GB 制限のうち {{used}} GB を使用しています。",
+    "no_data": "利用可能なデータはありません。",
+    "archival_interval": "アーカイブ間隔 (時間)",
+    "storage_enable_archival": "自動アーカイブを有効にする",
+    "archival_enable_desc": "有効にすると、システムは古い録画を割り当てられたストレージ プロファイル (階層 2) に自動的に移動します。"
   },
   "telemetry_notes": {
     "random_uuid_gen": "ランダムUUID",

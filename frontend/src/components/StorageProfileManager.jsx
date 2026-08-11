@@ -77,8 +77,8 @@ export const StorageProfileManager = () => {
     const handleDelete = (id) => {
         setConfirmConfig({
             isOpen: true,
-            title: 'Delete Storage Profile',
-            message: 'Are you sure you want to delete this profile? Cameras using this profile will revert to the default storage path.',
+            title: t('settings.delete_profile_title', 'Delete Storage Profile'),
+            message: t('settings.delete_profile_msg', 'Are you sure you want to delete this profile? Cameras using this profile will revert to the default storage path. Existing recordings will NOT be deleted.'),
             onConfirm: async () => {
                 try {
                     const res = await fetch(`/api/storage/profiles/${id}`, {
@@ -185,15 +185,18 @@ export const StorageProfileManager = () => {
                                 <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground border border-border truncate max-w-full">
                                     {p.path}
                                 </span>
+                                <span className="text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20">
+                                    {p.max_size_gb > 0 ? `${p.max_size_gb} GB Max` : t('settings.unlimited', 'Unlimited')}
+                                </span>
                             </h5>
                             {p.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{p.description}</p>}
                         </div>
                         <div className="flex items-center gap-1 sm:opacity-0 group-hover:opacity-100 transition-opacity self-end sm:self-auto">
-                            <Button variant="ghost" size="sm" onClick={() => handleEdit(p)} className="h-8 w-8 p-0 text-muted-foreground hover:text-primary" title={t('actions.edit', 'Edit')} aria-label={t('actions.edit', 'Edit')}>
-                                <Edit className="w-4 h-4" />
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(p)} className="h-10 w-10 text-muted-foreground hover:text-primary" title={t('actions.edit', 'Edit')} aria-label={t('actions.edit', 'Edit')}>
+                                <Edit className="w-5 h-5" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="h-8 w-8 p-0 text-red-400 hover:text-red-500 hover:bg-red-50" title={t('actions.delete', 'Delete')} aria-label={t('actions.delete', 'Delete')}>
-                                <Trash2 className="w-4 h-4" />
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)} className="h-10 w-10 text-red-400 hover:text-red-500 hover:bg-red-50" title={t('actions.delete', 'Delete')} aria-label={t('actions.delete', 'Delete')}>
+                                <Trash2 className="w-5 h-5" />
                             </Button>
                         </div>
                     </div>

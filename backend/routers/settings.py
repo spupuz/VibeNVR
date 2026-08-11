@@ -98,7 +98,7 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
     for key, value in settings.items():
         # Validation for known numeric keys
         numeric_keys = [
-            "max_global_storage_gb", "cleanup_interval_hours", 
+            "max_global_storage_gb", "cleanup_interval_hours", "archival_interval_hours", 
             "backup_auto_frequency_hours", "backup_auto_retention",
             "opt_live_view_fps_throttle", "opt_motion_fps_throttle",
             "opt_live_view_height_limit", "opt_motion_analysis_height",
@@ -161,6 +161,8 @@ def get_engine_debug_status(db: Session = Depends(database.get_db), current_user
 DEFAULT_SETTINGS = {
     "max_global_storage_gb": {"value": "0", "description": "Maximum total storage for all cameras (0 = unlimited)"},
     "cleanup_enabled": {"value": "true", "description": "Enable automatic cleanup of old recordings"},
+    "archival_enabled": {"value": "true", "description": "Enable automatic archival of recordings to secondary storage"},
+    "archival_interval_hours": {"value": "24", "description": "How often to run archival (in hours)"},
     "cleanup_interval_hours": {"value": "24", "description": "How often to run cleanup (in hours)"},
     
     # Notification Settings

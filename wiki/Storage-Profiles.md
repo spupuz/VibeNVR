@@ -52,8 +52,10 @@ VibeNVR employs a hierarchical, **reactive** cleanup strategy. The system automa
 
 ## Storage Maintenance & Breakdown
 The **Storage Management** section in Settings provides a detailed breakdown of space usage:
-- **Real-time Metrics**: See exactly how many GBs of Video and Snapshots each camera is consuming.
+- **Profile Breakdown**: A dedicated table showing the total storage quota, used space, and remaining capacity *per Storage Profile*.
+- **Camera Metrics**: See exactly how many GBs of Video and Snapshots each camera is consuming.
 - **Granular Cleanup**: Use the dedicated **Cleanup** buttons (Trash icons) in the breakdown table to manually purge only videos or only snapshots for a specific camera.
+- **Global Reset**: The "Eliminazione di Massa" (Bulk Delete) buttons act at a global level, clearing all videos or all snapshots across *all cameras and all storage profiles* simultaneously.
 - **Action Targets**: Maintenance buttons are optimized with large (44x44px) hit targets for high precision on both Desktop and Mobile.
 
 > [!TIP]
@@ -61,6 +63,14 @@ The **Storage Management** section in Settings provides a detailed breakdown of 
 
 > [!NOTE]
 > **Reactive Monitoring**: Cleanup tasks run every **10 minutes** for quota violations and emergency disk space checks. This is independent of the full retention cycle (Every Hour/Day), ensuring the system remains responsive to rapid disk usage spikes.
+
+## Tiered Storage Archival
+VibeNVR supports an automated archival subsystem, allowing you to gracefully move oldest events to a secondary storage layer (e.g., a mounted NAS or cloud-backed volume) instead of permanently deleting them during routine cleanup.
+
+- **Archival Enabled**: A global toggle that instructs the `StorageService` to attempt archival *before* purging events.
+- **Archival Interval**: An independent background scheduler (e.g., every 24 hours) that sweeps for archivable events, preventing blocking on the main cleanup loop.
+
+If an event reaches its retention limit and archival is enabled, it will be moved to the assigned archival path. If archival fails or the archival volume is full, the system falls back to standard deletion to preserve primary disk space.
 
 ## Disk Safety
 If the total free space on the `/data` volume falls below **5%**, VibeNVR triggers an **Emergency Cleanup**. It will purge the oldest events from the system regardless of quotas or retention settings until at least 10% free space is recovered. This protects the database and OS from filesystem exhaustion.

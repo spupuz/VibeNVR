@@ -551,7 +551,17 @@
     "username": "Nombre de usuario",
     "email": "Correo electrónico",
     "viewer_read_only": "Visor (solo lectura)",
-    "admin_full_access": "Administrador (acceso completo)"
+    "admin_full_access": "Administrador (acceso completo)",
+    "storage_interval_desc": "Con qué frecuencia comprobar si se han archivado y limpiado grabaciones antiguas",
+    "storage_breakdown_by_profile": "Desglose del almacenamiento por perfil",
+    "profile": "Perfil",
+    "path": "Ruta",
+    "used_space": "Espacio usado",
+    "files": "archivos",
+    "delete_profile_title": "Eliminar perfil de almacenamiento",
+    "delete_profile_msg": "¿Estás seguro de que deseas eliminar este perfil? Las cámaras que utilicen este perfil volverán a la ruta de almacenamiento predeterminada. Las grabaciones existentes NO se eliminarán.",
+    "archival_interval_desc": "Con qué frecuencia se debe comprobar si se están archivando grabaciones en un almacenamiento secundario",
+    "unlimited": "Ilimitado"
   },
   "timeline": {
     "title": "Línea de tiempo",
@@ -1114,7 +1124,11 @@
     "primary": "PRIMARIO",
     "cf_anon": "Totalmente anónimo.",
     "recover_desc": "Busca archivos de vídeo en el disco que no están en la base de datos y los importa a la línea de tiempo.",
-    "storage_using": "Actualmente estás usando {{used}} GB de tu límite de {{max}} GB."
+    "storage_using": "Actualmente estás usando {{used}} GB de tu límite de {{max}} GB.",
+    "no_data": "No hay datos disponibles.",
+    "archival_interval": "Intervalo de archivo (horas)",
+    "storage_enable_archival": "Habilitar el archivo automático",
+    "archival_enable_desc": "Cuando esté habilitado, el sistema moverá automáticamente las grabaciones antiguas a sus perfiles de almacenamiento asignados (Nivel 2)."
   },
   "telemetry_notes": {
     "random_uuid_gen": "UUID aleatorio generado al inicio",

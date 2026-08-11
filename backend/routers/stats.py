@@ -252,7 +252,33 @@ def _get_detailed_storage_stats(db: Session, cameras: list, allowed_ids: list | 
     global_movies = (global_movies_count, global_movies_size)
     global_pics = (global_pics_count, global_pics_size)
 
-    return global_movies, global_pics, global_stats, camera_stats
+    # Calculate Profile Stats
+    profiles = db.query(models.StorageProfile).all()
+    profile_stats = {}
+    
+    # Calculate Default Profile
+    default_path = "/var/lib/vibe/recordings"
+    default_size = db.query(func.sum(models.Event.file_size)).filter(models.Event.file_path.like(f"{default_path}%")).scalar() or 0
+    default_count = db.query(func.count(models.Event.id)).filter(models.Event.file_path.like(f"{default_path}%")).scalar() or 0
+    profile_stats["default"] = {
+        "name": "Default Profile",
+        "path": default_path,
+        "size_gb": round(default_size / (1024**3), 2),
+        "count": default_count
+    }
+    
+    # Calculate Custom Profiles
+    for p in profiles:
+        p_size = db.query(func.sum(models.Event.file_size)).filter(models.Event.file_path.like(f"{p.path}%")).scalar() or 0
+        p_count = db.query(func.count(models.Event.id)).filter(models.Event.file_path.like(f"{p.path}%")).scalar() or 0
+        profile_stats[str(p.id)] = {
+            "name": p.name,
+            "path": p.path,
+            "size_gb": round(p_size / (1024**3), 2),
+            "count": p_count
+        }
+
+    return global_movies, global_pics, global_stats, camera_stats, profile_stats
 
 def _get_disk_usage_stats(global_movies: tuple, global_pics: tuple) -> tuple:
     """Calculates disk usage statistics based on physical disk and application usage."""
@@ -450,7 +476,7 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
     active_cameras_count = len([c for c in cameras if c.is_active])
 
     # 2. Detailed Storage Stats
-    global_movies, global_pics, global_stats, camera_stats = _get_detailed_storage_stats(db, cameras, allowed_ids)
+    global_movies, global_pics, global_stats, camera_stats, profile_stats = _get_detailed_storage_stats(db, cameras, allowed_ids)
 
     # 3. Storage Usage
     storage_total_gb, storage_free_gb, storage_used_gb, storage_percent = _get_disk_usage_stats(global_movies, global_pics)
@@ -525,7 +551,8 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
         },
         "details": {
             "global": global_stats,
-            "cameras": camera_stats
+            "cameras": camera_stats,
+            "profiles": profile_stats
         },
         "system_status": system_status,
         "uptime": uptime_str,

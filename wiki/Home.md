@@ -40,6 +40,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **Advanced PTZ**: Native ONVIF support for low-latency Pan, Tilt, Zoom, and **Home Positions** with resident hardware fallbacks.
 - **MQTT & Home Automation**: Native integration with Home Assistant via **MQTT Discovery**. Instant motion sensors and AI object metadata reporting.
 - **System Integrity Assurance**: Integrated security, RBAC, and path-sanitization audits running on every release. **New**: Hardened Notification Pipeline with explicit SSRF protections and Sanitized Camera Exports.
+- **Tiered Storage Architecture**: Set up primary and secondary storage profiles with intelligent archival scheduling and per-profile quotas. Includes a granular UI breakdown.
 - **Stability & Efficiency**: Adaptive RTSP retry logic for Wyze/Battery cameras, dynamic zero-buffer memory optimization for passthrough recording, and O(1) Database Query optimization for background tasks to prevent OOM errors.
 
 ## ⚠️ Important Notes

@@ -549,7 +549,17 @@
     "email": "E-Mail",
     "role": "Rolle",
     "viewer_read_only": "Betrachter (schreibgeschützt)",
-    "admin_full_access": "Admin (Vollzugriff)"
+    "admin_full_access": "Admin (Vollzugriff)",
+    "storage_interval_desc": "Wie oft soll überprüft werden, ob alte Aufnahmen archiviert und bereinigt werden sollen?",
+    "storage_breakdown_by_profile": "Speicheraufschlüsselung nach Profil",
+    "profile": "Profil",
+    "path": "Pfad",
+    "used_space": "Genutzter Raum",
+    "files": "Dateien",
+    "delete_profile_title": "Speicherprofil löschen",
+    "delete_profile_msg": "Sind Sie sicher, dass Sie dieses Profil löschen möchten? Kameras, die dieses Profil verwenden, werden auf den Standardspeicherpfad zurückgesetzt. Vorhandene Aufnahmen werden NICHT gelöscht.",
+    "archival_interval_desc": "Wie oft wird geprüft, ob Aufzeichnungen im Sekundärspeicher archiviert werden?",
+    "unlimited": "Unbegrenzt"
   },
   "timeline": {
     "title": "Zeitleiste",
@@ -1111,7 +1121,11 @@
     "primary": "PRIMÄR",
     "cf_anon": "Vollständig anonym.",
     "recover_desc": "Sucht nach Videodateien auf der Festplatte, die nicht in der Datenbank vorhanden sind, und importiert sie in die Timeline.",
-    "storage_using": "Derzeit werden {{used}} GB Ihres {{max}} GB-Limits verwendet."
+    "storage_using": "Derzeit werden {{used}} GB Ihres {{max}} GB-Limits verwendet.",
+    "no_data": "Keine Daten verfügbar.",
+    "archival_interval": "Archivierungsintervall (Stunden)",
+    "storage_enable_archival": "Aktivieren Sie die automatische Archivierung",
+    "archival_enable_desc": "Wenn diese Option aktiviert ist, verschiebt das System alte Aufzeichnungen automatisch in die ihnen zugewiesenen Speicherprofile (Stufe 2)."
   },
   "telemetry_notes": {
     "random_uuid_gen": "Zufällige UUID",

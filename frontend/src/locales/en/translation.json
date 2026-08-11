@@ -561,7 +561,17 @@
     "email": "Email",
     "role": "Role",
     "viewer_read_only": "Viewer (Read Only)",
-    "admin_full_access": "Admin (Full Access)"
+    "admin_full_access": "Admin (Full Access)",
+    "storage_interval_desc": "How often to check for cleaning up old recordings",
+    "storage_breakdown_by_profile": "Storage Breakdown by Profile",
+    "profile": "Profile",
+    "path": "Path",
+    "used_space": "Used Space",
+    "files": "files",
+    "delete_profile_title": "Delete Storage Profile",
+    "delete_profile_msg": "Are you sure you want to delete this profile? Cameras using this profile will revert to the default storage path. Existing recordings will NOT be deleted.",
+    "archival_interval_desc": "How often to check for archiving recordings to secondary storage",
+    "unlimited": "Unlimited"
   },
   "timeline": {
     "title": "Timeline",
@@ -1128,7 +1138,11 @@
     "primary": "PRIMARY",
     "cf_anon": "Fully anonymous — IP is processed by Cloudflare edge and discarded, only the country code is stored.",
     "recover_desc": "Scans for video files on disk that aren\\'t in the database and imports them into the timeline.",
-    "storage_using": "Currently using {{used}} GB of your {{max}} GB limit."
+    "storage_using": "Currently using {{used}} GB of your {{max}} GB limit.",
+    "no_data": "No data available.",
+    "archival_interval": "Archival Interval (Hours)",
+    "storage_enable_archival": "Enable Automatic Archival",
+    "archival_enable_desc": "When enabled, the system will automatically move old recordings to their assigned Storage Profiles (Tier 2)."
   },
   "telemetry_notes": {
     "random_uuid_gen": "Random UUID generated at boot",

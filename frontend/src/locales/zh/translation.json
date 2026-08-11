@@ -559,7 +559,17 @@
     "email": "电子邮件",
     "role": "角色",
     "viewer_read_only": "查看器（只读）",
-    "admin_full_access": "管理员（完全访问权限）"
+    "admin_full_access": "管理员（完全访问权限）",
+    "storage_interval_desc": "多久检查一次存档和清理旧录音",
+    "storage_breakdown_by_profile": "按配置文件的存储细分",
+    "profile": "轮廓",
+    "path": "路径",
+    "used_space": "已用空间",
+    "files": "文件",
+    "delete_profile_title": "删除存储配置文件",
+    "delete_profile_msg": "您确定要删除此个人资料吗？使用此配置文件的相机将恢复到默认存储路径。现有录音不会被删除。",
+    "archival_interval_desc": "检查将录音存档到辅助存储的频率",
+    "unlimited": "无限"
   },
   "timeline": {
     "title": "时间轴",
@@ -1122,7 +1132,11 @@
     "primary": "主要",
     "cf_anon": "完全匿名。",
     "recover_desc": "扫描磁盘上不在数据库中的视频文件，并将其导入时间线中。",
-    "storage_using": "当前使用了 {{used}} GB，其中 {{max}} GB 限制。"
+    "storage_using": "当前使用了 {{used}} GB，其中 {{max}} GB 限制。",
+    "no_data": "无可用数据。",
+    "archival_interval": "归档间隔（小时）",
+    "storage_enable_archival": "启用自动存档",
+    "archival_enable_desc": "启用后，系统将自动将旧录音移至指定的存储配置文件（第 2 层）。"
   },
   "telemetry_notes": {
     "random_uuid_gen": "随机 UUID",

@@ -433,8 +433,16 @@ def run_cleanup(quota_only=False):
                 percent_free = (usage.free / usage.total) * 100
                 if percent_free < 5.0:
                     logger.warning(
-                        f"CRITICAL: Disk space is low ({percent_free:.2f}% free). Forcing emergency cleanup."
+                        f"CRITICAL: Disk space is low ({percent_free:.2f}% free). Forcing emergency archival and cleanup."
                     )
+                    # Try to archive first to save files
+                    if get_setting(db, "archival_enabled") == "true":
+                        run_archival(db)
+                    
+                    # Refresh usage after archival
+                    usage = shutil.disk_usage("/data")
+                    percent_free = (usage.free / usage.total) * 100
+                    
                     # In emergency, we reduce EVERYTHING until we have 10% free
                     target_free_bytes = usage.total * 0.10
                     while usage.free < target_free_bytes:
@@ -456,10 +464,6 @@ def run_cleanup(quota_only=False):
                         db.commit()
             except Exception as disk_e:
                 logger.error(f"Error checking disk usage: {disk_e}")
-
-            # Priority 0.5: Run Archival before quota enforcement so we don't delete files that could be archived
-            if not quota_only:
-                run_archival(db)
 
             # Priority 1: Enforce Per-Camera Quotas
             cameras = db.query(models.Camera).all()
@@ -552,8 +556,9 @@ def run_cleanup(quota_only=False):
 
 
 def storage_monitor_loop():
-    """Background loop to run cleanup periodically"""
-    last_full_run = 0
+    """Background loop to run cleanup and archival periodically"""
+    last_full_cleanup_run = 0
+    last_archival_run = 0
 
     while True:
         try:
@@ -561,23 +566,37 @@ def storage_monitor_loop():
             with database.get_db_ctx() as db:
                 cleanup_enabled = get_setting(db, "cleanup_enabled") == "true"
                 interval_str = get_setting(db, "cleanup_interval_hours")
-                interval_hours = float(interval_str) if interval_str else 24.0
+                cleanup_interval_hours = float(interval_str) if interval_str else 24.0
+                
+                archival_enabled = get_setting(db, "archival_enabled") == "true"
+                archival_interval_str = get_setting(db, "archival_interval_hours")
+                archival_interval_hours = float(archival_interval_str) if archival_interval_str else 24.0
 
-            if cleanup_enabled:
-                # Is it time for a full run (retention + quota)?
-                if now - last_full_run > (interval_hours * 3600):
+            # 1. Handle Archival
+            if archival_enabled:
+                if now - last_archival_run > (archival_interval_hours * 3600):
                     logger.info(
-                        f"Triggering scheduled FULL storage cleanup (Interval: {interval_hours}h)"
+                        f"Triggering scheduled storage ARCHIVAL (Interval: {archival_interval_hours}h)"
+                    )
+                    with database.get_db_ctx() as db:
+                        run_archival(db)
+                    last_archival_run = now
+            else:
+                logger.debug("Automatic storage archival is DISABLED.")
+
+            # 2. Handle Cleanup
+            if cleanup_enabled:
+                if now - last_full_cleanup_run > (cleanup_interval_hours * 3600):
+                    logger.info(
+                        f"Triggering scheduled FULL storage cleanup (Interval: {cleanup_interval_hours}h)"
                     )
                     run_cleanup(quota_only=False)
-                    last_full_run = now
+                    last_full_cleanup_run = now
                 else:
-                    # Otherwise, just do a quick quota check every 10 minutes
+                    # Quick quota check every 10 minutes
                     run_cleanup(quota_only=True)
             else:
-                logger.debug(
-                    "Automatic storage cleanup is DISABLED. Skipping periodic check."
-                )
+                logger.debug("Automatic storage cleanup is DISABLED.")
 
             # Wait 10 minutes between checks
             time.sleep(600)
