@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-export function SortableVideoPlayerWrapper(props) {
+// ⚡ Bolt Optimization:
+// Wrapped in React.memo to ensure the Sortable wrapper
+// also avoids redundant renders when unrelated items in the grid are reordered.
+// Impact: Prevents O(n) component updates when a single item is dragged.
+export const SortableVideoPlayerWrapper = memo(function SortableVideoPlayerWrapper(props) {
     const { t } = useTranslation();
     const {
         attributes,
@@ -40,4 +44,4 @@ export function SortableVideoPlayerWrapper(props) {
             {props.children}
         </div>
     );
-}
+});
