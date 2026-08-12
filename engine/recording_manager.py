@@ -270,8 +270,14 @@ class RecordingManager:
 
     def start_recording(self, width, height, pre_buffer_frames, event_callback=None, reason="Manual", trigger_source=None):
         self.current_ai_detections = [] # Reset for new event
-        self.current_recording_reason = reason
-        self.motion_during_current_recording = (reason == "Motion")
+        
+        is_fallback_or_restart = (reason in ["Fallback", "Restart"])
+        if not is_fallback_or_restart:
+            self.current_recording_reason = reason
+            
+        actual_reason = getattr(self, 'current_recording_reason', reason)
+        self.motion_during_current_recording = (actual_reason == "Motion" or actual_reason == "motion")
+        
         if event_callback is not None:
             self.last_event_callback = event_callback
         format_str = self.config.get('movie_file_name', '%Y-%m-%d/%H-%M-%S').replace('%q', '00')
@@ -279,9 +285,9 @@ class RecordingManager:
         
         # Determine output directory based on tiered storage configuration
         base_dir = self.config.get('storage_path', '/var/lib/vibe/recordings')
-        if reason == "Motion":
+        if actual_reason == "Motion" or actual_reason == "motion":
             base_dir = self.config.get('motion_storage_path') or base_dir
-        elif reason == "Continuous":
+        elif actual_reason == "Continuous" or actual_reason == "continuous":
             base_dir = self.config.get('continuous_storage_path') or base_dir
             
         output_dir = os.path.join(base_dir, str(self.camera_id))
@@ -289,12 +295,17 @@ class RecordingManager:
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
         
         trigger_info = f" (Trigger: {trigger_source})" if trigger_source else ""
-        logger.info(f"[RECORDING] Camera {self.camera_name} (ID: {self.camera_id}): Start Recording (Reason: {reason}) to {full_path}{trigger_info}")
+        logger.info(f"[RECORDING] Camera {self.camera_name} (ID: {self.camera_id}): Start Recording (Reason: {actual_reason}, Mode: {reason}) to {full_path}{trigger_info}")
         
         if reason == "Fallback":
             self.passthrough_active = False
+            self.current_recording_method = "transcoded (fallback)"
+        elif reason == "Restart":
+            self.passthrough_active = self.config.get('movie_passthrough', False)
+            self.current_recording_method = "passthrough (restart)" if self.passthrough_active else "transcoded (restart)"
         else:
             self.passthrough_active = self.config.get('movie_passthrough', False)
+            self.current_recording_method = "passthrough" if self.passthrough_active else "transcoded"
         
         if self.passthrough_active:
             return self._start_passthrough_recording(full_path, width, height, event_callback)
@@ -350,11 +361,13 @@ class RecordingManager:
 
         if valid_recording and event_callback:
              reason = getattr(self, 'current_recording_reason', 'unknown')
+             method = getattr(self, 'current_recording_method', 'unknown')
 
              event_callback(self.camera_id, 'recording_end', {
                  "file_path": self.recording_filename, 
                  "width": width, 
                  "height": height,
                  "ai_metadata": ai_meta_str,
-                 "reason": reason
+                 "reason": reason,
+                 "method": method
              })
