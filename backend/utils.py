@@ -15,20 +15,27 @@ def is_safe_webhook_url(url: str) -> bool:
         if not hostname:
             return False
 
-        # Resolve hostname to IP
-        ip = socket.gethostbyname(hostname)
-        ip_obj = ipaddress.ip_address(ip)
+        # Resolve hostname to all associated IPs (IPv4 and IPv6) to prevent SSRF via DNS rebinding
+        try:
+            addr_info = socket.getaddrinfo(hostname, None)
+        except socket.gaierror:
+            return False
 
-        # Block link-local (169.254.x.x) and multicast to prevent SSRF against cloud metadata and sensitive internal addresses.
-        # Note: We intentionally allow private IPs (like 192.168.x.x) because users of this NVR system
-        # rely on webhooks to trigger local home automation services (e.g. Home Assistant).
-        # We also block loopback (127.0.0.1) and unspecified (0.0.0.0) to prevent internal service SSRF.
-        if (
-            ip_obj.is_link_local
-            or ip_obj.is_multicast
-            or ip_obj.is_loopback
-            or ip_obj.is_unspecified
-        ):            return False
+        for res in addr_info:
+            ip = res[4][0]
+            ip_obj = ipaddress.ip_address(ip)
+
+            # Block link-local (169.254.x.x) and multicast to prevent SSRF against cloud metadata and sensitive internal addresses.
+            # Note: We intentionally allow private IPs (like 192.168.x.x) because users of this NVR system
+            # rely on webhooks to trigger local home automation services (e.g. Home Assistant).
+            # We also block loopback (127.0.0.1, ::1) and unspecified (0.0.0.0, ::) to prevent internal service SSRF.
+            if (
+                ip_obj.is_link_local
+                or ip_obj.is_multicast
+                or ip_obj.is_loopback
+                or ip_obj.is_unspecified
+            ):
+                return False
 
         return True
     except Exception:
