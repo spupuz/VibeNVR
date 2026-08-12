@@ -20,7 +20,8 @@
 - The Frontend communicates via REST API and **WebSockets** for live streaming.
 - **Live View**: Uses browser's native **WebCodecs API** (H.264 via WebSockets).
 - **Dual-Stream Optimization**: Dedicated sub-streams for grid views, while main streams handle recording/analysis.
-- Video files are stored in `/media/recordings` mapped in docker-compose.
+- **Tiered Storage Architecture**: Cameras can route specific events (Motion, Continuous, Snapshots) to distinct Storage Profiles with quota monitoring.
+- **Archival Subsystem**: Supports automated, scheduled archival of oldest events to secondary storage layers before primary quota deletion.
 - **Privacy Masking & Motion Zones**: Privacy masks are burned into the video stream at the engine level before recording/motion analysis. Motion Zones are used to exclude areas from motion triggers. Unmasked frames for the editor are Admin-only.
 - **AI Integration**: Supports **YOLOv8** and MobileNet SSD v2 via TFLite. Implements **NMS (Non-Maximum Suppression)** to filter duplicate detections.
 - **SSO / OAuth Integration**: Allows linking external Identity Providers (e.g., Authentik, Keycloak) to local accounts. Enforces strict zero-trust mapping (no auto-provisioning) by requiring an explicitly linked `OAuth Subject ID`.

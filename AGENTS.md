@@ -231,6 +231,15 @@ def manual_backup(db: Session = Depends(database.get_db), current_user: models.U
     return {"message": "Manual backup completed successfully"}
 ```
 
+### Storage Routing & Archival Pattern
+
+Cameras can be assigned independent storage profiles for specific event types (Motion, Continuous, Snapshot, Archive) to utilize tiered storage layers.
+
+- **Rule**: Archival is processed in an independent phase within the `storage_monitor_loop` to ensure moving files over slow network mounts does not block emergency space recovery.
+- **Rule**: Before falling back to hard deletion during emergency cleanup, the system must attempt to run archival if it is globally enabled (`archival_enabled == "true"`).
+- **Rule**: Paths constructed for archival MUST use `translate_path` to guarantee traversal safety before moving files on the host filesystem.
+
+
 ### Privacy Masking & Motion Zones Pattern
 
 Privacy masks and motion zones are stored as JSON strings in the database and synced to the engine.

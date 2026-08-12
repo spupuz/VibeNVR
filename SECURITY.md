@@ -80,14 +80,16 @@ VibeNVR's code includes specific mitigations against common attack vectors:
     - PTZ Home positioning utilizes a **3-stage fallback** (Native -> Existing Preset -> Create Preset) to ensure functionality on hardware with non-standard ONVIF implementations. This prevents sensitive 400-series errors from leaking directly to the UI and provides a consistent security boundary for device interactions.
 4. **Event File Deletion & Path Traversal**:
     - The final resolved path MUST start with the `/data/` internal storage directory. Any attempt to delete files outside this boundary results in a security alert in the logs and the deletion is blocked.
-5. **Storage Resilience & Disk Safety**:
+5. **Tiered Archival Safety**:
+    - The tiered storage archival subsystem uses the identical path translation logic (`translate_path`) to ensure that all moved files remain securely within the `/data/` or designated absolute boundaries. This protects against traversal if an archival profile path is maliciously crafted.
+6. **Storage Resilience & Disk Safety**:
     - **Reactive Monitoring**: VibeNVR implements a reactive 10-minute monitoring loop for storage quotas. This ensures that disk usage remains within limits even under high-volume recording conditions.
-    - **Emergency Disk Safety**: If absolute disk space falls below **5%**, an emergency cleanup is automatically triggered to prevent filesystem exhaustion and system instability.
-4. **Secure RTSP (RSTSPS) & TLS Verification**:
+    - **Emergency Disk Safety**: If absolute disk space falls below **5%**, an emergency archival and cleanup cycle is automatically triggered to prevent filesystem exhaustion and system instability.
+7. **Secure RTSP (RSTSPS) & TLS Verification**:
     - To ensure seamless compatibility with modern NVR systems like **UniFi Protect**, VibeNVR supports the `rstsps://` and `rtsps://` protocols.
     - For these specific protocols, VibeNVR intentionally disables TLS certificate verification (`tls_verify=0`) to handle self-signed certificates common in camera hardware.
     - This bypass is **strictly limited** to the secure RTSP schemes. Standard webhooks and API calls always enforce full certificate verification.
-4. **Secure Subprocess Execution**:
+8. **Secure Subprocess Execution**:
    - All internal calls to video tools (`ffmpeg`, `ffprobe`) are performed using **list-based arguments** (the secure default in Python's `subprocess.run`), effectively preventing any shell injection vulnerabilities via malicious camera URLs or paths.
     - **Advanced Log & GUI Masking**:
         - The logging infrastructure (`backend/routers/logs.py`) and the **hardened `TokenRedactingFilter`** in `main.py` automatically redact sensitive information from stdout for:
