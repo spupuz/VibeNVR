@@ -39,7 +39,7 @@ export const BulkActionBar = ({
                     <button
                         onClick={handleSelectAll}
                         aria-label={selectedIds.size === filteredEvents.length ? t('timeline.deselect_all', 'Deselect All') : t('timeline.select_all', 'Select All')}
-                        className="px-1.5 py-1.5 hover:bg-white/10 rounded-xl transition-colors flex items-center gap-1 sm:gap-1.5"
+                        className="px-1.5 py-1.5 hover:bg-white/10 rounded-xl transition-colors flex items-center gap-1 sm:gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                     >
                         {selectedIds.size === filteredEvents.length ? (
                             <>
@@ -58,7 +58,7 @@ export const BulkActionBar = ({
                         onClick={() => setSelectedIds(new Set())}
                         title={t('common.cancel', 'Cancel')}
                         aria-label={t('timeline.cancel_selection', 'Cancel selection')}
-                        className="p-2 sm:px-3 sm:py-1.5 hover:bg-white/10 rounded-xl transition-colors"
+                        className="p-2 sm:px-3 sm:py-1.5 hover:bg-white/10 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                     >
                         <X className="w-4 h-4 sm:hidden" />
                         <span className="hidden sm:inline text-sm font-semibold">{t('timeline.cancel', 'Cancel')}</span>
@@ -69,7 +69,7 @@ export const BulkActionBar = ({
                             onClick={handleBulkDelete}
                             disabled={isBulkDeleting}
                             aria-label={t('timeline.delete_selected_items', `Delete {{count}} selected items`, { count: selectedIds.size })}
-                            className={`flex-shrink-0 px-3 py-2 sm:px-4 sm:py-2 bg-white text-primary hover:bg-white/90 rounded-xl text-xs sm:text-sm font-bold shadow-lg transition-all flex items-center gap-1.5 sm:gap-2 ${isBulkDeleting ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}`}
+                            className={`flex-shrink-0 px-3 py-2 sm:px-4 sm:py-2 bg-white text-primary hover:bg-white/90 rounded-xl text-xs sm:text-sm font-bold shadow-lg transition-all flex items-center gap-1.5 sm:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${isBulkDeleting ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}`}
                         >
                             {isBulkDeleting ? (
                                 <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
