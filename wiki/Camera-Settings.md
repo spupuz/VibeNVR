@@ -88,6 +88,9 @@ VibeNVR supports three detection engines, each with dedicated Live View feedback
 | **Saving Recording** | `SAVING REC` | 🟠 Solid Orange | Motion has ended, but the post-capture buffer is still writing the video file to disk. The border also turns solid orange (non-pulsing) to distinguish this from an active alarm. |
 | **Continuous Mode** | `CONTINUOUS` | 🔵 Solid Blue | The camera is in Always-on recording mode. No motion trigger is needed. |
 
+> [!TIP]
+> **Dual Recording Support**: When a camera is set to **Continuous** mode, the engine still listens to the active detection engine (OpenCV/AI/ONVIF). When motion occurs, VibeNVR generates independent, easy-to-export motion video clips **in parallel** to the continuous stream, preserving both formats simultaneously.
+
 > [!NOTE]
 > The complete recording lifecycle transition is: **`AI: PERSON`** (motion active) → **`SAVING REC`** (post-capture buffer finalizing) → *(badge disappears)* (file written to disk).
 

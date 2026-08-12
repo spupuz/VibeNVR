@@ -59,12 +59,16 @@ class RecordingManager:
                 return True
         return False
 
-    def handle_recording(self, frame, motion_detected, last_motion_time, stop_recording_cb, trigger_source=None, ai_results=None, pre_buffer_frames=None):
-        mode = self.config.get('recording_mode', 'Off')
-        should_record = False
-        reason = "continuous" if mode in ['Always', 'Continuous'] else ("motion" if mode == 'Motion Triggered' and motion_detected else None)
-        if reason:
-            should_record = True
+    def handle_recording(self, frame, motion_detected, last_motion_time, stop_recording_cb, trigger_source=None, ai_results=None, pre_buffer_frames=None, override_should_record=None, override_reason=None):
+        if override_should_record is not None and override_reason is not None:
+            should_record = override_should_record
+            reason = override_reason
+        else:
+            mode = self.config.get('recording_mode', 'Off')
+            should_record = False
+            reason = "continuous" if mode in ['Always', 'Continuous'] else ("motion" if mode == 'Motion Triggered' and motion_detected else None)
+            if reason:
+                should_record = True
 
         if self.is_recording and motion_detected:
             self.motion_during_current_recording = True
@@ -81,7 +85,7 @@ class RecordingManager:
             pre_buf = pre_buffer_frames or []
             pre_buf.append(frame.copy())
             self.start_recording(frame.shape[1], frame.shape[0], pre_buf, reason=reason, trigger_source=trigger_source)
-            return True
+            return "STARTED"
         elif not should_record and self.is_recording:
             post_cap = self.config.get('post_capture', 5)
             if not motion_detected and (time.time() - last_motion_time > post_cap):

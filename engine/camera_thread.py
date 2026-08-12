@@ -63,7 +63,8 @@ class CameraThread(threading.Thread):
                 rtsp_transport=self.config.get('sub_rtsp_transport', 'tcp')
             )
         self.motion_detector = MotionDetector(self.camera_id, self.config.get('name', str(camera_id)), self.config)
-        self.recording_manager = RecordingManager(self.camera_id, self.config.get('name', str(camera_id)), self.config)
+        self.continuous_recorder = RecordingManager(self.camera_id, self.config.get('name', str(camera_id)), self.config)
+        self.motion_recorder = RecordingManager(self.camera_id, self.config.get('name', str(camera_id)), self.config)
         self.ai_detector = AIDetector(self.camera_id, self.config)
         
         # Buffered results for UI
@@ -115,11 +116,11 @@ class CameraThread(threading.Thread):
 
     @property
     def is_recording(self):
-        return self.recording_manager.is_recording
+        return self.continuous_recorder.is_recording or self.motion_recorder.is_recording
 
     @property
     def passthrough_active(self):
-        return self.recording_manager.passthrough_active
+        return self.continuous_recorder.passthrough_active or self.motion_recorder.passthrough_active
 
     def get_health(self):
         return self.stream_reader.get_health()
@@ -176,18 +177,22 @@ class CameraThread(threading.Thread):
                 if time.time() - last_heartbeat_time > 5.0:
                     last_heartbeat_time = time.time()
                     age = time.time() - self.stream_reader.last_read_time if self.stream_reader.last_read_time else -1
-                    logger.debug(f"[HB] Cam {self.camera_id}: health={self.stream_reader.health_status}, recording={self.recording_manager.is_recording}, frame_age={age:.1f}s")
+                    logger.debug(f"[HB] Cam {self.camera_id}: health={self.stream_reader.health_status}, recording={self.is_recording}, frame_age={age:.1f}s")
                     self._stream_health_watchdog()  # recover + diagnose silently-stalled readers
 
                 # Segment Rotation Check (Decoupled from frame decode)
-                if self.recording_manager.check_segment_rotation(self.stop_recording):
+                if self.continuous_recorder.check_segment_rotation(lambda: self.continuous_recorder.stop_recording(self.event_callback, self.width, self.height)):
+                    mode = self.config.get('recording_mode', 'Off')
+                    if mode in ['Always', 'Continuous']:
+                        self.continuous_recorder.start_recording(self.width, self.height, None, self.event_callback, reason="Continuous")
+                        
+                if self.motion_recorder.check_segment_rotation(lambda: self.motion_recorder.stop_recording(self.event_callback, self.width, self.height)):
                     mode = self.config.get('recording_mode', 'Off')
                     post_cap = self.config.get('post_capture', 5)
                     motion_active = (time.time() - self.motion_detector.last_motion_time) < post_cap
-                    reason = "Continuous" if mode in ['Always', 'Continuous'] else ("Motion" if mode == 'Motion Triggered' and motion_active else None)
-                    if reason:
+                    if mode in ['Always', 'Continuous', 'Motion Triggered'] and motion_active:
                         trigger_source = self.last_external_motion_source if motion_active else None
-                        self.recording_manager.start_recording(self.width, self.height, None, self.event_callback, reason=reason, trigger_source=trigger_source)
+                        self.motion_recorder.start_recording(self.width, self.height, None, self.event_callback, reason="Motion", trigger_source=trigger_source)
 
                 frame, read_time = self.stream_reader.get_latest()
                 if frame is None or read_time == self.last_processed_read_time:
@@ -254,8 +259,8 @@ class CameraThread(threading.Thread):
                         # FFmpeg even starts, so the effective libx264 startup window is 3s + ~2s burst = 5s.
                         # A 20s skip gives a safe margin regardless of probe delay or system load.
                         sw_recording_skip = (
-                            self.recording_manager.is_recording and
-                            not self.recording_manager.passthrough_active and
+                            ( (self.continuous_recorder.is_recording and not self.continuous_recorder.passthrough_active) or 
+                              (self.motion_recorder.is_recording and not self.motion_recorder.passthrough_active) ) and
                             (time.time() - self._sw_recording_started_at) < 20.0
                         )
                         
@@ -365,20 +370,39 @@ class CameraThread(threading.Thread):
                 draw_overlay(frame, self.config)
                 
                 # Recording Management
-                # current_recording_start = getattr(self.recording_manager, 'recording_start_time', 0)
+                mode = self.config.get('recording_mode', 'Off')
                 trigger_source = self.last_external_motion_source if motion_active else None
-                self.recording_manager.handle_recording(
-                    frame, motion_active, self.motion_detector.last_motion_time, self.stop_recording,
-                    trigger_source=trigger_source,
-                    ai_results=ai_results,
-                    pre_buffer_frames=list(self.pre_buffer) if not self.config.get('movie_passthrough', False) else None
+                
+                # Continuous Recorder
+                should_record_cont = mode in ['Always', 'Continuous']
+                self.continuous_recorder.handle_recording(
+                    frame, motion_active, self.motion_detector.last_motion_time, 
+                    lambda: self.continuous_recorder.stop_recording(self.event_callback, self.width, self.height),
+                    trigger_source=trigger_source, ai_results=ai_results, pre_buffer_frames=None,
+                    override_should_record=should_record_cont, override_reason="Continuous"
                 )
                 
+                # Motion Recorder
+                should_record_motion = motion_active and mode in ['Always', 'Continuous', 'Motion Triggered']
+                pre_buf = list(self.pre_buffer) if not self.config.get('movie_passthrough', False) else None
+                res = self.motion_recorder.handle_recording(
+                    frame, motion_active, self.motion_detector.last_motion_time, 
+                    lambda: self.motion_recorder.stop_recording(self.event_callback, self.width, self.height),
+                    trigger_source=trigger_source, ai_results=ai_results, pre_buffer_frames=pre_buf,
+                    override_should_record=should_record_motion, override_reason="Motion"
+                )
+                if res == "STARTED":
+                    self.pre_buffer.clear()
+                
                 # Detect transition into a NEW SW recording (even during back-to-back file splits)
-                new_recording_start = getattr(self.recording_manager, 'recording_start_time', 0)
-                if new_recording_start != getattr(self, '_last_recording_start', 0) and self.recording_manager.is_recording and not self.recording_manager.passthrough_active:
+                new_recording_start_cont = getattr(self.continuous_recorder, 'recording_start_time', 0)
+                new_recording_start_mot = getattr(self.motion_recorder, 'recording_start_time', 0)
+                
+                if (new_recording_start_cont != getattr(self, '_last_recording_start_cont', 0) and self.continuous_recorder.is_recording and not self.continuous_recorder.passthrough_active) or \
+                   (new_recording_start_mot != getattr(self, '_last_recording_start_mot', 0) and self.motion_recorder.is_recording and not self.motion_recorder.passthrough_active):
                     self._sw_recording_started_at = time.time()
-                    self._last_recording_start = new_recording_start
+                    self._last_recording_start_cont = new_recording_start_cont
+                    self._last_recording_start_mot = new_recording_start_mot
                     logger.info("[RECORD] SW encoding started — pausing TPU invoke() for 20s to allow libx264 startup burst to settle")
                 
                 # Pre-capture buffer (Only if passthrough is disabled, as passthrough doesn't support pre-capture)
@@ -488,13 +512,9 @@ class CameraThread(threading.Thread):
                     if self.event_callback:
                         self.event_callback(self.camera_id, 'health_status_changed', {"title": title, "message": msg, "new_status": current_health})
 
-    def start_recording(self, width, height):
-        # Delegate to manager, providing pre-buffer
-        self.recording_manager.start_recording(width, height, list(self.pre_buffer), self.event_callback)
-        self.pre_buffer.clear()
-
     def stop_recording(self):
-        self.recording_manager.stop_recording(self.event_callback, self.width, self.height)
+        self.continuous_recorder.stop_recording(self.event_callback, self.width, self.height)
+        self.motion_recorder.stop_recording(self.event_callback, self.width, self.height)
 
     def trigger_external_event(self, event_type: str, source: str = "external"):
         """Inject an event from outside (e.g., local sensor, ONVIF PullPoint)"""
@@ -652,7 +672,8 @@ class CameraThread(threading.Thread):
 
         self.config.update(new_config)
         self.motion_detector.config = self.config
-        self.recording_manager.config = self.config
+        self.continuous_recorder.config = self.config
+        self.motion_recorder.config = self.config
         self.ai_detector.config = self.config
 
         new_engine = self.config.get('detect_engine', 'OpenCV')
@@ -668,9 +689,13 @@ class CameraThread(threading.Thread):
 
 
         if 'movie_passthrough' in new_config and old_passthrough != new_config['movie_passthrough']:
-            if self.recording_manager.is_recording and self.recording_manager.passthrough_active:
-                self.stop_recording()
-            self.recording_manager.passthrough_active = new_config['movie_passthrough']
+            if self.continuous_recorder.is_recording and self.continuous_recorder.passthrough_active:
+                self.continuous_recorder.stop_recording(self.event_callback, self.width, self.height)
+            self.continuous_recorder.passthrough_active = new_config['movie_passthrough']
+            
+            if self.motion_recorder.is_recording and self.motion_recorder.passthrough_active:
+                self.motion_recorder.stop_recording(self.event_callback, self.width, self.height)
+            self.motion_recorder.passthrough_active = new_config['movie_passthrough']
             self.stream_reader.force_reconnect()
 
         self._reconfigure_routing(old_passthrough, old_rtsp_url, old_sub_rtsp_url)
