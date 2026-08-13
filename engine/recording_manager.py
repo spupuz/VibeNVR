@@ -486,8 +486,10 @@ class RecordingManager:
         valid_recording = False
         if self.recording_filename and os.path.exists(self.recording_filename):
             try:
-                if os.path.getsize(self.recording_filename) < 1024:
+                duration = time.time() - self.recording_start_time
+                if duration < 2.0 or os.path.getsize(self.recording_filename) < 1024:
                     os.remove(self.recording_filename)
+                    logger.info(f"Camera {self.camera_name} (ID: {self.camera_id}): Discarded short/empty recording ({duration:.1f}s)")
                 else:
                     valid_recording = True
             except OSError as e:
