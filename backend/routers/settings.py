@@ -95,6 +95,8 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
         new_val = str(settings["go2rtc_enabled"]).lower() == "true"
         go2rtc_changed = old_val != new_val
 
+    # ⚡ Bolt: Prepare settings and update in bulk to prevent N+1 DB operations
+    processed_settings = {}
     for key, value in settings.items():
         # Validation for known numeric keys
         numeric_keys = [
@@ -118,7 +120,9 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
         if key in boolean_keys:
             value = str(value).lower()
         
-        set_setting(db, key, str(value))
+        processed_settings[key] = str(value)
+
+    settings_service.set_bulk_settings(db, processed_settings)
     
     # A go2rtc toggle changes every camera's effective URL → full restart + re-sync.
     if go2rtc_changed:

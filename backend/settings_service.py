@@ -78,6 +78,24 @@ def validate_setting(key: str, value: str):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid value for {key}: {str(e)}")
 
+def set_bulk_settings(db: Session, settings: dict):
+    """Set multiple settings at once, resolving N+1 DB operations."""
+    for key, value in settings.items():
+        validate_setting(key, value)
+
+    keys = list(settings.keys())
+    existing = db.query(models.SystemSettings).filter(models.SystemSettings.key.in_(keys)).all()
+    existing_map = {s.key: s for s in existing}
+
+    for key, value in settings.items():
+        if key in existing_map:
+            existing_map[key].value = value
+        else:
+            db.add(models.SystemSettings(key=key, value=value))
+
+    db.commit()
+
+
 def set_setting(db: Session, key: str, value: str, description: str = None):
     """Set a setting value, create if doesn't exist"""
     validate_setting(key, value)
