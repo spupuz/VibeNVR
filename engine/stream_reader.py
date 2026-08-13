@@ -5,6 +5,8 @@ import logging
 import os
 import struct
 import typing as t
+from collections import deque
+import queue
 from utils import mask_url
 
 logger = logging.getLogger(__name__)
@@ -20,15 +22,21 @@ class StreamReader(threading.Thread):
         self.camera_name = camera_name
         self.event_callback = event_callback
         self.rtsp_transport = rtsp_transport
+        self.pre_buffer_duration = 10.0 # Will store up to 10s of packets
         self.latest_frame = None
         self.last_read_time = 0.0
         self.lock = threading.Lock()
+        self.audio_decode_lock = threading.Lock()
         self.running = False
         self.connected = False
         self.health_status: str = "STARTING"
         self.consecutive_failures: int = 0
         self.last_health_report_status = None
         self.ws_clients = set()
+        self.packet_subscribers = set()
+        self.packet_ring_buffer = deque() # Stores tuples: (packet, is_keyframe, time_sec)
+        self.video_stream = None
+        self.audio_stream = None
         self.last_keyframe: t.Optional[bytes] = None
         self.last_headers: bytes = b''
 
@@ -43,6 +51,22 @@ class StreamReader(threading.Thread):
             to_remove = [c for c in self.ws_clients if c[0] == q]
             for c in to_remove:
                 self.ws_clients.remove(c)
+
+    def subscribe_packets(self, q: queue.Queue, include_prebuffer: bool = True):
+        with self.lock:
+            self.packet_subscribers.add(q)
+            if include_prebuffer:
+                # Push pre-buffer contents immediately to the new subscriber
+                for item in list(self.packet_ring_buffer):
+                    try:
+                        q.put_nowait(item[0]) # Put the av.Packet
+                    except queue.Full:
+                        pass
+
+    def unsubscribe_packets(self, q: queue.Queue):
+        with self.lock:
+            if q in self.packet_subscribers:
+                self.packet_subscribers.remove(q)
 
     def get_health(self):
         with self.lock:
@@ -70,7 +94,6 @@ class StreamReader(threading.Thread):
             'rtsp_transport': self.rtsp_transport,
             'stimeout': '30000000', # Increased to 30s for flaky cameras or VPN links
             'flags': 'low_delay',
-            'allowed_media_types': 'video', # We mostly care about video for motion/UI
             'buffer_size': '1024000', # 1MB buffer to handle I-frame spikes
         }
 
@@ -122,6 +145,9 @@ class StreamReader(threading.Thread):
                     )
                     if container.streams.video is None or len(container.streams.video) == 0:
                         raise Exception("No video stream found in container")
+                    with self.lock:
+                        self.video_stream = container.streams.video[0]
+                        self.audio_stream = container.streams.audio[0] if container.streams.audio else None
 
                 except Exception as e:
                     self.consecutive_failures += 1
@@ -257,37 +283,54 @@ class StreamReader(threading.Thread):
                                 else:
                                     pos += 3
 
-                    if clients and len(raw_data) > 0:
-                        try:
-                            pts = getattr(packet, 'pts', None)
-                            time_base = getattr(packet, 'time_base', None)
-                            time_sec = float(pts * time_base) if pts is not None and time_base is not None else 0.0
-                            is_keyframe = 1 if getattr(packet, 'is_keyframe', False) else 0
+                    if len(raw_data) > 0:
+                        pts = getattr(packet, 'pts', None)
+                        time_base = getattr(packet, 'time_base', None)
+                        time_sec = float(pts * time_base) if pts is not None and time_base is not None else time.time()
+                        is_keyframe = 1 if getattr(packet, 'is_keyframe', False) else 0
+
+                        with self.lock:
+                            # 1. Update ring buffer
+                            self.packet_ring_buffer.append((packet, is_keyframe, time_sec))
+                            # Pop old packets (keep self.pre_buffer_duration seconds of history)
+                            while self.packet_ring_buffer and (time_sec - self.packet_ring_buffer[0][2] > self.pre_buffer_duration):
+                                self.packet_ring_buffer.popleft()
                             
-                            # Packet Type: 0 = Video, 1 = Audio
-                            p_type = 0 if stream_type == 'video' else 1
-                            
-                            # New 10-byte header: Type (1b) + Keyframe (1b) + Timestamp (8b)
-                            header: bytes = struct.pack('<BBd', p_type, is_keyframe, time_sec)
-                            
-                            if stream_type == 'video':
-                                if is_keyframe:
-                                    with self.lock:
-                                        lh: bytes = self.last_headers or b''
-                                        self.last_keyframe = header + lh + raw_data
+                            # 2. Push to local subscribers
+                            subscribers = list(self.packet_subscribers)
+                            for q in subscribers:
+                                try:
+                                    q.put_nowait(packet)
+                                except queue.Full:
+                                    pass
+
+                        # 3. WS Broadcasting (for UI)
+                        if clients:
+                            try:
+                                # Packet Type: 0 = Video, 1 = Audio
+                                p_type = 0 if stream_type == 'video' else 1
                                 
-                                broadcast_payload = header + raw_data
-                                if is_keyframe and self.last_headers:
-                                    broadcast_payload = header + self.last_headers + raw_data
-                            else:
-                                # Audio packet
-                                broadcast_payload = header + raw_data
+                                # New 10-byte header: Type (1b) + Keyframe (1b) + Timestamp (8b)
+                                header: bytes = struct.pack('<BBd', p_type, is_keyframe, time_sec)
                                 
-                            for q, loop in clients:
-                                if not q.full():
-                                    loop.call_soon_threadsafe(q.put_nowait, broadcast_payload)
-                        except Exception as e:
-                            logger.error(f"StreamReader ({self.camera_name}): WS Broadcast error: {e}")
+                                if stream_type == 'video':
+                                    if is_keyframe:
+                                        with self.lock:
+                                            lh: bytes = self.last_headers or b''
+                                            self.last_keyframe = header + lh + raw_data
+                                    
+                                    broadcast_payload = header + raw_data
+                                    if is_keyframe and self.last_headers:
+                                        broadcast_payload = header + self.last_headers + raw_data
+                                else:
+                                    # Audio packet
+                                    broadcast_payload = header + raw_data
+                                    
+                                for q, loop in clients:
+                                    if not q.full():
+                                        loop.call_soon_threadsafe(q.put_nowait, broadcast_payload)
+                            except Exception as e:
+                                logger.error(f"StreamReader ({self.camera_name}): WS Broadcast error: {e}")
 
                     if stream_type == 'video':
                         for frame in packet.decode():

@@ -842,7 +842,8 @@
     "edit_group": "Modifier le groupe",
     "delete_group": "Supprimer le groupe",
     "cancel_selection": "Annuler la sélection",
-    "delete_selected_items": "Supprimer {{count}} éléments sélectionnés"
+    "delete_selected_items": "Supprimer {{count}} éléments sélectionnés",
+    "recording_reason": "Raison de l'enregistrement"
   },
   "live": {
     "title": "Vue en direct",
@@ -860,7 +861,8 @@
     "stop_recording": "Arrêter l'enregistrement",
     "start_recording": "Démarrer l'enregistrement continu",
     "hide_ptz": "Masquer les commandes PTZ",
-    "show_ptz": "Afficher les commandes PTZ"
+    "show_ptz": "Afficher les commandes PTZ",
+    "reconnecting": "Reconnexion..."
   },
   "settings_main": {
     "title": "Paramètres",

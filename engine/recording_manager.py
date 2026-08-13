@@ -38,10 +38,11 @@ import threading as _threading
 _threading.Thread(target=_probe_vaapi_init, daemon=True).start()
 
 class RecordingManager:
-    def __init__(self, camera_id, camera_name, config):
+    def __init__(self, camera_id, camera_name, config, stream_reader=None):
         self.camera_id = camera_id
         self.camera_name = camera_name
         self.config = config
+        self.stream_reader = stream_reader
         self.recording_process = None
         self.is_recording = False
         self.recording_filename = None
@@ -91,9 +92,9 @@ class RecordingManager:
             if not motion_detected and (time.time() - last_motion_time > post_cap):
                  stop_recording_cb()
 
-        if self.is_recording and self.passthrough_active and self.recording_process:
-             if self.recording_process.poll() is not None:
-                 logger.error(f"Camera {self.camera_name}: Passthrough recording process died unexpectedly. Falling back to transcoded recording.")
+        if self.is_recording and self.passthrough_active and hasattr(self, 'writer_thread'):
+             if not self.writer_thread.is_alive():
+                 logger.error(f"Camera {self.camera_name}: Passthrough PyAV writer thread died unexpectedly. Falling back to transcoded recording.")
                  self.stop_recording(None, frame.shape[1], frame.shape[0])
                  self.start_recording(frame.shape[1], frame.shape[0], None, event_callback=self.last_event_callback, reason="Fallback", trigger_source=trigger_source)
                  return True
@@ -125,35 +126,170 @@ class RecordingManager:
         except Exception:
             pass
 
-    def _start_passthrough_recording(self, full_path, width, height, event_callback):
-        audio_args = ['-c:a', 'aac', '-b:a', '128k'] if self.config.get('record_audio') else ['-an']
-        # Use frag_keyframe+empty_moov+default_base_moof so the moov atom is written at
-        # the START of the file (empty_moov) and a new fragment is flushed at each keyframe.
-        # This ensures the MP4 is always valid and playable even if FFmpeg is terminated
-        # mid-recording (unlike +faststart which requires a final mux pass at the end).
-        command = [
-            'ffmpeg', '-y', '-rtsp_transport', self.config.get('rtsp_transport', 'tcp'), '-hide_banner', '-loglevel', 'error',
-            '-i', self.config['rtsp_url'], '-c:v', 'copy', *audio_args, '-f', 'mp4',
-            '-movflags', '+frag_keyframe+empty_moov+default_base_moof', full_path
-        ]
+    def _async_pyav_passthrough_writer(self, full_path, q, cam_name, width, height, event_callback):
+        import av
+        out_container = None
+        out_vid = None
+        out_aud = None
+        resampler = None
+        
+        start_dts = None
+        start_pts_vid = None
+        start_pts_aud = None
+        last_muxed_dts = -1
+        
+        waiting_for_keyframe = True
+        
         try:
-            from ai_detector import AIDetector
-            ai_lock = AIDetector().inference_lock
-            with ai_lock:
-                self.recording_process = subprocess.Popen(command, stderr=subprocess.PIPE)
-            threading.Thread(target=self._monitor_ffmpeg_logs, args=(self.recording_process,), daemon=True).start()
+            while not out_container:
+                if not self.is_recording:
+                    return
+                if self.stream_reader and self.stream_reader.video_stream:
+                    # Use fragmented MP4 flags to support priming samples and negative PTS
+                    out_container = av.open(full_path, mode='w', format='mp4', 
+                                            options={'movflags': '+frag_keyframe+empty_moov+default_base_moof'})
+                    out_vid = out_container.add_stream(template=self.stream_reader.video_stream)
+                    
+                    if self.stream_reader.audio_stream and self.config.get('record_audio'):
+                        in_aud = self.stream_reader.audio_stream
+                        if in_aud.name == 'aac':
+                            out_aud = out_container.add_stream(template=in_aud)
+                        else:
+                            out_aud = out_container.add_stream('aac', rate=max(in_aud.rate or 8000, 8000))
+                            resampler = av.AudioResampler(
+                                format=out_aud.format, layout=out_aud.layout, rate=out_aud.rate
+                            )
+                else:
+                    time.sleep(0.1)
+                    
+            if event_callback:
+                event_callback(self.camera_id, 'recording_start', {"file_path": full_path, "width": width, "height": height})
+                
+            while True:
+                if not self.is_recording and q.empty():
+                    break
+                try:
+                    original_packet = q.get(timeout=1.0)
+                    if original_packet is None:
+                        break
+                        
+                    # Deep copy the packet to avoid modifying the shared instance across threads
+                    packet = av.Packet(bytes(original_packet))
+                    packet.pts = original_packet.pts
+                    packet.dts = original_packet.dts
+                    if original_packet.time_base is not None:
+                        packet.time_base = original_packet.time_base
+                        
+                    packet_stream_type = original_packet.stream.type
+                    
+                    is_keyframe = getattr(original_packet, 'is_keyframe', False)
+                    if waiting_for_keyframe:
+                        if packet_stream_type == 'video' and is_keyframe:
+                            waiting_for_keyframe = False
+                            start_dts = packet.dts
+                            start_pts_vid = packet.pts
+                        else:
+                            continue
+                            
+                    if packet_stream_type == 'video':
+                        packet.stream = out_vid
+                        
+                        if start_dts is not None:
+                            if packet.dts is not None:
+                                raw_dts = packet.dts - start_dts
+                                if raw_dts <= last_muxed_dts:
+                                    offset = (last_muxed_dts - raw_dts) + 3000
+                                    start_dts -= offset
+                                    if start_pts_vid is not None:
+                                        start_pts_vid -= offset
+                                    raw_dts = packet.dts - start_dts
+                                packet.dts = raw_dts
+                            else:
+                                packet.dts = last_muxed_dts + 3000
+                                
+                            last_muxed_dts = packet.dts
+                            
+                        if start_pts_vid is not None and packet.pts is not None:
+                            packet.pts -= start_pts_vid
+                            
+                        if packet.dts is not None and packet.pts is not None and packet.dts > packet.pts:
+                            packet.pts = packet.dts
+                        elif packet.pts is None and packet.dts is not None:
+                            packet.pts = packet.dts
+
+                        out_container.mux(packet)
+                        
+                    elif packet_stream_type == 'audio' and out_aud:
+                        if resampler:
+                            if start_pts_aud is None and packet.pts is not None:
+                                start_pts_aud = packet.pts
+                            try:
+                                # Use original_packet for decoding to access its internal codec context
+                                # MUST lock decoding because libavcodec codec context is NOT thread-safe
+                                decoded_frames = []
+                                with self.stream_reader.audio_decode_lock:
+                                    decoded_frames = original_packet.decode()
+                                    
+                                for frame in decoded_frames:
+                                    frame.pts = None
+                                    for r_frame in resampler.resample(frame):
+                                        for enc_packet in out_aud.encode(r_frame):
+                                            out_container.mux(enc_packet)
+                            except Exception:
+                                pass
+                        else:
+                            packet.stream = out_aud
+                            if start_dts is not None and packet.dts is not None:
+                                packet.dts -= start_dts
+                            if start_dts is not None and packet.pts is not None:
+                                packet.pts -= start_dts
+                            out_container.mux(packet)
+                except queue.Empty:
+                    continue
+                    
+            if out_aud and resampler:
+                for enc_packet in out_aud.encode(None):
+                    out_container.mux(enc_packet)
+                    
+        except Exception as e:
+            logger.error(f"Camera {cam_name}: Async PyAV passthrough writer died: {e}")
+        finally:
+            if out_container:
+                try:
+                    out_container.close()
+                except Exception:
+                    pass
+            if self.stream_reader:
+                self.stream_reader.unsubscribe_packets(q)
+
+    def _start_passthrough_recording(self, full_path, width, height, event_callback):
+        try:
+            self.passthrough_queue = queue.Queue(maxsize=1500)
             self.is_recording = True
             self.recording_filename = full_path
             self.recording_start_time = time.time()
-            if event_callback:
-                event_callback(self.camera_id, 'recording_start', {"file_path": full_path, "width": width, "height": height})
-            logger.info(f"Camera {self.camera_name}: Started Passthrough Recording")
-            return
+            
+            # Subscribe to the stream reader to get the pre-buffer and live packets
+            if self.stream_reader:
+                reason = getattr(self, 'current_recording_reason', 'unknown').lower()
+                # Continuous segments shouldn't get the pre-buffer again, only motion events
+                include_prebuf = (reason != 'continuous')
+                self.stream_reader.subscribe_packets(self.passthrough_queue, include_prebuffer=include_prebuf)
+                
+            self.writer_thread = threading.Thread(
+                target=self._async_pyav_passthrough_writer, 
+                args=(full_path, self.passthrough_queue, self.camera_name, width, height, event_callback), 
+                daemon=True
+            )
+            self.writer_thread.start()
+            
+            logger.info(f"Camera {self.camera_name}: Started Passthrough Recording (PyAV Direct Muxing)")
+            return True
         except Exception as e:
-            logger.error(f"Camera {self.camera_name}: Failed to start Passthrough ffmpeg: {e}")
+            logger.error(f"Camera {self.camera_name}: Failed to start Passthrough PyAV writer: {e}")
             self.passthrough_active = False
             self.is_recording = False
-            return
+            return False
 
     def _async_ffmpeg_writer(self, proc, q, cam_name, w, h, do_resize):
         try:
@@ -315,33 +451,35 @@ class RecordingManager:
     def stop_recording(self, event_callback=None, width=0, height=0):
         if not self.is_recording: return
         logger.info(f"[RECORDING] Camera {self.camera_name} (ID: {self.camera_id}): Stop Recording")
-        if self.recording_process:
-            if self.passthrough_active:
-                # Send SIGTERM first — for fragmented MP4 (frag_keyframe+empty_moov) FFmpeg
-                # does NOT need to rewrite the moov; all fragments are already flushed.
-                # A short timeout is sufficient.
-                self.recording_process.terminate()
-                try: self.recording_process.wait(timeout=5)
-                except subprocess.TimeoutExpired: self.recording_process.kill()
-            else:
-                # Signal writer thread to stop and wait for it to flush
-                if hasattr(self, 'frame_queue'):
-                    try:
-                        self.frame_queue.put_nowait(None)
-                    except queue.Full:
-                        pass
-                if hasattr(self, 'writer_thread') and self.writer_thread:
-                    self.writer_thread.join(timeout=30.0)
-                    
-                # The writer thread automatically closes stdin when it finishes processing the queue.
-                # Now we just wait for FFmpeg to finalize the moov atom (+faststart index).
-
-                try: self.recording_process.wait(timeout=15)
-                except subprocess.TimeoutExpired:
-                    logger.warning(f"Camera {self.camera_name}: FFmpeg did not finish in 15s, killing process")
-                    self.recording_process.kill()
-            self.recording_process = None
+        
         self.is_recording = False
+        
+        if self.passthrough_active:
+            if hasattr(self, 'passthrough_queue'):
+                try:
+                    self.passthrough_queue.put_nowait(None)
+                except queue.Full:
+                    pass
+            if hasattr(self, 'writer_thread') and self.writer_thread:
+                self.writer_thread.join(timeout=10.0)
+        elif self.recording_process:
+            # Signal writer thread to stop and wait for it to flush
+            if hasattr(self, 'frame_queue'):
+                try:
+                    self.frame_queue.put_nowait(None)
+                except queue.Full:
+                    pass
+            if hasattr(self, 'writer_thread') and self.writer_thread:
+                self.writer_thread.join(timeout=30.0)
+                
+            # The writer thread automatically closes stdin when it finishes processing the queue.
+            # Now we just wait for FFmpeg to finalize the moov atom (+faststart index).
+
+            try: self.recording_process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                logger.warning(f"Camera {self.camera_name}: FFmpeg did not finish in 15s, killing process")
+                self.recording_process.kill()
+            self.recording_process = None
         
         time.sleep(0.5)
         

@@ -63,8 +63,8 @@ class CameraThread(threading.Thread):
                 rtsp_transport=self.config.get('sub_rtsp_transport', 'tcp')
             )
         self.motion_detector = MotionDetector(self.camera_id, self.config.get('name', str(camera_id)), self.config)
-        self.continuous_recorder = RecordingManager(self.camera_id, self.config.get('name', str(camera_id)), self.config)
-        self.motion_recorder = RecordingManager(self.camera_id, self.config.get('name', str(camera_id)), self.config)
+        self.continuous_recorder = RecordingManager(self.camera_id, self.config.get('name', str(camera_id)), self.config, stream_reader=self.stream_reader)
+        self.motion_recorder = RecordingManager(self.camera_id, self.config.get('name', str(camera_id)), self.config, stream_reader=self.stream_reader)
         self.ai_detector = AIDetector(self.camera_id, self.config)
         
         # Buffered results for UI

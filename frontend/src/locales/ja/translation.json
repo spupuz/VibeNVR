@@ -840,7 +840,8 @@
     "edit_group": "グループの編集",
     "delete_group": "グループの削除",
     "cancel_selection": "選択をキャンセルする",
-    "delete_selected_items": "選択した {{count}} 個のアイテムを削除します"
+    "delete_selected_items": "選択した {{count}} 個のアイテムを削除します",
+    "recording_reason": "録音理由"
   },
   "live": {
     "title": "ライブビュー",
@@ -858,7 +859,8 @@
     "stop_recording": "録音を停止する",
     "start_recording": "連続録画を開始する",
     "hide_ptz": "PTZ コントロールを非表示にする",
-    "show_ptz": "PTZ コントロールを表示"
+    "show_ptz": "PTZ コントロールを表示",
+    "reconnecting": "再接続中..."
   },
   "settings_main": {
     "title": "設定",

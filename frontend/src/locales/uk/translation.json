@@ -847,7 +847,8 @@
     "edit_group": "Редагувати групу",
     "delete_group": "Видалити групу",
     "cancel_selection": "Скасувати вибір",
-    "delete_selected_items": "Видалити вибрані елементи ({{count}})."
+    "delete_selected_items": "Видалити вибрані елементи ({{count}}).",
+    "recording_reason": "Причина запису"
   },
   "live": {
     "title": "Прямий ефір",
@@ -865,7 +866,8 @@
     "stop_recording": "Зупинити запис",
     "start_recording": "Почніть безперервний запис",
     "hide_ptz": "Приховати елементи керування PTZ",
-    "show_ptz": "Показати елементи керування PTZ"
+    "show_ptz": "Показати елементи керування PTZ",
+    "reconnecting": "Повторне підключення..."
   },
   "settings_main": {
     "title": "Налаштування",

@@ -87,6 +87,11 @@ const VideoPlayer = ({
                     });
                     setLoadState('loaded');
                     retryCount = 0; // Reset on success
+                } else if (response.status === 503 || response.status === 502 || response.status === 504) {
+                    // Graceful reconnect: server is restarting the stream
+                    // We don't set 'error' so it keeps the last frame visible
+                    setLoadState('reconnecting');
+                    retryCount++;
                 } else if (response.status === 401 || response.status === 403) {
                     setLoadState('unauthorized');
                     retryCount++;
@@ -131,9 +136,9 @@ const VideoPlayer = ({
         if (status === 'metadata-only') {
             console.log(`[LiveView] Camera ${camera.id}: Metadata-only mode. WS open for AI boxes, video via MJPEG.`);
             setUseMetadataOnly(true);
-            setLoadState('loaded');
+            // Don't set loadState to 'loaded' here if we are falling back, let JPEG polling handle video state!
+            if (useWebCodecs) setLoadState('loaded');
         } else if (status === 'unsupported') {
-            // Hard fail: VideoDecoder not supported in this browser — switch permanently
             console.warn(`[LiveView] VideoDecoder unsupported for Camera ${camera.id}. Switching to JPEG polling.`);
             if (!window.isSecureContext) {
                 showToast(`${camera.name}: WebCodecs requires HTTPS/localhost. Falling back to MJPEG.`, 'warning');
@@ -141,15 +146,16 @@ const VideoPlayer = ({
                 showToast(`${camera.name}: WebCodecs unsupported. Falling back to MJPEG.`, 'info');
             }
             setStreamMode('fallback');
-            setLoadState('loading');
+            // Don't reset loadState if we are already handling fallback
         } else if (status === 'error') {
-            // WebCodecsPlayer exhausted all retries — fall back to JPEG polling
             console.warn(`[LiveView] WebCodecs exhausted retries for Camera ${camera.id}. Switching to JPEG polling.`);
             showToast(`${camera.name}: Stream error. Falling back to MJPEG.`, 'error');
             setStreamMode('fallback');
-            setLoadState('loading');
         } else {
-            setLoadState(status);
+            // ONLY let WebCodecsPlayer manage the loadState if it's actually rendering the video!
+            if (useWebCodecs && !useMetadataOnly) {
+                setLoadState(status);
+            }
         }
     };
 
@@ -373,9 +379,14 @@ const VideoPlayer = ({
                         />
                     )}
 
-                    {loadState === 'loading' && (
-                        <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-black/90">
-                            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    {(loadState === 'loading' || loadState === 'reconnecting' || loadState === 'connecting') && (
+                        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-20 transition-all duration-300">
+                            <div className="w-8 h-8 border-2 border-white/80 border-t-transparent rounded-full animate-spin"></div>
+                            {loadState === 'reconnecting' && (
+                                <span className="mt-3 text-white/90 text-xs font-semibold tracking-wider uppercase animate-pulse">
+                                    {t('live.reconnecting', 'Reconnecting...')}
+                                </span>
+                            )}
                         </div>
                     )}
 

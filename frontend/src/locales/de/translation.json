@@ -836,7 +836,8 @@
     "edit_group": "Gruppe bearbeiten",
     "delete_group": "Gruppe löschen",
     "cancel_selection": "Auswahl abbrechen",
-    "delete_selected_items": "{{count}} ausgewählte Elemente löschen"
+    "delete_selected_items": "{{count}} ausgewählte Elemente löschen",
+    "recording_reason": "Aufnahmegrund"
   },
   "live": {
     "title": "Live-Ansicht",
@@ -853,7 +854,8 @@
     "stop_recording": "Stoppen Sie die Aufnahme",
     "start_recording": "Starten Sie die kontinuierliche Aufnahme",
     "hide_ptz": "PTZ-Steuerung ausblenden",
-    "show_ptz": "PTZ-Steuerung anzeigen"
+    "show_ptz": "PTZ-Steuerung anzeigen",
+    "reconnecting": "Verbindung wird wieder hergestellt..."
   },
   "settings_main": {
     "title": "Einstellungen",

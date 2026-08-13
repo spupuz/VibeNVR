@@ -848,7 +848,8 @@
     "edit_group": "Edit Group",
     "delete_group": "Delete Group",
     "cancel_selection": "Cancel selection",
-    "delete_selected_items": "Delete {{count}} selected items"
+    "delete_selected_items": "Delete {{count}} selected items",
+    "recording_reason": "Recording Reason"
   },
   "live": {
     "title": "Live View",
@@ -866,7 +867,8 @@
     "stop_recording": "Stop Recording",
     "start_recording": "Start Continuous Recording",
     "hide_ptz": "Hide PTZ Controls",
-    "show_ptz": "Show PTZ Controls"
+    "show_ptz": "Show PTZ Controls",
+    "reconnecting": "Reconnecting..."
   },
   "settings_main": {
     "title": "Settings",

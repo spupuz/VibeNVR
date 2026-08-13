@@ -839,7 +839,8 @@
     "edit_group": "Modifica gruppo",
     "delete_group": "Elimina gruppo",
     "cancel_selection": "Annulla la selezione",
-    "delete_selected_items": "Elimina {{count}} elementi selezionati"
+    "delete_selected_items": "Elimina {{count}} elementi selezionati",
+    "recording_reason": "Motivo della registrazione"
   },
   "live": {
     "title": "Vista Live",
@@ -857,7 +858,8 @@
     "stop_recording": "Interrompi la registrazione",
     "start_recording": "Avvia la registrazione continua",
     "hide_ptz": "Nascondi controlli PTZ",
-    "show_ptz": "Mostra controlli PTZ"
+    "show_ptz": "Mostra controlli PTZ",
+    "reconnecting": "Riconnessione..."
   },
   "settings_main": {
     "title": "Impostazioni",

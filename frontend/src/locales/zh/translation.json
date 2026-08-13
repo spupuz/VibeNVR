@@ -846,7 +846,8 @@
     "edit_group": "编辑组",
     "delete_group": "删除组",
     "cancel_selection": "取消选择",
-    "delete_selected_items": "删除 {{count}} 个所选项目"
+    "delete_selected_items": "删除 {{count}} 个所选项目",
+    "recording_reason": "录音原因"
   },
   "live": {
     "title": "实时视图",
@@ -864,7 +865,8 @@
     "stop_recording": "停止录音",
     "start_recording": "开始连续录制",
     "hide_ptz": "隐藏 PTZ 控件",
-    "show_ptz": "显示 PTZ 控件"
+    "show_ptz": "显示 PTZ 控件",
+    "reconnecting": "正在重新连接..."
   },
   "settings_main": {
     "title": "设置",
