@@ -23,14 +23,16 @@ def _validate_webhook_url(value: str):
             raise ValueError('Invalid URL format')
         host = parsed.hostname
         try:
-            ip_addr = ipaddress.ip_address(host)
+            ip_addrs = [ipaddress.ip_address(host)]
         except ValueError:
             try:
-                ip_addr = ipaddress.ip_address(socket.gethostbyname(host))
+                addr_info = socket.getaddrinfo(host, None)
+                ip_addrs = [ipaddress.ip_address(res[4][0]) for res in addr_info]
             except Exception:
                 return
-        if ip_addr.is_loopback or ip_addr.is_unspecified or ip_addr.is_link_local or ip_addr.is_multicast:
-            raise ValueError(f'Webhook cannot target internal/restricted IP ranges ({ip_addr})')
+        for ip_addr in ip_addrs:
+            if ip_addr.is_loopback or ip_addr.is_unspecified or ip_addr.is_link_local or ip_addr.is_multicast:
+                raise ValueError(f'Webhook cannot target internal/restricted IP ranges ({ip_addr})')
     except Exception as e:
         if isinstance(e, ValueError): raise e
         raise ValueError(f'Invalid or unreachable URL: {str(e)}')

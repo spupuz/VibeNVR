@@ -24,16 +24,18 @@ class TestNotificationConfig(BaseModel):
                     if not host:
                         raise ValueError('Invalid URL format: missing host')
                     try:
-                        ip_addr = ipaddress.ip_address(host)
+                        ip_addrs = [ipaddress.ip_address(host)]
                     except ValueError:
                         try:
-                            ip_addr = ipaddress.ip_address(socket.gethostbyname(host))
+                            addr_info = socket.getaddrinfo(host, None)
+                            ip_addrs = [ipaddress.ip_address(res[4][0]) for res in addr_info]
                         except Exception:
                             return self
-                    if ip_addr.is_loopback or ip_addr.is_private or ip_addr.is_reserved or ip_addr.is_link_local:
-                        # Skip strictly blocking for local lab/test environments if explicitly intended
-                        # In a real production SaaS this should be True, but for VibeNVR local it's often needed.
-                        pass 
+                    for ip_addr in ip_addrs:
+                        if ip_addr.is_loopback or ip_addr.is_private or ip_addr.is_reserved or ip_addr.is_link_local:
+                            # Skip strictly blocking for local lab/test environments if explicitly intended
+                            # In a real production SaaS this should be True, but for VibeNVR local it's often needed.
+                            pass
                 except Exception as e:
                     if isinstance(e, ValueError): raise e
                     raise ValueError(f'Invalid or unreachable URL: {str(e)}')
@@ -399,14 +401,16 @@ class CameraBase(BaseModel):
             # Resolve IP to check for private networks (Basic SSRF protection)
             # Note: This has race conditions (DNS rebinding) but good for "Vibe Coding" level
             try:
-                ip_str = socket.gethostbyname(hostname)
-                ip = ipaddress.ip_address(ip_str)
-                if ip.is_loopback or ip.is_private or ip.is_reserved:
-                    # Strict SSRF Protection: Block access to internal/private networks
-                    # This prevents targeting other containers (db, engine) or local services.
-                    # Exception: User might need local IPs for Home Assistant, 
-                    # but for security we block by default.
-                    raise ValueError(f'Webhook cannot target private or reserved IP ranges ({ip_str})')
+                addr_info = socket.getaddrinfo(hostname, None)
+                for res in addr_info:
+                    ip_str = res[4][0]
+                    ip = ipaddress.ip_address(ip_str)
+                    if ip.is_loopback or ip.is_private or ip.is_reserved:
+                        # Strict SSRF Protection: Block access to internal/private networks
+                        # This prevents targeting other containers (db, engine) or local services.
+                        # Exception: User might need local IPs for Home Assistant,
+                        # but for security we block by default.
+                        raise ValueError(f'Webhook cannot target private or reserved IP ranges ({ip_str})')
             except socket.gaierror:
                 pass # DNS fail - might be unreachable, but let requests handle it?
                 
@@ -698,7 +702,7 @@ class OnvifDeepScanRequest(BaseModel):
         except ValueError:
             # Check if it's a valid hostname
             try:
-                socket.gethostbyname(v)
+                socket.getaddrinfo(v, None)
             except socket.gaierror:
                 raise ValueError('Invalid IP address or unreachable hostname')
         return v
@@ -750,7 +754,7 @@ class OnvifProbeRequest(BaseModel):
         except ValueError:
             # Check if it's a valid hostname
             try:
-                socket.gethostbyname(v)
+                socket.getaddrinfo(v, None)
             except socket.gaierror:
                 raise ValueError('Invalid IP address or unreachable hostname')
         return v

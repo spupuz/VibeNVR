@@ -137,21 +137,21 @@ def test_validate_webhook_url_invalid_format():
     with pytest.raises(ValueError, match="Invalid URL format"):
         _validate_webhook_url("not a url")
 
-@patch("socket.gethostbyname")
-def test_validate_webhook_url_valid_hostname(mock_gethostbyname):
+@patch("socket.getaddrinfo")
+def test_validate_webhook_url_valid_hostname(mock_getaddrinfo):
     """Test valid hostname that resolves to IP."""
-    mock_gethostbyname.return_value = "8.8.8.8"
+    mock_getaddrinfo.return_value = [(2, 1, 6, '', ('8.8.8.8', 0))]
     # Should not raise exception
     _validate_webhook_url("http://example.com/api/webhook")
-    mock_gethostbyname.assert_called_once_with("example.com")
+    mock_getaddrinfo.assert_called_once_with("example.com", None)
 
-@patch("socket.gethostbyname")
-def test_validate_webhook_url_unresolvable_hostname(mock_gethostbyname):
+@patch("socket.getaddrinfo")
+def test_validate_webhook_url_unresolvable_hostname(mock_getaddrinfo):
     """Test hostname that cannot be resolved."""
-    mock_gethostbyname.side_effect = Exception("DNS lookup failed")
-    # The code catches Exception from socket.gethostbyname and simply returns
+    mock_getaddrinfo.side_effect = Exception("DNS lookup failed")
+    # The code catches Exception from socket.getaddrinfo and simply returns
     _validate_webhook_url("http://unresolvable.local")
-    mock_gethostbyname.assert_called_once_with("unresolvable.local")
+    mock_getaddrinfo.assert_called_once_with("unresolvable.local", None)
 
 def test_validate_setting_invalid_webhook_url():
     # Test invalid URL format
