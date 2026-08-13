@@ -53,8 +53,17 @@ export const CopySettingsModal = ({
                                 {CAMERA_SETTINGS_CATEGORIES.map(cat => (
                                     <div
                                         key={cat.id}
-                                        className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors ${selectedCategories.includes(cat.id) ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'hover:bg-muted text-muted-foreground'}`}
+                                        role="checkbox"
+                                        aria-checked={selectedCategories.includes(cat.id)}
+                                        tabIndex={0}
+                                        className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${selectedCategories.includes(cat.id) ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'hover:bg-muted text-muted-foreground'}`}
                                         onClick={() => toggleCategory(cat.id)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                toggleCategory(cat.id);
+                                            }
+                                        }}
                                     >
                                         <span className="text-sm font-medium">{cat.label}</span>
                                         <div className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${selectedCategories.includes(cat.id) ? 'bg-blue-500 border-blue-500' : 'border-muted-foreground/30'}`}>
@@ -64,8 +73,8 @@ export const CopySettingsModal = ({
                                 ))}
                             </div>
                             <div className="flex gap-2 mt-2">
-                                <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline" onClick={() => setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id))}>{t('cameras.select_all', 'Select All')}</button>
-                                <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline" onClick={() => setSelectedCategories([])}>{t('cameras.clear', 'Clear')}</button>
+                                <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id))}>{t('cameras.select_all', 'Select All')}</button>
+                                <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setSelectedCategories([])}>{t('cameras.clear', 'Clear')}</button>
                             </div>
                         </div>
 
@@ -76,12 +85,25 @@ export const CopySettingsModal = ({
                                 {cameras.filter(c => c.id !== editingId).map(cam => (
                                     <div
                                         key={cam.id}
-                                        className={`flex items-center p-2 rounded-md cursor-pointer transition-colors ${copyTargets.includes(cam.id) ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-muted-foreground'}`}
+                                        role="checkbox"
+                                        aria-checked={copyTargets.includes(cam.id)}
+                                        tabIndex={0}
+                                        className={`flex items-center p-2 rounded-md cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${copyTargets.includes(cam.id) ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-muted-foreground'}`}
                                         onClick={() => {
                                             if (copyTargets.includes(cam.id)) {
                                                 setCopyTargets(copyTargets.filter(id => id !== cam.id));
                                             } else {
                                                 setCopyTargets([...copyTargets, cam.id]);
+                                            }
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                if (copyTargets.includes(cam.id)) {
+                                                    setCopyTargets(copyTargets.filter(id => id !== cam.id));
+                                                } else {
+                                                    setCopyTargets([...copyTargets, cam.id]);
+                                                }
                                             }
                                         }}
                                     >
@@ -99,8 +121,8 @@ export const CopySettingsModal = ({
                                 )}
                             </div>
                             <div className="flex gap-2 mt-2">
-                                <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline" onClick={() => setCopyTargets(cameras.filter(c => c.id !== editingId).map(c => c.id))}>{t('cameras.select_all', 'Select All')}</button>
-                                <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline" onClick={() => setCopyTargets([])}>{t('cameras.clear', 'Clear')}</button>
+                                <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setCopyTargets(cameras.filter(c => c.id !== editingId).map(c => c.id))}>{t('cameras.select_all', 'Select All')}</button>
+                                <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setCopyTargets([])}>{t('cameras.clear', 'Clear')}</button>
                             </div>
                         </div>
                     </div>

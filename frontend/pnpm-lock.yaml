@@ -33,6 +33,9 @@ importers:
       i18next-browser-languagedetector:
         specifier: ^8.2.1
         version: 8.2.1
+      jmuxer:
+        specifier: ^2.1.1
+        version: 2.1.1
       lucide-react:
         specifier: ^0.473.0
         version: 0.473.0(react@19.2.7)
@@ -1296,6 +1299,9 @@ packages:
   jiti@1.21.7:
     resolution: {integrity: sha512-/imKNG4EbWNrVjoNC/1H5/9GFy+tqjGBHCaSsN+P2RnPqjsLmv6UD3Ej+Kj8nBWaRAwyk7kK5ZUc+OEatnTR3A==}
     hasBin: true
+
+  jmuxer@2.1.1:
+    resolution: {integrity: sha512-3UoON/ghRpXS0xA8mQcXn0aN0Sb1JD3kWfaag4V8P118O1iZOkcLd559QnByyuRPtsP0zn6G+L4H0hZueGbP/g==}
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -3260,6 +3266,8 @@ snapshots:
       '@pkgjs/parseargs': 0.11.0
 
   jiti@1.21.7: {}
+
+  jmuxer@2.1.1: {}
 
   js-tokens@4.0.0: {}
 
