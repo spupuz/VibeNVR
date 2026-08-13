@@ -91,6 +91,7 @@ class MQTTService:
                 from core import manager
                 for camera_id, thread in manager.cameras.items():
                     self.publish_discovery(camera_id, thread.config.get("name", f"Camera {camera_id}"))
+                    self.publish_status(camera_id, thread.get_health())
             except Exception as e:
                 logger.error(f"Failed to send initial discovery: {e}")
         else:
