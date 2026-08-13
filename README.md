@@ -249,6 +249,29 @@ VibeNVR integrates perfectly with [gethomepage.dev](https://gethomepage.dev/) us
 
 ---
 
+## 🎥 Live View Streaming Architecture
+
+VibeNVR employs a dynamic, 3-stage fallback architecture to ensure the lowest possible latency across different network conditions while respecting modern browser security constraints:
+
+1. **WebCodecs (WS / H.264) - Primary**
+   - **Latency**: Ultra-low (<200ms).
+   - **Requirement**: **MUST** be accessed via a Secure Context (HTTPS or localhost). Modern browsers block the `VideoDecoder` API over plain HTTP.
+   - **Experience**: The intended, full-hardware-accelerated live view.
+
+2. **MSE via JMuxer (MSE / H.264) - Intermediate Fallback**
+   - **Latency**: Low (~1.5s).
+   - **Requirement**: Works on plain HTTP (e.g., local LAN IPs like `http://192.168.1.100`).
+   - **Experience**: If you deploy VibeNVR locally without a reverse proxy or SSL certificates, the player will gracefully degrade to Media Source Extensions (MSE). You still get fluid 30fps H.264 video and perfectly synced G.711 audio without the steep requirement of setting up a local CA or domain.
+
+3. **MJPEG Polling (JPEG Poll) - Final Failsafe**
+   - **Latency**: High (1-5fps).
+   - **Requirement**: Works everywhere.
+   - **Experience**: Used automatically if the stream encounters severe decoding errors or if accessed from a legacy/unsupported browser.
+
+*Note: The active transport method is always displayed in the upper-left corner of each camera card in the UI.*
+
+---
+
 ## 🌐 Production Deployment (Nginx Proxy Manager)
 
 Since VibeNVR binds to `127.0.0.1` by default, you **MUST** use a Reverse Proxy to access it from other computers or the internet.

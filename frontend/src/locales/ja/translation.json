@@ -80,7 +80,8 @@
     "copy": "コピー",
     "clear": "クリア",
     "export": "輸出",
-    "validating": "検証中..."
+    "validating": "検証中...",
+    "dismiss": "却下する"
   },
   "login": {
     "welcome_back": "お帰りなさい",
@@ -543,7 +544,8 @@
     "archive_help": "古い録音をこのプロファイルに自動的に移動します。",
     "archive_after_hours": "アーカイブ後 (時間)",
     "archive_hours_help": "移動するまで何時間も待つ。",
-    "stream_validation_failed": "ストリーム URL の検証に失敗しました。既存の作業構成を保持します。"
+    "stream_validation_failed": "ストリーム URL の検証に失敗しました。既存の作業構成を保持します。",
+    "ptz.audio_requires_stream": "音声には WebCodecs または MSE の再生が必要です"
   },
   "settings": {
     "general_preferences": "一般設定",
@@ -860,7 +862,10 @@
     "start_recording": "連続録画を開始する",
     "hide_ptz": "PTZ コントロールを非表示にする",
     "show_ptz": "PTZ コントロールを表示",
-    "reconnecting": "再接続中..."
+    "reconnecting": "再接続中...",
+    "insecure_warning_title": "HTTP接続が検出されました",
+    "insecure_warning_desc": "最高の超低遅延エクスペリエンス (WebCodecs) を実現するには、リバース プロキシを使用して HTTPS 経由で VibeNVR にアクセスすることをお勧めします。最近のブラウザではプレーン HTTP でのハードウェア アクセラレーションが制限されているため、VibeNVR が MSE にフォールバックします。",
+    "dont_show_again": "これを二度と表示しないでください"
   },
   "settings_main": {
     "title": "設定",

@@ -80,7 +80,8 @@
     "copy": "Copiar",
     "clear": "Claro",
     "export": "Exportar",
-    "validating": "Validando..."
+    "validating": "Validando...",
+    "dismiss": "Despedir"
   },
   "login": {
     "welcome_back": "Bienvenido de nuevo",
@@ -542,7 +543,8 @@
     "archive_help": "Mueve automáticamente grabaciones antiguas a este perfil.",
     "archive_after_hours": "Archivar después (horas)",
     "archive_hours_help": "Horas de espera antes de mudarse.",
-    "stream_validation_failed": "No se pudieron validar las URL de transmisión. Conservar la configuración de trabajo existente."
+    "stream_validation_failed": "No se pudieron validar las URL de transmisión. Conservar la configuración de trabajo existente.",
+    "ptz.audio_requires_stream": "El audio requiere WebCodecs o reproducción MSE"
   },
   "settings": {
     "general_preferences": "Preferencias generales",
@@ -858,7 +860,10 @@
     "start_recording": "Iniciar grabación continua",
     "hide_ptz": "Ocultar controles PTZ",
     "show_ptz": "Mostrar controles PTZ",
-    "reconnecting": "Reconectando..."
+    "reconnecting": "Reconectando...",
+    "insecure_warning_title": "Conexión HTTP detectada",
+    "insecure_warning_desc": "Para obtener la mejor experiencia de latencia ultrabaja (WebCodecs), recomendamos acceder a VibeNVR a través de HTTPS utilizando un proxy inverso. Los navegadores modernos restringen la aceleración de hardware en HTTP simple, lo que hace que VibeNVR recurra a MSE.",
+    "dont_show_again": "No vuelvas a mostrar esto"
   },
   "settings_main": {
     "title": "Ajustes",

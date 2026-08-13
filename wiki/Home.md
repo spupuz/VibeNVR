@@ -10,7 +10,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **[Configuration Reference](Configuration.md)** - Complete `.env` variable reference and production checklist.
 - **[Network & Proxy Setup](Network.md)** - Port forwarding and reverse proxy configurations.
 - **[Troubleshooting Guide](Troubleshooting.md)** - Solutions for common issues and bug reporting.
-- **[WebCodecs Streaming](WebCodecs-Streaming.md)** - Low-latency streaming tech and secure context requirements.
+- ** [Live View Streaming (MSE & WebCodecs)](Live-View-Streaming.md)** - Low-latency streaming tech and secure context requirements.
 - **[API Documentation](API.md)** - Detailed reference for integrating with the VibeNVR backend.
 - **[Access Recovery Guide](Access-Recovery.md)** - Securely regaining account access from the host terminal.
 - **[Storage Profiles](Storage-Profiles.md)** - Managing quotas and recording retention.

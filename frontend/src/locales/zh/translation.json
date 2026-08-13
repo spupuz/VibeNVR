@@ -80,7 +80,8 @@
     "copy": "复制",
     "clear": "清除",
     "export": "出口",
-    "validating": "正在验证..."
+    "validating": "正在验证...",
+    "dismiss": "解雇"
   },
   "login": {
     "welcome_back": "欢迎回来",
@@ -549,7 +550,8 @@
     "archive_help": "自动将旧录音移至此配置文件。",
     "archive_after_hours": "存档后（小时）",
     "archive_hours_help": "搬家前要等几个小时。",
-    "stream_validation_failed": "无法验证流 URL。保留现有的工作配置。"
+    "stream_validation_failed": "无法验证流 URL。保留现有的工作配置。",
+    "ptz.audio_requires_stream": "音频需要 WebCodecs 或 MSE 播放"
   },
   "settings": {
     "general_preferences": "常规首选项",
@@ -866,7 +868,10 @@
     "start_recording": "开始连续录制",
     "hide_ptz": "隐藏 PTZ 控件",
     "show_ptz": "显示 PTZ 控件",
-    "reconnecting": "正在重新连接..."
+    "reconnecting": "正在重新连接...",
+    "insecure_warning_title": "检测到 HTTP 连接",
+    "insecure_warning_desc": "为了获得最佳的超低延迟体验 (WebCodecs)，我们建议使用反向代理通过 HTTPS 访问 VibeNVR。现代浏览器限制纯 HTTP 上的硬件加速，导致 VibeNVR 回退到 MSE。",
+    "dont_show_again": "不要再显示这个"
   },
   "settings_main": {
     "title": "设置",

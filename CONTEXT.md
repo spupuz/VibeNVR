@@ -18,7 +18,7 @@
 ## 📐 Architecture Overview
 - The Backend manages the Engine module, which handles cameras via a modular architecture (`stream_reader`, `recording_manager`, `motion_detector`).
 - The Frontend communicates via REST API and **WebSockets** for live streaming.
-- **Live View**: Uses browser's native **WebCodecs API** (H.264 via WebSockets).
+- **Live View**: Uses a 3-stage fallback architecture: **WebCodecs API** (primary, requires HTTPS), **MSE via JMuxer** (intermediate, works on HTTP), and **MJPEG Polling** (failsafe). Audio is played via Web Audio API.
 - **Dual-Stream Optimization**: Dedicated sub-streams for grid views, while main streams handle recording/analysis.
 - **Tiered Storage Architecture**: Cameras can route specific events (Motion, Continuous, Snapshots) to distinct Storage Profiles with quota monitoring.
 - **Archival Subsystem**: Supports automated, scheduled archival of oldest events to secondary storage layers before primary quota deletion.

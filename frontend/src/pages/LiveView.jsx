@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, CameraOff, Maximize2, Minimize2, Settings, Image as ImageIcon, Play, Square, Power, Disc, Grid, X, Volume2, VolumeX, Move } from 'lucide-react';
+import { Camera, CameraOff, Maximize2, Minimize2, Settings, Image as ImageIcon, Play, Square, Power, Disc, Grid, X, Volume2, VolumeX, Move, AlertTriangle } from 'lucide-react';
 import { Toggle } from '../components/ui/FormControls';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../contexts/ToastContext';
 import { WebCodecsPlayer } from '../components/WebCodecsPlayer';
+import { MSEPlayer } from '../components/MSEPlayer';
 import { PTZControls } from '../components/Cameras/PTZControls';
 import { SortableVideoPlayerWrapper } from '../components/Cameras/SortableVideoPlayerWrapper';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -39,26 +40,32 @@ const VideoPlayer = ({
     const [showPTZ, setShowPTZ] = useState(false);
     const { hasPermission } = useAuth();
 
-    // 'webcodecs' = primary path (VideoDecoder available)
-    // 'fallback'  = JPEG polling (VideoDecoder unavailable or hard fail)
+    // 'webcodecs' = primary path (VideoDecoder available, HTTPS)
+    // 'mse'       = intermediate fallback (MediaSource available, works on HTTP)
+    // 'mjpeg'     = MJPEG polling (hard fail)
     const [streamMode, setStreamMode] = useState(() => {
         const preferred = camera.live_view_mode || 'auto';
         const hasWebCodecs = 'VideoDecoder' in window;
+        const hasMSE = 'MediaSource' in window;
 
-        if (preferred === 'mjpeg') return 'fallback';
+        if (preferred === 'mjpeg') return 'mjpeg';
         if (preferred === 'webcodecs') return 'webcodecs';
 
-        // 'auto' logic: skip WebCodecs in insecure HTTP (AI metadata-only mode handled by player)
+        // 'auto' logic: skip WebCodecs in insecure HTTP
         const isInsecureHTTP = !window.isSecureContext && window.location.protocol !== 'https:';
-        return (hasWebCodecs && !isInsecureHTTP) ? 'webcodecs' : 'fallback';
+        if (hasWebCodecs && !isInsecureHTTP) return 'webcodecs';
+        if (hasMSE) return 'mse';
+        return 'mjpeg';
     });
     const useWebCodecs = streamMode === 'webcodecs';
+    const useMSE = streamMode === 'mse';
+    const useMJPEG = streamMode === 'mjpeg';
     const [useMetadataOnly, setUseMetadataOnly] = useState(false);
     const mayNeedMetadataOnly = !window.isSecureContext && window.location.protocol !== 'https:';
 
     // JPEG Polling Fallback Logic
     useEffect(() => {
-        if (!token || useWebCodecs) return; // Skip if using WebCodecs
+        if (!token || !useMJPEG) return; // Skip if using WebCodecs or MSE
 
         mountedRef.current = true;
         let timeoutId = null;
@@ -104,7 +111,7 @@ const VideoPlayer = ({
                 setLoadState('error');
                 retryCount++;
             } finally {
-                if (mountedRef.current && !useWebCodecs) {
+                if (mountedRef.current && useMJPEG) {
                     // Backoff logic: if multiple errors, increase delay to avoid hammering the camera/IP ban
                     // max 10s delay
                     const baseDelay = isFocused ? 50 : 200;
@@ -130,30 +137,40 @@ const VideoPlayer = ({
                 return '';
             });
         };
-    }, [camera.id, token, index, isFocused, useWebCodecs]);
+    }, [camera.id, token, index, isFocused, useMJPEG]);
 
-    const handleWebCodecsState = (status) => {
+    const handlePlayerState = (status) => {
         if (status === 'metadata-only') {
             console.log(`[LiveView] Camera ${camera.id}: Metadata-only mode. WS open for AI boxes, video via MJPEG.`);
             setUseMetadataOnly(true);
-            // Don't set loadState to 'loaded' here if we are falling back, let JPEG polling handle video state!
-            if (useWebCodecs) setLoadState('loaded');
+            if (useWebCodecs || useMSE) setLoadState('loaded');
         } else if (status === 'unsupported') {
-            console.warn(`[LiveView] VideoDecoder unsupported for Camera ${camera.id}. Switching to JPEG polling.`);
-            if (!window.isSecureContext) {
-                showToast(`${camera.name}: WebCodecs requires HTTPS/localhost. Falling back to MJPEG.`, 'warning');
-            } else {
-                showToast(`${camera.name}: WebCodecs unsupported. Falling back to MJPEG.`, 'info');
+            if (useWebCodecs) {
+                console.warn(`[LiveView] VideoDecoder unsupported for Camera ${camera.id}. Falling back.`);
+                if (!window.isSecureContext && 'MediaSource' in window) {
+                    showToast(`${camera.name}: Insecure context. Falling back to MSE.`, 'info');
+                    setStreamMode('mse');
+                } else {
+                    showToast(`${camera.name}: WebCodecs unsupported. Falling back to MJPEG.`, 'warning');
+                    setStreamMode('mjpeg');
+                }
+            } else if (useMSE) {
+                console.warn(`[LiveView] MSE unsupported for Camera ${camera.id}. Falling back to MJPEG.`);
+                showToast(`${camera.name}: MSE unsupported. Falling back to MJPEG.`, 'warning');
+                setStreamMode('mjpeg');
             }
-            setStreamMode('fallback');
-            // Don't reset loadState if we are already handling fallback
         } else if (status === 'error') {
-            console.warn(`[LiveView] WebCodecs exhausted retries for Camera ${camera.id}. Switching to JPEG polling.`);
-            showToast(`${camera.name}: Stream error. Falling back to MJPEG.`, 'error');
-            setStreamMode('fallback');
+            console.warn(`[LiveView] Player exhausted retries for Camera ${camera.id}. Falling back.`);
+            if (useWebCodecs && 'MediaSource' in window) {
+                showToast(`${camera.name}: Stream error. Falling back to MSE.`, 'warning');
+                setStreamMode('mse');
+            } else {
+                showToast(`${camera.name}: Stream error. Falling back to MJPEG.`, 'error');
+                setStreamMode('mjpeg');
+            }
         } else {
-            // ONLY let WebCodecsPlayer manage the loadState if it's actually rendering the video!
-            if (useWebCodecs && !useMetadataOnly) {
+            // ONLY let Player manage the loadState if it's actually rendering the video!
+            if ((useWebCodecs || useMSE) && !useMetadataOnly) {
                 setLoadState(status);
             }
         }
@@ -270,7 +287,12 @@ const VideoPlayer = ({
                                 WS / H.264
                             </div>
                         )}
-                        {streamMode === 'fallback' && (
+                        {streamMode === 'mse' && (
+                            <div className="text-blue-400/80 text-[9px] mt-0.5 font-mono">
+                                MSE / H.264
+                            </div>
+                        )}
+                        {streamMode === 'mjpeg' && (
                             <div className="text-yellow-400/70 text-[9px] mt-0.5 font-mono">
                                 JPEG Poll
                             </div>
@@ -362,16 +384,25 @@ const VideoPlayer = ({
                 <img src="/no-signal.png" alt="No Signal" className="absolute inset-0 w-full h-full object-cover" />
             ) : (
                 <>
-                    {(useWebCodecs || camera.audio_enabled || useMetadataOnly || mayNeedMetadataOnly) && (
+                    {(useWebCodecs || (mayNeedMetadataOnly && useMJPEG) || (camera.audio_enabled && useMJPEG)) && !useMSE && (
                         <WebCodecsPlayer
                             camera={camera}
-                            onStateChange={handleWebCodecsState}
+                            onStateChange={handlePlayerState}
                             videoEnabled={useWebCodecs && !useMetadataOnly}
                             isAuditing={isAuditing}
                         />
                     )}
 
-                    {(!useWebCodecs || useMetadataOnly) && frameSrc && (
+                    {useMSE && (
+                        <MSEPlayer
+                            camera={camera}
+                            onStateChange={handlePlayerState}
+                            videoEnabled={!useMetadataOnly}
+                            isAuditing={isAuditing}
+                        />
+                    )}
+
+                    {useMJPEG && frameSrc && (
                         <img
                             src={frameSrc}
                             alt={camera.name}
@@ -396,7 +427,7 @@ const VideoPlayer = ({
                             onClose={() => setShowPTZ(false)} 
                             isAuditing={isAuditing}
                             onToggleAudio={onToggleAudio}
-                            isWebCodecPlayback={useWebCodecs}
+                            isAudioSupported={useWebCodecs || useMSE}
                         />
                     )}
                 </>
@@ -487,6 +518,21 @@ export const LiveView = () => {
             clearInterval(cameraInterval);
         };
     }, [token]);
+
+    const [showInsecureWarning, setShowInsecureWarning] = useState(() => {
+        const isHTTP = !window.isSecureContext && window.location.protocol !== 'https:';
+        const isHidden = localStorage.getItem('hideInsecureWarning') === 'true';
+        return isHTTP && !isHidden;
+    });
+
+    const [dontShowAgain, setDontShowAgain] = useState(false);
+
+    const dismissInsecureWarning = () => {
+        if (dontShowAgain) {
+            localStorage.setItem('hideInsecureWarning', 'true');
+        }
+        setShowInsecureWarning(false);
+    };
 
     const toggleFocus = (id) => {
         setFocusCameraId(prev => prev === id ? null : id);
@@ -616,6 +662,36 @@ export const LiveView = () => {
                     )}
                 </div>
             </div>
+
+            {showInsecureWarning && (
+                <div className="mb-4 bg-yellow-500/10 border border-yellow-500/30 text-yellow-700 dark:text-yellow-400 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-start sm:items-center gap-3">
+                        <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 sm:mt-0 text-yellow-500" />
+                        <div className="text-sm flex-1">
+                            <strong className="font-semibold block mb-1">{t('live.insecure_warning_title', 'HTTP Connection Detected')}</strong>
+                            <p className="opacity-90 leading-relaxed max-w-4xl mb-3">
+                                {t('live.insecure_warning_desc', 'For the best ultra-low latency experience (WebCodecs), we recommend accessing VibeNVR via HTTPS using a reverse proxy. Modern browsers restrict hardware acceleration on plain HTTP, causing VibeNVR to fall back to MSE.')}
+                            </p>
+                            <label className="flex items-center gap-2 text-xs font-medium cursor-pointer w-fit opacity-80 hover:opacity-100 transition-opacity">
+                                <input 
+                                    type="checkbox" 
+                                    className="rounded border-yellow-500/50 text-yellow-600 focus:ring-yellow-500/30 bg-transparent cursor-pointer"
+                                    checked={dontShowAgain}
+                                    onChange={(e) => setDontShowAgain(e.target.checked)}
+                                />
+                                {t('live.dont_show_again', "Don't show this again")}
+                            </label>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={dismissInsecureWarning}
+                        className="p-2 hover:bg-yellow-500/20 rounded-md transition-colors flex-shrink-0 self-start sm:self-auto"
+                        title={t('common.dismiss', 'Dismiss')}
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+            )}
 
             {/* Group View Render Logic */}
             {

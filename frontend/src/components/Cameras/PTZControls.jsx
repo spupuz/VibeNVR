@@ -9,7 +9,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import { useTranslation } from 'react-i18next';
 
-export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebCodecPlayback }) => {
+export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isAudioSupported }) => {
   const { t } = useTranslation();
     const { token } = useAuth();
     const { showToast } = useToast();
@@ -196,22 +196,22 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isWebC
             {camera.audio_enabled && (
                 <div className="absolute top-2 left-2 z-[110] pointer-events-auto">
                     <button
-                        onClick={() => isWebCodecPlayback && onToggleAudio(camera.id)}
+                        onClick={() => isAudioSupported && onToggleAudio(camera.id)}
                         onContextMenu={(e) => e.preventDefault()}
-                        disabled={!isWebCodecPlayback}
+                        disabled={!isAudioSupported}
                         className={`p-3 rounded-full border shadow-xl transition-all flex items-center justify-center
-                            ${!isWebCodecPlayback 
+                            ${!isAudioSupported 
                                 ? 'bg-background/80 border-border text-muted-foreground/60 cursor-not-allowed' 
                                 : isAuditing 
                                     ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary ring-offset-2 active:scale-95' 
                                     : 'bg-background/80 hover:bg-muted border-border text-muted-foreground active:scale-95'
                             }`}
-                        title={!isWebCodecPlayback 
-                            ? t('cameras.ptz.audio_requires_webcodecs', "Audio requires WebCodecs playback") 
+                        title={!isAudioSupported 
+                            ? t('cameras.ptz.audio_requires_stream', "Audio requires WebCodecs or MSE playback") 
                             : isAuditing ? t('cameras.ptz.stop_auditing', "Stop Auditing") : t('cameras.ptz.listen_live', "Listen Live")
                         }
-                        aria-label={!isWebCodecPlayback
-                            ? t('cameras.ptz.audio_requires_webcodecs', "Audio requires WebCodecs playback")
+                        aria-label={!isAudioSupported
+                            ? t('cameras.ptz.audio_requires_stream', "Audio requires WebCodecs or MSE playback")
                             : isAuditing ? t('cameras.ptz.stop_auditing', "Stop Auditing") : t('cameras.ptz.listen_live', "Listen Live")
                         }
                     >
