@@ -13,7 +13,8 @@ import { X, HardDrive, Trash2 } from 'lucide-react';
  * @param {Function} props.handleBulkDelete - Handler for bulk deletion
  * @param {Boolean} props.isBulkDeleting - Loading state for bulk delete action
  */
-export const BulkActionBar = ({
+// ⚡ Bolt: Wrapped with React.memo to prevent expensive re-renders when parent Timeline state changes
+export const BulkActionBar = React.memo(({
     selectedIds,
     filteredEvents,
     handleSelectAll,
@@ -83,4 +84,4 @@ export const BulkActionBar = ({
             </div>
         </div>
     );
-};
+});
