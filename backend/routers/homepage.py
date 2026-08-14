@@ -8,7 +8,7 @@ import schemas
 import auth_service
 import shutil
 import time
-from routers import events  # Import for ACTIVE_CAMERAS
+import events_state
 from routers import stats  # Import for START_TIME
 
 router = APIRouter(
@@ -37,7 +37,7 @@ def get_homepage_stats(
 
     # Active Recording Cameras (using LIVE_MOTION / ACTIVE_CAMERAS from events router)
     # ACTIVE_CAMERAS tracks ongoing motion events
-    cameras_recording = len(events.ACTIVE_CAMERAS)
+    cameras_recording = len(events_state.ACTIVE_CAMERAS)
 
     # Event Stats
     from datetime import timezone
