@@ -604,8 +604,12 @@ def is_path_safe(path: str, db: Session = None) -> bool:
     try:
         profiles = session.query(models.StorageProfile).all()
         for p in profiles:
-            if p.path and abs_path.startswith(os.path.abspath(p.path)):
-                return True
+            if p.path:
+                profile_abs = os.path.abspath(p.path)
+                if not profile_abs.endswith(os.sep):
+                    profile_abs += os.path.sep
+                if abs_path == os.path.abspath(p.path) or abs_path.startswith(profile_abs):
+                    return True
         return False
     finally:
         if db is None:
