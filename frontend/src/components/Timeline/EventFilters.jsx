@@ -19,7 +19,8 @@ import { Filter, Video, Image as ImageIcon, Play, Calendar, Brain } from 'lucide
  * @param {Object} props.searchParams - Current URL search params
  * @param {Function} props.setSearchParams - Handler for updating URL search params
  */
-export const EventFilters = ({
+// ⚡ Bolt: Wrapped with React.memo to prevent expensive re-renders when parent Timeline state changes
+export const EventFilters = React.memo(({
     cameras,
     selectedCameraFilter,
     setSelectedCameraFilter,
@@ -173,4 +174,4 @@ export const EventFilters = ({
             )}
         </div>
     );
-};
+});

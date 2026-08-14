@@ -23,7 +23,8 @@ import { X, Download, Trash2, Play, HardDrive } from 'lucide-react';
  * @param {Object} props.user - Current user object
  * @param {Boolean} props.isMobile - Whether to render the mobile version
  */
-export const EventPreview = ({
+// ⚡ Bolt: Wrapped with React.memo to prevent expensive re-renders when parent Timeline state changes
+export const EventPreview = React.memo(({
     selectedEvent,
     getCameraName,
     getCamera,
@@ -252,4 +253,4 @@ export const EventPreview = ({
             </div>
         </>
     );
-};
+});
