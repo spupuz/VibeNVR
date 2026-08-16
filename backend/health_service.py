@@ -59,8 +59,6 @@ async def _fetch_and_update_health(
 
         camera.last_seen = datetime.now(timezone.utc)
 
-    db.commit()
-
     # Update cache
     HEALTH_CACHE[camera.id] = current_health
 
@@ -146,6 +144,9 @@ async def check_camera_health():
                     for camera in cameras:
                         await _fetch_and_update_health(db, engine_status, camera=camera)
 
+                    # ⚡ Bolt: Commit all camera health updates in a single transaction
+                    db.commit()
+
         except Exception as e:
             logger.error(f"Error in health check loop: {e}")
 
@@ -221,5 +222,6 @@ async def refresh_camera_health(camera_id: int):
                     await _fetch_and_update_health(
                         db, engine_status, camera_id=camera_id
                     )
+                    db.commit()
     except Exception as e:
         logger.error(f"Failed to refresh health for camera {camera_id}: {e}")
