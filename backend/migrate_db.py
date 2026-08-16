@@ -15,23 +15,31 @@ if not logger.handlers:
 logger.propagate = False
 
 def add_column_if_not_exists(engine, table_name, column_name, column_type, default_val=None):
+    from sqlalchemy import inspect
     with engine.connect() as conn:
         if not re.match(r'^[a-zA-Z0-9_]+$', table_name) or not re.match(r'^[a-zA-Z0-9_]+$', column_name):
             raise ValueError(f"Invalid table or column name: {table_name}, {column_name}")
             
         # Check if column exists
-        query = text("SELECT column_name FROM information_schema.columns WHERE table_name=:t AND column_name=:c")
-        result = conn.execute(query, {"t": table_name, "c": column_name}).fetchone()
+        inspector = inspect(engine)
+        columns = [col['name'] for col in inspector.get_columns(table_name)]
         
-        if not result:
+        if column_name not in columns:
             logger.info(f"Adding column {column_name} to {table_name}...")
+            
+            if engine.dialect.name == "sqlite" and "TIMESTAMP WITH TIME ZONE" in column_type:
+                column_type = column_type.replace("TIMESTAMP WITH TIME ZONE", "DATETIME")
+                
             alter_query = f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"
             if default_val is not None:
                 # Handle string defaults with quotes
                 if isinstance(default_val, str):
                     alter_query += f" DEFAULT '{default_val}'"
                 elif isinstance(default_val, bool):
-                    alter_query += f" DEFAULT {'TRUE' if default_val else 'FALSE'}"
+                    if engine.dialect.name == "sqlite":
+                        alter_query += f" DEFAULT {1 if default_val else 0}"
+                    else:
+                        alter_query += f" DEFAULT {'TRUE' if default_val else 'FALSE'}"
                 else:
                     alter_query += f" DEFAULT {default_val}"
             
@@ -42,15 +50,16 @@ def add_column_if_not_exists(engine, table_name, column_name, column_type, defau
             logger.info(f"Column {column_name} already exists.")
 
 def drop_column_if_exists(engine, table_name, column_name):
+    from sqlalchemy import inspect
     with engine.connect() as conn:
         if not re.match(r'^[a-zA-Z0-9_]+$', table_name) or not re.match(r'^[a-zA-Z0-9_]+$', column_name):
             raise ValueError(f"Invalid table or column name: {table_name}, {column_name}")
             
         # Check if column exists
-        query = text("SELECT column_name FROM information_schema.columns WHERE table_name=:t AND column_name=:c")
-        result = conn.execute(query, {"t": table_name, "c": column_name}).fetchone()
+        inspector = inspect(engine)
+        columns = [col['name'] for col in inspector.get_columns(table_name)]
         
-        if result:
+        if column_name in columns:
             logger.info(f"Dropping obsolete column {column_name} from {table_name}...")
             conn.execute(text(f"ALTER TABLE {table_name} DROP COLUMN {column_name}"))
             conn.commit()

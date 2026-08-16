@@ -1,4 +1,4 @@
-from sqlalchemy import text
+from sqlalchemy import text, inspect
 from database import engine
 
 def migrate():
@@ -6,13 +6,13 @@ def migrate():
         print("Checking for width/height columns in events table...")
         try:
             # Check if columns exist
-            result = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='events' AND column_name='width'"))
-            if not result.fetchone():
+            inspector = inspect(engine)
+            columns = [col['name'] for col in inspector.get_columns('events')]
+            if 'width' not in columns:
                 print("Adding width column...")
                 conn.execute(text("ALTER TABLE events ADD COLUMN width INTEGER"))
             
-            result = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='events' AND column_name='height'"))
-            if not result.fetchone():
+            if 'height' not in columns:
                 print("Adding height column...")
                 conn.execute(text("ALTER TABLE events ADD COLUMN height INTEGER"))
             

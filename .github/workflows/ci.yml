@@ -133,3 +133,18 @@ jobs:
 
       - name: Run CI Frontend Unit Tests
         run: node .github/scripts/frontend_tests/test_cameraUtils.mjs
+
+      - name: Reconfigure for SQLite
+        run: |
+          docker compose down
+          echo "DATABASE_URL=sqlite:////data/vibenvr.db" > .env
+          docker compose -f docker-compose.sqlite.yml up -d
+          
+      - name: Wait for SQLite containers
+        run: |
+          echo "Waiting for SQLite initialization..."
+          sleep 15
+          docker compose logs --tail=50
+          
+      - name: Run CI Basic Integration Tests (SQLite)
+        run: python3 .github/scripts/ci_integration_test.py

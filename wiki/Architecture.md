@@ -25,9 +25,9 @@ The dedicated video processing service. This is the "heavy lifter" of the system
 - **Security**: Communicates via internal Docker networks and requires a shared `WEBHOOK_SECRET` for backend interaction.
 - **Decoupled Detection**: Supports both server-side pixel analysis (OpenCV) and hardware-side edge event handling (ONVIF PullPoint). The detection engine is logically decoupled from the activation schedule (Always, Scheduled, Manual), allowing for hybrid configurations.
 
-### 4. Database (PostgreSQL)
-Uses **PostgreSQL 15** for reliable storage of all persistent data, including camera configurations, user settings, and the event timeline.
-
+### 4. Database (PostgreSQL / SQLite)
+Uses **PostgreSQL 15** by default for reliable storage of all persistent data, including camera configurations, user settings, and the event timeline.
+Alternatively, the backend fully supports **SQLite** via a direct file path (e.g. `sqlite:////data/vibe.db`) for lightweight edge deployments, automatically configuring Write-Ahead Logging (WAL) for concurrency.
 ### 5. Telemetry Worker (Cloudflare Edge)
 A highly modularized Cloudflare Worker repository (`vibenvr-telemetry-worker`) that handles global telemetry, metadata ingestion, and secure dashboarding.
 - **Modularity**: Split securely into dedicated ES modules (`security.js`, `api.js`, `assets.js`, etc.) to stay well below the 1000 LOC limits.

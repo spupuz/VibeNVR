@@ -89,3 +89,17 @@ The **Google Coral USB Accelerator** is a specialized processor for machine lear
 
 > [!TIP]
 > For most users, the **Optimized** configuration is the sweet spot. Use a 640x480 sub-stream for detection and enable Passthrough on the 4K/2K main stream for crystal-clear recordings with minimal resource footprint.
+
+---
+
+## 🗄️ Database Optimization (RAM reduction)
+
+By default, VibeNVR uses **PostgreSQL** in its own container. While highly robust for handling thousands of events, the Postgres container itself constantly consumes **~100MB to ~150MB of RAM**, even when idle.
+
+If you are running VibeNVR on an extremely constrained device (like an older Intel NUC or mini-PC) and you want to reclaim that memory:
+
+### Use the SQLite Version
+VibeNVR fully supports running on a local **SQLite** file instead of a full Postgres server.
+*   **Impact**: Eliminates the `db` Docker container completely.
+*   **Result**: Instantly frees up ~150MB of RAM and reduces background CPU scheduling.
+*   **How to apply**: Use the `docker-compose.sqlite.yml` file instead of the standard `docker-compose.prod.yml`. No other changes are needed.

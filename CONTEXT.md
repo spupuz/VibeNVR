@@ -8,7 +8,7 @@
 ## 🛠 Tech Stack & Conventions
 - **Backend**: Python (FastAPI), SQLAlchemy, process management via `multiprocessing`.
 - **Frontend**: React, TailwindCSS, Lucide Icons, Vite.
-- **Database**: PostgreSQL (container `vibenvr-db`).
+- **Database**: PostgreSQL (container `vibenvr-db`) and SQLite (Lightweight file-based deployment). All code MUST remain strictly database-agnostic.
 - **Sanitize everything**: Every input from the user or the network must be validated using Pydantic schemas.
 - **Mask logs and telemetry**: Ensure that no sensitive information is ever written to logs or telemetry streams.
 - **No Absolute Host Paths**: The codebase and documentation MUST NOT contain absolute host paths (e.g., `/absolute/path/to/repo/...`). Always use relative paths or dynamic resolution.
@@ -43,6 +43,7 @@
 4. **Security & Vulnerabilities**: **CRITICAL**. Review and adhere to `SECURITY.md`. Always verify that code changes do not introduce security vulnerabilities (e.g., IDOR, Injection, Unprotected Endpoints). Proactively sanitize inputs and verify user roles for every sensitive API or Action. Ensure SSO modifications respect the explicit mapping policy.
 5. **Data Masking & Privacy**: Logs, telemetry, and debugging outputs MUST ALWAYS be filtered to exclude sensitive data (passwords, tokens, credentials in RTSP URLs). Use existing filters (`TokenRedactingFilter` in `main.py`) or implement new ones as needed.
 6. **Log Rotation**: **CRITICAL**. Ensure all log outputs (Docker logs and file logs) are subject to rotation and size limits to prevent host disk exhaustion.
+7. **Database Compatibility**: Code must run seamlessly on both PostgreSQL and SQLite. Strict ORM usage is required; avoid raw SQL or dialect-specific features.
 
 ## 🏷️ Versioning Strategy
 

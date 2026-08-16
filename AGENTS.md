@@ -111,6 +111,13 @@ def create_camera(
     return new_camera
 ```
 
+### Database Agnostic Pattern
+
+VibeNVR supports both **PostgreSQL** and **SQLite**.
+- **Rule**: All database interactions MUST use the SQLAlchemy ORM to ensure cross-dialect compatibility.
+- **Rule**: NEVER use database-specific column types (like Postgres `JSONB` or `ARRAY`). Use standard types (e.g., `String` for JSON data).
+- **Rule**: NEVER write raw SQL queries (`.execute(text(...))`) that use dialect-specific functions (e.g., Postgres `setval` or `pg_database_size`) without providing a fallback or explicitly checking `if db.bind.dialect.name == 'postgresql':`.
+
 ### React Authentication Pattern
 
 The frontend uses `AuthContext` to manage the JWT token in memory. **Do not use `localStorage` for the token** — it is vulnerable to XSS. The token is persisted across page reloads via a `HttpOnly` cookie (`auth_token`) set by the backend on login.

@@ -114,7 +114,10 @@ VibeNVR is designed for a global audience with full internationalization support
 ### 📦 Installation via Docker (Recommended)
 
 1.  **Get the files**:
-    Download the **[docker-compose.prod.yml](docker-compose.prod.yml)** file.
+    VibeNVR provides three Docker Compose options depending on your environment. Download the one that fits your needs:
+    - **[docker-compose.prod.yml](docker-compose.prod.yml)**: The recommended production setup (uses PostgreSQL for high reliability).
+    - **[docker-compose.sqlite.yml](docker-compose.sqlite.yml)**: The lightweight setup (uses SQLite, no `db` container). Ideal for low-power mini-PCs or edge deployments with limited RAM.
+    - **[docker-compose.yml](docker-compose.yml)**: The development setup (builds from local source code).
     
     *Alternatively, clone the repository to get all files (recommended for easier updates):*
     ```bash
@@ -138,7 +141,8 @@ VibeNVR is designed for a global audience with full internationalization support
 
     # Storage & Paths
     # VIBENVR_DATA=./viben_data             # Where recordings and logs are stored
-    # VIBENVR_DB_DATA=./viben_db_data       # Database persistence path
+    # VIBENVR_DB_DATA=./viben_db_data       # Database persistence path (if using Postgres container)
+    # DATABASE_URL=sqlite:////data/vibe.db  # Use SQLite instead of Postgres (and remove db container)
 
     # Ports
     # VIBENVR_FRONTEND_PORT=8080            # Frontend Access Port

@@ -429,11 +429,17 @@ def _get_network_rate() -> tuple:
 def _get_database_size(db: Session) -> float:
     """Gets the current database size in MB."""
     from sqlalchemy import text
+    import os
     db_size_mb = 0
     try:
-        result = db.execute(text("SELECT pg_database_size(current_database())")).fetchone()
-        if result:
-            db_size_mb = round(result[0] / (1024*1024), 1)
+        if db.bind.dialect.name == 'postgresql':
+            result = db.execute(text("SELECT pg_database_size(current_database())")).fetchone()
+            if result:
+                db_size_mb = round(result[0] / (1024*1024), 1)
+        elif db.bind.dialect.name == 'sqlite':
+            db_path = db.bind.url.database
+            if db_path and os.path.exists(db_path):
+                db_size_mb = round(os.path.getsize(db_path) / (1024*1024), 1)
     except Exception as e:
         print(f"Error getting DB size: {e}")
     return db_size_mb

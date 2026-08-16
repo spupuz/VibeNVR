@@ -1,5 +1,6 @@
-# Production Docker Compose - Uses pre-built images from Docker Hub
-# Use this when you want to run VibeNVR without building from source
+# Production Docker Compose (SQLite version)
+# Use this when you want to run VibeNVR without building from source and without a Postgres container.
+# Ideal for low-power mini-PCs or edge devices with limited resources.
 
 services:
   frontend:
@@ -30,23 +31,16 @@ services:
       # Custom Storage Profiles (uncomment to enable)
       # - ${VIBENVR_STORAGE_SSD}:/storage/ssd
       # - ${VIBENVR_STORAGE_NAS}:/storage/nas
-      # - /etc/localtime:/etc/localtime:ro # Removed for cross-platform compatibility, use TZ
 
     environment:
-      - POSTGRES_USER=${POSTGRES_USER:-vibenvr}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-vibenvrpass}
-      - POSTGRES_DB=${POSTGRES_DB:-vibenvr}
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-vibenvr}:${POSTGRES_PASSWORD:-vibenvrpass}@db:5432/${POSTGRES_DB:-vibenvr}
-      # Esempio per SQLite (se usato, puoi rimuovere il container 'db' e la sezione depends_on):
-      # - DATABASE_URL=sqlite:////data/vibenvr.db
+      # Use SQLite on the mapped volume
+      - DATABASE_URL=sqlite:////data/vibenvr.db
       - TZ=${TZ:-Europe/Rome}
       - SECRET_KEY=${SECRET_KEY:-vibe_secure_key_9823748923748923_change_in_prod}
       - WEBHOOK_SECRET=${WEBHOOK_SECRET:-vibe_secure_key_9823748923748923_change_in_prod}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
       - COOKIE_SECURE=${COOKIE_SECURE:-auto}
     depends_on:
-      db:
-        condition: service_healthy
       engine:
         condition: service_started
     restart: always
@@ -55,7 +49,7 @@ services:
     stop_grace_period: 30s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
-      - "com.centurylinklabs.watchtower.depends-on=engine,db"
+      - "com.centurylinklabs.watchtower.depends-on=engine"
     logging:
       driver: "json-file"
       options:
@@ -93,7 +87,6 @@ services:
       # Custom Storage Profiles (uncomment to enable)
       # - ${VIBENVR_STORAGE_SSD}:/storage/ssd
       # - ${VIBENVR_STORAGE_NAS}:/storage/nas
-      # - /etc/localtime:/etc/localtime:ro # Removed for cross-platform compatibility, use TZ
 
     environment:
       - BACKEND_URL=http://vibenvr-backend:5000
@@ -125,7 +118,6 @@ services:
     stop_grace_period: 30s
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
-      - "com.centurylinklabs.watchtower.depends-on=db"
     logging:
       driver: "json-file"
       options:
@@ -153,57 +145,8 @@ services:
     # privileged: true
     # ─────────────────────────────────────────────────────────────────────────
 
-  db:
-    image: postgres:15-alpine
-    container_name: vibenvr-db
-    restart: always
-    init: true
-    # Fix for Proxmox/pve kernel: Unix socket Permission denied
-    # security_opt:
-    #   - seccomp:unconfined
-    #   - apparmor:unconfined
-    # privileged: true
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-vibenvr}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-vibenvrpass}
-      - POSTGRES_DB=${POSTGRES_DB:-vibenvr}
-      - TZ=${TZ:-Europe/Rome}
-    volumes:
-      - ${VIBENVR_DB_DATA:-vibenvr_db_data}:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-vibenvr}" ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-    networks:
-      - vibe-network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    # ─────────────────────────────────────────────────────────────────────────
-    # TROUBLESHOOTING: Permission Errors on Proxmox/PVE Kernel, Synology, QNAP
-    # ─────────────────────────────────────────────────────────────────────────
-    # If you see errors like "could not create Unix socket" or
-    # "could not create any Unix-domain sockets", try these options in order:
-    #
-    # Option 1: Disable seccomp and AppArmor
-    # security_opt:
-    #   - seccomp:unconfined
-    #   - apparmor:unconfined
-    #
-    # Option 2: If Option 1 doesn't work, use privileged mode
-    # privileged: true
-    # ─────────────────────────────────────────────────────────────────────────
-
-
 volumes:
   vibenvr_data:
-  vibenvr_db_data:
-
 
 networks:
   vibe-network:
-    driver: bridge

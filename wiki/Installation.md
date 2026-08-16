@@ -40,6 +40,7 @@ On first launch, the UI will prompt you to create the first **admin account**.
 |------|----------|--------|
 | `docker-compose.yml` | Local development / build from source | Built locally |
 | `docker-compose.prod.yml` | Production / pull from Docker Hub | `spupuz/vibenvr-*:latest` |
+| `docker-compose.sqlite.yml` | Lightweight Production (No Postgres) / Mini-PCs | `spupuz/vibenvr-*:latest` |
 
 ```bash
 # Production (pre-built images, no build step needed):

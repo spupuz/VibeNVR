@@ -46,7 +46,7 @@ COOKIE_SECURE=true
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `VIBENVR_DATA` | Docker named volume | Path on the host where recordings, snapshots, and avatars are stored. Use an absolute path for easy access. |
-| `VIBENVR_DB_DATA` | Docker named volume | Path on the host for the PostgreSQL database files. |
+| `VIBENVR_DB_DATA` | Docker named volume | Path on the host for the PostgreSQL or SQLite database files. |
 
 ```env
 # Example: Store data on a dedicated drive
@@ -62,16 +62,21 @@ VIBENVR_DB_DATA=/mnt/storage/vibenvr_db
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `POSTGRES_USER` | `vibenvr` | PostgreSQL username. |
+| `POSTGRES_USER` | `vibenvr` | PostgreSQL username (Ignored if using SQLite). |
 | `POSTGRES_PASSWORD` | `vibenvrpass` | PostgreSQL password. **Change this in production.** |
-| `POSTGRES_DB` | `vibenvr` | PostgreSQL database name. |
+| `POSTGRES_DB` | `vibenvr` | PostgreSQL database name (Ignored if using SQLite). |
+| `DATABASE_URL` | *(postgres URL)* | Connection string. Can be changed to `sqlite:////data/vibe.db` to run without the PostgreSQL container. |
 
 ```env
+# Default PostgreSQL setup:
 POSTGRES_USER=vibenvr
 POSTGRES_PASSWORD=a_strong_random_password
 POSTGRES_DB=vibenvr
-```
+DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
 
+# Or, lightweight SQLite setup:
+# DATABASE_URL=sqlite:////data/vibenvr.db
+```
 ---
 
 ### 🌐 Network & Ports

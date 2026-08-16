@@ -16,7 +16,7 @@ If a malicious actor has already achieved this level of access to your host syst
 
 **Prerequisites:** You must have access to the terminal of the host machine (server) where the VibeNVR system is running via Docker and have privileges to execute `docker` commands. 
 
-> **Note on Database Credentials:** You do *not* need to manualy enter PostgreSQL passwords to run these commands. Because we are using `docker compose exec backend`, the commands are executed directly inside the already-running backend container. That container already contains the correct environment variables and database connections needed to securely configure the database.
+> **Note on Database Credentials:** You do *not* need to manualy enter database passwords (e.g., PostgreSQL) to run these commands. Because we are using `docker compose exec backend`, the commands are executed directly inside the already-running backend container. That container already contains the correct environment variables and database connections needed to securely configure the database.
 
 All the following commands must be executed from the root folder of the project where the `docker-compose.yml` file is located.
 

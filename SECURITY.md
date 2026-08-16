@@ -8,7 +8,7 @@ VibeNVR employs a defense-in-depth strategy, isolating components and ensuring s
 
 1. **Internal Port Protection**: By default, critical internal services (the Python Backend API on port `5005` and the VibeEngine processing node on port `8000`) bind exclusively to the internal Docker network. They are **NOT** safely accessible from the outside network, effectively isolating them from direct external attacks.
 2. **Reverse Proxy Ready**: The system is designed to be deployed behind a Reverse Proxy (e.g., Nginx Proxy Manager). This offloads SSL termination and ensures only the frontend interface (HTTP/HTTPS) is exposed to the public internet or untrusted LAN segments.
-3. **Database Security**: The PostgreSQL database is contained within the Docker bridge network and is not mapped to any host ports. Data persistence is managed securely via Docker volumes or bind mounts.
+3. **Database Security**: The database (PostgreSQL or SQLite) is securely contained within the backend or its own Docker bridge network and is not mapped to any host ports. Data persistence is managed securely via Docker volumes or bind mounts.
 4. **SQL Injection Prevention**: All direct database queries and migrations use strict parameterized bindings (e.g., `bindparams` in SQLAlchemy) and rigorous regex sanitization to eliminate SQL Injection (SQLi) vectors. Raw string formatting is strictly prohibited.
 
 ## 🔐 Authentication & Security Checks
@@ -113,7 +113,7 @@ VibeNVR's code includes specific mitigations against common attack vectors:
    - **Strict Length Limits**: All configuration fields (notably `ai_object_types`) enforce strict length validation at the schema level (max 2000 characters). This prevents a critical vulnerability where corrupted or malicious data could grow to megabytes, freezing the backend during serialization or logging.
    - **Database N+1 Query Mitigation**: Bulk settings updates are aggressively batched into optimized transactions to prevent Denial of Service (DoS) conditions that could occur through excessive, rapid individual queries when saving complex configurations.
    - **Self-Healing Pipeline**: VibeNVR implements a defensive **Recursive Unwrapper** for JSON configuration fields. This architecture automatically detects and repairs "recursive encoding" (where data is accidentally wrapped in multiple layers of JSON strings) up to 5 levels deep.
-   - **PostgreSQL Compatibility**: The validation layer natively supports both standard JSON lists and PostgreSQL array formats (`{val1,val2}`). This ensures that even if the database driver returns non-standard formats, the system correctly sanitizes and recovers the user's settings without triggering accidental resets.
+   - **Database Agnosticism**: The validation layer natively supports standard JSON lists and gracefully handles dialect-specific structures (e.g. PostgreSQL array formats `{val1,val2}`). This ensures that even if different database drivers (SQLite or Postgres) return non-standard formats, the system correctly sanitizes and recovers the user's settings without triggering accidental resets.
    - **Proactive Frontend Sanitization**: The UI performs a real-time whitelist scan of critical configuration tags before submission, ensuring that only valid, safe identifiers are sent to the backend.
    - **Array Sanitization**: Frontend inputs are normalized to ensure list-based data is never processed as raw strings, preventing exponential character-spread growth.
 9. **Backup Integrity & De-duplication**:

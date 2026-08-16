@@ -1,6 +1,6 @@
 
 import os
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, inspect
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vibenvr:vibenvrpass@db:5432/vibenvr")
 
@@ -27,8 +27,8 @@ def cleanup_db():
         print("Checking for columns to drop in 'cameras' table...")
         
         # Check existing columns first to avoid errors
-        result = connection.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'cameras';"))
-        existing_columns = [row[0] for row in result]
+        inspector = inspect(engine)
+        existing_columns = [col['name'] for col in inspector.get_columns('cameras')]
         
         for col in columns_to_drop:
             if col in existing_columns:

@@ -59,7 +59,7 @@ Navigate to **Cameras → Edit → AI & Tracking Tab** to configure per-camera d
 | **Tracking Enabled** | Enable persistent object tracking across frames | `Disabled` |
 
 > [!TIP]
-> **Robust Configuration & Self-Healing**: To prevent database corruption and UI lag, the system now enforces a **2000-character limit** on AI object filters. A defensive **Self-Healing Pipeline** automatically repairs legacy corrupted data (recursive encoding) and supports PostgreSQL native array formats (`{...}`), ensuring settings are never lost after a restart.
+> **Robust Configuration & Self-Healing**: To prevent database corruption and UI lag, the system now enforces a **2000-character limit** on AI object filters. A defensive **Self-Healing Pipeline** automatically repairs legacy corrupted data (recursive encoding) and supports database-native array formats (like Postgres `{...}`), ensuring settings are never lost after a restart.
 
 > [!NOTE]
 > Setting confidence too low (e.g., 33%) can cause false positives from spinning objects, reflections, or camera noise. **70%+ is recommended** for stable production use.
@@ -363,7 +363,7 @@ VibeNVR implements **Non-Maximum Suppression (NMS)** for YOLOv8 models. This tec
 | `Permission denied` on USB | LXC apparmor/cgroup2 not configured | Follow the LXC config steps above |
 | **Severe UI Lag / API Timeout** | Database Corruption (Data Bloat) | The system now auto-truncates oversized AI settings and uses a self-healing validator. Ensure v1.28.5+ is installed to prevent recurrence. |
 | `Model 404 Error` on startup | Outdated model URLs | The system now skips non-existent models. Rebuild with `--build` to clean the cache. |
-| **Settings Reset after Reboot** | Postgres Array Conflict | v1.28.5 introduced a native Postgres array parser (`{...}`) to prevent accidental resets to defaults. |
+| **Settings Reset after Reboot** | Database Array Conflict | v1.28.5 introduced a native array parser to prevent accidental resets to defaults across dialects. |
 | `AI: invoke() timed out (6s)` | Queue contention across multiple cameras | The system now implements a **200ms submit lock timeout** to safely drop frames when the AI engine is heavily loaded. Additionally, a **passive watchdog** automatically restarts the TFLite interpreter if a silent stall is detected, ensuring continuous detection without requiring an engine restart. |
 | **Silent Detection Stall** | Interpreter state corruption | A passive watchdog runs with every inference request. If inference stops producing events for over 10 seconds despite successful invokes, the interpreter is automatically reinitialized. |
 
