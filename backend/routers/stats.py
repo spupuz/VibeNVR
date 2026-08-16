@@ -431,9 +431,16 @@ def _get_database_size(db: Session) -> float:
     from sqlalchemy import text
     db_size_mb = 0
     try:
-        result = db.execute(text("SELECT pg_database_size(current_database())")).fetchone()
-        if result:
-            db_size_mb = round(result[0] / (1024*1024), 1)
+        bind = db.get_bind()
+        if bind.dialect.name == "postgresql":
+            result = db.execute(text("SELECT pg_database_size(current_database())")).fetchone()
+            if result:
+                db_size_mb = round(result[0] / (1024*1024), 1)
+        elif bind.dialect.name == "sqlite":
+            page_count = db.execute(text("PRAGMA page_count")).scalar()
+            page_size = db.execute(text("PRAGMA page_size")).scalar()
+            if page_count and page_size:
+                db_size_mb = round((page_count * page_size) / (1024*1024), 2)
     except Exception as e:
         print(f"Error getting DB size: {e}")
     return db_size_mb
