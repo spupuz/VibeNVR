@@ -100,7 +100,7 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
                         href={`/api/events/${event.id}/download`}
                         download
                         onClick={(e) => e.stopPropagation()}
-                        className="p-1 bg-black/50 hover:bg-black/70 text-white rounded backdrop-blur-sm transition-colors"
+                        className="p-1 bg-black/50 hover:bg-black/70 text-white rounded backdrop-blur-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                         title={t('common.download', 'Download')}
                         aria-label={t('common.download', 'Download')}
                     >
@@ -114,7 +114,7 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
                                 e.stopPropagation();
                                 onDelete(event.id);
                             }}
-                            className="p-1 bg-black/50 hover:bg-red-500/80 text-white rounded backdrop-blur-sm transition-colors"
+                            className="p-1 bg-black/50 hover:bg-red-500/80 text-white rounded backdrop-blur-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-1"
                             title={t('common.delete', 'Delete')}
                             aria-label={t('common.delete', 'Delete')}
                         >
