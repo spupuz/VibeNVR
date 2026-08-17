@@ -105,13 +105,14 @@ def get_optimization_settings(db: Session) -> dict:
                     pass # Keep default if invalid
         
         # Also fetch ai_enabled, ai_model, ai_hardware and go2rtc_enabled separately (not opt_ keys)
-        for key in ["ai_enabled", "ai_model", "ai_hardware", "go2rtc_enabled"]:
-            setting = db.query(SystemSettings).filter(SystemSettings.key == key).first()
-            if setting:
-                if key in ("ai_enabled", "go2rtc_enabled"):
-                    defaults[key] = setting.value.lower() == "true"
-                else:
-                    defaults[key] = setting.value
+        # ⚡ Bolt: Fetch all remaining keys in a single query to prevent N+1 queries
+        extra_keys = ["ai_enabled", "ai_model", "ai_hardware", "go2rtc_enabled"]
+        extra_settings = db.query(SystemSettings).filter(SystemSettings.key.in_(extra_keys)).all()
+        for setting in extra_settings:
+            if setting.key in ("ai_enabled", "go2rtc_enabled"):
+                defaults[setting.key] = setting.value.lower() == "true"
+            else:
+                defaults[setting.key] = setting.value
     except Exception as e:
         logger.error(f"Error reading optimization settings: {e}")
         
@@ -265,18 +266,22 @@ def sync_global_config(db: Session):
     opt_settings = get_optimization_settings(db)
     
     # Fetch MQTT Settings
+    # ⚡ Bolt: Fetch all MQTT settings in a single query to prevent N+1 queries
     mqtt_keys = ["mqtt_enabled", "mqtt_host", "mqtt_port", "mqtt_username", "mqtt_password", "mqtt_topic_prefix"]
+    mqtt_settings = db.query(SystemSettings).filter(SystemSettings.key.in_(mqtt_keys)).all()
     mqtt_config = {}
+
+    settings_dict = {s.key: s.value for s in mqtt_settings}
+
     for key in mqtt_keys:
-        setting = db.query(SystemSettings).filter(SystemSettings.key == key).first()
-        if setting:
+        if key in settings_dict:
             if key == "mqtt_enabled":
-                mqtt_config[key] = setting.value.lower() == "true"
+                mqtt_config[key] = settings_dict[key].lower() == "true"
             elif key == "mqtt_port":
-                try: mqtt_config[key] = int(setting.value)
+                try: mqtt_config[key] = int(settings_dict[key])
                 except: mqtt_config[key] = 1883
             else:
-                mqtt_config[key] = setting.value
+                mqtt_config[key] = settings_dict[key]
         else:
             # Fallback to defaults
             if key == "mqtt_enabled": mqtt_config[key] = False
