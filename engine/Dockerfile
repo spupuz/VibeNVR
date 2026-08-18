@@ -15,9 +15,6 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     python3-opencv \
     python-is-python3 \
     ffmpeg \
-    mesa-va-drivers \
-    intel-media-va-driver-non-free \
-    i965-va-driver-shaders \
     libglib2.0-0 \
     curl \
     ca-certificates \
@@ -32,6 +29,10 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     libavfilter-dev \
     pkg-config \
     build-essential && \
+    arch="$(dpkg --print-architecture)" && \
+    if [ "$arch" = "amd64" ] || [ "$arch" = "i386" ]; then \
+        apt-get install -y --no-install-recommends mesa-va-drivers intel-media-va-driver-non-free i965-va-driver-shaders; \
+    fi && \
     rm -rf /var/lib/apt/lists/*
 
 # hadolint ignore=DL4006,DL3008

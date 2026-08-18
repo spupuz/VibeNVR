@@ -1,0 +1,37 @@
+name: Engine Multi-Arch Build Test
+
+on:
+  push:
+    paths:
+      - 'engine/Dockerfile'
+      - '.github/workflows/docker-arch.yml'
+  pull_request:
+    paths:
+      - 'engine/Dockerfile'
+
+jobs:
+  build:
+    name: Build Engine Image
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build engine (${{ matrix.platform }})
+        uses: docker/build-push-action@v5
+        with:
+          context: ./engine
+          file: ./engine/Dockerfile
+          platforms: ${{ matrix.platform }}
+          push: false
+          tags: vibenvr-engine:test-${{ strategy.job-index }}
