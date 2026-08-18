@@ -38,7 +38,8 @@
 
 ## ⚠️ Important Rules for AI
 1. **Docker**: Before any major commit, suggest or perform a rebuild (`docker compose up -d --build`) to verify integrity.
-2. **Language**: Code comments in English. User interactions in Italian (or as requested).
+2. **Ecosystem Repositories**: **CRITICAL**. For the `VibeNVR-site` and `vibenvr-telemetry-worker` repositories, NEVER commit or push changes without explicit user permission. You must ALWAYS use the `/site-telemetry-commit-push` workflow.
+3. **Language**: Code comments in English. User interactions in Italian (or as requested).
 3. **RBAC**: Remember that `admin` (full access) and `viewer` (read-only) roles exist. Always verify permissions for destructive or configuration actions.
 4. **Security & Vulnerabilities**: **CRITICAL**. Review and adhere to `SECURITY.md`. Always verify that code changes do not introduce security vulnerabilities (e.g., IDOR, Injection, Unprotected Endpoints). Proactively sanitize inputs and verify user roles for every sensitive API or Action. Ensure SSO modifications respect the explicit mapping policy.
 5. **Data Masking & Privacy**: Logs, telemetry, and debugging outputs MUST ALWAYS be filtered to exclude sensitive data (passwords, tokens, credentials in RTSP URLs). Use existing filters (`TokenRedactingFilter` in `main.py`) or implement new ones as needed.

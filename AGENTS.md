@@ -391,7 +391,7 @@ logger.info(f"Connecting to {safe_url}")
   2. **Regression** (ensure existing logic is not broken)
   3. **Functioning** (verify the new logic works as expected)
   All scripts must implement safe cleanup logic.
-- **Pushes**: Do NOT push to remote repositories unless explicitly requested by the USER.
+- **Pushes**: Do NOT push to remote repositories unless explicitly requested by the USER. **CRITICAL: For `VibeNVR-site` and `vibenvr-telemetry-worker` repositories, NEVER commit or push autonomously. You MUST exclusively use the `/site-telemetry-commit-push` workflow and wait for explicit permission.**
 - **Documentation**: Keep documentation synced with code changes.
 - **Code Size Policy**: 
   - **New files**: MUST NOT exceed **500 effective lines of code** (excluding comments/blank lines).
