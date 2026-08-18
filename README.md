@@ -56,7 +56,7 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | 🔍 **Network Discovery** | Securely scan network ranges for ONVIF/RTSP devices via authenticated **SSE (Server-Sent Events)** streams. |
 | 🛡️ **System Integrity Audit** | Integrated security and consistency audits verify RBAC isolation, path sanitization, and **Self-Healing Configuration Synchronization** (e.g., recursive JSON recovery). |
 | 📊 **Standardized Logging** | Unified timestamping and formatting across all containers. Includes **Automatic Redaction** of sensitive credentials (RTSP, tokens) and binary noise filtering. |
-| 🐳 **Docker-Native** | Zero-dependency deployment with **Tag-Driven CI/CD**. Images are ultra-lean (~1GB) and protected by recursive `.dockerignore` policies to prevent artifact leakage. |
+| 🐳 **Docker-Native** | Zero-dependency deployment with **Tag-Driven CI/CD**. Images are ultra-lean (~1GB) and protected by recursive `.dockerignore` policies to prevent artifact leakage. **NEW**: Multi-Arch support for `amd64` and `arm64` (e.g. Raspberry Pi 5, Apple M-Series). |
 | 🌍 **Multi-Language Support** | Full internationalization (i18n) covering 10 languages (EN, IT, FR, DE, ES, PT, RU, ZH, JA, UK) across the entire UI. |
 
 ---
@@ -116,7 +116,7 @@ VibeNVR is designed for a global audience with full internationalization support
 1.  **Get the files**:
     VibeNVR provides three Docker Compose options depending on your environment. Download the one that fits your needs:
     - **[docker-compose.prod.yml](docker-compose.prod.yml)**: The recommended production setup (uses PostgreSQL for high reliability).
-    - **[docker-compose.sqlite.yml](docker-compose.sqlite.yml)**: The lightweight setup (uses SQLite, no `db` container). Ideal for low-power mini-PCs or edge deployments with limited RAM.
+    - **[docker-compose.sqlite.yml](docker-compose.sqlite.yml)**: The lightweight setup (uses SQLite, no `db` container). Ideal for low-power mini-PCs, Raspberry Pi, or edge deployments with limited RAM.
     - **[docker-compose.yml](docker-compose.yml)**: The development setup (builds from local source code).
     
     *Alternatively, clone the repository to get all files (recommended for easier updates):*

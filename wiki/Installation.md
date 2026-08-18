@@ -8,6 +8,7 @@ This guide covers how to install VibeNVR and manage your deployment via Docker.
 
 - **Docker** ≥ 24.x and **Docker Compose** ≥ 2.x
 - A host with at least **2 GB RAM** and **10 GB disk** recommended
+- **Architecture**: Linux `x86_64` (Intel/AMD) or `arm64` (e.g., Raspberry Pi 4/5, Apple Silicon)
 - (Optional) An NVIDIA or Intel/AMD GPU for hardware-accelerated transcoding
 
 ---
