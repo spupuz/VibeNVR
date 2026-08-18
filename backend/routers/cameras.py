@@ -785,7 +785,8 @@ async def import_cameras(
         parsed_cameras = []
 
         # Pre-fetch existing hosts to avoid N+1 queries during loop
-        all_cams = crud.get_cameras(db, limit=1000)
+        # ⚡ Bolt: Use lightweight query to avoid memory bloat from eagerly loaded relationships
+        all_cams = crud.get_cameras_lightweight(db, skip=0, limit=1000)
         existing_hosts = {
             extract_host(c.rtsp_url)
             for c in all_cams
@@ -911,7 +912,8 @@ async def import_motioneye_cameras(
 
         # Pre-fetch existing hosts to avoid N+1 queries during loop
         # ⚡ Bolt: Fetch existing cameras once instead of inside the O(N) loop
-        all_cams = crud.get_cameras(db, limit=1000)
+        # ⚡ Bolt: Use lightweight query to avoid memory bloat from eagerly loaded relationships
+        all_cams = crud.get_cameras_lightweight(db, skip=0, limit=1000)
         existing_hosts = {
             extract_host(c.rtsp_url)
             for c in all_cams
