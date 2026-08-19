@@ -281,7 +281,7 @@ export const UserManager = ({
                                             {u.id !== currentUser.id && (
                                                 <button
                                                     onClick={() => handleEditClick(u)}
-                                                    className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
+                                                    className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
                                                     title={t('settings_usermanager.title', 'Edit User')}
                                                     aria-label={t('settings_usermanager.title', 'Edit User')}
                                                 >
@@ -290,7 +290,7 @@ export const UserManager = ({
                                             )}
                                             <button
                                                 onClick={() => openPasswordModal(u)}
-                                                className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
+                                                className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
                                                 title={t('settings_usermanager.title', 'Change Password')}
                                                 aria-label={t('settings_usermanager.title', 'Change Password')}
                                             >
@@ -324,7 +324,7 @@ export const UserManager = ({
                                                             onCancel: () => setConfirmConfig({ isOpen: false })
                                                         });
                                                     }}
-                                                    className="p-2 hover:bg-red-100 text-red-500 rounded-lg transition-colors"
+                                                    className="p-2 hover:bg-red-100 text-red-500 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
                                                     title={t('settings_usermanager.title', 'Delete User')}
                                                     aria-label={t('settings_usermanager.title', 'Delete User')}
                                                 >
