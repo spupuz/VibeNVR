@@ -32,7 +32,7 @@ def get_video_duration(file_path):
     try:
         cmd = [
             "ffprobe", "-v", "error", "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1", "-i", file_path
+            "-of", "default=noprint_wrappers=1:nokey=1", "-i", os.path.abspath(file_path)
         ]
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5)
         if result.returncode == 0:
@@ -44,9 +44,9 @@ def get_video_duration(file_path):
 def generate_thumbnail(video_path, thumb_path):
     try:
         subprocess.run([
-            "ffmpeg", "-y", "-i", video_path, 
+            "ffmpeg", "-y", "-i", os.path.abspath(video_path),
             "-ss", "00:00:01", "-vframes", "1", "-vf", "scale=320:-1",
-            thumb_path
+            os.path.abspath(thumb_path)
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return True
     except:
