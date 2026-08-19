@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import { Camera, Plus, Trash2, MapPin, Activity, Download, Upload, Search } from 'lucide-react';
 import { Toggle } from '../components/ui/FormControls';
 import { GroupsManager } from '../components/GroupsManager';

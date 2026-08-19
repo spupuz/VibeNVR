@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Camera, CameraOff, Maximize2, Minimize2, Settings, Image as ImageIcon, Play, Square, Power, Disc, Grid, X, Volume2, VolumeX, Move, AlertTriangle } from 'lucide-react';
 import { Toggle } from '../components/ui/FormControls';
 import { useAuth } from '../contexts/AuthContext';
