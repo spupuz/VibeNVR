@@ -398,3 +398,7 @@ def is_safe_path(file_path):
         return False
 ```
 I'll create a plan to fix these two vulnerabilities to prevent path traversal/deletion.
+## 2026-08-19 - Argument Injection via Subprocess
+**Vulnerability:** Filenames starting with a hyphen (e.g., `-vframes`) could be interpreted as command-line flags by `ffprobe` and `ffmpeg` if passed directly.
+**Learning:** Relying on basic checks or attempting to reject hyphenated filenames causes functional regressions by breaking legitimately named files.
+**Prevention:** When passing untrusted paths to subprocess tools, always wrap them in `os.path.abspath()` to ensure they are interpreted strictly as paths.
