@@ -217,36 +217,36 @@ def process_webhook_file_event(
 
             # Get Duration using ffprobe
             if local_path and os.path.exists(local_path):
-                # Security: Prevent argument injection
-                if not os.path.basename(local_path).startswith("-"):
-                    try:
-                        cmd = [
-                            "ffprobe",
-                            "-v",
-                            "error",
-                            "-show_entries",
-                            "format=duration",
-                            "-of",
-                            "default=noprint_wrappers=1:nokey=1",
-                            "-i",
-                            local_path,
-                        ]
-                        result = subprocess.run(
-                            cmd,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            text=True,
-                            timeout=10,
-                        )
-                        if result.returncode == 0:
-                            duration_str = result.stdout.strip()
-                            if duration_str and duration_str != "N/A":
-                                duration_sec = float(duration_str)
-                                event_data.timestamp_end = ts + datetime.timedelta(
-                                    seconds=duration_sec
-                                )
-                    except Exception as e:
-                        logger.error(f"[BG-WORK] ffprobe failed: {e}")
+                try:
+                    # Security: Prevent argument injection by using absolute path
+                    safe_path = os.path.abspath(local_path)
+                    cmd = [
+                        "ffprobe",
+                        "-v",
+                        "error",
+                        "-show_entries",
+                        "format=duration",
+                        "-of",
+                        "default=noprint_wrappers=1:nokey=1",
+                        "-i",
+                        safe_path,
+                    ]
+                    result = subprocess.run(
+                        cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        timeout=10,
+                    )
+                    if result.returncode == 0:
+                        duration_str = result.stdout.strip()
+                        if duration_str and duration_str != "N/A":
+                            duration_sec = float(duration_str)
+                            event_data.timestamp_end = ts + datetime.timedelta(
+                                seconds=duration_sec
+                            )
+                except Exception as e:
+                    logger.error(f"[BG-WORK] ffprobe failed: {e}")
 
             # Generate Thumbnail
             try:
@@ -256,12 +256,14 @@ def process_webhook_file_event(
                     base_db, _ = os.path.splitext(file_path)
                     db_thumb = f"{base_db}.jpg"
 
+                    # Security: Prevent argument injection by using absolute path
+                    safe_path = os.path.abspath(local_path)
                     subprocess.run(
                         [
                             "ffmpeg",
                             "-y",
                             "-i",
-                            local_path,
+                            safe_path,
                             "-ss",
                             "00:00:01",
                             "-vframes",
