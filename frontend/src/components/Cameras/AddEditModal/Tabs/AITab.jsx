@@ -132,11 +132,12 @@ export const AITab = ({ newCamera, setNewCamera, globalSettings }) => {
 
                         <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 mt-6">
                             <div className="space-y-1">
-                                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                                <label htmlFor="confidenceThreshold" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1 cursor-pointer">
                                     {t('cameras.confidence_threshold', 'Confidence Threshold')}
                                 </label>
                                 <div className="flex items-center gap-3">
                                     <input
+                                        id="confidenceThreshold"
                                         type="range"
                                         min="0.1"
                                         max="0.95"

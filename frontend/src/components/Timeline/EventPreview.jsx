@@ -67,8 +67,9 @@ export const EventPreview = React.memo(({
                     </div>
                     <div className="flex items-center space-x-2">
                         {/* Mobile Auto-next */}
-                        <label className="flex items-center space-x-1.5 px-2 py-1 bg-muted/50 rounded-lg cursor-pointer transition-all active:scale-95">
+                        <label htmlFor="autoplayNextMobile" className="flex items-center space-x-1.5 px-2 py-1 bg-muted/50 rounded-lg cursor-pointer transition-all active:scale-95">
                             <input
+                                id="autoplayNextMobile"
                                 type="checkbox"
                                 checked={autoplayNext}
                                 onChange={(e) => setAutoplayNext(e.target.checked)}
