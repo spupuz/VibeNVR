@@ -177,8 +177,9 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                 <form onSubmit={handleCreateToken} className="bg-muted/30 p-4 rounded-lg border border-border my-4">
                     <div className="flex flex-col sm:flex-row gap-4 items-end">
                         <div className="w-full sm:flex-1">
-                            <label className="text-xs font-medium mb-1 block">{t('timeline.token_name_description', 'Token Name / Description')}</label>
+                            <label htmlFor="tokenName" className="text-xs font-medium mb-1 block cursor-pointer">{t('timeline.token_name_description', 'Token Name / Description')}</label>
                             <input
+                                id="tokenName"
                                 type="text"
                                 className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
                                 placeholder="e.g. Homepage Dashboard"
@@ -188,8 +189,9 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                             />
                         </div>
                         <div className="w-full sm:w-32">
-                            <label className="text-xs font-medium mb-1 block">{t('timeline.expires_in_days', 'Expires in (days)')}</label>
+                            <label htmlFor="tokenExpiresIn" className="text-xs font-medium mb-1 block cursor-pointer">{t('timeline.expires_in_days', 'Expires in (days)')}</label>
                             <input
+                                id="tokenExpiresIn"
                                 type="number"
                                 min="1"
                                 className="w-full bg-background border border-input rounded px-3 py-2 text-sm"
