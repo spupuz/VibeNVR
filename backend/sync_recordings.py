@@ -37,7 +37,7 @@ def get_video_duration(file_path):
     try:
         cmd = [
             "ffprobe", "-v", "error", "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1", "-i", file_path
+            "-of", "default=noprint_wrappers=1:nokey=1", "-i", os.path.abspath(file_path)
         ]
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=10)
         if result.returncode == 0:
@@ -52,9 +52,9 @@ def generate_thumbnail(video_path, thumb_path):
         os.makedirs(os.path.dirname(thumb_path), exist_ok=True)
         # Use simple seek to start
         subprocess.run([
-            "ffmpeg", "-y", "-i", video_path, 
+            "ffmpeg", "-y", "-i", os.path.abspath(video_path),
             "-ss", "00:00:00.5", "-vframes", "1", "-vf", "scale=320:-1",
-            thumb_path
+            os.path.abspath(thumb_path)
         ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=45) # Increased timeout
         return True
     except subprocess.CalledProcessError as e:
@@ -69,7 +69,7 @@ def is_video_valid(file_path):
     try:
         cmd = [
             "ffprobe", "-v", "error", "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1", "-i", file_path
+            "-of", "default=noprint_wrappers=1:nokey=1", "-i", os.path.abspath(file_path)
         ]
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=10)
         if result.returncode != 0:
