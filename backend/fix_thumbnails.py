@@ -11,9 +11,9 @@ def generate_thumbnail(video_path, thumb_path):
     try:
         os.makedirs(os.path.dirname(thumb_path), exist_ok=True)
         subprocess.run([
-            "ffmpeg", "-y", "-i", video_path, 
+            "ffmpeg", "-y", "-i", os.path.abspath(video_path),
             "-ss", "00:00:00.5", "-vframes", "1", "-vf", "scale=320:-1",
-            thumb_path
+            os.path.abspath(thumb_path)
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
         return True
     except Exception as e:
