@@ -17,11 +17,12 @@ router = APIRouter(
 @router.get("", response_model=List[Any])
 def read_groups(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
     user, is_token = auth_info
-    groups = crud.get_groups(db, skip=skip, limit=limit)
     
+    allowed_group_ids = None
     if user.role == "viewer" and user.restrict_camera_access:
         allowed_group_ids = [g.id for g in user.allowed_groups]
-        groups = [g for g in groups if g.id in allowed_group_ids]
+
+    groups = crud.get_groups(db, skip=skip, limit=limit, allowed_group_ids=allowed_group_ids)
 
     if is_token:
         # Return sanitized groups (masking camera details)
