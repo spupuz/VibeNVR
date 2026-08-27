@@ -402,3 +402,7 @@ I'll create a plan to fix these two vulnerabilities to prevent path traversal/de
 **Vulnerability:** Filenames starting with a hyphen (e.g., `-vframes`) could be interpreted as command-line flags by `ffprobe` and `ffmpeg` if passed directly.
 **Learning:** Relying on basic checks or attempting to reject hyphenated filenames causes functional regressions by breaking legitimately named files.
 **Prevention:** When passing untrusted paths to subprocess tools, always wrap them in `os.path.abspath()` to ensure they are interpreted strictly as paths.
+## 2026-08-21 - Secure Argument Injection Prevention
+**Vulnerability:** Naive argument injection prevention rejected valid filenames starting with a hyphen (e.g., `-video.mp4`), causing a functional denial of service.
+**Learning:** Rejecting valid input based on naively checking for hyphens breaks functionality and is not a robust security control.
+**Prevention:** Secure subprocess calls involving user-controlled filenames by converting the file path to an absolute path (using `os.path.abspath()`) or prefixing with `./`, ensuring it is not interpreted as a command-line flag.
