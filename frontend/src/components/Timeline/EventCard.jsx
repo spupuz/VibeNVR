@@ -27,6 +27,7 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
             id={`event-${event.id}`}
             role="button"
             tabIndex={0}
+            aria-label={`Event at ${time}`}
             aria-pressed={isSelected}
             className={`flex items-stretch bg-card border rounded-xl overflow-hidden cursor-pointer transition-all hover:shadow-lg group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
                 ${isSelected ? 'ring-2 ring-primary border-primary' : 'border-border hover:border-primary/50'}
