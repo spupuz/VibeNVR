@@ -441,19 +441,16 @@ def update_user_password(db: Session, user_id: int, hashed_password: str):
 
 
 # Groups
-def get_groups(db: Session, skip: int = 0, limit: int = 100):
-    return (
-        db.query(models.CameraGroup)
-        .options(
-            selectinload(models.CameraGroup.cameras).selectinload(models.Camera.groups),
-            selectinload(models.CameraGroup.cameras).selectinload(
-                models.Camera.storage_profile
-            ),
-        )
-        .offset(skip)
-        .limit(limit)
-        .all()
+def get_groups(db: Session, skip: int = 0, limit: int = 100, allowed_group_ids: list[int] = None):
+    query = db.query(models.CameraGroup).options(
+        selectinload(models.CameraGroup.cameras).selectinload(models.Camera.groups),
+        selectinload(models.CameraGroup.cameras).selectinload(
+            models.Camera.storage_profile
+        ),
     )
+    if allowed_group_ids is not None:
+        query = query.filter(models.CameraGroup.id.in_(allowed_group_ids))
+    return query.offset(skip).limit(limit).all()
 
 
 def get_group(db: Session, group_id: int):
