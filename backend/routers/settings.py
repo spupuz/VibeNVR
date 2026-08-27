@@ -237,17 +237,24 @@ DEFAULT_SETTINGS = {
 @router.post("/init-defaults")
 def init_default_settings(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Initialize default settings if they don't exist"""
-    created = 0
     logger.info("Checking system settings initialization...")
+
+    keys = list(DEFAULT_SETTINGS.keys())
+    existing = db.query(models.SystemSettings).filter(models.SystemSettings.key.in_(keys)).all()
+    existing_keys = {s.key for s in existing}
+
+    new_settings = {}
     for key, data in DEFAULT_SETTINGS.items():
-        existing = db.query(models.SystemSettings).filter(models.SystemSettings.key == key).first()
-        if not existing:
+        if key not in existing_keys:
             logger.info(f"Initializing missing setting: {key} = {data['value']}")
-            set_setting(db, key, data["value"], data["description"])
-            created += 1
+            new_settings[key] = data["value"]
     
+    created = len(new_settings)
     if created > 0:
+        for key, value in new_settings.items():
+            set_setting(db, key, value, DEFAULT_SETTINGS[key].get("description"))
         logger.info(f"Successfully initialized {created} default settings.")
+
     return {"message": f"Initialized {created} default settings"}
 
 # -----------------------------------------------------------------------------
@@ -327,9 +334,11 @@ async def perform_restore(data: dict, db: Session):
 
     # 1. Restore Settings
     if "settings" in data:
+        keys = [s["key"] for s in data["settings"]]
+        existing = db.query(models.SystemSettings).filter(models.SystemSettings.key.in_(keys)).all()
+        existing_map = {s.key: s for s in existing}
+
         for s in data["settings"]:
-            existing = db.query(models.SystemSettings).filter(models.SystemSettings.key == s["key"]).first()
-            
             if s["key"].startswith("opt_") or s["key"].startswith("mqtt_"):
                 try:
                     validate_setting(s["key"], str(s["value"]))
@@ -337,14 +346,16 @@ async def perform_restore(data: dict, db: Session):
                     logging.warning(f"[BACKUP] Skipping invalid optimization setting {s['key']}: {e.detail}")
                     continue
             
-            if existing:
-                existing.value = s["value"]
-                existing.description = s.get("description")
+            existing_setting = existing_map.get(s["key"])
+            if existing_setting:
+                existing_setting.value = s["value"]
+                existing_setting.description = s.get("description")
             else:
                 new_setting = models.SystemSettings(
                     key=s["key"], value=s["value"], description=s.get("description")
                 )
                 db.add(new_setting)
+                existing_map[s["key"]] = new_setting
     
     # 2. Restore Storage Profiles
     profile_id_map = {} 
