@@ -8,6 +8,8 @@ import { useTranslation } from 'react-i18next';
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     <button
         onClick={onClick}
+        title={label}
+        aria-label={label}
         className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card
       ${active
                 ? 'bg-primary/10 text-primary'
@@ -89,6 +91,8 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
             <div className="p-4 border-t border-border space-y-2">
                 <button
                     onClick={() => onTabChange('profile')}
+                    title={user?.username || 'Profile'}
+                    aria-label={user?.username || 'Profile'}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card
                     ${activeTab === 'profile'
                             ? 'bg-primary/10 text-primary'
@@ -103,6 +107,8 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
 
                 <button
                     onClick={toggleTheme}
+                    title={theme === 'dark' ? t('nav.light_mode', 'Light Mode') : t('nav.dark_mode', 'Dark Mode')}
+                    aria-label={theme === 'dark' ? t('nav.light_mode', 'Light Mode') : t('nav.dark_mode', 'Dark Mode')}
                     className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                 >
                     {theme === 'dark' ? (
