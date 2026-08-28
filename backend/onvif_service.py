@@ -121,7 +121,7 @@ async def get_onvif_details(ip: str, port: int, user: str = "", password: str = 
             logger.error(f"ONVIF probe failed for {ip}:{port}: {err_msg}")
         return None
     except Exception as e:
-        logger.error(f"Unexpected ONVIF error for {ip}:{port}: {str(e)}", exc_info=True)
+        logger.error(f"Unexpected ONVIF error for {ip}:{port}: {str(e)}", exc_info=False)
         return None
 
 async def scan_host(ip: str, timeout: float = 2.0, retries: int = 2) -> Dict[str, List[int]]:
@@ -325,7 +325,7 @@ async def ptz_continuous_move(camera: "schemas.Camera", pan: float, tilt: float,
         await asyncio.to_thread(ptz.ContinuousMove, request)
         return True
     except Exception as e:
-        logger.error(f"PTZ Move failed for {camera.name}: {e}", exc_info=True)
+        logger.error(f"PTZ Move failed for {camera.name}: {e}", exc_info=False)
         return False
 
 async def ptz_stop(camera: "schemas.Camera"):
