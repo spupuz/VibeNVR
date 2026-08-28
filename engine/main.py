@@ -214,6 +214,12 @@ class CameraConfig(BaseModel):
     ai_threshold: float = 0.5
     ai_tracking_enabled: bool = False
     
+    # Tiered Storage Profiles
+    storage_path: Optional[str] = None
+    motion_storage_path: Optional[str] = None
+    continuous_storage_path: Optional[str] = None
+    snapshot_storage_path: Optional[str] = None
+    
     @field_validator('ai_object_types', mode='before')
     @classmethod
     def validate_ai_object_types(cls, v: Any) -> List[str]:
