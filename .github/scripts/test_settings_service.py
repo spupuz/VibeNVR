@@ -97,7 +97,7 @@ def test_validate_setting_invalid_mode():
     with pytest.raises(HTTPException) as excinfo:
         validate_setting("default_live_view_mode", "h264")
     assert excinfo.value.status_code == 400
-    assert "Invalid mode. Must be 'auto', 'webcodecs', or 'mjpeg'" in str(excinfo.value.detail)
+    assert "Invalid mode. Must be 'auto', 'webcodecs', 'mse', or 'mjpeg'" in str(excinfo.value.detail)
 
 def test_validate_setting_invalid_boolean():
     for key in ["opt_verbose_engine_logs", "telemetry_enabled", "mqtt_enabled", "cleanup_enabled"]:
