@@ -367,8 +367,9 @@ export const Profile = () => {
                         </div>
                         <form onSubmit={handlePasswordUpdate} className="space-y-4">
                             <div>
-                                <label className="text-sm font-medium mb-1 block">{t('timeline.current_password', 'Current Password')}</label>
+                                <label htmlFor="oldPassword" className="text-sm font-medium mb-1 block">{t('timeline.current_password', 'Current Password')}</label>
                                 <input
+                                    id="oldPassword"
                                     type="password"
                                     className="w-full bg-background border border-input rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                                     required
@@ -377,8 +378,9 @@ export const Profile = () => {
                                 />
                             </div>
                             <div>
-                                <label className="text-sm font-medium mb-1 block">{t('timeline.new_password', 'New Password')}</label>
+                                <label htmlFor="newPassword" className="text-sm font-medium mb-1 block">{t('timeline.new_password', 'New Password')}</label>
                                 <input
+                                    id="newPassword"
                                     type="password"
                                     className="w-full bg-background border border-input rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                                     required
@@ -387,8 +389,9 @@ export const Profile = () => {
                                 />
                             </div>
                             <div>
-                                <label className="text-sm font-medium mb-1 block">{t('timeline.confirm_new_password', 'Confirm New Password')}</label>
+                                <label htmlFor="confirmPassword" className="text-sm font-medium mb-1 block">{t('timeline.confirm_new_password', 'Confirm New Password')}</label>
                                 <input
+                                    id="confirmPassword"
                                     type="password"
                                     className="w-full bg-background border border-input rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                                     required
@@ -423,8 +426,9 @@ export const Profile = () => {
                         </div>
                         <form onSubmit={disable2FA} className="space-y-4">
                             <div>
-                                <label className="text-sm font-medium mb-1 block">{t('timeline.current_password', 'Current Password')}</label>
+                                <label htmlFor="disable2FAPassword" className="text-sm font-medium mb-1 block">{t('timeline.current_password', 'Current Password')}</label>
                                 <input
+                                    id="disable2FAPassword"
                                     type="password"
                                     className="w-full bg-background border border-input rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
                                     required
@@ -475,8 +479,9 @@ export const Profile = () => {
                             </div>
 
                             <div className="pt-2">
-                                <label className="text-sm font-medium mb-1 block">{t('timeline.enter_6_digit_code', 'Enter 6-digit Code')}</label>
+                                <label htmlFor="setup2FACode" className="text-sm font-medium mb-1 block">{t('timeline.enter_6_digit_code', 'Enter 6-digit Code')}</label>
                                 <input
+                                    id="setup2FACode"
                                     type="text"
                                     className="w-full bg-background border border-input rounded-lg px-3 py-2 text-center text-xl tracking-widest font-mono focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                                     required

@@ -78,6 +78,7 @@ export const EventPreview = React.memo(({
                             <span className="text-[10px] font-bold text-foreground/80 uppercase tracking-tighter">{t('timeline.auto_next', 'Auto-next')}</span>
                             {autoplayNext && (
                                 <select
+                                    id="autoplayDirectionMobile"
                                     aria-label={t('timeline.playback_order', 'Playback Order')}
                                     value={autoplayDirection}
                                     onChange={(e) => {
@@ -174,6 +175,7 @@ export const EventPreview = React.memo(({
                         <label htmlFor="autoplayNextDesktop" className="text-xs font-medium cursor-pointer select-none">{t('timeline.auto_next', 'Auto-next')}</label>
                         {autoplayNext && (
                             <select
+                                id="autoplayDirectionDesktop"
                                 aria-label={t('timeline.playback_order', 'Playback Order')}
                                 value={autoplayDirection}
                                 onChange={(e) => setAutoplayDirection(e.target.value)}
