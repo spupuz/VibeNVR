@@ -62,8 +62,8 @@ def validate_setting(key: str, value: str):
             if v < 1 or v > 100: raise ValueError("Quality must be between 1 and 100")
             
         elif key == "default_live_view_mode":
-            if value not in ["auto", "webcodecs", "mjpeg"]:
-                raise ValueError("Invalid mode. Must be 'auto', 'webcodecs', or 'mjpeg'")
+            if value not in ["auto", "webcodecs", "mse", "mjpeg"]:
+                raise ValueError("Invalid mode. Must be 'auto', 'webcodecs', 'mse', or 'mjpeg'")
         
         elif key in ["opt_verbose_engine_logs", "telemetry_enabled", "mqtt_enabled", "cleanup_enabled", "ai_enabled", "go2rtc_enabled", "backup_auto_enabled"]:
             if value.lower() not in ["true", "false"]:

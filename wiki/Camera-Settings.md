@@ -65,7 +65,7 @@ Certain critical settings are automatically synchronized with the recording engi
 
 - **RTSP Transport**: Whether to use TCP or UDP for the main stream (fully supported in both Re-encode and Passthrough modes).
 - **Sub RTSP Transport**: Independent transport setting for the sub-stream.
-- **Live View Mode**: Global preference for WebCodecs (WebSocket/H.264) vs MJPEG fallback.
+- **Live View Mode**: Preference for WebCodecs (WebSocket/H.264), MSE (Media Source Extensions), or MJPEG polling fallback.
 
 These settings are applied in real-time when the camera configuration is saved.
 

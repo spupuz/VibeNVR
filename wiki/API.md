@@ -192,7 +192,7 @@ VibeNVR features advanced, real-time configuration synchronization between the B
 The following fields are transmitted to the engine in real-time upon camera update:
 - `rtsp_transport`: (tcp/udp) Main stream protocol.
 - `sub_rtsp_transport`: (tcp/udp) Sub-stream protocol.
-- `live_view_mode`: (webcodecs/mjpeg) UI rendering engine.
+- `live_view_mode`: (auto/webcodecs/mse/mjpeg) UI rendering engine.
 - `detect_motion_mode`: (OpenCV/ONVIF Edge) Trigger source.
 - `audio_enabled`: (bool) Hardware audio support toggle.
 - `enable_audio`: (bool) Live audio transmission toggle.

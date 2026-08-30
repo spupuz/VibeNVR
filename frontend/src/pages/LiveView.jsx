@@ -50,6 +50,7 @@ const VideoPlayer = ({
 
         if (preferred === 'mjpeg') return 'mjpeg';
         if (preferred === 'webcodecs') return 'webcodecs';
+        if (preferred === 'mse') return 'mse';
 
         // 'auto' logic: skip WebCodecs in insecure HTTP
         const isInsecureHTTP = !window.isSecureContext && window.location.protocol !== 'https:';

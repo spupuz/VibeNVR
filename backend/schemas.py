@@ -49,7 +49,7 @@ class CameraBase(BaseModel):
     is_active: bool = True
     rtsp_transport: Optional[str] = "tcp" # tcp | udp
     sub_rtsp_transport: Optional[str] = "tcp" # tcp | udp
-    live_view_mode: Optional[str] = "auto" # auto | webcodecs | mjpeg
+    live_view_mode: Optional[str] = "auto" # auto | webcodecs | mse | mjpeg
     storage_profile_id: Optional[int] = None
     motion_storage_profile_id: Optional[int] = None
     continuous_storage_profile_id: Optional[int] = None

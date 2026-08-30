@@ -553,7 +553,8 @@
     "archive_after_hours": "Archive After (Hours)",
     "archive_hours_help": "Hours to wait before moving.",
     "stream_validation_failed": "Failed to validate stream URLs. Retaining existing working configuration.",
-    "ptz.audio_requires_stream": "Audio requires WebCodecs or MSE playback"
+    "ptz.audio_requires_stream": "Audio requires WebCodecs or MSE playback",
+    "force_mse": "Force MSE"
   },
   "settings": {
     "general_preferences": "General Preferences",
@@ -1149,7 +1150,8 @@
     "no_data": "No data available.",
     "archival_interval": "Archival Interval (Hours)",
     "storage_enable_archival": "Enable Automatic Archival",
-    "archival_enable_desc": "When enabled, the system will automatically move old recordings to their assigned Storage Profiles (Tier 2)."
+    "archival_enable_desc": "When enabled, the system will automatically move old recordings to their assigned Storage Profiles (Tier 2).",
+    "stream_mse": "Force MSE"
   },
   "telemetry_notes": {
     "random_uuid_gen": "Random UUID generated at boot",

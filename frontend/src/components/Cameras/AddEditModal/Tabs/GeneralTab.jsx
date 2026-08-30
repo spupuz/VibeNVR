@@ -233,6 +233,7 @@ export const GeneralTab = ({ newCamera, setNewCamera, storageProfiles }) => {
                     options={[
                         { value: 'auto', label: t('cameras.auto_recommended', 'Auto (Recommended)') },
                         { value: 'webcodecs', label: t('cameras.force_webcodecs', 'Force WebCodecs') },
+                        { value: 'mse', label: t('cameras.force_mse', 'Force MSE') },
                         { value: 'mjpeg', label: t('cameras.force_mjpeg_polling', 'Force MJPEG Polling') }
                     ]}
                     value={newCamera.live_view_mode || 'auto'}

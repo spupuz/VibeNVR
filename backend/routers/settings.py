@@ -210,7 +210,7 @@ DEFAULT_SETTINGS = {
     "opt_verbose_engine_logs": {"value": "false", "description": "Enable verbose logs from PyAV/FFmpeg in the engine"},
     "telemetry_enabled": {"value": "true", "description": "Enable anonymous telemetry to help improve VibeNVR"},
     "instance_id": {"value": "", "description": "Unique anonymous ID for this VibeNVR instance"},
-    "default_live_view_mode": {"value": "auto", "description": "Default streaming mode for new cameras (auto, webcodecs, mjpeg)"},
+    "default_live_view_mode": {"value": "auto", "description": "Default streaming mode for new cameras (auto, webcodecs, mse, mjpeg)"},
     
     # Automatic Backup Settings
     "backup_auto_enabled": {"value": "false", "description": "Enable automatic configuration backups to /data/backups/"},

@@ -50,6 +50,7 @@ You can override the streaming technology:
 2. **Per-Camera**: **Settings → Cameras** -> `Live View Mode`:
     - **Auto**: Optimal performance using the 3-stage fallback architecture (Recommended).
     - **Force WebCodecs**: Explicit H.264 (will fail to MJPEG on HTTP).
+    - **Force MSE**: Explicit MSE (Media Source Extensions).
     - **Force JPEG Polling**: Legacy approach for maximum compatibility.
 
 ---

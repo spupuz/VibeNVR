@@ -42,6 +42,7 @@ export const GeneralSettings = ({
                     options={[
                         { value: 'auto', label: t('settings_forms.stream_auto', 'Auto (WebCodecs with Fallback)') },
                         { value: 'webcodecs', label: t('settings_forms.stream_webcodecs', 'Force WebCodecs') },
+                        { value: 'mse', label: t('settings_forms.stream_mse', 'Force MSE') },
                         { value: 'mjpeg', label: t('settings_forms.stream_mjpeg', 'Force MJPEG Polling') }
                     ]}
                 />
