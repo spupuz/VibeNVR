@@ -138,8 +138,9 @@ export const Logs = () => {
             <div className="bg-card border border-border p-3 rounded-lg flex flex-wrap gap-4 items-center shadow-sm">
 
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{t('logs.service', 'Service:')}</span>
+                    <label htmlFor="logsService" className="text-sm font-medium">{t('logs.service', 'Service:')}</label>
                     <select
+                        id="logsService"
                         className="bg-background border border-input rounded px-2 py-1.5 text-sm min-w-[140px]"
                         value={service}
                         onChange={(e) => setService(e.target.value)}
@@ -153,7 +154,9 @@ export const Logs = () => {
                 <div className="flex items-center gap-2 flex-grow max-w-sm">
                     <Search className="w-4 h-4 text-muted-foreground" />
                     <input
+                        id="logsSearch"
                         type="text"
+                        aria-label={t('logs.search_placeholder', 'Search logs...')}
                         placeholder={t('logs.search_placeholder', 'Search logs...')}
                         className="bg-background border border-input rounded px-3 py-1.5 text-sm w-full"
                         value={search}
@@ -162,8 +165,9 @@ export const Logs = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{t('logs.lines', 'Lines:')}</span>
+                    <label htmlFor="logsLines" className="text-sm font-medium">{t('logs.lines', 'Lines:')}</label>
                     <input
+                        id="logsLines"
                         type="number"
                         className="bg-background border border-input rounded px-2 py-1.5 text-sm w-20"
                         value={lines}
@@ -333,8 +337,9 @@ const LogSettingsModal = ({ isOpen, onClose, token, showToast }) => {
 
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('timeline.max_log_size_mb', 'Max Log Size (MB)')}</label>
+                        <label htmlFor="maxLogSize" className="block text-sm font-medium mb-1">{t('timeline.max_log_size_mb', 'Max Log Size (MB)')}</label>
                         <input
+                            id="maxLogSize"
                             type="number"
                             className="w-full bg-background border border-input rounded px-3 py-2"
                             value={settings.log_max_size_mb}
@@ -344,8 +349,9 @@ const LogSettingsModal = ({ isOpen, onClose, token, showToast }) => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('timeline.backup_count', 'Backup Count')}</label>
+                        <label htmlFor="backupCount" className="block text-sm font-medium mb-1">{t('timeline.backup_count', 'Backup Count')}</label>
                         <input
+                            id="backupCount"
                             type="number"
                             className="w-full bg-background border border-input rounded px-3 py-2"
                             value={settings.log_backup_count}
@@ -355,8 +361,9 @@ const LogSettingsModal = ({ isOpen, onClose, token, showToast }) => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('timeline.check_interval_minutes', 'Check Interval (Minutes)')}</label>
+                        <label htmlFor="checkInterval" className="block text-sm font-medium mb-1">{t('timeline.check_interval_minutes', 'Check Interval (Minutes)')}</label>
                         <input
+                            id="checkInterval"
                             type="number"
                             className="w-full bg-background border border-input rounded px-3 py-2"
                             value={settings.log_rotation_check_minutes}
