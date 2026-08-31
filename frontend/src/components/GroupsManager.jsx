@@ -392,7 +392,11 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <form onSubmit={handleCreateGroup} className="bg-card p-6 rounded-xl w-full max-w-sm border border-border">
                         <h3 className="text-lg font-bold mb-4">{t('timeline.create_new_group', 'Create New Group')}</h3>
+                        <label htmlFor="newGroupName" className="block text-sm font-medium mb-1 cursor-pointer">
+                            {t('timeline.group_name_label', 'Group Name')}
+                        </label>
                         <input
+                            id="newGroupName"
                             autoFocus
                             className="w-full px-3 py-2 bg-background border border-input rounded-md mb-4"
                             placeholder="Group Name"
