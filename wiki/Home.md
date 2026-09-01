@@ -27,6 +27,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **[SSO & OAuth](SSO-OAuth-Integration.md)** - Integrating with Authentik, Keycloak, or Google for Single Sign-On.
 - **[MQTT Integration](MQTT-Integration.md)** - Home Assistant Discovery, real-time reporting, and AI metadata publishing.
 - **[Telemetry & Privacy](Telemetry.md)** - Transparency on anonymous data collection and opt-out instructions.
+- **[Decentralized Federation](Federation.md)** - Multi-site management, API proxying, and offline node fallbacks.
 - **[External Integrations](Integrations.md)** - Detailed guide for Homepage, Home Assistant, and API widgets.
 
 ## 🚀 Featured Capabilities

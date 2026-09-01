@@ -50,6 +50,7 @@ Actions protected by the Admin RBAC include:
 - Managing Storage Profiles (`routers/storage.py`)
 - Accessing Engine Debug Status (`routers/settings.py`)
 - Generating API tokens (`routers/api_tokens.py`)
+- Configuring Federation Nodes and triggering proxy write-operations (`routers/federation.py`)
 - Forcing full system cleanups or manual snapshots
 - Modifying general system settings and user accounts
 - Configuring ONVIF Management credentials and performing PTZ operations, including **Home Position** and **Presets** navigation (`routers/onvif_router.py`)
@@ -144,6 +145,7 @@ These are documented security trade-offs made intentionally for compatibility or
 - **`seccomp:unconfined` on the engine container**: Disabled for compatibility with Proxmox/PVE kernel environments that block certain syscalls required by OpenCV/FFmpeg. Consider using a custom seccomp profile instead of fully disabling it if running on a standard Linux host.
 - **JWT has no server-side revocation**: Since JWTs are stateless, logging out only clears the client cookie. The token remains cryptographically valid until its 7-day expiry. This is an accepted trade-off for simplicity. Mitigation: the `HttpOnly` cookie is cleared on logout, requiring physical cookie theft for further misuse.
 - **Webhook SSRF allows private IPs**: The webhook validation deliberately permits private IP ranges to allow Home Assistant and other local integrations. However, loopback (`127.0.0.1`), link-local, and unspecified IPs are explicitly blocked to prevent internal service SSRF.
+- **Federation Proxy SSRF Defense**: When proxying API or WebSocket requests to child nodes, the proxy strictly routes only to the statically configured `node.url` defined by the Administrator in the database. Dynamic user inputs are not used to resolve the host, preventing arbitrary internal request forgery.
 - **WebSocket live stream uses `?token=` query parameter**: The Browser WebSocket API cannot send custom headers during the HTTP upgrade handshake. The JWT is therefore passed as `?token=` for the `/cameras/{id}/ws` live stream endpoint. This is mitigated by: (1) the Nginx `map` directive which redacts `?token=` from all access logs before they are written to disk, (2) TLS encryption in production which prevents interception in transit, and (3) an HttpOnly `media_token` cookie which serves as an automatic fallback when available. The engine's raw WebSocket endpoint (port 8000) is internal-only and not exposed externally.
 - **WebCodecs & Multi-Stream Resilience**: 
     - To ensure instant startup in high-latency environments, the engine caches the most recent H.264 keyframe (SPS/PPS/IDR) and pushes it immediately to new WebSocket clients. 
