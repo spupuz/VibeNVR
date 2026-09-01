@@ -19,7 +19,7 @@ def wait_for_service(name, url, timeout=10, retries=6):
         try:
             res = requests.get(url, timeout=timeout)
             print(f"  [OK] {name} is responsive (Status: {res.status_code})")
-            return True
+            pass
         except requests.RequestException as e:
             print(f"  [WAIT] {name} not ready yet: {e}")
         time.sleep(5)
@@ -32,7 +32,7 @@ def test_backend_auth():
         res = requests.get(f"{BASE_URL}/api/cameras", timeout=5)
         if res.status_code == 401:
             print("  [OK] Unauthenticated access blocked as expected (401).")
-            return True
+            pass
         else:
             print(f"  [FAIL] Expected 401, got {res.status_code}.")
             return False
@@ -46,7 +46,7 @@ def test_login_security():
         res = requests.post(f"{BASE_URL}/api/auth/login", data={"username": "admin", "password": "wrong_password_123"}, timeout=5)
         if res.status_code in (401, 400):
             print("  [OK] Bad credentials rejected (401/400).")
-            return True
+            pass
         else:
             print(f"  [FAIL] Expected 401/400, got {res.status_code}.")
             return False
@@ -63,7 +63,7 @@ def test_path_traversal():
         # It should NOT be a 200 with the file contents.
         if res.status_code in (400, 401, 403, 404, 422):
             print(f"  [OK] Path traversal blocked (Status: {res.status_code}).")
-            return True
+            pass
         else:
             print(f"  [FAIL] Path traversal might be vulnerable (Status: {res.status_code}).")
             return False
@@ -82,11 +82,11 @@ def check_docker_containers():
             return False
         else:
             print("  [OK] Docker containers seem healthy.")
-            return True
+            pass
     except Exception as e:
         print(f"  [WARNING] Could not check Docker status: {e}")
         # Not failing the build just because we couldn't check
-        return True
+        pass
 
 def main():
     print("=== VibeNVR CI Security & Health Check ===")

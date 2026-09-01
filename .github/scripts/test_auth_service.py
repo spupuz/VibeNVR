@@ -13,7 +13,7 @@ async def test_get_current_user_invalid_token():
     mock_db = MagicMock()
 
     with pytest.raises(HTTPException) as exc_info:
-        await auth_service.get_current_user(token=invalid_token, db=mock_db)
+        await auth_service.get_current_user(token=invalid_token, x_api_key=None, db=mock_db)
 
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "Could not validate credentials"
