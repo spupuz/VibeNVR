@@ -1338,5 +1338,23 @@
     "none": "NONE",
     "enable_auto_redirect": "Abilita il reindirizzamento automatico a SSO",
     "enable_auto_redirect_help": "Ignora la pagina di accesso locale e reindirizza direttamente al provider SSO. Utilizza ?local=true nell'URL per ignorare questa impostazione."
+  },
+  "federation": {
+    "test_error": "Errore di rete nel tentativo di raggiungere il nodo.",
+    "remote_nodes": "Nodi remoti",
+    "no_nodes": "Nessun nodo federato configurato.",
+    "test_connection": "Prova connessione",
+    "edit_node": "Modifica nodo",
+    "add_node": "Aggiungi nodo",
+    "url": "URL del nodo",
+    "api_token": "Gettone API",
+    "api_token_placeholder": "Inserisci il token dell'API di amministrazione remota",
+    "api_token_hint": "Puoi generare un token API nelle impostazioni di sicurezza del nodo remoto.",
+    "node_went_offline": "Il nodo attivo è andato offline. Passaggio a Maestro.",
+    "site": "Sito",
+    "local_node": "Nodo principale locale",
+    "aggregated_dashboard": "Panoramica multisito",
+    "waiting_stats": "In attesa della telemetria...",
+    "switch_to_site": "Passa al sito"
   }
 }

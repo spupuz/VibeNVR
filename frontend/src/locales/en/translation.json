@@ -81,7 +81,16 @@
     "clear": "Clear",
     "export": "Export",
     "validating": "Validating...",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "error_occurred": "An error occurred",
+    "saved_successfully": "Saved successfully",
+    "confirm_delete": "Are you sure you want to delete this item?",
+    "deleted_successfully": "Deleted successfully",
+    "add_new": "Add New",
+    "name": "Name",
+    "save": "Save",
+    "offline": "Offline",
+    "online": "Online"
   },
   "login": {
     "welcome_back": "Welcome Back",
@@ -125,7 +134,7 @@
     "burn_rate": "Burn Rate",
     "active_cameras": "Active Cameras",
     "operational": "Operational",
-    "last_24h": "Last 24h",
+    "last_24h": "Events (24h)",
     "events_recorded": "Events Recorded",
     "network_io": "Network I/O",
     "database": "Database",
@@ -150,7 +159,7 @@
     "events": "Events",
     "engine": "Engine",
     "status_healthy": "Healthy",
-    "status_issues": "Issues Detected",
+    "status_issues": "Issues",
     "status_unknown": "Unknown",
     "uptime": "Uptime",
     "video_accel": "VIDEO ACCEL",
@@ -174,7 +183,8 @@
     "accel_live_tooltip": "Live Decoding: CPU (Architecture Limitation)",
     "rec_accel_tooltip": "Hardware acceleration is active and used for video recording encoding.",
     "rec_accel": "REC ACCEL",
-    "req_for": "Req. for {{days}} days"
+    "req_for": "Req. for {{days}} days",
+    "federation_summary_widget": "Multi-Site Overview"
   },
   "cameras": {
     "title": "Cameras",
@@ -574,7 +584,9 @@
     "delete_profile_title": "Delete Storage Profile",
     "delete_profile_msg": "Are you sure you want to delete this profile? Cameras using this profile will revert to the default storage path. Existing recordings will NOT be deleted.",
     "archival_interval_desc": "How often to check for archiving recordings to secondary storage",
-    "unlimited": "Unlimited"
+    "unlimited": "Unlimited",
+    "federation": "Multi-Site Federation",
+    "federation_desc": "Connect and manage remote VibeNVR instances from this Master node."
   },
   "timeline": {
     "title": "Timeline",
@@ -1349,5 +1361,26 @@
     "none": "NONE",
     "enable_auto_redirect": "Enable Auto-Redirect to SSO",
     "enable_auto_redirect_help": "Bypasses the local login page and redirects directly to the SSO provider. Use ?local=true in the URL to bypass this setting."
+  },
+  "federation": {
+    "test_success": "Connection successful!",
+    "test_failed": "Connection failed or unauthorized.",
+    "test_error": "Network error trying to reach node.",
+    "remote_nodes": "Remote Nodes",
+    "no_nodes": "No federated nodes configured.",
+    "test_connection": "Test Connection",
+    "edit_node": "Edit Node",
+    "add_node": "Add Node",
+    "name_placeholder": "e.g., Warehouse Server",
+    "url": "Node URL",
+    "api_token": "API Token",
+    "api_token_placeholder": "Enter the remote Admin API token",
+    "api_token_hint": "You can generate an API Token in the Security settings of the remote node.",
+    "node_went_offline": "The active node went offline. Switching to Master.",
+    "site": "Site",
+    "local_node": "Local Master Node",
+    "aggregated_dashboard": "Multi-Site Overview",
+    "waiting_stats": "Awaiting telemetry...",
+    "switch_to_site": "Switch to Site"
   }
 }
