@@ -37,6 +37,7 @@
 
 
 ## ⚠️ Important Rules for AI
+- **Federation Compatibility**: VibeNVR supports multi-node federation. A strict rule applies: **Everything that works locally MUST work in federation.** Any new feature, API endpoint, UI element, or data operation must be designed to function correctly when the user is operating on a remote federated node via the proxy.
 1. **Docker**: Before any major commit, suggest or perform a rebuild (`docker compose up -d --build`) to verify integrity.
 2. **Ecosystem Repositories**: **CRITICAL**. For the `VibeNVR-site` and `vibenvr-telemetry-worker` repositories, NEVER commit or push changes without explicit user permission. You must ALWAYS use the `/site-telemetry-commit-push` workflow.
 3. **Language**: Code comments in English. User interactions in Italian (or as requested).

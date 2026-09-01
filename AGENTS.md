@@ -295,6 +295,14 @@ def _on_connect(self, client, userdata, flags, reason_code, properties=None):
             self.publish_discovery(camera_id, thread.config.get("name"))
 ```
 
+
+### Federation Architecture Pattern
+
+VibeNVR supports a decentralized multi-node Federation where a Master Node can proxy requests to Remote Nodes.
+- **CRITICAL RULE**: Anything that works locally (on the Master) MUST also work perfectly across the Federation proxy when a remote Node is selected.
+- **Rule**: When adding new API endpoints or frontend API calls (e.g., using `fetch`), ensure they are compatible with the `window.fetch` proxy interceptor (`frontend/src/main.jsx`) and the backend proxy router (`backend/routers/federation.py`).
+- **Rule**: Authentication for proxied API requests is handled by extracting the master's JWT token, translating it to the remote node's `X-API-Key`, and forwarding the request. Do not hardcode authorization assumptions that break this flow.
+
 ### WebSocket 10-byte Hybrid Protocol
 VibeNVR uses a standardized 10-byte binary header for all streaming packets to ensure low-latency multiplexing.
 - **Format**: `struct.pack('<BBd', p_type, is_keyframe, timestamp)`
