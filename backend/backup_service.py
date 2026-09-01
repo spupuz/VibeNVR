@@ -70,7 +70,16 @@ def _generate_backup_data(db: Session) -> dict:
             "last_used": d.last_used.isoformat() if d.last_used else None,
             "expires_at": d.expires_at.isoformat() if d.expires_at else None,
             "created_at": d.created_at.isoformat() if d.created_at else None
-        } for d in db.query(models.TrustedDevice).options(selectinload(models.TrustedDevice.user)).all()]
+        } for d in db.query(models.TrustedDevice).options(selectinload(models.TrustedDevice.user)).all()],
+                "federated_nodes": [{
+            "id": n.id,
+            "name": n.name,
+            "url": n.url,
+            "api_token": n.api_token,
+            "status": n.status,
+            "last_seen": n.last_seen.isoformat() if n.last_seen else None,
+            "created_at": n.created_at.isoformat() if n.created_at else None
+        } for n in db.query(models.FederatedNode).all()]
     }
 
 def run_backup(is_manual: bool = False):

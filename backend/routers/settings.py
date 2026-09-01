@@ -588,6 +588,23 @@ async def perform_restore(data: dict, db: Session):
                     )
                     db.add(new_device)
     
+    # 10. Restore Federated Nodes
+    if "federated_nodes" in data:
+        for n in data["federated_nodes"]:
+            existing_node = db.query(models.FederatedNode).filter(models.FederatedNode.url == n["url"]).first()
+            if not existing_node:
+                new_node = models.FederatedNode(
+                    name=n["name"],
+                    url=n["url"],
+                    api_token=n["api_token"] if "api_token" in n else "restored_token_placeholder",
+                    created_at=n.get("created_at")
+                )
+                db.add(new_node)
+            else:
+                existing_node.name = n.get("name", existing_node.name)
+                if "api_token" in n:
+                    existing_node.api_token = n["api_token"]
+
     db.commit()
     return {"message": "Configuration restored successfully"}
 

@@ -137,6 +137,15 @@ def generate_debug_report():
                 val = settings_map.get(k, "Not Set (Using Default)")
                 report.append(f"  {k}: {val}")
 
+            # Federated Nodes Summary
+            report.append("\n--- Federated Nodes ---")
+            federated_nodes = db.query(models.FederatedNode).all()
+            if not federated_nodes:
+                report.append("  No Federated Nodes configured.")
+            for fn in federated_nodes:
+                safe_url = re.sub(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', 'XXX.XXX.XXX.XXX', fn.url)
+                report.append(f"  - Node ID {fn.id} ({fn.name}): URL={safe_url}, Status={fn.status}")
+
             # 3. Database Stats
             report.append("\n--- Database Stats ---")
             try:
