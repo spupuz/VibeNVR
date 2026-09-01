@@ -109,25 +109,16 @@ def cleanup_camera(
     skip_time_retention: bool = False,
     precalc_movies_size: int = None,
     precalc_pics_size: int = None,
-    force_all: bool = False,
-):
+) -> dict:
+    deleted_count = 0
+    freed_bytes = 0
     """
     Enforce storage limits and retention for a specific camera.
     media_type: 'video' | 'snapshot' | None (both)
     skip_time_retention: If True, only enforces size-based quotas
     """
     # 1. Cleanup Movies (max_storage_gb)
-    if force_all and (not media_type or media_type == "video"):
-        logger.info(f"Force deleting ALL video events for camera {camera.name}")
-        while True:
-            batch = db.query(models.Event).filter(
-                models.Event.camera_id == camera.id,
-                models.Event.type == "video"
-            ).limit(100).all()
-            if not batch: break
-            for e in batch: delete_event_media(e, db, reason="Force Cleanup (Video)")
-            db.commit()
-    elif (
+    if (
         (not media_type or media_type == "video")
         and camera.max_storage_gb
         and camera.max_storage_gb > 0
@@ -168,22 +159,14 @@ def cleanup_camera(
                     size_gb = (
                         (oldest.file_size / (1024**3)) if oldest.file_size else 0.05
                     )
-                    delete_event_media(oldest, db, reason="Camera Quota (Video)")
+                    if delete_event_media(oldest, db, reason="Camera Quota (Video)"):
+                        deleted_count += 1
+                        freed_bytes += oldest.file_size or 0
                     movies_used_gb -= size_gb
                 db.commit()
 
     # 2. Cleanup Pictures (max_pictures_storage_gb)
-    if force_all and (not media_type or media_type == "snapshot"):
-        logger.info(f"Force deleting ALL snapshot events for camera {camera.name}")
-        while True:
-            batch = db.query(models.Event).filter(
-                models.Event.camera_id == camera.id,
-                models.Event.type == "snapshot"
-            ).limit(100).all()
-            if not batch: break
-            for e in batch: delete_event_media(e, db, reason="Force Cleanup (Snapshot)")
-            db.commit()
-    elif (
+    if (
         (not media_type or media_type == "snapshot")
         and camera.max_pictures_storage_gb
         and camera.max_pictures_storage_gb > 0
@@ -226,12 +209,15 @@ def cleanup_camera(
                     size_gb = (
                         (oldest.file_size / (1024**3)) if oldest.file_size else 0.001
                     )
-                    delete_event_media(oldest, db, reason="Camera Quota (Snapshot)")
+                    if delete_event_media(oldest, db, reason="Camera Quota (Snapshot)"):
+                        deleted_count += 1
+                        freed_bytes += oldest.file_size or 0
                     pics_used_gb -= size_gb
                 db.commit()
 
     # 3. Time-based cleanup
     if skip_time_retention:
+        return {'deleted_count': deleted_count, 'freed_bytes': freed_bytes}
         return
 
     # Use timezone-aware cutoff to match DB timestamps
@@ -267,7 +253,9 @@ def cleanup_camera(
                     f"Deleting {len(expired)} expired movies for camera {camera.name} (Cutoff: {cutoff})"
                 )
                 for e in expired:
-                    delete_event_media(e, db, reason="Retention Time (Video)")
+                    if delete_event_media(e, db, reason="Retention Time (Video)"):
+                        deleted_count += 1
+                        freed_bytes += e.file_size or 0
                 db.commit()
 
     if not media_type or media_type == "snapshot":
@@ -300,9 +288,13 @@ def cleanup_camera(
                     f"Deleting {len(expired)} expired pictures for camera {camera.name} (Cutoff: {cutoff})"
                 )
                 for e in expired:
-                    delete_event_media(e, db, reason="Retention Time (Snapshot)")
+                    if delete_event_media(e, db, reason="Retention Time (Snapshot)"):
+                        deleted_count += 1
+                        freed_bytes += e.file_size or 0
                 db.commit()
 
+
+    return {'deleted_count': deleted_count, 'freed_bytes': freed_bytes}
 
 def cleanup_profile(db: Session, profile: models.StorageProfile):
     """
