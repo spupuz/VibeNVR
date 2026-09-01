@@ -365,10 +365,10 @@ export const Cameras = () => {
         setConfirmConfig({
             isOpen: true,
             title: 'Storage Cleanup',
-            message: `Are you sure you want to clean up ${type} storage for this camera? This will enforce retention limits immediately.`,
+            message: `Are you sure you want to clean up ${type} storage for this camera? This will FORCE DELETE ALL FILES and enforce retention limits immediately.`,
             onConfirm: async () => {
                 try {
-                    const res = await fetch(`/api/cameras/${cameraId}/cleanup?type=${type}`, {
+                    const res = await fetch(`/api/cameras/${cameraId}/cleanup?type=${type}&force=true`, {
                         method: 'POST',
                         headers: { Authorization: `Bearer ${token}` }
                     });

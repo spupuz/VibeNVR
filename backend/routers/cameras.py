@@ -1119,6 +1119,7 @@ async def import_motioneye_cameras(
 def cleanup_camera(
     camera_id: int,
     type: Optional[str] = None,
+    force: bool = False,
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth_service.get_current_active_admin),
 ):
@@ -1132,7 +1133,7 @@ def cleanup_camera(
             detail="Invalid cleanup type. Must be 'video' or 'snapshot'",
         )
 
-    storage_service.cleanup_camera(db, db_camera, media_type=type)
+    storage_service.cleanup_camera(db, db_camera, media_type=type, force_all=force)
     return {
         "status": "success",
         "message": f"Cleanup triggered for camera {db_camera.name} (type={type})",

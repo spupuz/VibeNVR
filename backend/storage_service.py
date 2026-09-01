@@ -109,6 +109,7 @@ def cleanup_camera(
     skip_time_retention: bool = False,
     precalc_movies_size: int = None,
     precalc_pics_size: int = None,
+    force_all: bool = False,
 ):
     """
     Enforce storage limits and retention for a specific camera.
@@ -116,7 +117,17 @@ def cleanup_camera(
     skip_time_retention: If True, only enforces size-based quotas
     """
     # 1. Cleanup Movies (max_storage_gb)
-    if (
+    if force_all and (not media_type or media_type == "video"):
+        logger.info(f"Force deleting ALL video events for camera {camera.name}")
+        while True:
+            batch = db.query(models.Event).filter(
+                models.Event.camera_id == camera.id,
+                models.Event.type == "video"
+            ).limit(100).all()
+            if not batch: break
+            for e in batch: delete_event_media(e, db, reason="Force Cleanup (Video)")
+            db.commit()
+    elif (
         (not media_type or media_type == "video")
         and camera.max_storage_gb
         and camera.max_storage_gb > 0
@@ -162,7 +173,17 @@ def cleanup_camera(
                 db.commit()
 
     # 2. Cleanup Pictures (max_pictures_storage_gb)
-    if (
+    if force_all and (not media_type or media_type == "snapshot"):
+        logger.info(f"Force deleting ALL snapshot events for camera {camera.name}")
+        while True:
+            batch = db.query(models.Event).filter(
+                models.Event.camera_id == camera.id,
+                models.Event.type == "snapshot"
+            ).limit(100).all()
+            if not batch: break
+            for e in batch: delete_event_media(e, db, reason="Force Cleanup (Snapshot)")
+            db.commit()
+    elif (
         (not media_type or media_type == "snapshot")
         and camera.max_pictures_storage_gb
         and camera.max_pictures_storage_gb > 0
