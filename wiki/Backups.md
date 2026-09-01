@@ -2,6 +2,7 @@
  
 VibeNVR includes a robust backup and restore system to protect your configuration. **Every setting** configurable via the UI or API is saved in the global backup, including:
 - **Cameras**: Full configuration, RTSP URLs, Schedules, Privacy Masks, and Motion Zones.
+- **Federated Nodes**: Remote site configurations, proxy endpoints, and API Tokens.
 - **System Settings**: Global options, notifications, storage limits, and optimization presets.
 - **Users**: User profiles, hashed passwords, roles, and 2FA secrets.
 - **Groups**: Camera groups and their associations.
