@@ -43,7 +43,7 @@ export const parseRtspUrl = (url) => {
     return { user, pass, host, protocol };
 };
 
-export const getDynamicApiBase = () => window.__ACTIVE_NODE_ID ? `/api/federation/proxy/${window.__ACTIVE_NODE_ID}` : `/api`;
+export const getDynamicApiBase = () => (typeof window !== 'undefined' && window.__ACTIVE_NODE_ID) ? `/api/federation/proxy/${window.__ACTIVE_NODE_ID}` : `/api`;
 
 export const getSnapshotUrl = (cameraId, streamIndex = 0, eventId = null) => {
   if (!cameraId) return null;
