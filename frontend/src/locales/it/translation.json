@@ -87,7 +87,10 @@
     "add_new": "Aggiungi nuovo",
     "name": "Nome",
     "save": "Salva",
-    "online": "In linea"
+    "online": "In linea",
+    "saved_successfully": "Salvato con successo",
+    "deleted_successfully": "Eliminato con successo",
+    "offline": "Non in linea"
   },
   "login": {
     "welcome_back": "Bentornato",
@@ -852,7 +855,8 @@
     "delete_group": "Elimina gruppo",
     "cancel_selection": "Annulla la selezione",
     "delete_selected_items": "Elimina {{count}} elementi selezionati",
-    "recording_reason": "Motivo della registrazione"
+    "recording_reason": "Motivo della registrazione",
+    "group_name_label": "Nome del gruppo"
   },
   "live": {
     "title": "Vista Live",
@@ -1366,6 +1370,7 @@
     "waiting_stats": "In attesa della telemetria...",
     "switch_to_site": "Passa al sito",
     "test_failed": "Connessione non riuscita o non autorizzata.",
-    "name_placeholder": "ad esempio, Server del magazzino"
+    "name_placeholder": "ad esempio, Server del magazzino",
+    "test_success": "Connessione riuscita!"
   }
 }

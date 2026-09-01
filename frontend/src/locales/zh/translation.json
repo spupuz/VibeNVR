@@ -88,7 +88,9 @@
     "deleted_successfully": "删除成功",
     "add_new": "添加新内容",
     "name": "姓名",
-    "save": "节省"
+    "save": "节省",
+    "offline": "离线",
+    "online": "在线的"
   },
   "login": {
     "welcome_back": "欢迎回来",
@@ -181,7 +183,8 @@
     "accel_live_tooltip": "实时解码：CPU（架构限制）",
     "rec_accel_tooltip": "硬件加速处于活动状态并用于视频录制编码。",
     "rec_accel": "录音加速",
-    "req_for": "要求。持续 {{days}} 天"
+    "req_for": "要求。持续 {{days}} 天",
+    "federation_summary_widget": "多站点概述"
   },
   "cameras": {
     "title": "相机",
@@ -558,7 +561,8 @@
     "archive_after_hours": "存档后（小时）",
     "archive_hours_help": "搬家前要等几个小时。",
     "stream_validation_failed": "无法验证流 URL。保留现有的工作配置。",
-    "ptz.audio_requires_stream": "音频需要 WebCodecs 或 MSE 播放"
+    "ptz.audio_requires_stream": "音频需要 WebCodecs 或 MSE 播放",
+    "force_mse": "强制均方误差"
   },
   "settings": {
     "general_preferences": "常规首选项",
@@ -578,7 +582,9 @@
     "delete_profile_title": "删除存储配置文件",
     "delete_profile_msg": "您确定要删除此个人资料吗？使用此配置文件的相机将恢复到默认存储路径。现有录音不会被删除。",
     "archival_interval_desc": "检查将录音存档到辅助存储的频率",
-    "unlimited": "无限"
+    "unlimited": "无限",
+    "federation": "多站点联合",
+    "federation_desc": "从此主节点连接和管理远程 VibeNVR 实例。"
   },
   "timeline": {
     "title": "时间轴",
@@ -856,7 +862,8 @@
     "delete_group": "删除组",
     "cancel_selection": "取消选择",
     "delete_selected_items": "删除 {{count}} 个所选项目",
-    "recording_reason": "录音原因"
+    "recording_reason": "录音原因",
+    "group_name_label": "群组名称"
   },
   "live": {
     "title": "实时视图",
@@ -1150,7 +1157,8 @@
     "no_data": "无可用数据。",
     "archival_interval": "归档间隔（小时）",
     "storage_enable_archival": "启用自动存档",
-    "archival_enable_desc": "启用后，系统将自动将旧录音移至指定的存储配置文件（第 2 层）。"
+    "archival_enable_desc": "启用后，系统将自动将旧录音移至指定的存储配置文件（第 2 层）。",
+    "stream_mse": "强制均方误差"
   },
   "telemetry_notes": {
     "random_uuid_gen": "随机 UUID",
@@ -1356,6 +1364,24 @@
   "force_mse": "强制 MSE",
   "stream_mse": "强制 MSE",
   "federation": {
-    "switch_to_site": "切换到站点"
+    "switch_to_site": "切换到站点",
+    "test_success": "连接成功！",
+    "test_failed": "连接失败或未经授权。",
+    "test_error": "尝试到达节点时出现网络错误。",
+    "remote_nodes": "远程节点",
+    "no_nodes": "未配置联合节点。",
+    "test_connection": "测试连接",
+    "edit_node": "编辑节点",
+    "add_node": "添加节点",
+    "name_placeholder": "例如，仓库服务器",
+    "url": "节点地址",
+    "api_token": "API令牌",
+    "api_token_placeholder": "输入远程管理 API 令牌",
+    "api_token_hint": "您可以在远程节点的安全设置中生成 API 令牌。",
+    "node_went_offline": "主节点离线。切换到大师。",
+    "site": "地点",
+    "local_node": "本地主节点",
+    "aggregated_dashboard": "多站点概述",
+    "waiting_stats": "等待遥测..."
   }
 }

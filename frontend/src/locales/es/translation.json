@@ -854,7 +854,8 @@
     "delete_group": "Eliminar grupo",
     "cancel_selection": "Cancelar selección",
     "delete_selected_items": "Eliminar {{count}} elementos seleccionados",
-    "recording_reason": "Motivo de grabación"
+    "recording_reason": "Motivo de grabación",
+    "group_name_label": "Nombre del grupo"
   },
   "live": {
     "title": "Vista en vivo",

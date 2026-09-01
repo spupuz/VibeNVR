@@ -548,7 +548,8 @@
     "archive_after_hours": "Archiv nach (Stunden)",
     "archive_hours_help": "Stundenlanges Warten vor dem Umzug.",
     "stream_validation_failed": "Stream-URLs konnten nicht validiert werden. Beibehaltung der vorhandenen Arbeitskonfiguration.",
-    "ptz.audio_requires_stream": "Für Audio sind WebCodecs oder MSE-Wiedergabe erforderlich"
+    "ptz.audio_requires_stream": "Für Audio sind WebCodecs oder MSE-Wiedergabe erforderlich",
+    "force_mse": "MSE erzwingen"
   },
   "settings": {
     "general_preferences": "Allgemeine Einstellungen",
@@ -568,7 +569,9 @@
     "delete_profile_title": "Speicherprofil löschen",
     "delete_profile_msg": "Sind Sie sicher, dass Sie dieses Profil löschen möchten? Kameras, die dieses Profil verwenden, werden auf den Standardspeicherpfad zurückgesetzt. Vorhandene Aufnahmen werden NICHT gelöscht.",
     "archival_interval_desc": "Wie oft wird geprüft, ob Aufzeichnungen im Sekundärspeicher archiviert werden?",
-    "unlimited": "Unbegrenzt"
+    "unlimited": "Unbegrenzt",
+    "federation": "Multi-Site-Föderation",
+    "federation_desc": "Verbinden und verwalten Sie Remote-VibeNVR-Instanzen von diesem Master-Knoten aus."
   },
   "timeline": {
     "title": "Zeitleiste",
@@ -846,7 +849,8 @@
     "delete_group": "Gruppe löschen",
     "cancel_selection": "Auswahl abbrechen",
     "delete_selected_items": "{{count}} ausgewählte Elemente löschen",
-    "recording_reason": "Aufnahmegrund"
+    "recording_reason": "Aufnahmegrund",
+    "group_name_label": "Gruppenname"
   },
   "live": {
     "title": "Live-Ansicht",

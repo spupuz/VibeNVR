@@ -860,7 +860,8 @@
     "delete_group": "Удалить группу",
     "cancel_selection": "Отменить выбор",
     "delete_selected_items": "Удалить {{count}} выбранных элементов",
-    "recording_reason": "Причина записи"
+    "recording_reason": "Причина записи",
+    "group_name_label": "Имя группы"
   },
   "live": {
     "title": "Прямой эфир",

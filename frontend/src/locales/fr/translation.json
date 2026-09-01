@@ -858,7 +858,8 @@
     "delete_group": "Supprimer le groupe",
     "cancel_selection": "Annuler la sélection",
     "delete_selected_items": "Supprimer {{count}} éléments sélectionnés",
-    "recording_reason": "Raison de l'enregistrement"
+    "recording_reason": "Raison de l'enregistrement",
+    "group_name_label": "Nom du groupe"
   },
   "live": {
     "title": "Vue en direct",

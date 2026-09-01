@@ -855,7 +855,8 @@
     "delete_group": "Excluir grupo",
     "cancel_selection": "Cancelar seleção",
     "delete_selected_items": "Excluir {{count}} itens selecionados",
-    "recording_reason": "Motivo da Gravação"
+    "recording_reason": "Motivo da Gravação",
+    "group_name_label": "Nome do grupo"
   },
   "live": {
     "title": "Exibição ao vivo",

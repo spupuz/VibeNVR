@@ -864,7 +864,8 @@
     "delete_group": "Delete Group",
     "cancel_selection": "Cancel selection",
     "delete_selected_items": "Delete {{count}} selected items",
-    "recording_reason": "Recording Reason"
+    "recording_reason": "Recording Reason",
+    "group_name_label": "Group Name"
   },
   "live": {
     "title": "Live View",

@@ -89,7 +89,8 @@
     "name": "名前",
     "save": "保存",
     "offline": "オフライン",
-    "online": "オンライン"
+    "online": "オンライン",
+    "deleted_successfully": "正常に削除されました"
   },
   "login": {
     "welcome_back": "お帰りなさい",
@@ -855,7 +856,8 @@
     "delete_group": "グループの削除",
     "cancel_selection": "選択をキャンセルする",
     "delete_selected_items": "選択した {{count}} 個のアイテムを削除します",
-    "recording_reason": "録音理由"
+    "recording_reason": "録音理由",
+    "group_name_label": "グループ名"
   },
   "live": {
     "title": "ライブビュー",
