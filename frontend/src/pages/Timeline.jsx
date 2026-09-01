@@ -50,15 +50,28 @@ export const Timeline = () => {
     const eventId = searchParams.get('event_id');
 
     const filteredEvents = useMemo(() => {
-        let results = events;
-        if (selectedCameraFilter !== 'all') results = results.filter(e => e.camera_id === parseInt(selectedCameraFilter));
-        if (selectedHour !== null) results = results.filter(e => new Date(e.timestamp_start).getHours() === selectedHour);
-        if (selectedTypeFilter !== 'all') results = results.filter(e => e.type === selectedTypeFilter);
-        if (selectedEventTypeFilter !== 'all') results = results.filter(e => e.event_type?.toLowerCase() === selectedEventTypeFilter.toLowerCase());
-        if (selectedObjectFilter !== 'all') {
-            results = results.filter(e => e.ai_metadata && e.ai_metadata.toLowerCase().includes(selectedObjectFilter.toLowerCase()));
-        }
-        return results;
+        // ⚡ Bolt: Optimization - Extracted invariant string/int conversions outside the loop
+        // Impact: Eliminates redundant parsing (up to 1000x) and prevents O(N*5) array allocations
+        // by merging multiple `.filter()` calls into a single $O(N)$ pass with early returns.
+        const isCameraAll = selectedCameraFilter === 'all';
+        const cameraId = isCameraAll ? null : parseInt(selectedCameraFilter);
+        const isHourAll = selectedHour === null;
+        const isTypeAll = selectedTypeFilter === 'all';
+        const isEventTypeAll = selectedEventTypeFilter === 'all';
+        const eventTypeLower = isEventTypeAll ? null : selectedEventTypeFilter.toLowerCase();
+        const isObjectAll = selectedObjectFilter === 'all';
+        const objectLower = isObjectAll ? null : selectedObjectFilter.toLowerCase();
+
+        return events.filter(e => {
+            if (!isCameraAll && e.camera_id !== cameraId) return false;
+            if (!isHourAll && new Date(e.timestamp_start).getHours() !== selectedHour) return false;
+            if (!isTypeAll && e.type !== selectedTypeFilter) return false;
+            if (!isEventTypeAll && e.event_type?.toLowerCase() !== eventTypeLower) return false;
+            if (!isObjectAll) {
+                if (!e.ai_metadata || !e.ai_metadata.toLowerCase().includes(objectLower)) return false;
+            }
+            return true;
+        });
     }, [events, selectedHour, selectedCameraFilter, selectedTypeFilter, selectedEventTypeFilter, selectedObjectFilter]);
 
     useEffect(() => {
