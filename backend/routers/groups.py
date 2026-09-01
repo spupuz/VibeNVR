@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List, Any
 import crud
@@ -15,7 +15,7 @@ router = APIRouter(
 )
 
 @router.get("", response_model=List[Any])
-def read_groups(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
+def read_groups(request: Request, skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
     user, is_token = auth_info
     
     allowed_group_ids = None
@@ -24,7 +24,8 @@ def read_groups(skip: int = 0, limit: int = 100, db: Session = Depends(database.
 
     groups = crud.get_groups(db, skip=skip, limit=limit, allowed_group_ids=allowed_group_ids)
 
-    if is_token:
+    is_federation = request.headers.get("x-federation-proxy") == "true"
+    if is_token and not is_federation:
         # Return sanitized groups (masking camera details)
         return [schemas.CameraGroupSummary.model_validate(g) for g in groups]
     return [schemas.CameraGroup.model_validate(g) for g in groups]
@@ -34,7 +35,7 @@ def create_group(group: schemas.CameraGroupCreate, db: Session = Depends(databas
     return crud.create_group(db, group=group)
 
 @router.get("/{group_id}", response_model=Any)
-def read_group(group_id: int, db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
+def read_group(group_id: int, request: Request, db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
     user, is_token = auth_info
     db_group = crud.get_group(db, group_id=group_id)
     if db_group is None:
@@ -45,7 +46,8 @@ def read_group(group_id: int, db: Session = Depends(database.get_db), auth_info:
         if group_id not in allowed_group_ids:
             raise HTTPException(status_code=403, detail="Not authorized to view this group")
     
-    if is_token:
+    is_federation = request.headers.get("x-federation-proxy") == "true"
+    if is_token and not is_federation:
         # Return sanitized group
         return schemas.CameraGroupSummary.model_validate(db_group)
     return schemas.CameraGroup.model_validate(db_group)

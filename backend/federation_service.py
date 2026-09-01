@@ -30,6 +30,7 @@ async def proxy_request(node_url: str, api_token: str, path: str, request: Reque
     headers.pop("authorization", None)
     if api_token:
         headers["x-api-key"] = str(api_token)
+        headers["x-federation-proxy"] = "true"
     
     # Read the body if it exists
     body = await request.body()

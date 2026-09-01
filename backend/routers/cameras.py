@@ -223,6 +223,7 @@ def create_camera(
 
 @router.get("", response_model=List[Any])
 def read_cameras(
+    request: Request,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(database.get_db),
@@ -240,7 +241,8 @@ def read_cameras(
 
     cameras = crud.get_cameras(db, skip=skip, limit=limit, allowed_camera_ids=allowed_ids)
 
-    if is_token:
+    is_federation = request.headers.get("x-federation-proxy") == "true"
+    if is_token and not is_federation:
         # Return sanitized summary for 3rd party integrations
         return [schemas.CameraSummary.model_validate(c) for c in cameras]
     return [schemas.Camera.model_validate(c) for c in cameras]
@@ -249,6 +251,7 @@ def read_cameras(
 @router.get("/{camera_id}", response_model=Any)
 def read_camera(
     camera_id: int,
+    request: Request,
     db: Session = Depends(database.get_db),
     auth_info: tuple[models.User, bool] = Depends(
         auth_service.get_current_user_or_token
@@ -268,7 +271,8 @@ def read_camera(
                 status_code=403, detail="Not authorized to view this camera"
             )
 
-    if is_token:
+    is_federation = request.headers.get("x-federation-proxy") == "true"
+    if is_token and not is_federation:
         # Return sanitized summary for 3rd party integrations
         return schemas.CameraSummary.model_validate(db_camera)
     return schemas.Camera.model_validate(db_camera)
