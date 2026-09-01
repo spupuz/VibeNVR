@@ -334,3 +334,14 @@ class RecoveryCode(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", backref=backref("recovery_codes", cascade="all, delete-orphan"))
+
+class FederatedNode(Base):
+    __tablename__ = "federated_nodes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    url = Column(String, nullable=False)
+    api_token = Column(String, nullable=False)
+    status = Column(String, default="offline")
+    last_seen = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

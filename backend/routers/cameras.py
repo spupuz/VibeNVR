@@ -68,18 +68,23 @@ def _verify_camera_access_sync(token: str, camera_id: int) -> dict:
     db = database.SessionLocal()
     try:
         # Decode JWT token
+        user = None
         try:
             payload = jwt.decode(token, auth_service.SECRET_KEY, algorithms=[auth_service.ALGORITHM])
             username: str = payload.get("sub")
-            if not username:
-                return {"status": 401, "detail": "Invalid token"}
+            if username:
+                user = db.query(models.User).filter(models.User.username == username).first()
         except jwt.PyJWTError:
-            return {"status": 401, "detail": "Invalid token"}
+            pass
+            
+        if not user:
+            token_hash = auth_service.hash_api_token(token)
+            db_token = crud.get_api_token_by_hash(db, token_hash)
+            if db_token and db_token.is_active:
+                user = db_token.created_by
 
-        # Get User
-        user = db.query(models.User).filter(models.User.username == username).first()
-        if user is None:
-            return {"status": 401, "detail": "User not found"}
+        if not user:
+            return {"status": 401, "detail": "Invalid token or user not found"}
 
         # Get Camera
         db_camera = crud.get_camera(db, camera_id=camera_id)
@@ -498,8 +503,9 @@ async def websocket_camera_stream(websocket: WebSocket, camera_id: int):
     """Proxy raw H.264 PyAV packets from engine to the frontend via WebSockets"""
     await websocket.accept()
 
-    # Auth check (Browser WebSocket API only supports query params or cookies)
-    token = websocket.query_params.get("token") or websocket.cookies.get("media_token")
+    # Auth check (Browser WebSocket API only supports query params or cookies, but federation uses x-api-key)
+    x_api_key = websocket.headers.get("x-api-key")
+    token = x_api_key or websocket.query_params.get("token") or websocket.cookies.get("media_token")
     if not token:
         logging.warning(f"WS Auth Fail: No token for camera {camera_id}")
         await websocket.close(code=1008)
@@ -552,10 +558,11 @@ async def get_camera_frame(
     camera_id: int, request: Request, token: Optional[str] = None, raw: bool = False
 ):
     """Proxy a single JPEG frame from the engine (for polling mode)"""
-    # Accept token from: Authorization: Bearer header > ?token= query param > media_token cookie
+    # Accept token from: Authorization: Bearer header > X-API-Key > ?token= query param > media_token cookie
     auth_header = request.headers.get("Authorization", "")
     bearer_token = auth_header[7:] if auth_header.startswith("Bearer ") else None
-    media_token = bearer_token or token or request.cookies.get("media_token")
+    x_api_key = request.headers.get("x-api-key")
+    media_token = bearer_token or x_api_key or token or request.cookies.get("media_token")
     if not media_token:
         logging.warning(
             f"Frame Auth Fail: No token for camera {camera_id}. Cookies present: {list(request.cookies.keys())}"

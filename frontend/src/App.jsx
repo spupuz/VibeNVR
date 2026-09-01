@@ -12,6 +12,7 @@ import { About } from './pages/About';
 import { Logs } from './pages/Logs';
 import { Profile } from './pages/Profile';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { FederationProvider, useFederation } from './contexts/FederationContext';
 import { Loader2 } from 'lucide-react';
 import { SystemInitializing } from './components/SystemInitializing';
 
@@ -25,6 +26,7 @@ function AppContent() {
     const location = useLocation();
     const navigate = useNavigate();
     const { isAuthenticated, loading, token, isBackendReady } = useAuth();
+    const { activeNode } = useFederation();
 
     // Theme logic
     const [theme, setTheme] = useState(() => {
@@ -63,7 +65,7 @@ function AppContent() {
             fetch('/api/settings/default_landing_page', {
                 headers: { Authorization: `Bearer ${token}` }
             })
-                .then(res => res.json())
+                .then(res => { if (!res.ok) throw new Error('Fetch failed'); return res.json(); })
                 .then(data => {
                     if (data && data.value) {
                         setDefaultLandingPage(data.value);
@@ -122,7 +124,7 @@ function AppContent() {
                         theme={theme}
                         toggleTheme={toggleTheme}
                     >
-                        <Routes>
+                        <Routes key={activeNode || 'local'}>
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/live" element={<LiveView />} />
@@ -147,7 +149,9 @@ function App() {
     return (
         <AuthProvider>
             <ToastProvider>
-                <AppContent />
+                <FederationProvider>
+                    <AppContent />
+                </FederationProvider>
             </ToastProvider>
         </AuthProvider>
     );

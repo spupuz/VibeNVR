@@ -447,8 +447,8 @@ def _get_database_size(db: Session) -> float:
     return db_size_mb
 
 def _get_system_health_and_mqtt(db: Session, cameras: list, active_cameras_count: int, engine_stats: dict) -> tuple:
-    """Evaluates system health and retrieves MQTT connection status."""
-    total_errors = len([c for c in cameras if c.status in ("UNREACHABLE", "UNAUTHORIZED") and c.is_active])
+    engine_cams = engine_stats.get("cameras", {})
+    total_errors = len([c for c in cameras if engine_cams.get(str(c.id), {}).get("health_status") in ("UNREACHABLE", "UNAUTHORIZED") and c.is_active])
     system_status = "Healthy" if total_errors == 0 else "Issues Detected"
     if active_cameras_count == 0 and len(cameras) > 0:
         system_status = "Standby"

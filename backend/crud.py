@@ -68,6 +68,10 @@ def create_camera(db: Session, camera: schemas.CameraCreate):
 
         create_data["ai_object_types"] = json.dumps(create_data["ai_object_types"])
 
+    # Remove ephemeral fields that are not in the database model
+    create_data.pop("status", None)
+    create_data.pop("last_seen", None)
+
     db_camera = models.Camera(**create_data)
     db.add(db_camera)
     db.commit()
@@ -86,6 +90,10 @@ def update_camera(db: Session, camera_id: int, camera: schemas.CameraCreate):
             import json
 
             update_data["ai_object_types"] = json.dumps(update_data["ai_object_types"])
+
+        # Remove ephemeral fields that are not in the database model
+        update_data.pop("status", None)
+        update_data.pop("last_seen", None)
 
         for key, value in update_data.items():
             setattr(db_camera, key, value)

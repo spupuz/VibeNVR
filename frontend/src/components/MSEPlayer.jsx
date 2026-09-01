@@ -285,7 +285,8 @@ export const MSEPlayer = ({ camera, onStateChange, videoEnabled = true, isAuditi
 
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const tokenPart = token ? `?token=${encodeURIComponent(token)}` : '';
-        const wsUrl = `${protocol}//${window.location.host}/api/cameras/${cameraId}/ws${tokenPart}`;
+        const apiBase = window.__ACTIVE_NODE_ID ? `/api/federation/proxy/${window.__ACTIVE_NODE_ID}` : `/api`;
+        const wsUrl = `${protocol}//${window.location.host}${apiBase}/cameras/${cameraId}/ws${tokenPart}`;
 
         let ws;
         try {

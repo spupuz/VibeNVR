@@ -4,6 +4,40 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Avatar } from '../ui/Avatar';
 import packageJson from '../../../package.json';
 import { useTranslation } from 'react-i18next';
+import { useFederation } from '../../contexts/FederationContext';
+import { Network, Server } from 'lucide-react';
+
+const SiteSelector = () => {
+    const { t } = useTranslation();
+    const { nodes, activeNode, setActiveNode } = useFederation();
+
+    if (!nodes || nodes.length === 0) return null;
+
+    return (
+        <div className="mb-4 bg-muted/30 rounded-lg p-2 border border-border">
+            <label className="text-xs text-muted-foreground font-semibold px-2 mb-1 flex items-center gap-1 uppercase tracking-wider">
+                <Network className="w-3 h-3" /> {t('federation.site', 'Site')}
+            </label>
+            <select
+                value={activeNode || 'local'}
+                onChange={(e) => setActiveNode(e.target.value === 'local' ? null : e.target.value)}
+                className="w-full bg-transparent text-sm font-medium p-1.5 focus:outline-none focus:ring-2 focus:ring-primary rounded cursor-pointer"
+            >
+                <option value="local" className="bg-card text-foreground">{t('federation.local_node', 'Local Master Node')}</option>
+                {nodes.map(node => (
+                    <option 
+                        key={node.id} 
+                        value={node.id} 
+                        className="bg-card text-foreground"
+                        disabled={node.status !== 'online'}
+                    >
+                        {node.name} {node.status !== 'online' ? '(Offline)' : ''}
+                    </option>
+                ))}
+            </select>
+        </div>
+    );
+};
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     <button
@@ -27,7 +61,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
 
     useEffect(() => {
         fetch('https://api.github.com/repos/spupuz/VibeNVR/releases/latest')
-            .then(res => res.json())
+            .then(res => { if (!res.ok) throw new Error('Fetch failed'); return res.json(); })
             .then(data => {
                 if (data.tag_name) {
                     const tag = data.tag_name.replace('v', '');
@@ -73,6 +107,10 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
                 >
                     <X className="w-5 h-5" />
                 </button>
+            </div>
+
+            <div className="px-4 pb-2">
+                <SiteSelector />
             </div>
 
             <nav className="flex-1 overflow-y-auto min-h-0 px-4 space-y-1 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">

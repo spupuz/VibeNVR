@@ -51,7 +51,7 @@ export const Profile = () => {
 
     React.useEffect(() => {
         fetch('/api/auth/status')
-            .then(res => res.json())
+            .then(res => { if (!res.ok) throw new Error('Fetch failed'); return res.json(); })
             .then(data => {
                 setOauthStatus({
                     enabled: data.oauth_enabled,

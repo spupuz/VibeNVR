@@ -63,6 +63,34 @@ async def _fetch_and_update_health(
     HEALTH_CACHE[camera.id] = current_health
 
 
+
+async def check_federation_health():
+    """Periodic background task to check federation nodes health"""
+    import crud_federation
+    from routers.federation import _verify_remote_node
+    while True:
+        try:
+            await asyncio.sleep(30) # Check every 30s
+            with database.get_db_ctx() as db:
+                nodes = crud_federation.get_nodes(db)
+                for node in nodes:
+                    is_online = False
+                    try:
+                        # Re-use _verify_remote_node logic but suppress exceptions
+                        import requests
+                        base_url = node.url.rstrip("/")
+                        resp = requests.get(f"{base_url}/api/auth/me", headers={"X-API-Key": node.api_token}, timeout=5)
+                        if resp.status_code == 200:
+                            is_online = True
+                    except Exception:
+                        pass
+                    
+                    new_status = "online" if is_online else "offline"
+                    if node.status != new_status:
+                        crud_federation.update_node_status(db, node.id, new_status)
+        except Exception as e:
+            logger.error(f"Error in federation health check: {e}")
+
 async def check_camera_health():
     """Periodic background task to check camera health from Engine"""
     engine_url = "http://engine:8000"
@@ -207,6 +235,7 @@ def start_health_service():
     """Start the health check background task"""
     loop = asyncio.get_event_loop()
     loop.create_task(check_camera_health())
+    loop.create_task(check_federation_health())
     logger.info("Camera Health Service started.")
 
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Save } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useFederation } from '../contexts/FederationContext';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../contexts/ToastContext';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
@@ -18,6 +19,7 @@ import { AdvancedSettings } from './Settings/sections/AdvancedSettings';
 import { BackupSettings } from './Settings/sections/BackupSettings';
 import { AISettings } from './Settings/sections/AISettings';
 import { OAuthSettings } from './Settings/sections/OAuthSettings';
+import { FederationSettings } from './Settings/sections/FederationSettings';
 
 // Modularized Modals
 import { PasswordChangeModal } from './Settings/PasswordChangeModal';
@@ -26,6 +28,7 @@ import { EditUserModal } from './Settings/EditUserModal';
 
 export const Settings = () => {
     const { user, token } = useAuth();
+    const { activeNode } = useFederation();
     const { t } = useTranslation();
     const { showToast } = useToast();
     const [loading, setLoading] = useState(true);
@@ -592,6 +595,13 @@ export const Settings = () => {
                 {user?.role === 'admin' && (
                     <ApiTokenSettings
                         isOpen={openSection === 'api-tokens'}
+                        onToggle={toggleSection}
+                    />
+                )}
+
+                {user?.role === 'admin' && (
+                    <FederationSettings
+                        isOpen={openSection === 'federation'}
                         onToggle={toggleSection}
                     />
                 )}

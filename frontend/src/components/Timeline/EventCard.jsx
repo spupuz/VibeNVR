@@ -98,7 +98,7 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
                 <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-90 transition-opacity z-10">
                     {/* Download */}
                     <a
-                        href={`/api/events/${event.id}/download`}
+                        href={`${window.__ACTIVE_NODE_ID ? `/api/federation/proxy/${window.__ACTIVE_NODE_ID}` : `/api`}/events/${event.id}/download`}
                         download
                         onClick={(e) => e.stopPropagation()}
                         className="p-1 bg-black/50 hover:bg-black/70 text-white rounded backdrop-blur-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"

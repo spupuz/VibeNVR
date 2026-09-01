@@ -428,6 +428,8 @@ app.include_router(homepage.router, prefix="/v1")
 app.include_router(api_tokens.router, prefix="/v1")
 app.include_router(onvif_router.router)
 app.include_router(storage.router)
+from routers import federation
+app.include_router(federation.router)
 from routers import oauth
 app.include_router(oauth.router)
 
@@ -440,8 +442,9 @@ async def get_secure_media(file_path: str, request: Request, token: Optional[str
     # Debug cookies
     logging.debug(f"DEBUG Media: Request cookies for {file_path}: {request.cookies}")
 
-    # Try query param first (for backward compatibility), then cookie
-    media_token = token or request.cookies.get("media_token")
+    # Try X-API-Key, query param, then cookie
+    x_api_key = request.headers.get("x-api-key")
+    media_token = x_api_key or token or request.cookies.get("media_token")
     if not media_token:
         logging.warning(f"Media Auth Fail: No token for {file_path}. Cookies present: {list(request.cookies.keys())}")
         raise HTTPException(status_code=401, detail="Missing media authentication")

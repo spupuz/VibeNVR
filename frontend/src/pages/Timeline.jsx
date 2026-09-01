@@ -13,7 +13,7 @@ import { EventFilters } from '../components/Timeline/EventFilters';
 import { BulkActionBar } from '../components/Timeline/BulkActionBar';
 import { EventPreview } from '../components/Timeline/EventPreview';
 
-const API_BASE = `/api`;
+const getApiBase = () => window.__ACTIVE_NODE_ID ? `/api/federation/proxy/${window.__ACTIVE_NODE_ID}` : `/api`;
 
 export const Timeline = () => {
     const { token, user, hasPermission } = useAuth();
@@ -66,7 +66,7 @@ export const Timeline = () => {
     }, [urlDate]);
 
     const fetchEvents = useCallback(() => {
-        let url = `${API_BASE}/events`;
+        let url = `${getApiBase()}/events`;
         const params = new URLSearchParams();
         params.append('limit', '1000');
         if (cameraId) params.append('camera_id', cameraId);
@@ -82,7 +82,7 @@ export const Timeline = () => {
         if (Array.from(params).length > 0) url += `?${params.toString()}`;
 
         fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-            .then(res => res.json())
+            .then(res => { if (!res.ok) throw new Error('Fetch failed'); return res.json(); })
             .then(data => {
                 setEvents(data);
                 if (eventId) {
@@ -100,8 +100,8 @@ export const Timeline = () => {
     }, [cameraId, type, searchParams, selectedDate, token, eventId]);
 
     const fetchCameras = useCallback(() => {
-        fetch(`${API_BASE}/cameras`, { headers: { Authorization: `Bearer ${token}` } })
-            .then(res => res.json())
+        fetch(`${getApiBase()}/cameras`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => { if (!res.ok) throw new Error('Fetch failed'); return res.json(); })
             .then(data => {
                 const replayCameras = data.filter(cam => hasPermission(cam, 'can_replay'));
                 setCameras(replayCameras);
@@ -127,7 +127,7 @@ export const Timeline = () => {
         let relative = path;
         const prefixes = ['/var/lib/motion/', '/var/lib/vibe/recordings/'];
         prefixes.forEach(p => { if (relative.startsWith(p)) relative = relative.replace(p, ''); });
-        return `${API_BASE}/media/${relative}`;
+        return `${getApiBase()}/media/${relative}`;
     }, []);
 
     const handleDelete = useCallback(async (id) => {
@@ -137,7 +137,7 @@ export const Timeline = () => {
             message: t('timeline.delete_event_msg', 'Are you sure you want to delete this event? This action cannot be undone.'),
             onConfirm: async () => {
                 try {
-                    const res = await fetch(`${API_BASE}/events/${id}`, {
+                    const res = await fetch(`${getApiBase()}/events/${id}`, {
                         method: 'DELETE',
                         headers: { Authorization: `Bearer ${token}` }
                     });
@@ -194,7 +194,7 @@ export const Timeline = () => {
             onConfirm: async () => {
                 setIsBulkDeleting(true);
                 try {
-                    const res = await fetch(`${API_BASE}/events/bulk-delete`, {
+                    const res = await fetch(`${getApiBase()}/events/bulk-delete`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                         body: JSON.stringify({ event_ids: Array.from(selectedIds) })

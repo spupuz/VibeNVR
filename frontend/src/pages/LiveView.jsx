@@ -12,7 +12,7 @@ import { SortableVideoPlayerWrapper } from '../components/Cameras/SortableVideoP
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
 
-const API_BASE = `/api`;
+const getApiBase = () => window.__ACTIVE_NODE_ID ? `/api/federation/proxy/${window.__ACTIVE_NODE_ID}` : `/api`;
 
 const VideoPlayer = ({ 
     camera, 
@@ -76,7 +76,7 @@ const VideoPlayer = ({
             if (!mountedRef.current || useWebCodecs) return;
 
             try {
-                const frameUrl = `${API_BASE}/cameras/${camera.id}/frame?t=${Date.now()}`;
+                const frameUrl = `${getApiBase()}/cameras/${camera.id}/frame?t=${Date.now()}`;
                 const response = await fetch(frameUrl, {
                     credentials: 'include',
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -319,7 +319,7 @@ const VideoPlayer = ({
 
                         {user?.role === 'admin' && (
                             <button onClick={() => {
-                                fetch(`${API_BASE}/cameras/${camera.id}/snapshot`, {
+                                fetch(`${getApiBase()}/cameras/${camera.id}/snapshot`, {
                                     method: 'POST',
                                     headers: { Authorization: `Bearer ${token}` }
                                 }).then(res => { if (res.ok) showToast(`Snapshot saved`, 'success'); });
@@ -482,19 +482,25 @@ export const LiveView = () => {
     };
 
     const fetchCameras = () => {
-        fetch(`${API_BASE}/cameras`, {
+        fetch(`${getApiBase()}/cameras`, {
             headers: { Authorization: `Bearer ${token}` }
         })
-            .then(res => res.json())
-            .then(data => setCameras(data))
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to fetch cameras");
+                return res.json();
+            })
+            .then(data => setCameras(Array.isArray(data) ? data : []))
             .catch(err => console.error(err));
     };
 
     const fetchMotionStatus = () => {
-        fetch(`${API_BASE}/events/status`, {
+        fetch(`${getApiBase()}/events/status`, {
             headers: { Authorization: `Bearer ${token}` }
         })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to fetch motion status");
+                return res.json();
+            })
             .then(data => {
                 setActiveMotionIds(data.active_ids || []);
                 setLiveMotion(data.live_motion || {});
@@ -541,7 +547,7 @@ export const LiveView = () => {
 
     const handleToggleActive = async (camera) => {
         try {
-            const res = await fetch(`${API_BASE}/cameras/${camera.id}`, {
+            const res = await fetch(`${getApiBase()}/cameras/${camera.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -555,7 +561,7 @@ export const LiveView = () => {
 
     const handleToggleRecording = async (camera) => {
         try {
-            const res = await fetch(`${API_BASE}/cameras/${camera.id}/recording`, {
+            const res = await fetch(`${getApiBase()}/cameras/${camera.id}/recording`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${token}`

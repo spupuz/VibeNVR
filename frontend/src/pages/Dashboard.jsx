@@ -2,11 +2,13 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { Activity, Camera, HardDrive, ShieldAlert, Film, Image, CalendarClock, Cpu, MemoryStick, Settings, GripVertical, GripHorizontal, Network, Database, Zap, Share2, Bot, Brain } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useFederation } from '../contexts/FederationContext';
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useTranslation } from 'react-i18next';
+import { FederationSummaryWidget } from '../components/widgets/FederationSummaryWidget';
 
 const StatCard = ({ title, value, subtext, icon: Icon, trend }) => (
     <div className="p-4 md:p-6 rounded-xl bg-card border border-border hover:shadow-lg transition-shadow duration-300 group h-full relative flex flex-col justify-between">
@@ -61,6 +63,7 @@ const SortableWidget = ({ id, span, children }) => {
 export const Dashboard = () => {
     const { t } = useTranslation();
     const { token } = useAuth();
+    const { nodes, setActiveNode, activeNode } = useFederation();
     const navigate = useNavigate();
     const [stats, setStats] = useState({
         active_cameras: 0,
@@ -101,12 +104,14 @@ export const Dashboard = () => {
             resourceGraph: true,
             networkGraph: true,
             recentEvents: true,
-            cameras: true
+            cameras: true,
+            federationSummary: true
         };
     });
 
     // Widget Order State
     const DEFAULT_ORDER = [
+        'federation_summary',
         'storage_movies', 'storage_pictures', 'storage_retention',
         'active_cameras', 'total_events', 'network_stats', 'db_stats',
         'storage_used', 'cpu_usage', 'memory_usage', 'system_status',
@@ -228,6 +233,11 @@ export const Dashboard = () => {
     // ⚡ Bolt: Memoize the WIDGET_REGISTRY to prevent it and its render functions
     // from being recreated on every re-render, reducing unnecessary React reconciliations.
     const WIDGET_REGISTRY = useMemo(() => ({
+        federation_summary: {
+            span: 'col-span-12',
+            group: 'federationSummary',
+            render: () => <FederationSummaryWidget />
+        },
         storage_movies: {
             span: 'col-span-12 md:col-span-6 lg:col-span-4',
             group: 'storage',
@@ -700,7 +710,8 @@ export const Dashboard = () => {
                                 resourceGraph: t('dashboard.resource_graph', 'Resource Graph'),
                                 networkGraph: t('dashboard.network_graph', 'Network Graph'),
                                 recentEvents: t('dashboard.recent_events_widget', 'Recent Events'),
-                                cameras: t('dashboard.active_cameras_widget', 'Active Cameras')
+                                cameras: t('dashboard.active_cameras_widget', 'Active Cameras'),
+                                federationSummary: t('dashboard.federation_summary_widget', 'Multi-Site Overview')
                             }).map(([key, label]) => (
                                 <div key={key} className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-lg">
                                     <span className="text-sm font-medium">{label}</span>

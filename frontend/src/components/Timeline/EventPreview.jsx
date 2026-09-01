@@ -208,7 +208,7 @@ export const EventPreview = React.memo(({
                     <div className="w-px h-6 bg-border mx-1"></div>
 
                     <a
-                        href={`/api/events/${selectedEvent.id}/download`}
+                        href={`${window.__ACTIVE_NODE_ID ? `/api/federation/proxy/${window.__ACTIVE_NODE_ID}` : `/api`}/events/${selectedEvent.id}/download`}
                         download
                         className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                         title={t('common.download', 'Download')}

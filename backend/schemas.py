@@ -588,7 +588,7 @@ class CameraSummary(BaseModel):
     recording_mode: str
     rtsp_transport: str
     live_view_mode: str
-    status: str
+    status: Optional[str] = "STARTING"
     last_seen: Optional[datetime] = None
     privacy_masks: Optional[str] = None
     motion_masks: Optional[str] = None
@@ -612,6 +612,17 @@ class CameraSummary(BaseModel):
     ai_tracking_enabled: bool
     
     created_at: Optional[datetime] = None
+    
+    @field_validator('ai_object_types', mode='before')
+    @classmethod
+    def parse_ai_object_types(cls, v):
+        if isinstance(v, str):
+            import json
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -784,3 +795,34 @@ class PTZMoveRequest(BaseModel):
 
 class PTZGotoPresetRequest(BaseModel):
     preset_token: str
+
+class FederatedNodeBase(BaseModel):
+    name: str
+    url: str
+    
+    @field_validator('url')
+    @classmethod
+    def validate_url(cls, v: str) -> str:
+        if v:
+            v_lower = v.strip().lower()
+            if not v_lower.startswith(('http://', 'https://')):
+                raise ValueError('URL must start with http:// or https://')
+            if v.endswith('/'):
+                v = v[:-1]
+        return v
+
+class FederatedNodeCreate(FederatedNodeBase):
+    api_token: str
+
+class FederatedNodeUpdate(BaseModel):
+    name: Optional[str] = None
+    url: Optional[str] = None
+    api_token: Optional[str] = None
+
+class FederatedNodeResponse(FederatedNodeBase):
+    id: int
+    status: Optional[str] = "offline"
+    last_seen: Optional[datetime] = None
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
