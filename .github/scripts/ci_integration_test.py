@@ -19,20 +19,20 @@ def wait_for_service(name, url, timeout=10, retries=6):
         try:
             res = requests.get(url, timeout=timeout)
             print(f"  [OK] {name} is responsive (Status: {res.status_code})")
-            pass
+            return True
         except requests.RequestException as e:
             print(f"  [WAIT] {name} not ready yet: {e}")
         time.sleep(5)
     print(f"  [FAIL] {name} did not become healthy in time.")
     return False
 
-def test_backend_auth():
+def check_backend_auth():
     print("[*] Testing API Auth Security (/api/cameras)...")
     try:
         res = requests.get(f"{BASE_URL}/api/cameras", timeout=5)
         if res.status_code == 401:
             print("  [OK] Unauthenticated access blocked as expected (401).")
-            pass
+            return True
         else:
             print(f"  [FAIL] Expected 401, got {res.status_code}.")
             return False
@@ -40,13 +40,13 @@ def test_backend_auth():
         print(f"  [FAIL] Request error: {e}")
         return False
 
-def test_login_security():
+def check_login_security():
     print("[*] Testing Login Security with bad credentials...")
     try:
         res = requests.post(f"{BASE_URL}/api/auth/login", data={"username": "admin", "password": "wrong_password_123"}, timeout=5)
         if res.status_code in (401, 400):
             print("  [OK] Bad credentials rejected (401/400).")
-            pass
+            return True
         else:
             print(f"  [FAIL] Expected 401/400, got {res.status_code}.")
             return False
@@ -54,7 +54,7 @@ def test_login_security():
         print(f"  [FAIL] Request error: {e}")
         return False
 
-def test_path_traversal():
+def check_path_traversal():
     print("[*] Testing Path Traversal protection...")
     try:
         # Note: If the route is not defined, we might get a 404, which is also fine.
@@ -63,7 +63,7 @@ def test_path_traversal():
         # It should NOT be a 200 with the file contents.
         if res.status_code in (400, 401, 403, 404, 422):
             print(f"  [OK] Path traversal blocked (Status: {res.status_code}).")
-            pass
+            return True
         else:
             print(f"  [FAIL] Path traversal might be vulnerable (Status: {res.status_code}).")
             return False
@@ -82,7 +82,7 @@ def check_docker_containers():
             return False
         else:
             print("  [OK] Docker containers seem healthy.")
-            pass
+            return True
     except Exception as e:
         print(f"  [WARNING] Could not check Docker status: {e}")
         # Not failing the build just because we couldn't check
@@ -103,9 +103,9 @@ def main():
 
     # 2. Run Security Tests
     if success:
-        if not test_backend_auth(): success = False
-        if not test_login_security(): success = False
-        if not test_path_traversal(): success = False
+        if not check_backend_auth(): success = False
+        if not check_login_security(): success = False
+        if not check_path_traversal(): success = False
 
     # 3. Check Docker status
     if not check_docker_containers():

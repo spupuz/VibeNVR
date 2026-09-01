@@ -22,6 +22,7 @@ export const SystemInitializing = () => {
 
     const StatusItem = ({ name, status, icon: Icon }) => {
         const isOk = status === 'ok';
+        const isError = status === 'error' || status?.includes('fail');
 
         return (
             <div className="flex items-center justify-between p-3 bg-background/50 rounded-xl border border-border/50">
