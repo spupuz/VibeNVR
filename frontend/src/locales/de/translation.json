@@ -85,7 +85,8 @@
     "saved_successfully": "Erfolgreich gespeichert",
     "deleted_successfully": "Erfolgreich gelöscht",
     "add_new": "Neu hinzufügen",
-    "save": "Speichern"
+    "save": "Speichern",
+    "confirm_delete": "Sind Sie sicher, dass Sie dieses Element löschen möchten?"
   },
   "login": {
     "welcome_back": "Willkommen zurück",
@@ -1138,7 +1139,8 @@
     "no_data": "Keine Daten verfügbar.",
     "archival_interval": "Archivierungsintervall (Stunden)",
     "storage_enable_archival": "Aktivieren Sie die automatische Archivierung",
-    "archival_enable_desc": "Wenn diese Option aktiviert ist, verschiebt das System alte Aufzeichnungen automatisch in die ihnen zugewiesenen Speicherprofile (Stufe 2)."
+    "archival_enable_desc": "Wenn diese Option aktiviert ist, verschiebt das System alte Aufzeichnungen automatisch in die ihnen zugewiesenen Speicherprofile (Stufe 2).",
+    "stream_mse": "MSE erzwingen"
   },
   "telemetry_notes": {
     "random_uuid_gen": "Zufällige UUID",
@@ -1343,6 +1345,24 @@
   "force_mse": "MSE erzwingen",
   "stream_mse": "MSE erzwingen",
   "federation": {
-    "test_connection": "Testverbindung"
+    "test_connection": "Testverbindung",
+    "test_success": "Verbindung erfolgreich!",
+    "test_failed": "Die Verbindung ist fehlgeschlagen oder nicht autorisiert.",
+    "test_error": "Netzwerkfehler beim Versuch, den Knoten zu erreichen.",
+    "remote_nodes": "Remote-Knoten",
+    "no_nodes": "Keine Verbundknoten konfiguriert.",
+    "edit_node": "Knoten bearbeiten",
+    "add_node": "Knoten hinzufügen",
+    "name_placeholder": "z. B. Warehouse Server",
+    "url": "Knoten-URL",
+    "api_token": "API-Token",
+    "api_token_placeholder": "Geben Sie das Remote-Admin-API-Token ein",
+    "api_token_hint": "Sie können in den Sicherheitseinstellungen des Remote-Knotens ein API-Token generieren.",
+    "node_went_offline": "Der aktive Knoten ist offline gegangen. Wechsel zum Master.",
+    "site": "Website",
+    "local_node": "Lokaler Masterknoten",
+    "aggregated_dashboard": "Multi-Site-Übersicht",
+    "waiting_stats": "Warten auf Telemetrie...",
+    "switch_to_site": "Wechseln Sie zur Website"
   }
 }

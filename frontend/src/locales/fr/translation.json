@@ -82,7 +82,15 @@
     "export": "Exporter",
     "validating": "Validation...",
     "dismiss": "Rejeter",
-    "error_occurred": "Une erreur s'est produite"
+    "error_occurred": "Une erreur s'est produite",
+    "saved_successfully": "Enregistré avec succès",
+    "confirm_delete": "Êtes-vous sûr de vouloir supprimer cet élément ?",
+    "deleted_successfully": "Supprimé avec succès",
+    "add_new": "Ajouter un nouveau",
+    "name": "Nom",
+    "save": "Sauvegarder",
+    "offline": "Hors ligne",
+    "online": "En ligne"
   },
   "login": {
     "welcome_back": "Bon retour",
@@ -175,7 +183,8 @@
     "accel_live_tooltip": "Décodage en direct : CPU (limitation de l'architecture)",
     "rec_accel_tooltip": "L'accélération matérielle est active et utilisée pour l'encodage de l'enregistrement vidéo.",
     "rec_accel": "ENR. ACCÉL.",
-    "req_for": "Exig. pendant {{days}} jours"
+    "req_for": "Exig. pendant {{days}} jours",
+    "federation_summary_widget": "Présentation multi-sites"
   },
   "cameras": {
     "title": "Caméras",
@@ -548,7 +557,8 @@
     "archive_after_hours": "Archiver après (heures)",
     "archive_hours_help": "Des heures à attendre avant de déménager.",
     "stream_validation_failed": "Échec de la validation des URL de flux. Conserver la configuration de travail existante.",
-    "ptz.audio_requires_stream": "L'audio nécessite la lecture WebCodecs ou MSE"
+    "ptz.audio_requires_stream": "L'audio nécessite la lecture WebCodecs ou MSE",
+    "force_mse": "Forcer le MSE"
   },
   "settings": {
     "general_preferences": "Préférences générales",
@@ -568,7 +578,9 @@
     "delete_profile_title": "Supprimer le profil de stockage",
     "delete_profile_msg": "Êtes-vous sûr de vouloir supprimer ce profil ? Les caméras utilisant ce profil reviendront au chemin de stockage par défaut. Les enregistrements existants ne seront PAS supprimés.",
     "archival_interval_desc": "À quelle fréquence vérifier l’archivage des enregistrements sur un stockage secondaire",
-    "unlimited": "Illimité"
+    "unlimited": "Illimité",
+    "federation": "Fédération multi-sites",
+    "federation_desc": "Connectez et gérez les instances VibeNVR distantes à partir de ce nœud maître."
   },
   "timeline": {
     "title": "Chronologie",
@@ -1140,7 +1152,8 @@
     "no_data": "Aucune donnée disponible.",
     "archival_interval": "Intervalle d'archivage (heures)",
     "storage_enable_archival": "Activer l'archivage automatique",
-    "archival_enable_desc": "Lorsqu'il est activé, le système déplacera automatiquement les anciens enregistrements vers leurs profils de stockage attribués (niveau 2)."
+    "archival_enable_desc": "Lorsqu'il est activé, le système déplacera automatiquement les anciens enregistrements vers leurs profils de stockage attribués (niveau 2).",
+    "stream_mse": "Forcer le MSE"
   },
   "telemetry_notes": {
     "random_uuid_gen": "UUID généré de manière aléatoire au démarrage",
@@ -1356,6 +1369,13 @@
     "api_token": "Jeton API",
     "api_token_hint": "Vous pouvez générer un jeton API dans les paramètres de sécurité du nœud distant.",
     "local_node": "Nœud maître local",
-    "waiting_stats": "En attente de télémétrie..."
+    "waiting_stats": "En attente de télémétrie...",
+    "test_failed": "La connexion a échoué ou n'est pas autorisée.",
+    "no_nodes": "Aucun nœud fédéré configuré.",
+    "url": "URL du nœud",
+    "api_token_placeholder": "Entrez le jeton de l'API d'administration distante",
+    "node_went_offline": "Le nœud actif s'est déconnecté. Passage au Maître.",
+    "aggregated_dashboard": "Présentation multi-sites",
+    "switch_to_site": "Passer au site"
   }
 }

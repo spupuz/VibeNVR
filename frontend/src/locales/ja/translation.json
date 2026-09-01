@@ -81,7 +81,15 @@
     "clear": "クリア",
     "export": "輸出",
     "validating": "検証中...",
-    "dismiss": "却下する"
+    "dismiss": "却下する",
+    "error_occurred": "エラーが発生しました",
+    "saved_successfully": "正常に保存されました",
+    "confirm_delete": "この項目を削除してもよろしいですか?",
+    "add_new": "新規追加",
+    "name": "名前",
+    "save": "保存",
+    "offline": "オフライン",
+    "online": "オンライン"
   },
   "login": {
     "welcome_back": "お帰りなさい",
@@ -174,7 +182,8 @@
     "accel_live_tooltip": "ライブ デコーディング: CPU (アーキテクチャの制限)",
     "rec_accel_tooltip": "ハードウェア アクセラレーションがアクティブであり、ビデオ録画のエンコードに使用されます。",
     "rec_accel": "RECアクセル",
-    "req_for": "必須{{days}}日間"
+    "req_for": "必須{{days}}日間",
+    "federation_summary_widget": "マルチサイトの概要"
   },
   "cameras": {
     "title": "カメラ",
@@ -545,7 +554,8 @@
     "archive_after_hours": "アーカイブ後 (時間)",
     "archive_hours_help": "移動するまで何時間も待つ。",
     "stream_validation_failed": "ストリーム URL の検証に失敗しました。既存の作業構成を保持します。",
-    "ptz.audio_requires_stream": "音声には WebCodecs または MSE の再生が必要です"
+    "ptz.audio_requires_stream": "音声には WebCodecs または MSE の再生が必要です",
+    "force_mse": "MSEを強制する"
   },
   "settings": {
     "general_preferences": "一般設定",
@@ -565,7 +575,9 @@
     "delete_profile_title": "ストレージプロファイルの削除",
     "delete_profile_msg": "このプロファイルを削除してもよろしいですか?このプロファイルを使用するカメラは、デフォルトのストレージ パスに戻ります。既存の録音は削除されません。",
     "archival_interval_desc": "セカンダリ ストレージへの録画のアーカイブを確認する頻度",
-    "unlimited": "無制限"
+    "unlimited": "無制限",
+    "federation": "マルチサイトフェデレーション",
+    "federation_desc": "このマスター ノードからリモート VibeNVR インスタンスに接続して管理します。"
   },
   "timeline": {
     "title": "タイムライン",
@@ -1356,6 +1368,12 @@
     "site": "サイト",
     "aggregated_dashboard": "マルチサイトの概要",
     "waiting_stats": "テレメトリーを待っています...",
-    "switch_to_site": "サイトに切り替える"
+    "switch_to_site": "サイトに切り替える",
+    "test_failed": "接続に失敗したか、接続が許可されていません。",
+    "test_error": "ノードに到達しようとしたときにネットワーク エラーが発生しました。",
+    "edit_node": "ノードの編集",
+    "api_token": "APIトークン",
+    "node_went_offline": "アクティブノードがオフラインになりました。マスターに切り替えます。",
+    "local_node": "ローカルマスターノード"
   }
 }

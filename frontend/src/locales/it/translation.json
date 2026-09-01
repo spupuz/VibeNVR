@@ -81,7 +81,13 @@
     "clear": "Chiaro",
     "export": "Esportare",
     "validating": "Convalida...",
-    "dismiss": "Congedare"
+    "dismiss": "Congedare",
+    "error_occurred": "Si è verificato un errore",
+    "confirm_delete": "Sei sicuro di voler eliminare questo elemento?",
+    "add_new": "Aggiungi nuovo",
+    "name": "Nome",
+    "save": "Salva",
+    "online": "In linea"
   },
   "login": {
     "welcome_back": "Bentornato",
@@ -173,7 +179,8 @@
     "accel_rec_tooltip": "Registrazione: hardware accelerato",
     "accel_live_tooltip": "Decodifica live: CPU (limitazione dell'architettura)",
     "rec_accel_tooltip": "L'accelerazione hardware è attiva e utilizzata per la codifica della registrazione video.",
-    "req_for": "Richiesto per {{days}} giorni"
+    "req_for": "Richiesto per {{days}} giorni",
+    "federation_summary_widget": "Panoramica multisito"
   },
   "cameras": {
     "title": "Telecamere",
@@ -565,7 +572,9 @@
     "delete_profile_title": "Elimina profilo di archiviazione",
     "delete_profile_msg": "Sei sicuro di voler eliminare questo profilo? Le telecamere che utilizzano questo profilo torneranno al percorso di archiviazione predefinito. Le registrazioni esistenti NON verranno cancellate.",
     "archival_interval_desc": "La frequenza con cui verificare l'archiviazione delle registrazioni nell'archivio secondario",
-    "unlimited": "Illimitato"
+    "unlimited": "Illimitato",
+    "federation": "Federazione multisito",
+    "federation_desc": "Connetti e gestisci istanze VibeNVR remote da questo nodo Master."
   },
   "timeline": {
     "title": "Cronologia",
@@ -1355,6 +1364,8 @@
     "local_node": "Nodo principale locale",
     "aggregated_dashboard": "Panoramica multisito",
     "waiting_stats": "In attesa della telemetria...",
-    "switch_to_site": "Passa al sito"
+    "switch_to_site": "Passa al sito",
+    "test_failed": "Connessione non riuscita o non autorizzata.",
+    "name_placeholder": "ad esempio, Server del magazzino"
   }
 }

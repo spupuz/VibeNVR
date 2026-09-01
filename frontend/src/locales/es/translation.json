@@ -1323,6 +1323,14 @@
     "add_node": "Agregar nodo",
     "name_placeholder": "por ejemplo, servidor de almacén",
     "url": "URL del nodo",
-    "waiting_stats": "Esperando telemetría..."
+    "waiting_stats": "Esperando telemetría...",
+    "api_token": "Ficha API",
+    "api_token_placeholder": "Ingrese el token de API de administración remota",
+    "api_token_hint": "Puede generar un token API en la configuración de seguridad del nodo remoto.",
+    "node_went_offline": "El nodo activo se desconectó. Cambiando a Maestro.",
+    "site": "Sitio",
+    "local_node": "Nodo maestro local",
+    "aggregated_dashboard": "Descripción general de varios sitios",
+    "switch_to_site": "Cambiar al sitio"
   }
 }
