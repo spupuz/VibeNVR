@@ -303,7 +303,7 @@ def _cleanup_corrupted_videos(db, dry_run: bool) -> tuple[int, int]:
     corrupted_count = 0
     corrupted_size = 0
     events_to_delete = []
-    all_video_events = db.query(Event).filter(Event.type == "video").all()
+    all_video_events = db.query(Event).filter(Event.type == "video").yield_per(1000)
 
     for event in all_video_events:
         if not event.file_path:
@@ -380,7 +380,7 @@ def _fix_zero_duration_events(db, dry_run: bool) -> int:
 
     # Find video events where duration is effectively 0 (< 1s) but we expect content
     zero_dur_events = []
-    all_videos = db.query(Event).filter(Event.type == "video").all()
+    all_videos = db.query(Event).filter(Event.type == "video").yield_per(1000)
 
     for event in all_videos:
         if event.timestamp_end and event.timestamp_start:
