@@ -54,7 +54,7 @@ async def oauth_login(request: Request, db: Session = Depends(database.get_db)):
     # because SSL-terminating proxies often mask the original protocol.
     host = request.headers.get("host", "")
     import re
-    if not re.match(r"^[0-9\.]+(:\d+)?$", host) and not host.startswith("localhost"):
+    if not re.match(r"^[0-9\.]+(:\d+)?$", host) and not re.match(r"^localhost(:\d+)?$", host):
         if base_url.startswith("http://"):
             base_url = base_url.replace("http://", "https://", 1)
     
@@ -141,7 +141,7 @@ async def oauth_callback(request: Request, db: Session = Depends(database.get_db
     base_url = str(request.base_url)
     host = request.headers.get("host", "")
     import re
-    if not re.match(r"^[0-9\.]+(:\d+)?$", host) and not host.startswith("localhost"):
+    if not re.match(r"^[0-9\.]+(:\d+)?$", host) and not re.match(r"^localhost(:\d+)?$", host):
         if base_url.startswith("http://"):
             base_url = base_url.replace("http://", "https://", 1)
     if base_url.endswith('/'):
@@ -192,7 +192,7 @@ async def oauth_logout(request: Request, db: Session = Depends(database.get_db))
         base_url = str(request.base_url)
         host = request.headers.get("host", "")
         import re
-        if not re.match(r"^[0-9\.]+(:\d+)?$", host) and not host.startswith("localhost"):
+        if not re.match(r"^[0-9\.]+(:\d+)?$", host) and not re.match(r"^localhost(:\d+)?$", host):
             if base_url.startswith("http://"):
                 base_url = base_url.replace("http://", "https://", 1)
         if base_url.endswith('/'):
