@@ -199,8 +199,9 @@ export const FederationSettings = ({ isOpen, onToggle }) => {
                         
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">{t('common.name', 'Name')}</label>
+                                <label htmlFor="node-name" className="text-sm font-medium">{t('common.name', 'Name')}</label>
                                 <input
+                                    id="node-name"
                                     type="text"
                                     required
                                     className="w-full p-2 rounded-md bg-background border border-border focus:ring-2 focus:ring-primary/50 text-sm"
@@ -211,8 +212,9 @@ export const FederationSettings = ({ isOpen, onToggle }) => {
                             </div>
                             
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">{t('federation.url', 'Node URL')}</label>
+                                <label htmlFor="node-url" className="text-sm font-medium">{t('federation.url', 'Node URL')}</label>
                                 <input
+                                    id="node-url"
                                     type="url"
                                     required
                                     className="w-full p-2 rounded-md bg-background border border-border focus:ring-2 focus:ring-primary/50 text-sm"
@@ -224,10 +226,11 @@ export const FederationSettings = ({ isOpen, onToggle }) => {
                         </div>
                         
                         <div className="space-y-2">
-                            <label className="text-sm font-medium flex items-center gap-2">
+                            <label htmlFor="node-token" className="text-sm font-medium flex items-center gap-2">
                                 <Key className="w-4 h-4" /> {t('federation.api_token', 'API Token')}
                             </label>
                             <input
+                                id="node-token"
                                 type="password"
                                 required
                                 className="w-full p-2 rounded-md bg-background border border-border focus:ring-2 focus:ring-primary/50 text-sm"
