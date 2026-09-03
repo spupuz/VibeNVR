@@ -33,9 +33,11 @@ class TestNotificationConfig(BaseModel):
                             return self
                     for ip_addr in ip_addrs:
                         if ip_addr.is_loopback or ip_addr.is_private or ip_addr.is_reserved or ip_addr.is_link_local:
-                            # Skip strictly blocking for local lab/test environments if explicitly intended
-                            # In a real production SaaS this should be True, but for VibeNVR local it's often needed.
-                            pass
+                            # Strict SSRF Protection: Block access to internal/private networks
+                            # This prevents targeting other containers (db, engine) or local services.
+                            # Exception: User might need local IPs for Home Assistant,
+                            # but for security we block by default.
+                            raise ValueError(f'Webhook cannot target private or reserved IP ranges ({ip_addr})')
                 except Exception as e:
                     if isinstance(e, ValueError): raise e
                     raise ValueError(f'Invalid or unreachable URL: {str(e)}')
