@@ -135,10 +135,11 @@ def _scan_and_import_camera_recordings(db, camera_id_str: str, camera: Camera, e
     logger.info(f"Scanning Camera {camera_id_str} ({camera.name})...")
 
     # Pre-fetch existing file paths for this camera to avoid N+1 queries
+    # ⚡ Bolt: Use .yield_per(1000) for large background tasks to avoid fetching all records into Python memory simultaneously, preventing OOM crashes.
     existing_events = db.query(Event.file_path).filter(
         Event.camera_id == int(camera_id_str),
         Event.type == "video"
-    ).all()
+    ).yield_per(1000)
     existing_file_paths = {e[0] for e in existing_events if e[0]}
 
     events_to_add = []
@@ -264,10 +265,11 @@ def _fix_missing_thumbnails(db, dry_run: bool) -> int:
     """Fix missing thumbnails for existing events."""
     logger.info("Checking for missing thumbnails...")
     thumb_fixed = 0
+    # ⚡ Bolt: Use .yield_per(1000) for large background tasks to avoid fetching all records into Python memory simultaneously, preventing OOM crashes.
     events_without_thumbs = db.query(Event).filter(
         Event.thumbnail_path.is_(None),
         Event.type == "video"
-    ).all()
+    ).yield_per(1000)
 
     for event in events_without_thumbs:
         if not event.file_path:
@@ -303,7 +305,8 @@ def _cleanup_corrupted_videos(db, dry_run: bool) -> tuple[int, int]:
     corrupted_count = 0
     corrupted_size = 0
     events_to_delete = []
-    all_video_events = db.query(Event).filter(Event.type == "video").all()
+    # ⚡ Bolt: Use .yield_per(1000) for large background tasks to avoid fetching all records into Python memory simultaneously, preventing OOM crashes.
+    all_video_events = db.query(Event).filter(Event.type == "video").yield_per(1000)
 
     for event in all_video_events:
         if not event.file_path:
@@ -380,7 +383,8 @@ def _fix_zero_duration_events(db, dry_run: bool) -> int:
 
     # Find video events where duration is effectively 0 (< 1s) but we expect content
     zero_dur_events = []
-    all_videos = db.query(Event).filter(Event.type == "video").all()
+    # ⚡ Bolt: Use .yield_per(1000) for large background tasks to avoid fetching all records into Python memory simultaneously, preventing OOM crashes.
+    all_videos = db.query(Event).filter(Event.type == "video").yield_per(1000)
 
     for event in all_videos:
         if event.timestamp_end and event.timestamp_start:
