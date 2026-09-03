@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router';
-import { Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
@@ -11,6 +11,7 @@ export const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [totpCode, setTotpCode] = useState('');
     const [recoveryCode, setRecoveryCode] = useState('');
     const [useRecoveryCode, setUseRecoveryCode] = useState(false);
@@ -60,6 +61,7 @@ export const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setIsLoading(true);
 
         try {
             const formData = new FormData();
@@ -137,12 +139,15 @@ export const Login = () => {
                 if (errData.detail === '2FA_REQUIRED') {
                     setRequire2FA(true);
                     setError(''); // Clear previous errors
+                    setIsLoading(false);
                     return;
                 }
                 setError('Invalid username or password');
             }
         } catch (err) {
             setError('Login failed. Please check your connection.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -281,7 +286,10 @@ export const Login = () => {
                     {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
                     <div className="space-y-3">
-                        <Button className="w-full py-2.5" type="submit">
+                        <Button className="w-full py-2.5" type="submit" disabled={isLoading}>
+                            {isLoading ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin inline-block" />
+                            ) : null}
                             {require2FA ? t('login.verify_login', 'Verify & Login') : t('login.sign_in', 'Sign In')}
                         </Button>
 
