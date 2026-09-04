@@ -8,7 +8,7 @@ RUN echo "deb http://deb.debian.org/debian bullseye main contrib non-free" > /et
 
 # Install system dependencies including Python and OpenCV
 # hadolint ignore=DL3008
-RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+RUN apt-get update -o Acquire::Retries=5 && apt-get upgrade -y && apt-get install -y --no-install-recommends --fix-missing \
     python3 \
     python3-dev \
     python3-pip \
