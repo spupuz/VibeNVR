@@ -3,12 +3,12 @@ FROM debian:bullseye-slim
 
 # Enable contrib/non-free for drivers (Intel non-free, Nvidia, etc)
 RUN echo "deb http://deb.debian.org/debian bullseye main contrib non-free" > /etc/apt/sources.list && \
-    echo "deb http://security.debian.org/debian-security bullseye-security main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian-security bullseye-security main contrib non-free" >> /etc/apt/sources.list && \
     echo "deb http://deb.debian.org/debian bullseye-updates main contrib non-free" >> /etc/apt/sources.list
 
 # Install system dependencies including Python and OpenCV
 # hadolint ignore=DL3008
-RUN apt-get update -o Acquire::Retries=5 && apt-get upgrade -y && apt-get install -y --no-install-recommends --fix-missing \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     python3 \
     python3-dev \
     python3-pip \
