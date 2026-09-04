@@ -369,6 +369,16 @@ logger.info(f"Connecting to {safe_url}")
 
 **Note**: VibeNVR uses a centralized `TokenRedactingFilter` (defined in `backend/main.py`) that automatically masks credentials, Bearer tokens, and API keys at the root logger level. Always ensure new loggers inherit from this filter to maintain auditability without leaking secrets.
 
+### Anti-Pattern 5: Memory Bloat on Bulk Queries
+**Bad**: Fetching thousands of rows into Python memory at once, risking OOM (Out Of Memory) crashes.
+```python
+all_events = db.query(Event).filter(Event.type == "video").all() # BAD! Loads all records into memory.
+```
+**Good**: Use `.yield_per(1000)` to stream results in manageable chunks.
+```python
+all_events = db.query(Event).filter(Event.type == "video").yield_per(1000) # SAFE!
+```
+
 ## Security & Data Privacy
 
 > **CRITICAL**: All AI agents must read and strictly adhere to [SECURITY.md](SECURITY.md).

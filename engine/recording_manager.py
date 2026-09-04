@@ -145,9 +145,10 @@ class RecordingManager:
                 if not self.is_recording:
                     return
                 if self.stream_reader and self.stream_reader.video_stream:
-                    # Use fragmented MP4 flags to support priming samples and negative PTS
+                    # Use standard MP4 with faststart so the browser can seek properly.
+                    # PyAV will automatically move the moov atom to the beginning when out_container.close() is called.
                     out_container = av.open(full_path, mode='w', format='mp4', 
-                                            options={'movflags': '+frag_keyframe+empty_moov+default_base_moof'})
+                                            options={'movflags': '+faststart'})
                     out_vid = out_container.add_stream(template=self.stream_reader.video_stream)
                     
                     if self.stream_reader.audio_stream and self.config.get('record_audio'):
