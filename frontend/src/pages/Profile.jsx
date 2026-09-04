@@ -737,7 +737,8 @@ export const Profile = () => {
                                                         <button
                                                             onClick={() => handleRevokeDevice(device.id)}
                                                             className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-full transition-colors"
-                                                            title="Revoke Device"
+                                                            title={t('profile.revoke_device', 'Revoke Device')}
+                                                            aria-label={t('profile.revoke_device', 'Revoke Device')}
                                                         >
                                                             <Trash2 className="w-4 h-4" />
                                                         </button>
