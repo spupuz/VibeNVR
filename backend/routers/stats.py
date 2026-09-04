@@ -571,9 +571,9 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
         }
     }
 
-def _aggregate_hourly_events(events: list, now: datetime) -> list[dict]:
+def _aggregate_hourly_events(grouped_events: list, now: datetime) -> list[dict]:
     """
-    Aggregates a list of events into hourly buckets for the last 24 hours.
+    Aggregates a list of database-grouped events into hourly buckets for the last 24 hours.
     """
     history = {}
     for i in range(25):
@@ -581,14 +581,24 @@ def _aggregate_hourly_events(events: list, now: datetime) -> list[dict]:
         key = t.strftime("%H:00")
         history[key] = {"events": 0, "videos": 0}
 
-    for evt in events:
-        if not evt.timestamp_start:
+    for time_key, evt_type, count in grouped_events:
+        if not time_key:
             continue
-        key = evt.timestamp_start.strftime("%H:00")
+        # Handle string (SQLite) or datetime (PostgreSQL)
+        if isinstance(time_key, str):
+            try:
+                # SQLite format: '2023-10-27 15:00:00'
+                dt = datetime.strptime(time_key, '%Y-%m-%d %H:%M:%S')
+                key = dt.strftime("%H:00")
+            except ValueError:
+                continue
+        else:
+            key = time_key.strftime("%H:00")
+
         if key in history:
-            history[key]["events"] += 1
-            if evt.type == 'video':
-                history[key]["videos"] += 1
+            history[key]["events"] += count
+            if evt_type == 'video':
+                history[key]["videos"] += count
 
     data = []
     for i in range(24, -1, -1):
@@ -618,17 +628,24 @@ def get_stats_history(db: Session = Depends(database.get_db), auth_info: tuple[m
         if allowed_ids is None:
             allowed_ids = []
             
-    # Query for events in the last 24h
+    # ⚡ Bolt: Use DB-side aggregation to prevent N+1 memory bloat instead of fetching all records
     try:
-        events_query = db.query(models.Event.timestamp_start, models.Event.type)\
-            .filter(models.Event.timestamp_start >= twenty_four_hours_ago)
+        from sqlalchemy import text
+        is_postgres = db.get_bind().dialect.name == "postgresql"
+        time_expr = func.date_trunc('hour', models.Event.timestamp_start) if is_postgres else func.strftime('%Y-%m-%d %H:00:00', models.Event.timestamp_start)
+
+        events_query = db.query(
+            time_expr.label("hour"),
+            models.Event.type,
+            func.count(models.Event.id).label("count")
+        ).filter(models.Event.timestamp_start >= twenty_four_hours_ago)
             
         if allowed_ids is not None:
             events_query = events_query.filter(models.Event.camera_id.in_(allowed_ids))
             
-        events = events_query.all()
+        grouped_events = events_query.group_by(text("hour"), models.Event.type).all()
             
-        return _aggregate_hourly_events(events, now)
+        return _aggregate_hourly_events(grouped_events, now)
 
     except Exception as e:
         print(f"Error generating history stats: {e}")
