@@ -392,6 +392,77 @@ export const MSEPlayer = ({ camera, onStateChange, videoEnabled = true, isAuditi
         };
     }, [connect, closeWS]);
 
+    // Decoding watchdog to detect H.265 (black screen), broken streams, or SPS resolution parsing errors
+    useEffect(() => {
+        if (!videoEnabled || status !== 'loaded' || metadataOnlyRef.current) return;
+
+        let checks = 0;
+        let lastFrames = 0;
+        let stuckCount = 0;
+
+        const decodeInterval = setInterval(() => {
+            if (!isMountedRef.current || !videoRef.current) return;
+            if (document.hidden) return; // Prevent false positives when tab is backgrounded
+
+            const video = videoRef.current;
+            const vw = video.videoWidth;
+            const vh = video.videoHeight;
+            
+            let currentFrames = 0;
+            let supportsFrameCount = false;
+            if (video.getVideoPlaybackQuality) {
+                currentFrames = video.getVideoPlaybackQuality().totalVideoFrames;
+                supportsFrameCount = true;
+            } else if ('webkitDecodedFrameCount' in video) {
+                currentFrames = video.webkitDecodedFrameCount;
+                supportsFrameCount = true;
+            }
+
+            // 1. Detect H.265 / Complete Failure (No dimensions or zero frames decoded)
+            if (vw === 0 || vh === 0 || (supportsFrameCount && currentFrames === 0)) {
+                checks++;
+                if (checks >= 8) { // 4 seconds without any decoded frames
+                    console.warn(`[MSEPlayer] Camera ${cameraId}: Video decoding failed. Likely H.265 or unsupported stream. Triggering MJPEG fallback.`);
+                    setStatus('unsupported');
+                    clearInterval(decodeInterval);
+                }
+            } else {
+                // 2. Check for Aspect Ratio mismatch (JMuxer SPS parsing bug for portrait streams)
+                const expectedW = camera?.resolution_width || 0;
+                const expectedH = camera?.resolution_height || 0;
+                if (expectedW > 0 && expectedH > 0) {
+                    const expectedAspect = expectedW / expectedH;
+                    const actualAspect = vw / vh;
+                    
+                    // If the orientation is inverted (e.g., 16:9 vs 9:16)
+                    if (Math.abs(expectedAspect - actualAspect) > 0.5) {
+                        console.warn(`[MSEPlayer] Camera ${cameraId}: Aspect ratio mismatch (expected ${expectedW}x${expectedH}, got ${vw}x${vh}). Triggering MJPEG fallback.`);
+                        setStatus('unsupported');
+                        clearInterval(decodeInterval);
+                        return;
+                    }
+                }
+
+                // 3. Detect Stalled Playback (e.g., green frames or broken stream after initial keyframe)
+                if (supportsFrameCount) {
+                    if (currentFrames === lastFrames) {
+                        stuckCount++;
+                        if (stuckCount >= 10) { // 5 seconds completely stalled
+                            console.warn(`[MSEPlayer] Camera ${cameraId}: Playback stalled (no new frames). Triggering MJPEG fallback.`);
+                            setStatus('error');
+                            clearInterval(decodeInterval);
+                        }
+                    } else {
+                        stuckCount = 0;
+                        lastFrames = currentFrames;
+                    }
+                }
+            }
+        }, 500);
+
+        return () => clearInterval(decodeInterval);
+    }, [status, videoEnabled, cameraId, camera?.resolution_width, camera?.resolution_height]);
+
     const showVideo = videoEnabled && !metadataOnlyRef.current && (status === 'loaded' || status === 'connecting');
 
     return (

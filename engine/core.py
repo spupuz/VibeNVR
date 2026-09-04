@@ -220,6 +220,7 @@ class CameraManager:
                 "running": thread.is_alive(),
                 "connected": health == "CONNECTED",
                 "health": health,
+                "codec": getattr(thread.stream_reader.video_stream, 'name', None) if getattr(thread, 'stream_reader', None) else None,
                 "rtsp_url": thread._mask_url(thread.config.get("rtsp_url")),
                 "fps": thread.fps,
                 "motion": thread.motion_detected,

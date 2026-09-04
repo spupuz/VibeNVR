@@ -15,6 +15,7 @@ class Camera(Base):
     rtsp_transport = Column(String, default="tcp") # tcp | udp
     sub_rtsp_transport = Column(String, default="tcp") # tcp | udp
     live_view_mode = Column(String, default="auto") # auto | webcodecs | mse | mjpeg
+    status = Column(String, default="STARTING")
     last_seen = Column(DateTime(timezone=True), nullable=True)
     
     # ONVIF Management
