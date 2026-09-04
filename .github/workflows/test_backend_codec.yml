@@ -1,0 +1,29 @@
+name: Test Backend Codec Fallback
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Verify Backend Syntax
+        run: |
+          python -m py_compile backend/routers/events.py
+          python -m py_compile backend/health_service.py
+          python -m py_compile engine/core.py
+
+      - name: Run local codec test script
+        run: python scripts/local_tests/test_backend_codec.py
+

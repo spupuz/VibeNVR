@@ -24,7 +24,8 @@ const VideoPlayer = ({
     isRecording, 
     isLiveMotion, 
     liveMotionData,
-    healthStatus, 
+    healthStatus,
+    codec, 
     isAuditing, 
     onToggleAudio 
 }) => {
@@ -55,9 +56,21 @@ const VideoPlayer = ({
         // 'auto' logic: skip WebCodecs in insecure HTTP
         const isInsecureHTTP = !window.isSecureContext && window.location.protocol !== 'https:';
         if (hasWebCodecs && !isInsecureHTTP) return 'webcodecs';
-        if (hasMSE) return 'mse';
+        
+        // Preemptively avoid MSE for H.265 if codec is known at mount
+        const isHevc = codec && (codec.includes('hevc') || codec.includes('h265'));
+        if (hasMSE && !isHevc) return 'mse';
+        
         return 'mjpeg';
     });
+
+    // Handle late-arriving codec data
+    useEffect(() => {
+        if (streamMode === 'mse' && codec && (codec.includes('hevc') || codec.includes('h265'))) {
+            setStreamMode('mjpeg');
+        }
+    }, [codec, streamMode]);
+
     const useWebCodecs = streamMode === 'webcodecs';
     const useMSE = streamMode === 'mse';
     const useMJPEG = streamMode === 'mjpeg';
@@ -447,6 +460,7 @@ export const LiveView = () => {
     const [activeMotionIds, setActiveMotionIds] = useState([]);
     const [liveMotion, setLiveMotion] = useState({}); // Stores full motion objects {id: {timestamp, source}}
     const [cameraHealth, setCameraHealth] = useState({});
+    const [cameraCodecs, setCameraCodecs] = useState({});
     const [focusCameraId, setFocusCameraId] = useState(null);
     const [auditingCameraId, setAuditingCameraId] = useState(null);
     const [columnSetting, setColumnSetting] = useState(() => {
@@ -505,6 +519,7 @@ export const LiveView = () => {
                 setActiveMotionIds(data.active_ids || []);
                 setLiveMotion(data.live_motion || {});
                 setCameraHealth(data.camera_health || {});
+                if (data.camera_codecs) setCameraCodecs(data.camera_codecs);
             })
             .catch(err => console.error("Failed to fetch motion status", err));
     };
@@ -760,8 +775,8 @@ export const LiveView = () => {
                                                                         isRecording={activeMotionIds.includes(cam.id)}
                                                                         isLiveMotion={!!liveMotion[cam.id]}
                                                                         liveMotionData={liveMotion[cam.id]}
-
                                                                         healthStatus={cameraHealth[String(cam.id)]}
+                                                                        codec={cameraCodecs[String(cam.id)]}
                                                                         isAuditing={auditingCameraId === cam.id}
                                                                         onToggleAudio={handleToggleAudio}
                                                                     />
@@ -805,6 +820,7 @@ export const LiveView = () => {
                                                                     liveMotionData={liveMotion[cam.id]}
 
                                                                     healthStatus={cameraHealth[String(cam.id)]}
+                                                                    codec={cameraCodecs[String(cam.id)]}
                                                                     isAuditing={auditingCameraId === cam.id}
                                                                     onToggleAudio={handleToggleAudio}
                                                                 />
@@ -847,6 +863,7 @@ export const LiveView = () => {
                                             isLiveMotion={!!liveMotion[cam.id]}
                                             liveMotionData={liveMotion[cam.id]}
                                             healthStatus={cameraHealth[String(cam.id)]}
+                                            codec={cameraCodecs[String(cam.id)]}
                                             isAuditing={auditingCameraId === cam.id}
                                             onToggleAudio={handleToggleAudio}
                                         />

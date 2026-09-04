@@ -81,7 +81,7 @@ def get_motion_status(
 ):
     user, is_token = auth_info
     """Returns list of camera IDs currently detecting motion and/or recording, plus health info"""
-    from health_service import HEALTH_CACHE
+    from health_service import HEALTH_CACHE, CODEC_CACHE
 
     active_ids = list(events_state.ACTIVE_CAMERAS.keys())
 
@@ -93,6 +93,7 @@ def get_motion_status(
 
     live_motion = dict(events_state.LIVE_MOTION)
     health = dict(HEALTH_CACHE)
+    codecs = dict(CODEC_CACHE)
 
     if user.role == "viewer" and user.restrict_camera_access:
         allowed_ids = crud.get_allowed_camera_ids_for_user(db, user.id)
@@ -102,11 +103,13 @@ def get_motion_status(
                 cid: v for cid, v in live_motion.items() if cid in allowed_ids
             }
             health = {cid: v for cid, v in health.items() if cid in allowed_ids}
+            codecs = {cid: v for cid, v in codecs.items() if cid in allowed_ids}
 
     return {
         "active_ids": active_ids,
         "live_motion": live_motion,
         "camera_health": health,
+        "camera_codecs": codecs,
     }
 
 def is_within_schedule(camera: models.Camera):

@@ -11,6 +11,9 @@ logger = logging.getLogger(__name__)
 # camera_id -> last_status
 HEALTH_CACHE = {}
 
+# camera_id -> codec_name (e.g. 'h264', 'hevc')
+CODEC_CACHE = {}
+
 
 async def _fetch_and_update_health(
     db: Session, engine_status: dict, camera_id: int = None, camera=None
@@ -34,6 +37,9 @@ async def _fetch_and_update_health(
         current_health = "OFFLINE"
     else:
         current_health = status.get("health", "UNKNOWN")
+        codec = status.get("codec")
+        if codec:
+            CODEC_CACHE[camera.id] = codec
 
     # Compare with previous status
     previous_health = HEALTH_CACHE.get(camera.id)
