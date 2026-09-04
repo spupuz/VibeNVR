@@ -25,5 +25,5 @@ jobs:
           python -m py_compile engine/core.py
 
       - name: Run local codec test script
-        run: python scripts/local_tests/test_backend_codec.py
+        run: python .github/scripts/test_backend_codec.py
 
