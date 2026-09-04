@@ -23,6 +23,9 @@ This is the primary solution for **isolated LAN installations** where setting up
 - You still get **perfectly synchronized G.711 Audio** via the Web Audio API.
 - You avoid the complexity of local HTTPS setups.
 
+> [!WARNING]
+> **H.265 (HEVC) Limitation**: MSE cannot natively decode H.265 streams in most browsers. If VibeNVR detects an H.265 stream while in a non-secure HTTP context, it will automatically bypass MSE and fall back directly to MJPEG Polling.
+
 ## 3️⃣ Final Failsafe: MJPEG Polling (JPEG Poll)
 - **Technology**: Repeated HTTP `GET` requests for single JPEG frames.
 - **Latency**: High (1-5fps).
