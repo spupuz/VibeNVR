@@ -406,3 +406,7 @@ I'll create a plan to fix these two vulnerabilities to prevent path traversal/de
 **Vulnerability:** Naive argument injection prevention rejected valid filenames starting with a hyphen (e.g., `-video.mp4`), causing a functional denial of service.
 **Learning:** Rejecting valid input based on naively checking for hyphens breaks functionality and is not a robust security control.
 **Prevention:** Secure subprocess calls involving user-controlled filenames by converting the file path to an absolute path (using `os.path.abspath()`) or prefixing with `./`, ensuring it is not interpreted as a command-line flag.
+## 2026-08-25 - Fix SSRF in federation verification
+**Vulnerability:** Federated node verification used `requests.get` without `allow_redirects=False`, allowing SSRF attacks via malicious HTTP redirects that could leak API tokens.
+**Learning:** Using `requests` with untrusted URLs inherently follows redirects by default, silently enabling SSRF bypasses if not explicitly disabled.
+**Prevention:** Always explicitly set `allow_redirects=False` when making outbound HTTP calls to user-configurable URLs or external APIs.

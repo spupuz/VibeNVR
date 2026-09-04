@@ -19,7 +19,7 @@ router = APIRouter(
 def _verify_remote_node(url: str, token: str):
     base_url = url.rstrip("/")
     try:
-        resp = requests.get(f"{base_url}/api/auth/me", headers={"X-API-Key": token}, timeout=5)
+        resp = requests.get(f"{base_url}/api/auth/me", headers={"X-API-Key": token}, timeout=5, allow_redirects=False)
         if resp.status_code in [401, 403]:
             raise HTTPException(status_code=400, detail="Invalid API token for the remote node.")
         elif resp.status_code != 200:
