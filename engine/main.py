@@ -448,10 +448,16 @@ def _check_device_exists(accel_type):
         if device_exists:
             # Additional check: verify VAAPI encoders are available
             if not _check_vaapi_capabilities():
-                logger.warning("HW Accel: /dev/dri exists but VAAPI encoders not available in FFmpeg")
+                global _VAAPI_WARNING_LOGGED
+                if not globals().get('_VAAPI_WARNING_LOGGED'):
+                    logger.warning("HW Accel: /dev/dri exists but VAAPI encoders not available in FFmpeg")
+                    _VAAPI_WARNING_LOGGED = True
                 return "error"
             if not _pyav_supports_vaapi():
-                logger.warning("HW Accel: /dev/dri exists but PyAV was built without VAAPI support")
+                global _PYAV_VAAPI_WARNING_LOGGED
+                if not globals().get('_PYAV_VAAPI_WARNING_LOGGED'):
+                    logger.warning("HW Accel: /dev/dri exists but PyAV was built without VAAPI support")
+                    _PYAV_VAAPI_WARNING_LOGGED = True
                 return "unsupported_backend"
     elif accel_type == "nvidia":
         try:
@@ -462,13 +468,19 @@ def _check_device_exists(accel_type):
                 result = subprocess.run(["nvidia-smi"], capture_output=True, timeout=1)
             device_exists = result.returncode == 0
             if device_exists and not _pyav_supports_cuda():
-                logger.warning("HW Accel: nvidia-smi succeeded but PyAV was built without CUDA/NVDEC support")
+                global _PYAV_CUDA_WARNING_LOGGED
+                if not globals().get('_PYAV_CUDA_WARNING_LOGGED'):
+                    logger.warning("HW Accel: nvidia-smi succeeded but PyAV was built without CUDA/NVDEC support")
+                    _PYAV_CUDA_WARNING_LOGGED = True
                 return "unsupported_backend"
         except:
             device_exists = False
     
     if not device_exists:
-        logger.warning(f"HW Accel: Device not found for type '{accel_type}'")
+        global _DEVICE_NOT_FOUND_WARNING_LOGGED
+        if not globals().get('_DEVICE_NOT_FOUND_WARNING_LOGGED'):
+            logger.warning(f"HW Accel: Device not found for type '{accel_type}'")
+            _DEVICE_NOT_FOUND_WARNING_LOGGED = True
         return "error"
 
     return "ok"

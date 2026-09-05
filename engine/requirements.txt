@@ -1,5 +1,4 @@
-av<10.0.0; python_version < "3.11"
-av>=10.0.0; python_version >= "3.11"
+av
 fastapi
 uvicorn[standard]
 websockets
@@ -7,7 +6,5 @@ requests>=2.32.0,<2.33.0
 python-multipart<=0.0.20
 psutil
 numpy<2
-tflite-runtime==2.5.0.post1; python_version < "3.11"
-tflite-runtime>=2.14.0; python_version >= "3.11"
 paho-mqtt
 urllib3<2.3.0

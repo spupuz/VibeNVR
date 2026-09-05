@@ -1,17 +1,27 @@
-FROM python:3.11-slim
+FROM ubuntu:24.04
 
 WORKDIR /app
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-venv \
+    python-is-python3 \
+    curl \
+    xz-utils \
+    tzdata \
+    ffmpeg \
+    libmagic1 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m venv --system-site-packages /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 COPY backend/requirements.txt .
 
-# Use static ffmpeg build to save space (removes X11/GTK dependencies)
-# However, for simplicity and stability in this iteration, we keep the apt version 
-# but we can try to use a lighter base or specific flags if needed. 
-# Actually, let's switch to proper static build pattern:
-# hadolint ignore=DL3008
-RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends curl xz-utils tzdata ffmpeg libmagic1 && rm -rf /var/lib/apt/lists/*
-# hadolint ignore=DL3013
-RUN pip install --no-cache-dir --upgrade pip wheel && \
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools && \
     pip install --no-cache-dir -r requirements.txt
 
 COPY frontend/package.json .

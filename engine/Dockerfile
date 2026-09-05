@@ -1,26 +1,22 @@
-# Use Debian Bullseye Slim (Python 3.9) for full compatibility with Coral EdgeTPU
-FROM debian:bullseye-slim
+# Use Ubuntu 24.04 LTS as the base for Python 3.12 and modern hardware support
+FROM ubuntu:24.04
 
-# Enable contrib/non-free for drivers (Intel non-free, Nvidia, etc)
-RUN echo "deb http://archive.debian.org/debian bullseye main contrib non-free" > /etc/apt/sources.list && \
-    echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until && \
-    echo "Package: *\nPin: origin archive.debian.org\nPin-Priority: 1001" > /etc/apt/preferences.d/downgrade
+# Prevent interactive prompts during apt
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies including Python and OpenCV
-# hadolint ignore=DL3008
-RUN apt-get update && apt-get upgrade -y --allow-downgrades && apt-get install -y --allow-downgrades --no-install-recommends \
-    python3 \
-    python3-dev \
-    python3-pip \
-    python3-opencv \
-    python-is-python3 \
+# Install basic tools and add python 3.9 PPA (deadsnakes)
+RUN apt-get update && apt-get install -y --no-install-recommends software-properties-common curl wget gnupg && \
+    add-apt-repository -y ppa:deadsnakes/ppa && \
+    apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+    python3.9 \
+    python3.9-dev \
+    python3.9-distutils \
+    python3.9-venv \
     ffmpeg \
     libglib2.0-0 \
-    curl \
     ca-certificates \
     tzdata \
     procps \
-    gnupg \
     libavformat-dev \
     libavcodec-dev \
     libavdevice-dev \
@@ -29,22 +25,17 @@ RUN apt-get update && apt-get upgrade -y --allow-downgrades && apt-get install -
     libavfilter-dev \
     pkg-config \
     build-essential && \
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/coral-edgetpu.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/coral-edgetpu.gpg] https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends libedgetpu1-std && \
     arch="$(dpkg --print-architecture)" && \
     if [ "$arch" = "amd64" ] || [ "$arch" = "i386" ]; then \
         apt-get install -y --no-install-recommends mesa-va-drivers intel-media-va-driver-non-free i965-va-driver-shaders; \
     fi && \
     rm -rf /var/lib/apt/lists/*
 
-# hadolint ignore=DL4006,DL3008
-RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/coral-edgetpu.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/coral-edgetpu.gpg] https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends libedgetpu1-std && \
-    rm -rf /var/lib/apt/lists/*
-
-# go2rtc stream gateway (single static binary, runs alongside the engine).
-# Listens on 1984 (API) / 8554 (RTSP) inside the container; nothing is exposed
-# on the host. Used only when the "go2rtc_enabled" setting is on.
+# go2rtc stream gateway
 ARG GO2RTC_VERSION=1.9.14
 RUN arch="$(dpkg --print-architecture)" && \
     case "$arch" in \
@@ -58,23 +49,26 @@ RUN arch="$(dpkg --print-architecture)" && \
 
 WORKDIR /app
 
-# Install Python dependencies
+# Download Community libedgetpu and pycoral (Example using fermentrack/pycoral or similar community builds)
+# We will create a virtual environment to avoid PEP 668 EXTERNALLY-MANAGED errors in Ubuntu 24.04
+RUN python3.9 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 COPY requirements.txt .
-ENV PYAV_BUILD_USE_SYSTEM_FFMPEG=1
+
+# Install standard dependencies
 # hadolint ignore=DL3013
-RUN pip3 install --no-cache-dir --upgrade pip wheel && \
-    pip3 install --no-cache-dir "numpy<2.0.0" "Cython<3" && \
-    pip3 install --no-cache-dir --no-binary av --no-build-isolation "av<10.0.0" && \
-    pip3 install --no-cache-dir --extra-index-url https://google-coral.github.io/py-repo/ -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools && \
+    pip install --no-cache-dir "numpy<2.0.0" "Cython>=3" "opencv-python-headless" && \
+    pip install --no-cache-dir -r requirements.txt
+
+RUN pip install --no-cache-dir --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
 
 # Suppress annoying FFmpeg/OpenCV logs
 ENV OPENCV_LOG_LEVEL=ERROR
 ENV OPENCV_FFMPEG_DEBUG=0
-# Enforce TCP for RTSP (more stable)
 ENV OPENCV_FFMPEG_CAPTURE_OPTIONS="rtsp_transport;tcp"
-# Force Python 3 unbuffered output
 ENV PYTHONUNBUFFERED=1
-# Suppress TFLite / TensorFlow C++ internal logging (0=DEBUG,1=INFO,2=WARN,3=FATAL)
 ENV TF_CPP_MIN_LOG_LEVEL=3
 ENV TF_CPP_MIN_VLOG_LEVEL=0
 ENV GLOG_minloglevel=3
@@ -83,11 +77,8 @@ ENV TFLITE_EXTERNAL_DELEGATE_VERBOSE=0
 # Copy source code
 COPY . .
 
-# AI Models are now partially included in the repo. 
-# This script only downloads missing fallback models.
 RUN python3 download_models.py && rm download_models.py
 
-# Expose API port
 EXPOSE 8000
 
 CMD ["python3", "main.py"]

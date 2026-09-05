@@ -87,18 +87,8 @@ class AIDetector:
         self.hardware = "unknown"
         self.inference_lock = threading.Lock()
         
-        if not HAS_TFLITE:
-            logger.error("AI: tflite-runtime not installed. AI disabled.")
-            return
-            
-        # Initial model type from config (camera or global)
         self.model_type = self.config.get('ai_model', 'mobilenet_ssd_v2')
         self._enabled = self.config.get('ai_enabled', False)
-        
-        if self._enabled:
-            self._load_model()
-            logger.info("AI: Engine initialized in DISABLED state (Global Switch is OFF)")
-            
         self._initialized = True
         self._tpu_fail_count = 0
         self._last_tpu_fail = 0
@@ -106,6 +96,16 @@ class AIDetector:
         self.inference_count = 0
         self.last_inference_attempt = 0
         self._is_loading = False
+
+        if not HAS_TFLITE:
+            logger.error("AI: tflite-runtime not installed. AI disabled.")
+            self._enabled = False
+            return
+            
+        if self._enabled:
+            self._load_model()
+            logger.info("AI: Engine initialized in DISABLED state (Global Switch is OFF)")
+            
         self._start_staleness_watchdog()
 
     def _start_staleness_watchdog(self):
