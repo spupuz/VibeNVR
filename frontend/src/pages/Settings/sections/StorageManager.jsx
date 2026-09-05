@@ -249,6 +249,7 @@ export const StorageManager = ({
                                                     <button
                                                         type="button"
                                                         title={t('settings_storagemanager.title', 'Clean Up Movies')}
+                                                        aria-label={t('settings_storagemanager.title', 'Clean Up Movies')}
                                                         className="p-2 hover:bg-blue-500/10 text-blue-500 hover:text-blue-600 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
                                                         onClick={() => {
                                                             setConfirmConfig({
@@ -277,6 +278,7 @@ export const StorageManager = ({
                                                     <button
                                                         type="button"
                                                         title={t('settings_storagemanager.title', 'Clean Up Snapshots')}
+                                                        aria-label={t('settings_storagemanager.title', 'Clean Up Snapshots')}
                                                         className="p-2 hover:bg-green-500/10 text-green-500 hover:text-green-600 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
                                                         onClick={() => {
                                                             setConfirmConfig({

@@ -175,14 +175,15 @@ export const FederationSettings = ({ isOpen, onToggle }) => {
                                                 onClick={() => handleTestConnection(node)} 
                                                 disabled={testingId === node.id}
                                                 title={t('federation.test_connection', 'Test Connection')}
+                                                aria-label={t('federation.test_connection', 'Test Connection')}
                                                 className="p-2 text-muted-foreground hover:text-green-500 transition-colors disabled:opacity-50"
                                             >
                                                 {testingId === node.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Activity className="w-4 h-4" />}
                                             </button>
-                                            <button onClick={() => startEdit(node)} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+                                            <button onClick={() => startEdit(node)} className="p-2 text-muted-foreground hover:text-foreground transition-colors" title={t('common.edit', 'Edit')} aria-label={t('common.edit', 'Edit')}>
                                                 <Edit className="w-4 h-4" />
                                             </button>
-                                            <button onClick={() => handleDelete(node.id)} className="p-2 text-muted-foreground hover:text-red-500 transition-colors">
+                                            <button onClick={() => handleDelete(node.id)} className="p-2 text-muted-foreground hover:text-red-500 transition-colors" title={t('common.delete', 'Delete')} aria-label={t('common.delete', 'Delete')}>
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
