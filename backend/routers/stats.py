@@ -571,36 +571,22 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
         }
     }
 
-def _aggregate_hourly_events(events: list, now: datetime) -> list[dict]:
+def _aggregate_hourly_events(db_results: list, now: datetime) -> list[dict]:
     """
-    Aggregates a list of events into hourly buckets for the last 24 hours.
+    Aggregates DB results into hourly buckets for the last 24 hours.
     """
     history = {}
-    for i in range(25):
-        t = now - timedelta(hours=i)
-        key = t.strftime("%H:00")
-        history[key] = {"events": 0, "videos": 0}
-
-    for evt in events:
-        if not evt.timestamp_start:
-            continue
-        key = evt.timestamp_start.strftime("%H:00")
-        if key in history:
-            history[key]["events"] += 1
-            if evt.type == 'video':
-                history[key]["videos"] += 1
-
-    data = []
     for i in range(24, -1, -1):
         t = now - timedelta(hours=i)
         key = t.strftime("%H:00")
-        if key in history:
-            data.append({
-                "time": key,
-                "events": history[key]["events"],
-                "videos": history[key]["videos"]
-            })
-    return data
+        history[key] = {"time": key, "events": 0, "videos": 0}
+
+    for hr, evt_cnt, vid_cnt in db_results:
+        if hr in history:
+            history[hr]["events"] = evt_cnt
+            history[hr]["videos"] = vid_cnt
+
+    return list(history.values())
 
 @router.get("/history")
 def get_stats_history(db: Session = Depends(database.get_db), auth_info: tuple[models.User, bool] = Depends(auth_service.get_current_user_or_token)):
@@ -609,6 +595,7 @@ def get_stats_history(db: Session = Depends(database.get_db), auth_info: tuple[m
     Returns hourly event counts for the last 24 hours.
     """
     from datetime import timezone
+    from sqlalchemy import func, text, case
     now = datetime.now(timezone.utc)
     twenty_four_hours_ago = now - timedelta(hours=24)
     
@@ -618,17 +605,24 @@ def get_stats_history(db: Session = Depends(database.get_db), auth_info: tuple[m
         if allowed_ids is None:
             allowed_ids = []
             
-    # Query for events in the last 24h
     try:
-        events_query = db.query(models.Event.timestamp_start, models.Event.type)\
-            .filter(models.Event.timestamp_start >= twenty_four_hours_ago)
+        dialect = db.get_bind().dialect.name
+        if dialect == "postgresql":
+            hour_expr = func.to_char(func.date_trunc('hour', models.Event.timestamp_start), 'HH24:00')
+        else:
+            hour_expr = func.strftime('%H:00', models.Event.timestamp_start)
+            
+        stats_query = db.query(
+            hour_expr.label("hour"),
+            func.count(models.Event.id).label("events"),
+            func.sum(case((models.Event.type == 'video', 1), else_=0)).label("videos")
+        ).filter(models.Event.timestamp_start >= twenty_four_hours_ago)
             
         if allowed_ids is not None:
-            events_query = events_query.filter(models.Event.camera_id.in_(allowed_ids))
+            stats_query = stats_query.filter(models.Event.camera_id.in_(allowed_ids))
             
-        events = events_query.all()
-            
-        return _aggregate_hourly_events(events, now)
+        results = stats_query.group_by(text("hour")).all()
+        return _aggregate_hourly_events(results, now)
 
     except Exception as e:
         print(f"Error generating history stats: {e}")
