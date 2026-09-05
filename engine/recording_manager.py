@@ -149,12 +149,20 @@ class RecordingManager:
                     # PyAV will automatically move the moov atom to the beginning when out_container.close() is called.
                     out_container = av.open(full_path, mode='w', format='mp4', 
                                             options={'movflags': '+faststart'})
-                    out_vid = out_container.add_stream(template=self.stream_reader.video_stream)
+                    if hasattr(out_container, 'add_stream_from_template'):
+                        out_vid = out_container.add_stream_from_template(self.stream_reader.video_stream)
+                        out_vid.time_base = self.stream_reader.video_stream.time_base
+                    else:
+                        out_vid = out_container.add_stream(template=self.stream_reader.video_stream)
                     
                     if self.stream_reader.audio_stream and self.config.get('record_audio'):
                         in_aud = self.stream_reader.audio_stream
                         if in_aud.name == 'aac':
-                            out_aud = out_container.add_stream(template=in_aud)
+                            if hasattr(out_container, 'add_stream_from_template'):
+                                out_aud = out_container.add_stream_from_template(in_aud)
+                                out_aud.time_base = in_aud.time_base
+                            else:
+                                out_aud = out_container.add_stream(template=in_aud)
                         else:
                             out_aud = out_container.add_stream('aac', rate=max(in_aud.rate or 8000, 8000))
                             resampler = av.AudioResampler(
@@ -187,8 +195,13 @@ class RecordingManager:
                     if waiting_for_keyframe:
                         if packet_stream_type == 'video' and is_keyframe:
                             waiting_for_keyframe = False
-                            start_dts = packet.dts
-                            start_pts_vid = packet.pts
+                            start_dts = packet.dts if packet.dts is not None else 0
+                            start_pts_vid = packet.pts if packet.pts is not None else 0
+                            
+                            if packet.dts is None:
+                                packet.dts = start_dts
+                            if packet.pts is None:
+                                packet.pts = start_pts_vid
                         else:
                             continue
                             
@@ -240,6 +253,12 @@ class RecordingManager:
                                 pass
                         else:
                             packet.stream = out_aud
+                            
+                            if packet.dts is None:
+                                packet.dts = 0
+                            if packet.pts is None:
+                                packet.pts = packet.dts
+                                
                             if start_dts is not None and packet.dts is not None:
                                 packet.dts -= start_dts
                             if start_dts is not None and packet.pts is not None:
@@ -253,7 +272,8 @@ class RecordingManager:
                     out_container.mux(enc_packet)
                     
         except Exception as e:
-            logger.error(f"Camera {cam_name}: Async PyAV passthrough writer died: {e}")
+            import traceback
+            logger.error(f"Camera {cam_name}: Async PyAV passthrough writer died: {e}\n{traceback.format_exc()}")
         finally:
             if out_container:
                 try:
@@ -308,7 +328,8 @@ class RecordingManager:
                 except queue.Empty:
                     continue
                 except Exception as e:
-                    logger.error(f"Camera {cam_name}: Async FFmpeg writer died: {e}")
+                    import traceback
+                    logger.error(f"Camera {cam_name}: Async PyAV passthrough writer died: {e}\n{traceback.format_exc()}")
                     break
         finally:
             if proc.stdin:
