@@ -1274,7 +1274,8 @@
   },
   "profile": {
     "display_language": "Idioma de visualización",
-    "copy_secret": "Copiar secreto"
+    "copy_secret": "Copiar secreto",
+    "revoke_device": "Revocar dispositivo"
   },
   "settings_go2rtc": {
     "activation": "Utilice la puerta de enlace go2rtc",

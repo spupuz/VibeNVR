@@ -1322,7 +1322,8 @@
   },
   "profile": {
     "display_language": "Язык дисплея",
-    "copy_secret": "Копировать секрет"
+    "copy_secret": "Копировать секрет",
+    "revoke_device": "Отозвать устройство"
   },
   "settings_go2rtc": {
     "activation": "Используйте шлюз go2rtc",

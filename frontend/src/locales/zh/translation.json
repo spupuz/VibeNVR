@@ -1324,7 +1324,8 @@
   },
   "profile": {
     "display_language": "显示语言",
-    "copy_secret": "复制秘密"
+    "copy_secret": "复制秘密",
+    "revoke_device": "撤销设备"
   },
   "settings_go2rtc": {
     "activation": "使用go2rtc网关",

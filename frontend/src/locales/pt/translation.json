@@ -1317,7 +1317,8 @@
   },
   "profile": {
     "display_language": "Idioma de exibição",
-    "copy_secret": "Copiar segredo"
+    "copy_secret": "Copiar segredo",
+    "revoke_device": "Revogar Dispositivo"
   },
   "settings_go2rtc": {
     "activation": "Use o gateway go2rtc",

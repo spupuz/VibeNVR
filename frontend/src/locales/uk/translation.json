@@ -1329,7 +1329,8 @@
   },
   "profile": {
     "display_language": "Мова інтерфейсу",
-    "copy_secret": "Копіювати секрет"
+    "copy_secret": "Копіювати секрет",
+    "revoke_device": "Відкликати пристрій"
   },
   "camera": {
     "select": "Виберіть камеру",

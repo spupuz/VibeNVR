@@ -1310,7 +1310,8 @@
   },
   "profile": {
     "display_language": "Anzeigesprache",
-    "copy_secret": "Geheimnis kopieren"
+    "copy_secret": "Geheimnis kopieren",
+    "revoke_device": "Gerät widerrufen"
   },
   "settings_go2rtc": {
     "activation": "Verwenden Sie das go2rtc-Gateway",

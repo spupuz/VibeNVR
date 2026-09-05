@@ -1318,7 +1318,8 @@
   },
   "profile": {
     "display_language": "表示言語",
-    "copy_secret": "シークレットをコピーする"
+    "copy_secret": "シークレットをコピーする",
+    "revoke_device": "デバイスを無効化"
   },
   "settings_go2rtc": {
     "activation": "go2rtc ゲートウェイを使用する",

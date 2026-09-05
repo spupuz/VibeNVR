@@ -1315,7 +1315,8 @@
   },
   "profile": {
     "display_language": "Lingua di visualizzazione",
-    "copy_secret": "Copia segreto"
+    "copy_secret": "Copia segreto",
+    "revoke_device": "Revoca dispositivo"
   },
   "settings_go2rtc": {
     "activation": "Proxy di Rete (Gateway go2rtc)",

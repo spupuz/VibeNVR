@@ -1330,7 +1330,8 @@
   },
   "profile": {
     "display_language": "Display Language",
-    "copy_secret": "Copy Secret"
+    "copy_secret": "Copy Secret",
+    "revoke_device": "Revoke Device"
   },
   "camera": {
     "select": "Select camera",
