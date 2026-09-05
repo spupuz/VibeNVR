@@ -221,6 +221,12 @@ except Exception as e:
         # Enter 5-minute backoff
 ```
 
+### PyAV Muxing Pattern (Passthrough)
+
+When implementing passthrough recording using `PyAV` (especially versions 15+ built against FFmpeg 7+), strict packet temporal metadata constraints apply when muxing into MP4 containers.
+- **Rule**: `add_stream_from_template` does **not** copy the `time_base` from the input stream. You MUST manually propagate it (`out_stream.time_base = in_stream.time_base`), otherwise the container will use an invalid default timescale resulting in broken playback speeds.
+- **Rule**: FFmpeg 7 strictly rejects packets with `None` as `dts` or `pts` when muxing to MP4 containers, raising `[Errno 22] Invalid argument`. You MUST manually normalize the initial timestamps to `0` if they evaluate to `None`.
+
 ### Configuration Backup & Restore Pattern
 
 The system supports full configuration backups (Cameras, Settings, Groups, Users, Storage Profiles) stored in JSON format within `/data/backups/`.

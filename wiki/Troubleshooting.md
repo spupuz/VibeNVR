@@ -55,6 +55,18 @@ If you see an "AUTH ERROR" overlay, it might be a race condition during token lo
 
 ---
 
+### 🎥 MP4 Recordings crash or fallback to software encoding
+If you notice that `Passthrough` recording isn't working (e.g. AI bounding boxes are burned into the video or CPU usage spikes), check the Engine logs for `[Errno 22] Invalid argument` from `av.open`.
+
+**Likely Cause**:
+VibeNVR uses PyAV 15+ and FFmpeg 7+ for strict, high-performance RTSP packet demuxing. Some IP cameras send keyframes with missing temporal timestamps (`dts/pts = None`), which FFmpeg 7 strictly rejects when muxing into MP4 containers.
+
+**Solution**:
+1. VibeNVR automatically implements a stream normalization patch (`recording_manager.py`) that propagates the correct `time_base` and resets invalid `None` timestamps to `0` to prevent muxing crashes.
+2. If the issue persists, ensure your camera's firmware is up-to-date and that its RTSP stream complies with H.264 standard temporal metadata. As a workaround, you can disable `Passthrough` and force software encoding.
+
+---
+
 ### ⚡ Troubleshooting WebCodecs
 If you experience "black screens":
 1. Ensure your browser supports **WebCodecs API** (Chrome/Edge 94+).

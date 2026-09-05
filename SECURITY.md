@@ -178,6 +178,7 @@ To ensure the integrity of the release images and prevent the leakage of develop
    - Every build context (`engine/`, `frontend/`, `backend/`) MUST have a dedicated `.dockerignore` file.
    - Prohibited files (e.g., `venv/`, `__pycache__/`, `node_modules/`, `*.log`) MUST be explicitly excluded from the build context to prevent them from being baked into production images.
    - Use `--no-install-recommends` in `apt-get install` commands to minimize the attack surface and image size.
+   - **APT Sources Security**: When adding third-party repositories (e.g., Google Coral, DeadSnakes), GPG keys MUST be securely managed using `gpg --dearmor` and stored in `/etc/apt/keyrings`. The deprecated `apt-key add` method is strictly prohibited to prevent system-wide key trust elevation.
 
 2. **Git Hygiene**:
    - The `.gitignore` file utilizes recursive patterns (`**/venv/`, `**/__pycache__/`) to ensure that development artifacts are never tracked, regardless of their location in the project structure.
