@@ -64,7 +64,7 @@ export const Timeline = () => {
 
         return events.filter(e => {
             if (!isCameraAll && e.camera_id !== cameraId) return false;
-            if (!isHourAll && new Date(e.timestamp_start).getHours() !== selectedHour) return false;
+            if (!isHourAll && e.parsed_hour !== selectedHour) return false;
             if (!isTypeAll && e.type !== selectedTypeFilter) return false;
             if (!isEventTypeAll && e.event_type?.toLowerCase() !== eventTypeLower) return false;
             if (!isObjectAll) {
@@ -97,7 +97,19 @@ export const Timeline = () => {
         fetch(url, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => { if (!res.ok) throw new Error('Fetch failed'); return res.json(); })
             .then(data => {
-                setEvents(data);
+                // ⚡ Bolt: Pre-parse dates once on load to prevent O(N) instantiations during renders and filters
+                const enrichedData = data.map(e => {
+                    const dt = new Date(e.timestamp_start);
+                    return {
+                        ...e,
+                        parsed_hour: dt.getHours(),
+                        parsed_date_key: dt.toLocaleDateString(),
+                        parsed_time: dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        parsed_date_short: dt.toLocaleDateString([], { month: 'short', day: 'numeric' }),
+                        parsed_locale_str: dt.toLocaleString()
+                    };
+                });
+                setEvents(enrichedData);
                 if (eventId) {
                     const targetEvent = data.find(e => e.id === parseInt(eventId));
                     if (targetEvent) {
@@ -252,7 +264,7 @@ export const Timeline = () => {
 
     const groupedEvents = useMemo(() => {
         return filteredEvents.reduce((acc, event) => {
-            const dateKey = new Date(event.timestamp_start).toLocaleDateString();
+            const dateKey = event.parsed_date_key || new Date(event.timestamp_start).toLocaleDateString();
             if (!acc[dateKey]) acc[dateKey] = [];
             acc[dateKey].push(event);
             return acc;

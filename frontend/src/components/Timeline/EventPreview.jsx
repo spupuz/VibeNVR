@@ -62,7 +62,7 @@ export const EventPreview = React.memo(({
                     <div className="flex-1 min-w-0">
                         <h3 className="text-sm font-bold truncate">{getCameraName(selectedEvent.camera_id)}</h3>
                         <p className="text-[10px] text-muted-foreground truncate">
-                            {new Date(selectedEvent.timestamp_start).toLocaleString()}
+                            {selectedEvent.parsed_locale_str || new Date(selectedEvent.timestamp_start).toLocaleString()}
                         </p>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -150,7 +150,7 @@ export const EventPreview = React.memo(({
                 <div>
                     <h3 className="text-lg font-bold">{t('timeline.event_details', 'Event Details')}</h3>
                     <p className="text-xs text-muted-foreground">
-                        {getCameraName(selectedEvent.camera_id)} • {new Date(selectedEvent.timestamp_start).toLocaleString()}
+                        {getCameraName(selectedEvent.camera_id)} • {selectedEvent.parsed_locale_str || new Date(selectedEvent.timestamp_start).toLocaleString()}
                         {camera?.storage_profile && (
                             <span className="inline-flex items-center ml-2 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20">
                                 <HardDrive className="w-2.5 h-2.5 mr-1" />
