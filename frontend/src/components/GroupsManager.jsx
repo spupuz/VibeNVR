@@ -511,8 +511,17 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                     {CAMERA_SETTINGS_CATEGORIES.map(cat => (
                                         <div
                                             key={cat.id}
-                                            className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors ${selectedCategories.includes(cat.id) ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'hover:bg-muted text-muted-foreground'}`}
+                                            role="checkbox"
+                                            aria-checked={selectedCategories.includes(cat.id)}
+                                            tabIndex={0}
+                                            className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${selectedCategories.includes(cat.id) ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'hover:bg-muted text-muted-foreground'}`}
                                             onClick={() => toggleCategory(cat.id)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    toggleCategory(cat.id);
+                                                }
+                                            }}
                                         >
                                             <span className="text-xs font-medium">{cat.label}</span>
                                             <div className={`w-4 h-4 rounded border transition-colors flex items-center justify-center ${selectedCategories.includes(cat.id) ? 'bg-blue-500 border-blue-500' : 'border-muted-foreground/30'}`}>
