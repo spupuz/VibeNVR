@@ -89,7 +89,8 @@
     "name": "Nome",
     "save": "Salvar",
     "offline": "Off-line",
-    "online": "On-line"
+    "online": "On-line",
+    "edit": "Editar"
   },
   "login": {
     "welcome_back": "Bem-vindo de volta",

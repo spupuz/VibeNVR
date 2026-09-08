@@ -90,7 +90,8 @@
     "name": "姓名",
     "save": "节省",
     "offline": "离线",
-    "online": "在线的"
+    "online": "在线的",
+    "edit": "编辑"
   },
   "login": {
     "welcome_back": "欢迎回来",

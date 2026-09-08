@@ -90,7 +90,8 @@
     "name": "Name",
     "save": "Save",
     "offline": "Offline",
-    "online": "Online"
+    "online": "Online",
+    "edit": "Edit"
   },
   "login": {
     "welcome_back": "Welcome Back",

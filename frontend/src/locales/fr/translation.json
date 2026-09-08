@@ -90,7 +90,8 @@
     "name": "Nom",
     "save": "Sauvegarder",
     "offline": "Hors ligne",
-    "online": "En ligne"
+    "online": "En ligne",
+    "edit": "Modifier"
   },
   "login": {
     "welcome_back": "Bon retour",

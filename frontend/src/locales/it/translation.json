@@ -90,7 +90,8 @@
     "online": "In linea",
     "saved_successfully": "Salvato con successo",
     "deleted_successfully": "Eliminato con successo",
-    "offline": "Non in linea"
+    "offline": "Non in linea",
+    "edit": "Modificare"
   },
   "login": {
     "welcome_back": "Bentornato",

@@ -90,7 +90,8 @@
     "name": "Nombre",
     "save": "Ahorrar",
     "offline": "Desconectado",
-    "online": "En línea"
+    "online": "En línea",
+    "edit": "Editar"
   },
   "login": {
     "welcome_back": "Bienvenido de nuevo",

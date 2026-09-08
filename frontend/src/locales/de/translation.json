@@ -86,7 +86,8 @@
     "deleted_successfully": "Erfolgreich gelöscht",
     "add_new": "Neu hinzufügen",
     "save": "Speichern",
-    "confirm_delete": "Sind Sie sicher, dass Sie dieses Element löschen möchten?"
+    "confirm_delete": "Sind Sie sicher, dass Sie dieses Element löschen möchten?",
+    "edit": "Bearbeiten"
   },
   "login": {
     "welcome_back": "Willkommen zurück",
