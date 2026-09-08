@@ -16,7 +16,7 @@ export const HourTimeline = React.memo(({ events, onHourClick, selectedHour }) =
     const eventsByHour = useMemo(() => {
         const counts = {};
         events.forEach(event => {
-            const hour = new Date(event.timestamp_start).getHours();
+            const hour = event.parsed_hour !== undefined ? event.parsed_hour : new Date(event.timestamp_start).getHours();
             counts[hour] = (counts[hour] || 0) + 1;
         });
         return counts;

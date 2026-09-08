@@ -19,8 +19,8 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
     const { t } = useTranslation();
     const { user } = useAuth();
     const [imgError, setImgError] = useState(false);
-    const time = new Date(event.timestamp_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const date = new Date(event.timestamp_start).toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const time = event.parsed_time || new Date(event.timestamp_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const date = event.parsed_date_short || new Date(event.timestamp_start).toLocaleDateString([], { month: 'short', day: 'numeric' });
 
     return (
         <div
