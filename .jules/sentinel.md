@@ -410,3 +410,8 @@ I'll create a plan to fix these two vulnerabilities to prevent path traversal/de
 **Vulnerability:** Outbound HTTP requests to user-configurable federated node URLs were made without disabling redirects, allowing SSRF bypasses.
 **Learning:** Even if the initial URL is validated, a malicious server can return a 3xx redirect to an internal IP (e.g., 169.254.169.254), which `requests` follows by default.
 **Prevention:** Always explicitly set `allow_redirects=False` when making outbound HTTP requests via the `requests` library to user-configurable URLs.
+
+## 2026-08-25 - Prevent Authorization Bypass on Password Updates
+**Vulnerability:** A generic user update endpoint (`PUT /users/{user_id}`) allowed administrators to update their own password without verifying their current password, circumventing the intended security mechanism of the dedicated password update endpoint.
+**Learning:** Generic update endpoints that dynamically process all incoming fields can inadvertently bypass security controls implemented in dedicated, specialized endpoints.
+**Prevention:** Ensure that sensitive fields like passwords are either strictly validated or explicitly restricted from self-modification in generic update routes, enforcing the use of the secure, dedicated endpoint while preserving administrative capabilities.
