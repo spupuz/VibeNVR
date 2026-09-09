@@ -14,14 +14,15 @@ def cleanup():
     try:
         # Get all valid paths
         print("Fetching valid files from DB...")
-        events = db.query(Event).all()
+        # ⚡ Bolt: Use .yield_per(1000) and with_entities to avoid fetching all models into memory, preventing OOM
+        events = db.query(Event).with_entities(Event.file_path, Event.thumbnail_path).yield_per(1000)
         valid_paths = set()
-        for e in events:
+        for file_path, thumbnail_path in events:
             # Video
-            vp = translate_path(e.file_path)
+            vp = translate_path(file_path)
             if vp: valid_paths.add(vp)
             # Thumb
-            tp = translate_path(e.thumbnail_path)
+            tp = translate_path(thumbnail_path)
             if tp: valid_paths.add(tp)
         
         print(f"Found {len(valid_paths)} valid files in DB.")

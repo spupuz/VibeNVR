@@ -92,10 +92,12 @@ def repair_timestamps():
 
     try:
         # Get all events
-        events = db.query(Event).all()
+        # ⚡ Bolt: Use .yield_per(1000) to avoid fetching all models into memory simultaneously, preventing OOM
+        events = db.query(Event)
+        print(f"Events to process: {events.count()}")
         fixed_count = 0
 
-        for event in events:
+        for event in events.yield_per(1000):
             if _fix_event_timestamp(event):
                 fixed_count += 1
 

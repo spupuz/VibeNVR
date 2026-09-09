@@ -21,11 +21,12 @@ def generate_thumbnail(video_path, thumb_path):
         return False
 
 db = SessionLocal()
-events = db.query(Event).filter(Event.thumbnail_path == None, Event.type == "video").all()
-print(f"Events without thumbnails: {len(events)}")
+# ⚡ Bolt: Use .yield_per(1000) to avoid fetching all models into memory, preventing OOM
+events_query = db.query(Event).filter(Event.thumbnail_path == None, Event.type == "video")
+print(f"Events without thumbnails: {events_query.count()}")
 
 fixed = 0
-for e in events:
+for e in events_query.yield_per(1000):
     if not e.file_path:
         continue
     
