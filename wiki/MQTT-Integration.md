@@ -8,7 +8,8 @@ VibeNVR includes a native MQTT service that allows for real-time event reporting
 - **Real-time Motion Reporting**: Instant `ON`/`OFF` state updates for motion sensors.
 - **AI Metadata**: Publishes object detection results (e.g., "person", "vehicle") in JSON format.
 - **Status Monitoring**: Tracks the online/offline status of each camera thread.
-- **Asynchronous & Resilient**: The service runs in the background and automatically reconnects if the broker goes down.
+- **Robust Event Queueing**: Natively queues `ON`/`OFF` state transitions in memory if the broker temporarily goes down, flushing them immediately upon reconnect to ensure Home Assistant never gets "stuck".
+- **Asynchronous & Resilient**: The service runs in the background and automatically reconnects using a stable unique client ID if the network drops.
 
 ---
 

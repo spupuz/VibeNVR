@@ -53,12 +53,17 @@ class MQTTService:
 
     def _connect(self):
         try:
+            # Generate a stable client_id for this instance to prevent Paho v2 reconnect bugs
+            import uuid
+            if not hasattr(self, '_client_id'):
+                self._client_id = f"vibenvr_engine_{uuid.uuid4().hex[:8]}"
+
             # Paho MQTT v2.x requires CallbackAPIVersion
             try:
-                self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+                self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=self._client_id)
             except AttributeError:
                 # Fallback for older paho-mqtt versions
-                self.client = mqtt.Client()
+                self.client = mqtt.Client(client_id=self._client_id)
                 
             self.client.on_connect = self._on_connect
             self.client.on_disconnect = self._on_disconnect
@@ -98,7 +103,10 @@ class MQTTService:
             logger.error(f"MQTT Connection failed with code {reason_code}")
             self.connected = False
 
-    def _on_disconnect(self, client, userdata, flags, reason_code, properties=None):
+    def _on_disconnect(self, client, userdata, *args):
+        # In Paho v1, args = (rc,)
+        # In Paho v2, args = (flags, reason_code, properties)
+        reason_code = args[1] if len(args) >= 2 else args[0] if args else "unknown"
         logger.warning(f"MQTT Disconnected (rc={reason_code}).")
         self.connected = False
 
@@ -136,7 +144,7 @@ class MQTTService:
 
     def publish_event(self, camera_id, event_type, payload=None):
         """Publish real-time events to MQTT"""
-        if not self.connected:
+        if not self.client:
             return
 
         prefix = self.config.get("mqtt_topic_prefix", "vibenvr")
@@ -161,7 +169,7 @@ class MQTTService:
 
     def publish_status(self, camera_id, status):
         """Publish camera connectivity status"""
-        if not self.connected:
+        if not self.client:
             return
         prefix = self.config.get("mqtt_topic_prefix", "vibenvr")
         availability = "online" if status.lower() == "connected" else "offline"
