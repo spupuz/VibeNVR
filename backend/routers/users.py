@@ -50,6 +50,13 @@ def update_user(user_id: int, user: schemas.UserUpdate, db: Session = Depends(da
         if crud.get_user_by_email(db, email=user.email):
             raise HTTPException(status_code=400, detail="Email already registered")
             
+    if user.password and user.password != "********":
+        if current_user.id == user_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot update your own password via this generic endpoint. Please use the dedicated password update endpoint, which requires your old password."
+            )
+
     updated = crud.update_user(db=db, user_id=user_id, user=user)
     return updated
 

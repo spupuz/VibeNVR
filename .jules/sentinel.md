@@ -410,3 +410,7 @@ I'll create a plan to fix these two vulnerabilities to prevent path traversal/de
 **Vulnerability:** Outbound HTTP requests to user-configurable federated node URLs were made without disabling redirects, allowing SSRF bypasses.
 **Learning:** Even if the initial URL is validated, a malicious server can return a 3xx redirect to an internal IP (e.g., 169.254.169.254), which `requests` follows by default.
 **Prevention:** Always explicitly set `allow_redirects=False` when making outbound HTTP requests via the `requests` library to user-configurable URLs.
+## 2025-02-06 - Sentinel: Fix authorization bypass in API
+**Vulnerability:** The generic `update_user` endpoint allowed an admin to update their own password, bypassing the `old_password` verification required by the dedicated `update_password` endpoint.
+**Learning:** When multiple endpoints exist to update user records, all endpoints must enforce the same authentication constraints.
+**Prevention:** Ensure that password update checks (like verifying the old password) are either performed universally at the CRUD layer or that generic endpoints are blocked from modifying sensitive fields for the current user.
