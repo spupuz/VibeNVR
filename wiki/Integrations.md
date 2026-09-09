@@ -52,6 +52,27 @@ VibeNVR supports **MQTT Discovery**, meaning it will automatically appear in Hom
 - **Attributes**: JSON metadata containing AI detection results (labels, confidence).
 
 For more details, see the **[MQTT Integration Guide](MQTT-Integration.md)**.
+
+### 📹 Home Assistant Live View / Restream
+
+VibeNVR integrates **go2rtc** internally as its core stream gateway, which can be used to expose streams to Home Assistant with zero latency, preventing multiple connections to the physical cameras (Camera → VibeNVR → HA).
+
+1. Edit your `docker-compose.yml` to expose the internal go2rtc ports from the `engine` service:
+```yaml
+  engine:
+    ...
+    ports:
+      - "1984:1984" # go2rtc API & WebRTC
+      - "8554:8554" # go2rtc RTSP
+```
+2. Restart the containers.
+3. In Home Assistant, install the **WebRTC Camera** custom component (or use the generic RTSP integration).
+4. Point the integration to `http://<VIBENVR_IP>:1984`.
+
+The streams are automatically named `cam_<id>` (e.g., `cam_1`, `cam_2`). This will give you zero-latency Live View in HA using the stream already managed by VibeNVR. 
+
+> **Note:** Ensure the "Internal go2rtc Gateway" is enabled in VibeNVR's global settings (Settings -> General).
+
 ---
 
 ## 📱 Telegram Notifications

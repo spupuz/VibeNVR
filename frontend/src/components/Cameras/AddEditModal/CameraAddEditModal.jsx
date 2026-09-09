@@ -118,7 +118,7 @@ export const CameraAddEditModal = ({
     return (
         <Portal>
             <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-[2000] overflow-y-auto pt-20 sm:pt-6 p-4 lg:pl-64">
-                <div className="bg-card p-4 sm:p-6 rounded-xl w-full max-w-lg border border-border relative">
+                <div className="bg-card p-4 sm:p-6 rounded-xl w-full max-w-2xl border border-border relative">
                     <div className="flex justify-between items-center mb-6">
                         <div>
                             <h2 className="text-xl font-bold">{editingId ? t('cameras.edit_camera', 'Edit Camera') : t('cameras.add_new_camera', 'Add New Camera')}</h2>
