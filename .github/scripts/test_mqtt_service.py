@@ -12,10 +12,11 @@ def test_connect_v2_api():
     with patch("engine.mqtt_service.mqtt.Client") as mock_client:
         service._connect()
 
+        from unittest.mock import ANY
         if hasattr(mqtt, "CallbackAPIVersion"):
-            mock_client.assert_called_with(mqtt.CallbackAPIVersion.VERSION2)
+            mock_client.assert_called_with(mqtt.CallbackAPIVersion.VERSION2, client_id=ANY)
         else:
-            mock_client.assert_called_with()
+            mock_client.assert_called_with(client_id=ANY)
 
 
 def test_connect_fallback():
@@ -43,8 +44,9 @@ def test_connect_fallback():
 
         try:
             service._connect()
-            # The fallback block should instantiate Client without any arguments
-            mock_client_class.assert_called_with()
+            from unittest.mock import ANY
+            # The fallback block should instantiate Client with client_id
+            mock_client_class.assert_called_with(client_id=ANY)
         finally:
             if original_has_attr:
                 mqtt_service_module.mqtt.CallbackAPIVersion = original_attr
