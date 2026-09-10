@@ -167,7 +167,7 @@ class CameraConfig(BaseModel):
     post_capture: int = 0
     movie_quality: int = 75
     movie_passthrough: bool = True
-    max_movie_length: int = 120  # Default 2 minutes (60-300 range)
+    max_movie_length: int = 300  # Default 5 minutes (60-900 range)
     record_audio: bool = False
     movie_file_name: str = "%Y-%m-%d/%H-%M-%S"
     picture_quality: int = 75

@@ -20,7 +20,7 @@ export const DEFAULT_CAMERA_STATE = {
     movie_passthrough: true,
     movie_quality: 75,
     recording_mode: 'Motion Triggered',
-    max_movie_length: 120,
+    max_movie_length: 300,
     preserve_movies: 'For One Week',
     auto_threshold_tuning: true,
     auto_noise_detection: true,

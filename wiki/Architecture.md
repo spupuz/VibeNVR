@@ -56,6 +56,7 @@ VibeNVR enforces strict isolation between development artifacts and production a
 ## ⚡ Performance Optimization
 
 - **Passthrough Recording**: Optionally records raw RTSP streams directly to disk without re-encoding, resulting in near-zero CPU usage.
+- **OS-level I/O Buffering**: Implements strict `flush_packets=0` policies in the PyAV muxer during passthrough recording to allow OS-level disk buffering, dramatically reducing IOPS and stabilizing ZFS deployments.
 - **MP4 Metadata Placement**: Passthrough recordings are explicitly saved as standard MP4s with the `+faststart` flag. This forces the `moov` atom to the beginning of the file upon completion, guaranteeing instant playback and precise frame seeking in all Chromium and Firefox browsers without the playback/seek issues associated with fragmented MP4s.
 - **Dual-Stream Handling**: The Engine initializes independent `StreamReader` instances for main and sub-streams. Sub-streams are prioritized for UI frame generation to reduce client-side bandwidth and CPU overhead in grid views.
 - **Fallback Logic**: If a sub-stream is not configured (optional), the Engine automatically falls back to the main stream reader for all operations, including live UI frames.

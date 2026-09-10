@@ -3,6 +3,7 @@ import datetime
 import logging
 import subprocess
 import jwt
+import threading
 from typing import Optional
 from sqlalchemy.orm import Session
 
@@ -16,6 +17,9 @@ import storage_service
 import notification_service
 
 logger = logging.getLogger(__name__)
+
+# Max 2 concurrent ffprobe/ffmpeg processes for thumbnail extraction to prevent I/O thrashing
+THUMBNAIL_SEMAPHORE = threading.Semaphore(2)
 
 def _verify_event_access_sync(token: str, event_id: int) -> dict:
     """Thread-safe synchronous wrapper for verifying event download access."""
@@ -215,73 +219,75 @@ def process_webhook_file_event(
             if camera_id in events_state.ACTIVE_CAMERAS:
                 del events_state.ACTIVE_CAMERAS[camera_id]
 
-            # Get Duration using ffprobe
-            if local_path and os.path.exists(local_path):
-                try:
-                    # Security: Prevent argument injection by using absolute path
-                    safe_path = os.path.abspath(local_path)
-                    cmd = [
-                        "ffprobe",
-                        "-v",
-                        "error",
-                        "-show_entries",
-                        "format=duration",
-                        "-of",
-                        "default=noprint_wrappers=1:nokey=1",
-                        "-i",
-                        safe_path,
-                    ]
-                    result = subprocess.run(
-                        cmd,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        text=True,
-                        timeout=10,
-                    )
-                    if result.returncode == 0:
-                        duration_str = result.stdout.strip()
-                        if duration_str and duration_str != "N/A":
-                            duration_sec = float(duration_str)
-                            event_data.timestamp_end = ts + datetime.timedelta(
-                                seconds=duration_sec
-                            )
-                except Exception as e:
-                    logger.error(f"[BG-WORK] ffprobe failed: {e}")
-
-            # Generate Thumbnail
-            try:
+            # Acquire semaphore to limit concurrent disk-heavy I/O operations
+            with THUMBNAIL_SEMAPHORE:
+                # Get Duration using ffprobe
                 if local_path and os.path.exists(local_path):
-                    base, _ = os.path.splitext(local_path)
-                    local_thumb = f"{base}.jpg"
-                    base_db, _ = os.path.splitext(file_path)
-                    db_thumb = f"{base_db}.jpg"
-
-                    # Security: Prevent argument injection by using absolute path
-                    safe_path = os.path.abspath(local_path)
-                    subprocess.run(
-                        [
-                            "ffmpeg",
-                            "-y",
+                    try:
+                        # Security: Prevent argument injection by using absolute path
+                        safe_path = os.path.abspath(local_path)
+                        cmd = [
+                            "ffprobe",
+                            "-v",
+                            "error",
+                            "-show_entries",
+                            "format=duration",
+                            "-of",
+                            "default=noprint_wrappers=1:nokey=1",
                             "-i",
                             safe_path,
-                            "-ss",
-                            "00:00:01",
-                            "-vframes",
-                            "1",
-                            "-vf",
-                            "scale=320:-1",
-                            local_thumb,
-                        ],
-                        check=True,
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                        timeout=15,
-                    )
+                        ]
+                        result = subprocess.run(
+                            cmd,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True,
+                            timeout=10,
+                        )
+                        if result.returncode == 0:
+                            duration_str = result.stdout.strip()
+                            if duration_str and duration_str != "N/A":
+                                duration_sec = float(duration_str)
+                                event_data.timestamp_end = ts + datetime.timedelta(
+                                    seconds=duration_sec
+                                )
+                    except Exception as e:
+                        logger.error(f"[BG-WORK] ffprobe failed: {e}")
 
-                    if os.path.exists(local_thumb):
-                        event_data.thumbnail_path = db_thumb
-            except Exception as e:
-                logger.error(f"[BG-WORK] Thumbnail failed: {e}")
+                # Generate Thumbnail
+                try:
+                    if local_path and os.path.exists(local_path):
+                        base, _ = os.path.splitext(local_path)
+                        local_thumb = f"{base}.jpg"
+                        base_db, _ = os.path.splitext(file_path)
+                        db_thumb = f"{base_db}.jpg"
+
+                        # Security: Prevent argument injection by using absolute path
+                        safe_path = os.path.abspath(local_path)
+                        subprocess.run(
+                            [
+                                "ffmpeg",
+                                "-y",
+                                "-i",
+                                safe_path,
+                                "-ss",
+                                "00:00:01",
+                                "-vframes",
+                                "1",
+                                "-vf",
+                                "scale=320:-1",
+                                local_thumb,
+                            ],
+                            check=True,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                            timeout=15,
+                        )
+
+                        if os.path.exists(local_thumb):
+                            event_data.thumbnail_path = db_thumb
+                except Exception as e:
+                    logger.error(f"[BG-WORK] Thumbnail failed: {e}")
         else:
             # For picture_save, thumbnail is the same as image
             event_data.thumbnail_path = file_path

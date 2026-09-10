@@ -92,6 +92,20 @@ The **Google Coral USB Accelerator** is a specialized processor for machine lear
 
 ---
 
+## 💾 Disk I/O Optimization
+
+High disk I/O (Input/Output operations per second) can cause system instability, particularly on hypervisors using ZFS (like Proxmox) or on slower HDDs, presenting as high CPU Load Averages or I/O Wait percentages.
+
+### 1. Max Movie Length
+By default, VibeNVR splits recording segments every **5 minutes** (300 seconds). 
+- **Impact**: Setting this too low (e.g., 1-2 minutes) forces the system to constantly open, close, and process video files, triggering frequent thumbnail generation tasks.
+- **Recommendation**: Keep the default at 5 minutes, or increase it to 10-15 minutes if you are using Continuous Recording to reduce disk thrashing.
+
+### 2. OS-level Buffering
+VibeNVR automatically implements OS-level buffering during passthrough recording to prevent thousands of synchronous tiny writes to the disk. Ensure you are running the latest version to benefit from this native optimization.
+
+---
+
 ## 🗄️ Database Optimization (RAM reduction)
 
 By default, VibeNVR uses **PostgreSQL** in its own container. While highly robust for handling thousands of events, the Postgres container itself constantly consumes **~100MB to ~150MB of RAM**, even when idle.

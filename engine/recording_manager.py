@@ -146,9 +146,9 @@ class RecordingManager:
                     return
                 if self.stream_reader and self.stream_reader.video_stream:
                     # Use standard MP4 with faststart so the browser can seek properly.
-                    # PyAV will automatically move the moov atom to the beginning when out_container.close() is called.
+                    # flush_packets=0 allows the OS to buffer writes, massively reducing IOPS on ZFS/Proxmox.
                     out_container = av.open(full_path, mode='w', format='mp4', 
-                                            options={'movflags': '+faststart'})
+                                            options={'movflags': '+faststart', 'flush_packets': '0'})
                     if hasattr(out_container, 'add_stream_from_template'):
                         out_vid = out_container.add_stream_from_template(self.stream_reader.video_stream)
                         out_vid.time_base = self.stream_reader.video_stream.time_base

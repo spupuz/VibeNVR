@@ -80,7 +80,7 @@ export const MoviesTab = ({ editingId, newCamera, setNewCamera, stats, handleCle
             />
             <Slider
                 label={t('cameras.maximum_movie_length', 'Maximum Movie Length')}
-                value={newCamera.max_movie_length || 120}
+                value={newCamera.max_movie_length || 300}
                 onChange={(val) => setNewCamera({ ...newCamera, max_movie_length: val })}
                 min={60}
                 max={300}
