@@ -176,15 +176,15 @@ export const FederationSettings = ({ isOpen, onToggle }) => {
                                                 disabled={testingId === node.id}
                                                 title={t('federation.test_connection', 'Test Connection')}
                                                 aria-label={t('federation.test_connection', 'Test Connection')}
-                                                className="p-2 text-muted-foreground hover:text-green-500 transition-colors disabled:opacity-50"
+                                                className="p-2 hover:bg-muted text-muted-foreground hover:text-green-500 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] disabled:opacity-50"
                                             >
-                                                {testingId === node.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Activity className="w-4 h-4" />}
+                                                {testingId === node.id ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Activity className="w-5 h-5" />}
                                             </button>
-                                            <button onClick={() => startEdit(node)} className="p-2 text-muted-foreground hover:text-foreground transition-colors" title={t('common.edit', 'Edit')} aria-label={t('common.edit', 'Edit')}>
-                                                <Edit className="w-4 h-4" />
+                                            <button onClick={() => startEdit(node)} className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]" title={t('common.edit', 'Edit')} aria-label={t('common.edit', 'Edit')}>
+                                                <Edit className="w-5 h-5" />
                                             </button>
-                                            <button onClick={() => handleDelete(node.id)} className="p-2 text-muted-foreground hover:text-red-500 transition-colors" title={t('common.delete', 'Delete')} aria-label={t('common.delete', 'Delete')}>
-                                                <Trash2 className="w-4 h-4" />
+                                            <button onClick={() => handleDelete(node.id)} className="p-2 hover:bg-red-50 text-muted-foreground hover:text-red-500 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]" title={t('common.delete', 'Delete')} aria-label={t('common.delete', 'Delete')}>
+                                                <Trash2 className="w-5 h-5" />
                                             </button>
                                         </div>
                                     </div>
