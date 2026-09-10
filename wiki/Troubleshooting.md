@@ -67,6 +67,18 @@ VibeNVR uses PyAV 15+ and FFmpeg 7+ for strict, high-performance RTSP packet dem
 
 ---
 
+### 🎥 MP4 Recordings Accumulate Duration (e.g. 1m, 2m, 3m) or Memory Leaks
+If you observe that 1-minute segmented MP4 files progressively grow in length (e.g., the first file is 1 minute, the second is 2 minutes, the third is 3 minutes) and they start with the exact same repetitive footage, or if your container RAM usage grows indefinitely:
+
+**Likely Cause**:
+- **PyAV AVStream inheritance**: The NVR's MP4 muxer was previously inheriting the global `duration` of the long-running live stream connection instead of creating independent segments.
+- **RTSP Timestamp Jitter (Ring Buffer Poisoning)**: Some cameras (or stream loops) reset their internal PTS (Presentation Time Stamp) to 0. This caused the pre-buffer ring expiry logic to calculate negative durations, preventing old packets from ever being discarded.
+
+**Solution**:
+VibeNVR v1.35.5+ fully mitigates these issues by replacing `add_stream_from_template` with manual stream initialization and by calculating ring buffer expirations using strictly monotonic OS-level time (`time.time()`). Ensure you are running the latest Engine container build.
+
+---
+
 ### ⚡ Troubleshooting WebCodecs
 If you experience "black screens":
 1. Ensure your browser supports **WebCodecs API** (Chrome/Edge 94+).

@@ -224,8 +224,9 @@ except Exception as e:
 ### PyAV Muxing Pattern (Passthrough)
 
 When implementing passthrough recording using `PyAV` (especially versions 15+ built against FFmpeg 7+), strict packet temporal metadata constraints apply when muxing into MP4 containers.
-- **Rule**: `add_stream_from_template` does **not** copy the `time_base` from the input stream. You MUST manually propagate it (`out_stream.time_base = in_stream.time_base`), otherwise the container will use an invalid default timescale resulting in broken playback speeds.
+- **Rule**: NEVER use `add_stream_from_template` for segmented recording. It implicitly copies the `duration` and `start_time` of the live connection's `AVStream`. For segmented MP4 files (e.g., 1-minute chunks), this causes the file duration to exponentially accumulate (1m, 2m, 3m). Always use `.add_stream(in_stream.name)` and manually copy the `extradata` and `time_base`.
 - **Rule**: FFmpeg 7 strictly rejects packets with `None` as `dts` or `pts` when muxing to MP4 containers, raising `[Errno 22] Invalid argument`. You MUST manually normalize the initial timestamps to `0` if they evaluate to `None`.
+- **Rule**: The pre-buffer `packet_ring_buffer` MUST evaluate expiry using OS time (`time.time()`) rather than the packet's `pts` or `time_sec`. Jittery streams or connection restarts can reset `pts` to `0` (or `None`), poisoning the ring buffer with a massive negative expiry delta, causing it to leak memory indefinitely and rigurgitate the entire stream history at the start of every new MP4 segment.
 
 ### Configuration Backup & Restore Pattern
 
