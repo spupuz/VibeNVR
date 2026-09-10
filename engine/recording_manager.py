@@ -136,6 +136,7 @@ class RecordingManager:
         start_dts = None
         start_pts_vid = None
         start_pts_aud = None
+        start_dts_aud = None
         last_muxed_dts = -1
         
         waiting_for_keyframe = True
@@ -146,23 +147,25 @@ class RecordingManager:
                     return
                 if self.stream_reader and self.stream_reader.video_stream:
                     # Use standard MP4 with faststart so the browser can seek properly.
-                    # flush_packets=0 allows the OS to buffer writes, massively reducing IOPS on ZFS/Proxmox.
+                    # use_editlist=0 prevents FFmpeg from writing empty edits that cause duration accumulation across segments.
                     out_container = av.open(full_path, mode='w', format='mp4', 
-                                            options={'movflags': '+faststart', 'flush_packets': '0'})
-                    if hasattr(out_container, 'add_stream_from_template'):
-                        out_vid = out_container.add_stream_from_template(self.stream_reader.video_stream)
-                        out_vid.time_base = self.stream_reader.video_stream.time_base
-                    else:
-                        out_vid = out_container.add_stream(template=self.stream_reader.video_stream)
+                                            options={'movflags': '+faststart', 'use_editlist': '0'})
+                    # We must NOT use add_stream_from_template because it copies the AVStream struct, 
+                    # which includes the 'duration' and 'start_time' of the long-running stream connection.
+                    # This causes the MP4 muxer to write accumulated durations (1m, 2m, 3m, etc.) for segmented files.
+                    in_vid = self.stream_reader.video_stream
+                    out_vid = out_container.add_stream(in_vid.name)
+                    if in_vid.codec_context.extradata:
+                        out_vid.codec_context.extradata = in_vid.codec_context.extradata
+                    out_vid.time_base = in_vid.time_base
                     
                     if self.stream_reader.audio_stream and self.config.get('record_audio'):
                         in_aud = self.stream_reader.audio_stream
                         if in_aud.name == 'aac':
-                            if hasattr(out_container, 'add_stream_from_template'):
-                                out_aud = out_container.add_stream_from_template(in_aud)
-                                out_aud.time_base = in_aud.time_base
-                            else:
-                                out_aud = out_container.add_stream(template=in_aud)
+                            out_aud = out_container.add_stream(in_aud.name)
+                            if in_aud.codec_context.extradata:
+                                out_aud.codec_context.extradata = in_aud.codec_context.extradata
+                            out_aud.time_base = in_aud.time_base
                         else:
                             out_aud = out_container.add_stream('aac', rate=max(in_aud.rate or 8000, 8000))
                             resampler = av.AudioResampler(
@@ -212,11 +215,18 @@ class RecordingManager:
                             if packet.dts is not None:
                                 raw_dts = packet.dts - start_dts
                                 if raw_dts <= last_muxed_dts:
-                                    offset = (last_muxed_dts - raw_dts) + 3000
-                                    start_dts -= offset
-                                    if start_pts_vid is not None:
-                                        start_pts_vid -= offset
-                                    raw_dts = packet.dts - start_dts
+                                    # If it's a huge jump backwards (e.g. stream restart), we MUST shift the baseline.
+                                    # If it's a tiny B-frame jitter, we just clamp it.
+                                    if last_muxed_dts - raw_dts > 90000 * 5: # 5 seconds gap
+                                        offset = (last_muxed_dts - raw_dts) + 3000
+                                        start_dts -= offset
+                                        if start_pts_vid is not None:
+                                            start_pts_vid -= offset
+                                        raw_dts = packet.dts - start_dts
+                                    else:
+                                        # Tiny jitter (B-frame), just clamp DTS to be strictly monotonic
+                                        raw_dts = last_muxed_dts + 1
+                                        
                                 packet.dts = raw_dts
                             else:
                                 packet.dts = last_muxed_dts + 3000
@@ -254,15 +264,24 @@ class RecordingManager:
                         else:
                             packet.stream = out_aud
                             
+                            if start_pts_aud is None:
+                                start_pts_aud = packet.pts if packet.pts is not None else 0
+                                start_dts_aud = packet.dts if packet.dts is not None else 0
+                            
                             if packet.dts is None:
                                 packet.dts = 0
                             if packet.pts is None:
                                 packet.pts = packet.dts
                                 
-                            if start_dts is not None and packet.dts is not None:
-                                packet.dts -= start_dts
-                            if start_dts is not None and packet.pts is not None:
-                                packet.pts -= start_dts
+                            if start_dts_aud is not None and packet.dts is not None:
+                                packet.dts -= start_dts_aud
+                            if start_pts_aud is not None and packet.pts is not None:
+                                packet.pts -= start_pts_aud
+                            
+                            # Ensure PTS is not before DTS
+                            if packet.dts is not None and packet.pts is not None and packet.pts < packet.dts:
+                                packet.pts = packet.dts
+                                
                             out_container.mux(packet)
                 except queue.Empty:
                     continue

@@ -381,7 +381,9 @@ def delete_all_events(
 
     query = db.query(models.Event)
     if event_type:
-        query = query.filter(models.Event.type == event_type)
+        # The database stores pictures as 'snapshot' type
+        db_type = "snapshot" if event_type == "picture" else event_type
+        query = query.filter(models.Event.type == db_type)
 
     # Bolt: Fix N+1 queries during massive deletions and eliminate memory loading of massive dataset
     # We load IDs and size attributes selectively to limit memory footprint.

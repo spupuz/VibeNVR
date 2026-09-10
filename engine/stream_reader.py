@@ -286,14 +286,15 @@ class StreamReader(threading.Thread):
                     if len(raw_data) > 0:
                         pts = getattr(packet, 'pts', None)
                         time_base = getattr(packet, 'time_base', None)
-                        time_sec = float(pts * time_base) if pts is not None and time_base is not None else time.time()
+                        real_time = time.time()
+                        time_sec = float(pts * time_base) if pts is not None and time_base is not None else real_time
                         is_keyframe = 1 if getattr(packet, 'is_keyframe', False) else 0
 
                         with self.lock:
                             # 1. Update ring buffer
-                            self.packet_ring_buffer.append((packet, is_keyframe, time_sec))
+                            self.packet_ring_buffer.append((packet, is_keyframe, time_sec, real_time))
                             # Pop old packets (keep self.pre_buffer_duration seconds of history)
-                            while self.packet_ring_buffer and (time_sec - self.packet_ring_buffer[0][2] > self.pre_buffer_duration):
+                            while self.packet_ring_buffer and (real_time - self.packet_ring_buffer[0][3] > self.pre_buffer_duration):
                                 self.packet_ring_buffer.popleft()
                             
                             # 2. Push to local subscribers
