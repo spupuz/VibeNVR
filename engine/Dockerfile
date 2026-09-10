@@ -60,7 +60,8 @@ COPY requirements.txt .
 # hadolint ignore=DL3013
 RUN pip install --no-cache-dir --upgrade pip wheel setuptools && \
     pip install --no-cache-dir "numpy<2.0.0" "Cython>=3" "opencv-python-headless" && \
-    pip install --no-cache-dir -r requirements.txt
+    sed -i 's/AV_HWDEVICE_TYPE_VULKAN,/AV_HWDEVICE_TYPE_VULKAN,\n    AV_HWDEVICE_TYPE_D3D12VA,/' /usr/include/$(uname -m)-linux-gnu/libavutil/hwcontext.h || true && \
+    pip install --no-cache-dir --no-binary av -r requirements.txt
 
 RUN pip install --no-cache-dir --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
 
