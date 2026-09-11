@@ -1,4 +1,4 @@
-av
+av<13.0.0
 fastapi
 uvicorn[standard]
 websockets
