@@ -4,14 +4,14 @@ FROM ubuntu:24.04
 # Prevent interactive prompts during apt
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install basic tools and add python 3.9 PPA (deadsnakes)
+# Install basic tools and use default python 3.12
 RUN apt-get update && apt-get install -y --no-install-recommends software-properties-common curl wget gnupg && \
-    add-apt-repository -y ppa:deadsnakes/ppa && \
     apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
-    python3.9 \
-    python3.9-dev \
-    python3.9-distutils \
-    python3.9-venv \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-venv \
+    python-is-python3 \
     ffmpeg \
     libglib2.0-0 \
     ca-certificates \
@@ -51,7 +51,7 @@ WORKDIR /app
 
 # Download Community libedgetpu and pycoral (Example using fermentrack/pycoral or similar community builds)
 # We will create a virtual environment to avoid PEP 668 EXTERNALLY-MANAGED errors in Ubuntu 24.04
-RUN python3.9 -m venv /opt/venv
+RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 COPY requirements.txt .
@@ -63,7 +63,21 @@ RUN pip install --no-cache-dir --upgrade pip wheel setuptools && \
     sed -i 's/AV_HWDEVICE_TYPE_VULKAN,/AV_HWDEVICE_TYPE_VULKAN,\n    AV_HWDEVICE_TYPE_D3D12VA,/' /usr/include/$(uname -m)-linux-gnu/libavutil/hwcontext.h || true && \
     pip install --no-cache-dir --no-binary av -r requirements.txt
 
-RUN pip install --no-cache-dir --extra-index-url https://google-coral.github.io/py-repo/ pycoral~=2.0
+# Download and install feranick pycoral and tflite-runtime wheels for Python 3.12 based on architecture
+RUN arch="$(dpkg --print-architecture)" && \
+    if [ "$arch" = "amd64" ] || [ "$arch" = "i386" ]; then \
+        TFLITE_URL="https://github.com/feranick/TFlite-builds/releases/download/v2.17.1/tflite_runtime-2.17.1-cp312-cp312-linux_x86_64.whl" && \
+        PYCORAL_URL="https://github.com/feranick/pycoral/releases/download/2.0.3TF2.17.1/pycoral-2.0.3-cp312-cp312-linux_x86_64.whl"; \
+    elif [ "$arch" = "arm64" ]; then \
+        TFLITE_URL="https://github.com/feranick/TFlite-builds/releases/download/v2.17.1/tflite_runtime-2.17.1-cp312-cp312-linux_aarch64.whl" && \
+        PYCORAL_URL="https://github.com/feranick/pycoral/releases/download/2.0.3TF2.17.1/pycoral-2.0.3-cp312-cp312-linux_aarch64.whl"; \
+    else \
+        echo "Unsupported architecture for feranick pycoral wheels: $arch" && exit 1; \
+    fi && \
+    wget -qO tflite_runtime.whl "$TFLITE_URL" && \
+    wget -qO pycoral.whl "$PYCORAL_URL" && \
+    pip install --no-cache-dir tflite_runtime.whl pycoral.whl && \
+    rm tflite_runtime.whl pycoral.whl
 
 # Suppress annoying FFmpeg/OpenCV logs
 ENV OPENCV_LOG_LEVEL=ERROR
