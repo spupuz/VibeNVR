@@ -74,10 +74,7 @@ RUN arch="$(dpkg --print-architecture)" && \
     else \
         echo "Unsupported architecture for feranick pycoral wheels: $arch" && exit 1; \
     fi && \
-    wget -qO tflite_runtime.whl "$TFLITE_URL" && \
-    wget -qO pycoral.whl "$PYCORAL_URL" && \
-    pip install --no-cache-dir tflite_runtime.whl pycoral.whl && \
-    rm tflite_runtime.whl pycoral.whl
+    pip install --no-cache-dir "$TFLITE_URL" "$PYCORAL_URL"
 
 # Suppress annoying FFmpeg/OpenCV logs
 ENV OPENCV_LOG_LEVEL=ERROR
