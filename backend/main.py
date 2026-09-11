@@ -460,13 +460,15 @@ async def get_secure_media(file_path: str, request: Request, token: Optional[str
     # Security Validation: Ensure path is within /data/
     # Normalize path to prevent traversals like /data/../etc/passwd
     full_path = os.path.normpath(f"/data/{file_path}")
+    data_dir = os.path.abspath("/data")
 
-    if not full_path.startswith("/data/"):
+    if os.path.commonpath([full_path, data_dir]) != data_dir:
          logger.warning(f"Security Alert (Media): Attempted access to {full_path}")
          raise HTTPException(status_code=403, detail="Access denied")
 
     # RBAC for backups folder: Only allow admins to access anything in /data/backups/
-    if full_path.startswith("/data/backups/"):
+    backup_dir = os.path.abspath("/data/backups")
+    if os.path.commonpath([full_path, backup_dir]) == backup_dir:
          # We already validated the token above, now check the user role
          with database.get_db_ctx() as db:
               try:
