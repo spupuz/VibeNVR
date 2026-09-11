@@ -7,7 +7,7 @@ RUN sed -i 's/archive.ubuntu.com/it.archive.ubuntu.com/g' /etc/apt/sources.list.
     sed -i 's/security.ubuntu.com/it.archive.ubuntu.com/g' /etc/apt/sources.list.d/ubuntu.sources || true && \
     echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/force-unsafe-io && \
     apt-get update && apt-get install -y --no-install-recommends nala && \
-    nala fetch --auto -y && \
+    nala fetch --auto -y || true && \
     nala upgrade -y && nala install -y --no-install-recommends \
     python3 \
     python3-dev \
