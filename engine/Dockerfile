@@ -25,14 +25,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends software-proper
     libavfilter-dev \
     pkg-config \
     build-essential && \
-    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/coral-edgetpu.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/coral-edgetpu.gpg] https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends libedgetpu1-std && \
     arch="$(dpkg --print-architecture)" && \
     if [ "$arch" = "amd64" ] || [ "$arch" = "i386" ]; then \
         apt-get install -y --no-install-recommends mesa-va-drivers intel-media-va-driver-non-free i965-va-driver-shaders; \
+        EDGETPU_URL="https://github.com/feranick/libedgetpu/releases/download/16.0TF2.17.1-1/libedgetpu1-max_16.0tf2.17.1-1.ubuntu24.04_amd64.deb"; \
+    elif [ "$arch" = "arm64" ]; then \
+        EDGETPU_URL="https://github.com/feranick/libedgetpu/releases/download/16.0TF2.17.1-1/libedgetpu1-max_16.0tf2.17.1-1.ubuntu24.04_arm64.deb"; \
+    else \
+        echo "Unsupported architecture for libedgetpu: $arch" && exit 1; \
     fi && \
+    wget -qO libedgetpu.deb "$EDGETPU_URL" && dpkg -i libedgetpu.deb && rm libedgetpu.deb && \
     rm -rf /var/lib/apt/lists/*
 
 # go2rtc stream gateway
@@ -61,6 +63,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip wheel setuptools && \
     pip install --no-cache-dir "numpy<2.0.0" "Cython>=3" "opencv-python-headless" && \
     sed -i 's/AV_HWDEVICE_TYPE_VULKAN,/AV_HWDEVICE_TYPE_VULKAN,\n    AV_HWDEVICE_TYPE_D3D12VA,/' /usr/include/$(uname -m)-linux-gnu/libavutil/hwcontext.h || true && \
+    echo "#define AVERROR_HTTP_TOO_MANY_REQUESTS (-0x32343239)" >> /usr/include/$(uname -m)-linux-gnu/libavutil/error.h && \
     pip install --no-cache-dir --no-binary av -r requirements.txt
 
 # Download and install feranick pycoral and tflite-runtime wheels for Python 3.12 based on architecture
