@@ -79,6 +79,11 @@ VibeNVR v1.35.5+ fully mitigates these issues by replacing `add_stream_from_temp
 
 ---
 
+### 🎥 Black Videos on Recording (Passthrough Enabled)
+If you enable **Passthrough** recording and the resulting MP4 files are completely black (or unplayable) in standard media players like QuickTime or web browsers, your camera is likely outputting a raw **Annex-B** stream without proper in-band `avcC` headers. This is a common violation of the H.264 standard seen in cheap OEM cameras (e.g., generic xSeries, V380).
+
+**Solution**: Disable **Passthrough** in the camera's settings. When Passthrough is disabled, VibeNVR's Engine will transcode the raw Annex-B stream and rebuild a standard-compliant MP4 file that plays perfectly across all devices.
+
 ### ⚡ Troubleshooting WebCodecs
 If you experience "black screens":
 1. Ensure your browser supports **WebCodecs API** (Chrome/Edge 94+).

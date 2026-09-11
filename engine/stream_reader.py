@@ -149,6 +149,26 @@ class StreamReader(threading.Thread):
                         self.video_stream = container.streams.video[0]
                         self.audio_stream = container.streams.audio[0] if container.streams.audio else None
 
+                        ed = self.video_stream.codec_context.extradata
+                        if ed and (ed.startswith(b'\x00\x00\x01') or ed.startswith(b'\x00\x00\x00\x01')):
+                            self.last_headers = ed
+
+                        codec_name = self.video_stream.codec_context.name
+                        if codec_name == 'h264':
+                            try:
+                                self.bsf = av.BitStreamFilterContext('h264_mp4toannexb', self.video_stream)
+                            except Exception as e:
+                                logger.warning(f"Failed to create h264_mp4toannexb BSF: {e}")
+                                self.bsf = None
+                        elif codec_name == 'hevc':
+                            try:
+                                self.bsf = av.BitStreamFilterContext('hevc_mp4toannexb', self.video_stream)
+                            except Exception as e:
+                                logger.warning(f"Failed to create hevc_mp4toannexb BSF: {e}")
+                                self.bsf = None
+                        else:
+                            self.bsf = None
+
                 except Exception as e:
                     self.consecutive_failures += 1
                     err_str = str(e).lower()
@@ -156,8 +176,19 @@ class StreamReader(threading.Thread):
                     if container is not None:
                         try:
                             container.close()
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            import logging
+                            logging.getLogger(__name__).error(f'Decode error: {e}')
+                        
+                        import logging
+                        if self.latest_frame is not None:
+                            # just log once every 100 frames
+                            if not hasattr(self, 'frame_count'): self.frame_count = 0
+                            self.frame_count += 1
+                            if self.frame_count % 100 == 0:
+                                logging.getLogger(__name__).warning(f'Frames are successfully decoding for {self.camera_name}')
+                        else:
+                            logging.getLogger(__name__).warning(f'No frame decoded for {self.camera_name}')
                         container = None
 
                     auth_keywords = ['401', '403', 'unauthorized', 'forbidden', 'permission denied',
@@ -251,15 +282,24 @@ class StreamReader(threading.Thread):
                     stream_type = packet.stream.type
                     if stream_type not in ('video', 'audio'):
                         continue
+                        
+                    if stream_type == 'video' and getattr(self, 'bsf', None):
+                        try:
+                            p_copy = av.Packet(packet)
+                            filtered = self.bsf.filter(p_copy)
+                        except Exception as e:
+                            logger.debug(f"StreamReader ({self.camera_name}): BSF error: {e}")
+                            filtered = [packet]
+                    else:
+                        filtered = [packet]
 
-                    raw_data = bytes(packet)
+                    # 1. Prepare WebSocket Broadcast Data (Annex-B)
+                    broadcast_payloads = []
+                    is_kf = getattr(packet, 'is_keyframe', False)
                     
-                    # Video specific NAL parsing for keyframe headers (SPS/PPS)
-                    # OPTIMIZED: Use find() instead of byte-by-byte scan
-                    if stream_type == 'video' and len(raw_data) > 4:
-                        # Only scan if it's a keyframe or if we haven't found headers yet
-                        is_kf = getattr(packet, 'is_keyframe', False)
-                        if is_kf or not self.last_headers:
+                    for p in filtered:
+                        raw_data = bytes(p)
+                        if stream_type == 'video' and len(raw_data) > 4:
                             pos = 0
                             while True:
                                 pos = raw_data.find(b'\x00\x00\x01', pos)
@@ -269,77 +309,96 @@ class StreamReader(threading.Thread):
                                 nal_header = raw_data[pos + 3]
                                 nal_type = nal_header & 0x1F
                                 
-                                # SPS (7) or PPS (8)
+                                if nal_type == 5 or nal_type == 7:
+                                    is_kf = True
+                                    
                                 if nal_type == 7 or nal_type == 8:
                                     next_pos = raw_data.find(b'\x00\x00\x01', pos + 3)
                                     if next_pos == -1: next_pos = len(raw_data)
                                     nalu: bytes = raw_data[pos:next_pos]
                                     with self.lock:
                                         if nalu not in self.last_headers:
-                                            # Limit header size to prevent memory leaks from malformed streams
                                             if len(self.last_headers) < 1024:
                                                 self.last_headers += nalu
                                     pos = next_pos
                                 else:
                                     pos += 3
+                        
+                        if len(raw_data) > 0:
+                            p_type = 0 if stream_type == 'video' else 1
+                            broadcast_payloads.append((p_type, raw_data))
 
-                    if len(raw_data) > 0:
-                        pts = getattr(packet, 'pts', None)
-                        time_base = getattr(packet, 'time_base', None)
-                        real_time = time.time()
-                        time_sec = float(pts * time_base) if pts is not None and time_base is not None else real_time
-                        is_keyframe = 1 if getattr(packet, 'is_keyframe', False) else 0
+                    # 2. Update Ring Buffer and local subscribers with ORIGINAL pristine packet
+                    pts = getattr(packet, 'pts', None)
+                    time_base = getattr(packet, 'time_base', None)
+                    real_time = time.time()
+                    time_sec = float(pts * time_base) if pts is not None and time_base is not None else real_time
+                    is_keyframe = 1 if is_kf else 0
 
-                        with self.lock:
-                            # 1. Update ring buffer
-                            self.packet_ring_buffer.append((packet, is_keyframe, time_sec, real_time))
-                            # Pop old packets (keep self.pre_buffer_duration seconds of history)
-                            while self.packet_ring_buffer and (real_time - self.packet_ring_buffer[0][3] > self.pre_buffer_duration):
-                                self.packet_ring_buffer.popleft()
+                    with self.lock:
+                        self.packet_ring_buffer.append((packet, is_keyframe, time_sec, real_time))
+                        # Pop old packets (keep self.pre_buffer_duration seconds of history)
+                        while self.packet_ring_buffer and (real_time - self.packet_ring_buffer[0][3] > self.pre_buffer_duration):
+                            self.packet_ring_buffer.popleft()
                             
-                            # 2. Push to local subscribers
-                            subscribers = list(self.packet_subscribers)
-                            for q in subscribers:
-                                try:
-                                    q.put_nowait(packet)
-                                except queue.Full:
-                                    pass
-
-                        # 3. WS Broadcasting (for UI)
-                        if clients:
+                        subscribers = list(self.packet_subscribers)
+                        
+                    for q in subscribers:
+                        try:
+                            q.put_nowait(packet)
+                        except:
                             try:
-                                # Packet Type: 0 = Video, 1 = Audio
-                                p_type = 0 if stream_type == 'video' else 1
-                                
-                                # New 10-byte header: Type (1b) + Keyframe (1b) + Timestamp (8b)
-                                header: bytes = struct.pack('<BBd', p_type, is_keyframe, time_sec)
-                                
-                                if stream_type == 'video':
-                                    if is_keyframe:
-                                        with self.lock:
-                                            lh: bytes = self.last_headers or b''
-                                            self.last_keyframe = header + lh + raw_data
-                                    
-                                    broadcast_payload = header + raw_data
-                                    if is_keyframe and self.last_headers:
-                                        broadcast_payload = header + self.last_headers + raw_data
-                                else:
-                                    # Audio packet
-                                    broadcast_payload = header + raw_data
-                                    
-                                for q, loop in clients:
-                                    if not q.full():
-                                        loop.call_soon_threadsafe(q.put_nowait, broadcast_payload)
+                                q.put_nowait(packet)
+                            except queue.Full:
+                                pass
+
+                    # 3. Broadcast Annex-B payloads to WebSockets
+                    for p_type, raw_data in broadcast_payloads:
+                        header: bytes = struct.pack('<BBd', p_type, is_keyframe, time_sec)
+                        
+                        if stream_type == 'video':
+                            if is_keyframe:
+                                with self.lock:
+                                    lh: bytes = self.last_headers or b''
+                                    self.last_keyframe = header + lh + raw_data
+                            
+                            payload = header + raw_data
+                            if is_keyframe and self.last_headers:
+                                payload = header + self.last_headers + raw_data
+                        else:
+                            payload = header + raw_data
+                            
+                        with self.lock:
+                            clients = list(self.ws_clients)
+                        for q, loop in clients:
+                            try:
+                                if not q.full():
+                                    loop.call_soon_threadsafe(q.put_nowait, payload)
                             except Exception as e:
-                                logger.error(f"StreamReader ({self.camera_name}): WS Broadcast error: {e}")
+                                    logger.error(f"StreamReader ({self.camera_name}): WS Broadcast error: {e}")
 
                     if stream_type == 'video':
-                        for frame in packet.decode():
-                            img = frame.to_ndarray(format='bgr24')
-                            with self.lock:
-                                self.latest_frame = img
-                                self.last_read_time = time.time()
-                                self.health_status = "CONNECTED"
+                        try:
+                            if packet.size and packet.size > 0:
+                                for frame in packet.decode():
+                                    img = frame.to_ndarray(format='bgr24')
+                                    with self.lock:
+                                        self.latest_frame = img
+                                        self.last_read_time = time.time()
+                                        self.health_status = "CONNECTED"
+                        except Exception as e:
+                            import logging
+                            logging.getLogger(__name__).error(f'Decode error: {e}')
+                        
+                        import logging
+                        if self.latest_frame is not None:
+                            # just log once every 100 frames
+                            if not hasattr(self, 'frame_count'): self.frame_count = 0
+                            self.frame_count += 1
+                            if self.frame_count % 100 == 0:
+                                logging.getLogger(__name__).warning(f'Frames are successfully decoding for {self.camera_name}')
+                        else:
+                            logging.getLogger(__name__).warning(f'No frame decoded for {self.camera_name}')
                         
                         # YIELD CPU: Prevent PyAV from starving the EdgeTPU USB driver during RTSP burst/I-frame decoding.
                         # This fixes the TPU freezing at the "first check" when passthrough is disabled.

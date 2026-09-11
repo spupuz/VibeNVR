@@ -157,6 +157,8 @@ class RecordingManager:
                     out_vid = out_container.add_stream(in_vid.name)
                     if in_vid.codec_context.extradata:
                         out_vid.codec_context.extradata = in_vid.codec_context.extradata
+                    elif getattr(self.stream_reader, 'last_headers', None):
+                        out_vid.codec_context.extradata = self.stream_reader.last_headers
                     out_vid.time_base = in_vid.time_base
                     
                     if self.stream_reader.audio_stream and self.config.get('record_audio'):
