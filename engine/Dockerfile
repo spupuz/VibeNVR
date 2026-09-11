@@ -4,9 +4,14 @@ FROM ubuntu:24.04
 # Prevent interactive prompts during apt
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install basic tools and use default python 3.12
-RUN apt-get update && apt-get install -y --no-install-recommends software-properties-common curl wget gnupg && \
-    apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+# Install nala first using Italian mirror to bypass slow default server, then fetch fast mirrors
+RUN sed -i 's/archive.ubuntu.com/it.archive.ubuntu.com/g' /etc/apt/sources.list.d/ubuntu.sources || true && \
+    sed -i 's/security.ubuntu.com/it.archive.ubuntu.com/g' /etc/apt/sources.list.d/ubuntu.sources || true && \
+    echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/force-unsafe-io && \
+    apt-get update && apt-get install -y --no-install-recommends nala && \
+    nala fetch --auto -y && \
+    nala upgrade -y && nala install -y --no-install-recommends \
+    software-properties-common curl wget gnupg \
     python3 \
     python3-dev \
     python3-pip \
@@ -27,15 +32,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends software-proper
     build-essential && \
     arch="$(dpkg --print-architecture)" && \
     if [ "$arch" = "amd64" ] || [ "$arch" = "i386" ]; then \
-        apt-get install -y --no-install-recommends mesa-va-drivers intel-media-va-driver-non-free i965-va-driver-shaders; \
-        EDGETPU_URL="https://github.com/feranick/libedgetpu/releases/download/16.0TF2.17.1-1/libedgetpu1-max_16.0tf2.17.1-1.ubuntu24.04_amd64.deb"; \
+        nala install -y --no-install-recommends mesa-va-drivers intel-media-va-driver-non-free i965-va-driver-shaders; \
+        EDGETPU_URL="https://github.com/feranick/libedgetpu/releases/download/16.0TF2.17.1-1/libedgetpu1-std_16.0tf2.17.1-1.ubuntu24.04_amd64.deb"; \
     elif [ "$arch" = "arm64" ]; then \
-        EDGETPU_URL="https://github.com/feranick/libedgetpu/releases/download/16.0TF2.17.1-1/libedgetpu1-max_16.0tf2.17.1-1.ubuntu24.04_arm64.deb"; \
+        EDGETPU_URL="https://github.com/feranick/libedgetpu/releases/download/16.0TF2.17.1-1/libedgetpu1-std_16.0tf2.17.1-1.ubuntu24.04_arm64.deb"; \
     else \
         echo "Unsupported architecture for libedgetpu: $arch" && exit 1; \
     fi && \
     wget -qO libedgetpu.deb "$EDGETPU_URL" && dpkg -i libedgetpu.deb && rm libedgetpu.deb && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    rm -f /etc/dpkg/dpkg.cfg.d/force-unsafe-io
 
 # go2rtc stream gateway
 ARG GO2RTC_VERSION=1.9.14
