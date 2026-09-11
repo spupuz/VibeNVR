@@ -85,9 +85,11 @@ def is_safe_path(file_path):
     try:
         abs_path = os.path.abspath(file_path)
         # Strict check for data directory
+        data_dir = os.path.abspath('/data')
+        vibe_dir = os.path.abspath('/var/lib/vibe/recordings')
         return (
-            abs_path == '/data' or abs_path.startswith('/data/') or
-            abs_path == '/var/lib/vibe/recordings' or abs_path.startswith('/var/lib/vibe/recordings/')
+            os.path.commonpath([abs_path, data_dir]) == data_dir or
+            os.path.commonpath([abs_path, vibe_dir]) == vibe_dir
         )
     except Exception:
         return False
