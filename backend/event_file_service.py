@@ -67,7 +67,8 @@ def is_path_safe(path: str, db: Session = None) -> bool:
     if not path:
         return False
     abs_path = os.path.abspath(path)
-    if abs_path.startswith("/data/"):
+    data_dir = os.path.abspath("/data")
+    if os.path.commonpath([abs_path, data_dir]) == data_dir:
         return True
     
     session = db or database.SessionLocal()
@@ -75,7 +76,7 @@ def is_path_safe(path: str, db: Session = None) -> bool:
         for p in session.query(models.StorageProfile).all():
             if p.path:
                 p_abs = os.path.abspath(p.path)
-                if abs_path == p_abs or abs_path.startswith(p_abs + ('' if p_abs.endswith(os.sep) else os.sep)):
+                if os.path.commonpath([abs_path, p_abs]) == p_abs:
                     return True
         return False
     finally:

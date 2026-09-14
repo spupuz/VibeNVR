@@ -414,3 +414,7 @@ I'll create a plan to fix these two vulnerabilities to prevent path traversal/de
 **Vulnerability:** The generic `update_user` endpoint allowed an admin to update their own password, bypassing the `old_password` verification required by the dedicated `update_password` endpoint.
 **Learning:** When multiple endpoints exist to update user records, all endpoints must enforce the same authentication constraints.
 **Prevention:** Ensure that password update checks (like verifying the old password) are either performed universally at the CRUD layer or that generic endpoints are blocked from modifying sensitive fields for the current user.
+## 2024-11-20 - Robust Path Traversal Prevention
+**Vulnerability:** Checking if a path is safe using `startswith()` (e.g., `abs_path.startswith('/data')`) allows path traversal and authorization bypasses if an attacker crafts a path to a similarly named directory, such as `/data_backup`. Even `startswith('/data/')` can fail if `abs_path` exactly equals `/data`.
+**Learning:** String-based prefix matching for file paths is inherently brittle and vulnerable to boundary matching failures.
+**Prevention:** Always validate path boundaries using `os.path.commonpath([abs_path, target_dir]) == target_dir`, which robustly handles exact matches, subdirectories, and trailing slashes safely.
