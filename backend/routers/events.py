@@ -304,7 +304,7 @@ async def download_event(event_id: int, request: Request, token: Optional[str] =
         file_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
 
     # Security Validation: Path must be within /data/
-    if not os.path.abspath(file_path).startswith("/data/"):
+    if os.path.commonpath([os.path.abspath(file_path), "/data"]) != "/data":
         logger.warning(f"Security Alert: Attempted access to {file_path}")
         raise HTTPException(
             status_code=403, detail="Access denied: File outside storage directory"
