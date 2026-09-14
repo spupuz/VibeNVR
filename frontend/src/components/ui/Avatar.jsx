@@ -23,6 +23,13 @@ const getColorFromString = (str) => {
 export const Avatar = ({ user, className = "", size = "md", onClick }) => {
     const [hasError, setHasError] = React.useState(false);
     
+    const handleKeyDown = (e) => {
+        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            onClick(e);
+        }
+    };
+
     // Sizes: sm, md, lg, xl, 2xl
     const sizeClasses = {
         xs: "w-6 h-6 text-xs",
@@ -42,8 +49,12 @@ export const Avatar = ({ user, className = "", size = "md", onClick }) => {
 
     return (
         <div 
-            className={`relative inline-block ${sizeClasses[size] || sizeClasses.md} border border-border rounded-full overflow-hidden ${className} cursor-pointer`}
+            className={`relative inline-block ${sizeClasses[size] || sizeClasses.md} border border-border rounded-full overflow-hidden ${className} ${onClick ? 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2' : ''}`}
             onClick={onClick}
+            onKeyDown={onClick ? handleKeyDown : undefined}
+            role={onClick ? "button" : undefined}
+            tabIndex={onClick ? 0 : undefined}
+            aria-label={onClick ? (user?.username ? `Avatar for ${user.username}` : 'User avatar') : undefined}
         >
             {avatarUrl ? (
                 <img
