@@ -61,7 +61,7 @@ function alaw2linear(alaw) {
     return (sign * sample) / 32768.0; // Normalize to -1.0..1.0 for Web Audio
 }
 
-export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, isAuditing }) => {
+export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, isAuditing, codec: backendCodec }) => {
   const { t } = useTranslation();
     const { token } = useAuth();
     const cameraId = camera?.id;
@@ -93,6 +93,20 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
     }, [isAuditing]);
 
     const [status, setStatus] = useState('connecting');
+    const statusRef = useRef('connecting');
+
+    const updateStatus = useCallback((newStatus) => {
+        if (typeof newStatus === 'function') {
+            setStatus((prev) => {
+                const updated = newStatus(prev);
+                statusRef.current = updated;
+                return updated;
+            });
+        } else {
+            statusRef.current = newStatus;
+            setStatus(newStatus);
+        }
+    }, []);
 
     useEffect(() => {
         if (onStateChange) onStateChange(status);
@@ -323,13 +337,13 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
                     pendingFramesRef.current.push(frame);
                     scheduleRender();
                     // Signal 'loaded' on first rendered frame
-                    setStatus(prev => prev !== 'loaded' ? 'loaded' : prev);
+                    updateStatus(prev => prev !== 'loaded' ? 'loaded' : prev);
                 },
                 error: (e) => {
                     console.error('[WebCodecs] Decoder error:', e);
-                    // Force re-detection on the next keyframe
                     configuredCodecRef.current = null;
                     isReadyRef.current = false;
+                    updateStatus('unsupported'); // Trigger MJPEG fallback
                 },
             });
             return dec;
@@ -339,10 +353,8 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
         }
     }, [scheduleRender]);
 
-    // Configure (or reconfigure) the decoder for a given codec string.
-    // Creates a new decoder instance if needed (state machine can't go back to 'unconfigured').
-    const ensureDecoderConfigured = useCallback((codec) => {
-        if (configuredCodecRef.current === codec && decoderRef.current?.state === 'configured') {
+    const ensureDecoderConfigured = useCallback((codecStr) => {
+        if (configuredCodecRef.current === codecStr && decoderRef.current?.state === 'configured') {
             return true; // already configured correctly
         }
 
@@ -360,14 +372,14 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
         decoderRef.current = dec;
 
         try {
-            dec.configure({ codec, optimizeForLatency: true });
-            configuredCodecRef.current = codec;
-            console.debug(`[WebCodecs] Decoder configured with codec: ${codec}`);
+            dec.configure({ codec: codecStr, optimizeForLatency: true });
+            configuredCodecRef.current = codecStr;
+            console.debug(`[WebCodecs] Decoder configured with codec: ${codecStr}`);
             return true;
         } catch (e) {
-            console.warn(`[WebCodecs] configure(${codec}) failed:`, e);
-            // Fallback to Baseline
-            if (codec !== 'avc1.42E01E') {
+            console.warn(`[WebCodecs] configure(${codecStr}) failed:`, e);
+            // Fallback to Baseline H.264 only if not trying HEVC
+            if (!codecStr.startsWith('hev') && codecStr !== 'avc1.42E01E') {
                 try {
                     dec.configure({ codec: 'avc1.42E01E', optimizeForLatency: true });
                     configuredCodecRef.current = 'avc1.42E01E';
@@ -469,16 +481,16 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
             if (isInsecureHTTP) {
                 console.warn('[WebCodecs] VideoDecoder unavailable in HTTP. Entering metadata-only mode (AI boxes via WS, video via MJPEG).');
                 metadataOnlyRef.current = true;
-                setStatus('metadata-only');
+                updateStatus('metadata-only');
             } else {
                 console.warn('[WebCodecs] VideoDecoder API not available.');
-                setStatus('unsupported');
+                updateStatus('unsupported');
                 return;
             }
         } else if (videoEnabled && isInsecureHTTP) {
             console.warn('[WebCodecs] Insecure context (HTTP). Entering metadata-only mode (AI boxes via WS, video via MJPEG).');
             metadataOnlyRef.current = true;
-            setStatus('metadata-only');
+            updateStatus('metadata-only');
         }
 
         closeWS();
@@ -494,7 +506,7 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
             ws = new WebSocket(wsUrl);
         } catch (e) {
             console.error('[WebCodecs] WebSocket construction failed:', e);
-            setStatus('error');
+            updateStatus('error');
             return;
         }
         ws.binaryType = 'arraybuffer';
@@ -508,12 +520,17 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
         ws.onmessage = (event) => {
             if (!isMountedRef.current) return;
 
-            const watchdogTimeout = 30000;
+            const watchdogTimeout = 10000;
             if (watchdogTimerRef.current) clearTimeout(watchdogTimerRef.current);
             watchdogTimerRef.current = setTimeout(() => {
-                if (isMountedRef.current && status === 'loaded') {
+                if (!isMountedRef.current) return;
+                const currentStatus = statusRef.current;
+                if (currentStatus === 'loaded') {
                     console.warn(`[WebCodecs] No frames received for ${cameraId} in 10s. Resetting status to connecting.`);
-                    setStatus('connecting');
+                    updateStatus('connecting');
+                } else if (currentStatus === 'connecting') {
+                    console.warn(`[WebCodecs] Received packets but no frames decoded in 10s. Decoder may be stuck or stream unsupported. Triggering fallback.`);
+                    updateStatus('unsupported');
                 }
             }, watchdogTimeout);
 
@@ -541,11 +558,17 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
 
                     // ── Deferred codec configuration ──
                     if (isKeyframe) {
-                        const detected = detectCodecFromSPS(naluBytes);
-                        const codec = detected || 'avc1.42E01E';
-                        if (!ensureDecoderConfigured(codec)) {
-                            console.error('[WebCodecs] Cannot configure decoder — aborting.');
-                            setStatus('error');
+                        let codecToUse;
+                        if (backendCodec && (backendCodec.includes('hevc') || backendCodec.includes('h265'))) {
+                            codecToUse = 'hev1.1.6.L93.B0'; // Generic HEVC Main Profile Main Tier
+                        } else {
+                            const detected = detectCodecFromSPS(naluBytes);
+                            codecToUse = detected || 'avc1.42E01E';
+                        }
+
+                        if (!ensureDecoderConfigured(codecToUse)) {
+                            console.error(`[WebCodecs] Cannot configure decoder for ${codecToUse} — aborting to fallback.`);
+                            updateStatus('unsupported');
                             return;
                         }
                     }
@@ -601,7 +624,7 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
             console.debug(`[WebCodecs] WS closed for camera ${cameraId}, code=${e.code}`);
 
             if (e.code === 1008) {
-                setStatus('unauthorized');
+                updateStatus('unauthorized');
                 return;
             }
 
@@ -618,13 +641,13 @@ export const WebCodecsPlayer = ({ camera, onStateChange, videoEnabled = true, is
                 const delay = Math.min(RETRY_BASE_MS * (2 ** attempt), 30_000);
                 retryCountRef.current += 1;
                 console.debug(`[WebCodecs] Retry ${attempt + 1}/${MAX_RETRIES} in ${delay}ms…`);
-                setStatus('connecting');
+                updateStatus('connecting');
                 retryTimerRef.current = setTimeout(() => {
                     if (isMountedRef.current) connect();
                 }, delay);
             } else {
                 console.warn(`[WebCodecs] Exhausted retries for camera ${cameraId}. Triggering MJPEG fallback.`);
-                setStatus('error');
+                updateStatus('error');
             }
         };
 

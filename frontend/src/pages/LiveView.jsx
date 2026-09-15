@@ -404,6 +404,7 @@ const VideoPlayer = ({
                             onStateChange={handlePlayerState}
                             videoEnabled={useWebCodecs && !useMetadataOnly}
                             isAuditing={isAuditing}
+                            codec={codec}
                         />
                     )}
 
@@ -413,6 +414,7 @@ const VideoPlayer = ({
                             onStateChange={handlePlayerState}
                             videoEnabled={!useMetadataOnly}
                             isAuditing={isAuditing}
+                            codec={codec}
                         />
                     )}
 

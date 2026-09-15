@@ -24,7 +24,7 @@ function alaw2linear(alaw) {
     return (sign * sample) / 32768.0; // Normalize to -1.0..1.0 for Web Audio
 }
 
-export const MSEPlayer = ({ camera, onStateChange, videoEnabled = true, isAuditing }) => {
+export const MSEPlayer = ({ camera, onStateChange, videoEnabled = true, isAuditing, codec: backendCodec }) => {
     const { token } = useAuth();
     const cameraId = camera?.id;
     const videoRef = useRef(null);
@@ -60,6 +60,13 @@ export const MSEPlayer = ({ camera, onStateChange, videoEnabled = true, isAuditi
     useEffect(() => {
         if (onStateChange) onStateChange(status);
     }, [status, onStateChange]);
+
+    useEffect(() => {
+        if (backendCodec && (backendCodec.includes('hevc') || backendCodec.includes('h265')) && status !== 'unsupported') {
+            console.warn('[MSEPlayer] Late-arriving codec identified as HEVC/H.265. Falling back to MJPEG.');
+            setStatus('unsupported');
+        }
+    }, [backendCodec, status]);
 
     const drawOverlay = useCallback((ctx, w, h) => {
         if (!camera) return;
@@ -274,6 +281,12 @@ export const MSEPlayer = ({ camera, onStateChange, videoEnabled = true, isAuditi
         if (!isMountedRef.current || !cameraId) return;
         metadataOnlyRef.current = !videoEnabled;
 
+        if (backendCodec && (backendCodec.includes('hevc') || backendCodec.includes('h265'))) {
+            console.warn('[MSEPlayer] HEVC/H.265 stream detected. JMuxer (MSE) only supports H.264. Falling back to MJPEG immediately.');
+            setStatus('unsupported');
+            return;
+        }
+
         if (!window.MediaSource) {
             console.warn('[MSEPlayer] MediaSource not supported in this browser.');
             setStatus('unsupported');
@@ -421,7 +434,7 @@ export const MSEPlayer = ({ camera, onStateChange, videoEnabled = true, isAuditi
             // 1. Detect H.265 / Complete Failure (No dimensions or zero frames decoded)
             if (vw === 0 || vh === 0 || (supportsFrameCount && currentFrames === 0)) {
                 checks++;
-                if (checks >= 8) { // 4 seconds without any decoded frames
+                if (checks >= 6) { // 3 seconds without any decoded frames
                     console.warn(`[MSEPlayer] Camera ${cameraId}: Video decoding failed. Likely H.265 or unsupported stream. Triggering MJPEG fallback.`);
                     setStatus('unsupported');
                     clearInterval(decodeInterval);
@@ -447,7 +460,7 @@ export const MSEPlayer = ({ camera, onStateChange, videoEnabled = true, isAuditi
                 if (supportsFrameCount) {
                     if (currentFrames === lastFrames) {
                         stuckCount++;
-                        if (stuckCount >= 10) { // 5 seconds completely stalled
+                        if (stuckCount >= 6) { // 3 seconds completely stalled
                             console.warn(`[MSEPlayer] Camera ${cameraId}: Playback stalled (no new frames). Triggering MJPEG fallback.`);
                             setStatus('error');
                             clearInterval(decodeInterval);
