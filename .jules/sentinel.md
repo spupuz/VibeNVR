@@ -414,3 +414,7 @@ I'll create a plan to fix these two vulnerabilities to prevent path traversal/de
 **Vulnerability:** The generic `update_user` endpoint allowed an admin to update their own password, bypassing the `old_password` verification required by the dedicated `update_password` endpoint.
 **Learning:** When multiple endpoints exist to update user records, all endpoints must enforce the same authentication constraints.
 **Prevention:** Ensure that password update checks (like verifying the old password) are either performed universally at the CRUD layer or that generic endpoints are blocked from modifying sensitive fields for the current user.
+## 2026-08-25 - Prevent SSRF via Federated Node URLs
+**Vulnerability:** The `FederatedNodeBase` model accepted arbitrary URLs without restricting loopback or internal IPs, allowing an attacker to bypass SSRF protections by proxying requests via `httpx.AsyncClient` directly to internal microservices or the host network.
+**Learning:** URL format validation (checking schemes like http/https) is insufficient to prevent SSRF if the resolved IP address is not explicitly verified against restricted internal ranges.
+**Prevention:** When accepting user-provided URLs that the server will proxy or request, always use `socket.getaddrinfo()` to resolve the hostname and validate the resulting IPs against link-local, multicast, loopback, and unspecified ranges using the `ipaddress` module.
