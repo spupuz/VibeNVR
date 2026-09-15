@@ -620,6 +620,15 @@ def get_storage_profile(db: Session, profile_id: int):
     )
 
 
+def get_storage_profile_by_name(db: Session, name: str):
+    return (
+        db.query(models.StorageProfile)
+        .filter(models.StorageProfile.name == name)
+        .first()
+    )
+
+
+
 def get_storage_profiles(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.StorageProfile).offset(skip).limit(limit).all()
 

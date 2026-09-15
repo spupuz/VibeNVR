@@ -27,10 +27,16 @@ def read_storage_profile(profile_id: int, db: Session = Depends(database.get_db)
 
 @router.post("/profiles", response_model=schemas.StorageProfile)
 def create_storage_profile(profile: schemas.StorageProfileCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    if crud.get_storage_profile_by_name(db, profile.name):
+        raise HTTPException(status_code=400, detail="Storage profile with this name already exists")
     return crud.create_storage_profile(db=db, profile=profile)
 
 @router.put("/profiles/{profile_id}", response_model=schemas.StorageProfile)
 def update_storage_profile(profile_id: int, profile: schemas.StorageProfileCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+    existing_profile = crud.get_storage_profile_by_name(db, profile.name)
+    if existing_profile and existing_profile.id != profile_id:
+        raise HTTPException(status_code=400, detail="Storage profile with this name already exists")
+        
     db_profile = crud.update_storage_profile(db, profile_id=profile_id, profile=profile)
     if db_profile is None:
         raise HTTPException(status_code=404, detail="Storage profile not found")
