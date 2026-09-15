@@ -428,12 +428,16 @@ async def perform_restore(data: dict, db: Session):
     # 4. Restore Groups
     grp_id_map = {} 
     if "groups" in data:
+        all_groups = db.query(models.CameraGroup).all()
+        groups_by_name = {g.name: g for g in all_groups if g.name}
         for g in data["groups"]:
             backup_grp_id = g.get("id")
-            existing_grp = db.query(models.CameraGroup).filter(models.CameraGroup.name == g.get("name")).first()
+            existing_grp = groups_by_name.get(g.get("name"))
             if not existing_grp:
                 existing_grp = models.CameraGroup()
                 db.add(existing_grp)
+                if g.get("name"):
+                    groups_by_name[g.get("name")] = existing_grp
             
             for k, v in g.items():
                 if k in ["cameras", "id"]: continue
@@ -445,15 +449,15 @@ async def perform_restore(data: dict, db: Session):
     
     # 5. Restore Associations
     if "associations" in data:
+        all_assocs = db.query(models.CameraGroupAssociation).all()
+        assocs_set = {(a.camera_id, a.group_id) for a in all_assocs}
         for a in data["associations"]:
              new_cam_id = cam_id_map.get(a.get("camera_id"))
              new_grp_id = grp_id_map.get(a.get("group_id"))
              if new_cam_id and new_grp_id:
-                 exists = db.query(models.CameraGroupAssociation).filter_by(
-                     camera_id=new_cam_id, group_id=new_grp_id
-                 ).first()
-                 if not exists:
+                 if (new_cam_id, new_grp_id) not in assocs_set:
                      db.add(models.CameraGroupAssociation(camera_id=new_cam_id, group_id=new_grp_id))
+                     assocs_set.add((new_cam_id, new_grp_id))
 
     # 6. Restore Users
     if "users" in data:
@@ -514,15 +518,19 @@ async def perform_restore(data: dict, db: Session):
     
     # 7. Restore API Tokens
     if "api_tokens" in data:
+        all_users = db.query(models.User).all()
+        users_by_name = {u.username: u for u in all_users if u.username}
+        all_tokens = db.query(models.ApiToken).all()
+        tokens_set = {t.token_hash for t in all_tokens if t.token_hash}
         for t in data["api_tokens"]:
             username = t.get("username")
             if not username: continue
             
-            user = db.query(models.User).filter(models.User.username == username).first()
+            user = users_by_name.get(username)
             if user:
                 # Check if token hash already exists
-                existing_token = db.query(models.ApiToken).filter(models.ApiToken.token_hash == t["token_hash"]).first()
-                if not existing_token:
+                if t["token_hash"] not in tokens_set:
+                    tokens_set.add(t["token_hash"])
                     from datetime import datetime
                     def parse_dt(dt_str):
                         return datetime.fromisoformat(dt_str) if dt_str else None
@@ -540,18 +548,19 @@ async def perform_restore(data: dict, db: Session):
 
     # 8. Restore Recovery Codes
     if "recovery_codes" in data:
+        all_users = db.query(models.User).all()
+        users_by_name = {u.username: u for u in all_users if u.username}
+        all_codes = db.query(models.RecoveryCode).all()
+        codes_set = {(c.user_id, c.code_hash) for c in all_codes}
         for r in data["recovery_codes"]:
             username = r.get("username")
             if not username: continue
             
-            user = db.query(models.User).filter(models.User.username == username).first()
+            user = users_by_name.get(username)
             if user:
                 # Check if code hash already exists for this user
-                existing_code = db.query(models.RecoveryCode).filter(
-                    models.RecoveryCode.user_id == user.id,
-                    models.RecoveryCode.code_hash == r["code_hash"]
-                ).first()
-                if not existing_code:
+                if (user.id, r["code_hash"]) not in codes_set:
+                    codes_set.add((user.id, r["code_hash"]))
                     from datetime import datetime
                     new_code = models.RecoveryCode(
                         user_id=user.id,
@@ -562,18 +571,19 @@ async def perform_restore(data: dict, db: Session):
     
     # 9. Restore Trusted Devices
     if "trusted_devices" in data:
+        all_users = db.query(models.User).all()
+        users_by_name = {u.username: u for u in all_users if u.username}
+        all_devices = db.query(models.TrustedDevice).all()
+        devices_set = {(d.user_id, d.token) for d in all_devices}
         for d in data["trusted_devices"]:
             username = d.get("username")
             if not username: continue
             
-            user = db.query(models.User).filter(models.User.username == username).first()
+            user = users_by_name.get(username)
             if user:
                 # Check if device token hash already exists for this user
-                existing_device = db.query(models.TrustedDevice).filter(
-                    models.TrustedDevice.user_id == user.id,
-                    models.TrustedDevice.token == d["token"]
-                ).first()
-                if not existing_device:
+                if (user.id, d["token"]) not in devices_set:
+                    devices_set.add((user.id, d["token"]))
                     from datetime import datetime
                     def parse_dt(dt_str):
                         return datetime.fromisoformat(dt_str) if dt_str else None
@@ -590,8 +600,10 @@ async def perform_restore(data: dict, db: Session):
     
     # 10. Restore Federated Nodes
     if "federated_nodes" in data:
+        all_nodes = db.query(models.FederatedNode).all()
+        nodes_by_url = {n.url: n for n in all_nodes if n.url}
         for n in data["federated_nodes"]:
-            existing_node = db.query(models.FederatedNode).filter(models.FederatedNode.url == n["url"]).first()
+            existing_node = nodes_by_url.get(n["url"])
             if not existing_node:
                 new_node = models.FederatedNode(
                     name=n["name"],
@@ -600,6 +612,8 @@ async def perform_restore(data: dict, db: Session):
                     created_at=n.get("created_at")
                 )
                 db.add(new_node)
+                if n.get("url"):
+                    nodes_by_url[n.get("url")] = new_node
             else:
                 existing_node.name = n.get("name", existing_node.name)
                 if "api_token" in n:
