@@ -142,9 +142,7 @@ export const CameraCard = memo(({ camera, onDelete, onEdit, onToggleActive, isSe
             <div className="flex justify-end p-4 bg-muted/10 border-t border-border space-x-2">
                 {user?.role === 'admin' && (
                     <>
-                        <Button
-                            variant="ghost"
-                            size="sm"
+                        <button
                             aria-label={t('camera.export', 'Export camera settings')}
                             onClick={async () => {
                                 try {
@@ -176,31 +174,27 @@ export const CameraCard = memo(({ camera, onDelete, onEdit, onToggleActive, isSe
                                     showToast("Export error: " + e.message, "error");
                                 }
                             }}
-                            className="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40"
-                            title="Export Camera Settings"
+                            className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+                            title={t('camera.export', 'Export camera settings')}
                         >
                             <Download className="w-5 h-5" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
+                        </button>
+                        <button
                             aria-label={t('camera.edit', 'Edit camera')}
                             onClick={() => onEdit(camera)}
-                            className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/40"
-                            title="Edit Camera"
+                            className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+                            title={t('camera.edit', 'Edit camera')}
                         >
                             <Edit className="w-5 h-5" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
+                        </button>
+                        <button
                             aria-label={t('camera.delete', 'Delete camera')}
                             onClick={() => onDelete(camera.id)}
-                            className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40"
-                            title="Delete Camera"
+                            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/40 text-muted-foreground hover:text-red-500 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+                            title={t('camera.delete', 'Delete camera')}
                         >
                             <Trash2 className="w-5 h-5" />
-                        </Button>
+                        </button>
                     </>
                 )}
             </div>
