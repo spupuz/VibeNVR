@@ -660,7 +660,8 @@ export const Cameras = () => {
                                         showToast('Export error: ' + e.message, 'error');
                                     }
                                 }}
-                                title="Export all cameras to JSON"
+                                title={t('cameras.export_all_json', 'Export all cameras to JSON')}
+                                aria-label={t('cameras.export_all_json', 'Export all cameras to JSON')}
                             >
                                 <Download className="w-4 h-4 mr-2" />
                                 <span>{t('cameras.export_all', 'Export All')}</span>
@@ -751,7 +752,8 @@ export const Cameras = () => {
                                     variant="outline"
                                     className="rounded-r-none border-r-0"
                                     onClick={() => fileInputRef.current.click()}
-                                    title="Import cameras from VibeNVR JSON"
+                                    title={t('cameras.import_vibenvr_json', 'Import cameras from VibeNVR JSON')}
+                                    aria-label={t('cameras.import_vibenvr_json', 'Import cameras from VibeNVR JSON')}
                                 >
                                     <Upload className="w-4 h-4 mr-2" />
                                     <span>{t('cameras.import', 'Import')}</span>
@@ -760,7 +762,8 @@ export const Cameras = () => {
                                     variant="outline"
                                     className="rounded-l-none"
                                     onClick={() => motionEyeInputRef.current.click()}
-                                    title="Import from MotionEye backup (.tar.gz)"
+                                    title={t('cameras.import_motioneye_backup', 'Import from MotionEye backup (.tar.gz)')}
+                                    aria-label={t('cameras.import_motioneye_backup', 'Import from MotionEye backup (.tar.gz)')}
                                 >
                                     <div className="flex flex-col items-center leading-tight">
                                         <span className="text-[10px] opacity-70">{t('cameras.from', 'from')}</span>
