@@ -57,10 +57,8 @@ class PollingSamplingFilter(logging.Filter):
             method = record.args[1]
             path = record.args[2]
             status = record.args[4]
-            if method == "GET" and status == 200 and (path == "/" or any(p in path for p in ["/stats", "/health", "/frame"])):
-                count = self.counters.get(path, 0)
-                self.counters[path] = (count + 1) % self.sample_rate
-                return count == 0
+            if method == "GET" and status == 200 and (path == "/" or any(p in path for p in ["/stats", "/health", "/frame", "/debug/status"])):
+                return False
         return True
 
 class TokenRedactingFilter(logging.Filter):

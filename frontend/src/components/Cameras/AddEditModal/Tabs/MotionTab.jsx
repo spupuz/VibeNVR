@@ -73,7 +73,7 @@ export const MotionTab = ({ newCamera, setNewCamera, setActiveTab, globalSetting
                         <p className="font-bold">{t('cameras.ai_only_detection_active', 'AI-Only Detection Active')}</p>
                         <p className="mt-1">
                             {t('cameras.system_only_trigger_recordings', 'The system will only trigger recordings when specific objects are identified.')} 
-                            <strong> {t('cameras.configure_which_objects_p', 'Configure which objects (Person, Vehicle, Dog, etc.) trigger the motion in the')} <span className="text-blue-700 dark:text-blue-300 underline cursor-pointer" onClick={() => setActiveTab('ai')}>{t('cameras.ai_tracking', 'AI & Tracking')}</span> tab.</strong>
+                            <strong> {t('cameras.configure_which_objects_p', 'Configure which objects (Person, Vehicle, Dog, etc.) trigger the motion in the')} <span className="text-blue-700 dark:text-blue-300 underline cursor-pointer" onClick={() => setActiveTab('ai')}>{t('cameras.ai_tracking', 'AI & Tracking')}</span> {t('cameras.tab_dot', 'tab.')}</strong>
                         </p>
                         <p className="mt-1 opacity-70 italic">{t('cameras.standard_motion_filters_t', 'Standard motion filters (threshold/sensitivity) are ignored in this mode.')}</p>
                     </div>

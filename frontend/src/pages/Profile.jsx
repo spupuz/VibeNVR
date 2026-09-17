@@ -681,15 +681,15 @@ export const Profile = () => {
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                    <p className="font-medium">Single Sign-On (SSO)</p>
+                                                    <p className="font-medium">{t('profile.sso.title', 'Single Sign-On (SSO)')}</p>
                                                     {user.oauth_subject_id && (
-                                                        <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold border border-green-200">LINKED</span>
+                                                        <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold border border-green-200">{t('profile.sso.linked', 'LINKED')}</span>
                                                     )}
                                                 </div>
                                                 <p className="text-xs text-muted-foreground">
                                                     {user.oauth_subject_id 
-                                                        ? `Your account is linked to ${oauthStatus.provider_name}.`
-                                                        : `Link your account to ${oauthStatus.provider_name} for easy login.`}
+                                                        ? t('profile.sso.status_linked', 'Your account is linked to {{provider}}.', { provider: oauthStatus.provider_name })
+                                                        : t('profile.sso.status_unlinked', 'Link your account to {{provider}} for easy login.', { provider: oauthStatus.provider_name })}
                                                 </p>
                                             </div>
                                         </div>

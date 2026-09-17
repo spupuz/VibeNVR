@@ -187,7 +187,7 @@ class StreamReader(threading.Thread):
                             if not hasattr(self, 'frame_count'): self.frame_count = 0
                             self.frame_count += 1
                             if self.frame_count % 100 == 0:
-                                logging.getLogger(__name__).warning(f'Frames are successfully decoding for {self.camera_name}')
+                                logging.getLogger(__name__).debug(f'Frames are successfully decoding for {self.camera_name}')
                         else:
                             logging.getLogger(__name__).warning(f'No frame decoded for {self.camera_name}')
                         container = None
@@ -398,7 +398,7 @@ class StreamReader(threading.Thread):
                                 if not hasattr(self, 'frame_count'): self.frame_count = 0
                                 self.frame_count += 1
                                 if self.frame_count % 100 == 0:
-                                    logging.getLogger(__name__).warning(f'Frames are successfully decoding for {self.camera_name}')
+                                    logging.getLogger(__name__).debug(f'Frames are successfully decoding for {self.camera_name}')
                             else:
                                 logging.getLogger(__name__).warning(f'No frame decoded for {self.camera_name}')
                             

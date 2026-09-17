@@ -104,16 +104,6 @@ class PollingSamplingFilter(logging.Filter):
         self.sample_rate = sample_rate
         self.counters = {}
 
-class SocketSendExceptionFilter(logging.Filter):
-    """
-    Silences the harmless 'socket.send() raised exception.' warning 
-    that uvicorn/websockets logs when a client disconnects abruptly.
-    """
-    def filter(self, record):
-        if "socket.send() raised exception" in str(record.msg):
-            return False
-        return True
-
     def filter(self, record):
         # record.args for uvicorn.access is (host, method, path, http_ver, status)
         if hasattr(record, "args") and len(record.args) >= 5:
@@ -122,10 +112,18 @@ class SocketSendExceptionFilter(logging.Filter):
             status = record.args[4]
 
             # Only sample successful GET requests to specific polling endpoints
-            if method == "GET" and status == 200 and any(p in path for p in ["/health", "/stats", "/frame", "/events/status"]):
-                count = self.counters.get(path, 0)
-                self.counters[path] = (count + 1) % self.sample_rate
-                return count == 0 # Log every N-th request
+            if method == "GET" and status == 200 and any(p in path for p in ["/health", "/stats", "/frame", "/events/status", "/debug/status"]):
+                return False # Completely silence 200 OK polling logs
+        return True
+
+class SocketSendExceptionFilter(logging.Filter):
+    """
+    Silences the harmless 'socket.send() raised exception.' warning 
+    that uvicorn/websockets logs when a client disconnects abruptly.
+    """
+    def filter(self, record):
+        if "socket.send() raised exception" in str(record.msg):
+            return False
         return True
 
 def apply_security_logging():

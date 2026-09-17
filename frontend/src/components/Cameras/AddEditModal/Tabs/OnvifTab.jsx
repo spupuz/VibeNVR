@@ -472,7 +472,7 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                 </h5>
                 <ul className="text-xs space-y-2 text-muted-foreground list-disc pl-4">
                     <li>{t('cameras.enable_real_time_pan_tilt', 'Enable real-time Pan, Tilt, and Zoom controls directly from the dashboard.')}</li>
-                    <li>{t('cameras.enable', 'Enable')} <strong>{t('cameras.onvif_edge_motion_detecti', 'ONVIF Edge Motion Detection')}</strong> to offload processing to camera hardware, drastically reducing NVR server CPU usage.</li>
+                    <li>{t('cameras.enable', 'Enable')} <strong>{t('cameras.onvif_edge_motion_detecti', 'ONVIF Edge Motion Detection')}</strong> {t('cameras.onvif_edge_desc', 'to offload processing to camera hardware, drastically reducing NVR server CPU usage.')}</li>
                     <li>{t('cameras.higher_detection_accuracy', "Higher detection accuracy by utilizing the camera's native sensor-level analytics.")}</li>
                 </ul>
             </div>

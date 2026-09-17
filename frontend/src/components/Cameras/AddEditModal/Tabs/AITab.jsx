@@ -66,7 +66,7 @@ export const AITab = ({ newCamera, setNewCamera, globalSettings }) => {
                     <div>
                         <h4 className="text-sm font-bold text-amber-600 dark:text-amber-400">{t('cameras.ai_engine_is_disabled', 'AI Engine is Disabled')}</h4>
                         <p className="text-[11px] text-amber-600/80 dark:text-amber-400/70 mt-1">
-                            The global AI activation switch is currently <strong>{t('cameras.off', 'OFF')}</strong>. This camera will fallback to <strong>{t('cameras.opencv', 'OpenCV')}</strong> motion detection even if AI is enabled here.
+                            {t('cameras.ai_disabled_fallback_msg', 'The global AI activation switch is currently')} <strong>{t('cameras.off', 'OFF')}</strong>{t('cameras.ai_disabled_fallback_msg_2', '. This camera will fallback to')} <strong>{t('cameras.opencv', 'OpenCV')}</strong> {t('cameras.ai_disabled_fallback_msg_3', 'motion detection even if AI is enabled here.')}
                         </p>
                         <p className="text-[10px] text-amber-600/60 dark:text-amber-400/50 mt-2 italic">
                             {t('cameras.enable_it_in_settings_ai_', 'Enable it in Settings > AI Detection Engine to use these features.')}
@@ -97,9 +97,7 @@ export const AITab = ({ newCamera, setNewCamera, globalSettings }) => {
                             </div>
                             {newCamera.detect_engine === 'AI' && (
                                 <p className="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-500/5 p-2 rounded border border-blue-500/10 italic">
-                                    <Trans i18nKey="cameras.ai_note">
-                                        <strong>Note:</strong> Since you selected "AI" as the Detection Engine, these objects are the <u>only</u> thing that will trigger a motion event.
-                                    </Trans>
+                                    <strong>{t('cameras.note', 'Note:')}</strong> {t('cameras.ai_detect_engine_note_1', 'Since you selected "AI" as the Detection Engine, these objects are the')} <u>{t('cameras.only', 'only')}</u> {t('cameras.ai_detect_engine_note_2', 'thing that will trigger a motion event.')}
                                 </p>
                             )}
                             <div className="grid grid-cols-2 gap-2">

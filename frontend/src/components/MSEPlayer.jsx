@@ -434,7 +434,7 @@ export const MSEPlayer = ({ camera, onStateChange, videoEnabled = true, isAuditi
             // 1. Detect H.265 / Complete Failure (No dimensions or zero frames decoded)
             if (vw === 0 || vh === 0 || (supportsFrameCount && currentFrames === 0)) {
                 checks++;
-                if (checks >= 6) { // 3 seconds without any decoded frames
+                if (checks >= 20) { // 10 seconds without any decoded frames
                     console.warn(`[MSEPlayer] Camera ${cameraId}: Video decoding failed. Likely H.265 or unsupported stream. Triggering MJPEG fallback.`);
                     setStatus('unsupported');
                     clearInterval(decodeInterval);
@@ -460,7 +460,7 @@ export const MSEPlayer = ({ camera, onStateChange, videoEnabled = true, isAuditi
                 if (supportsFrameCount) {
                     if (currentFrames === lastFrames) {
                         stuckCount++;
-                        if (stuckCount >= 6) { // 3 seconds completely stalled
+                        if (stuckCount >= 20) { // 10 seconds completely stalled
                             console.warn(`[MSEPlayer] Camera ${cameraId}: Playback stalled (no new frames). Triggering MJPEG fallback.`);
                             setStatus('error');
                             clearInterval(decodeInterval);

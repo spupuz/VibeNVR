@@ -132,15 +132,15 @@ export const EditUserModal = ({
                                                             <div className="flex flex-wrap gap-4 ml-2">
                                                                 <label className="flex items-center gap-1.5 cursor-pointer">
                                                                     <input type="checkbox" checked={access.can_view} onChange={() => togglePermission('can_view')} className="rounded text-primary focus:ring-primary bg-muted border-border" />
-                                                                    <span className="text-xs font-semibold tracking-wider">VIEW</span>
+                                                                    <span className="text-xs font-semibold tracking-wider">{t('users.permissions.view', 'VIEW')}</span>
                                                                 </label>
                                                                 <label className="flex items-center gap-1.5 cursor-pointer">
                                                                     <input type="checkbox" checked={access.can_replay} onChange={() => togglePermission('can_replay')} className="rounded text-blue-500 focus:ring-blue-500 bg-muted border-border" />
-                                                                    <span className="text-xs font-semibold tracking-wider">REPLAY</span>
+                                                                    <span className="text-xs font-semibold tracking-wider">{t('users.permissions.replay', 'REPLAY')}</span>
                                                                 </label>
                                                                 <label className="flex items-center gap-1.5 cursor-pointer">
                                                                     <input type="checkbox" checked={access.can_control} onChange={() => togglePermission('can_control')} className="rounded text-green-500 focus:ring-green-500 bg-muted border-border" />
-                                                                    <span className="text-xs font-semibold tracking-wider">CONTROL (PTZ)</span>
+                                                                    <span className="text-xs font-semibold tracking-wider">{t('users.permissions.control', 'CONTROL (PTZ)')}</span>
                                                                 </label>
                                                             </div>
                                                         </div>
@@ -175,15 +175,15 @@ export const EditUserModal = ({
                                                             <div className="flex flex-wrap gap-4 ml-2">
                                                                 <label className="flex items-center gap-1.5 cursor-pointer">
                                                                     <input type="checkbox" checked={access.can_view} onChange={() => togglePermission('can_view')} className="rounded text-primary focus:ring-primary bg-muted border-border" />
-                                                                    <span className="text-xs font-semibold tracking-wider">VIEW</span>
+                                                                    <span className="text-xs font-semibold tracking-wider">{t('users.permissions.view', 'VIEW')}</span>
                                                                 </label>
                                                                 <label className="flex items-center gap-1.5 cursor-pointer">
                                                                     <input type="checkbox" checked={access.can_replay} onChange={() => togglePermission('can_replay')} className="rounded text-blue-500 focus:ring-blue-500 bg-muted border-border" />
-                                                                    <span className="text-xs font-semibold tracking-wider">REPLAY</span>
+                                                                    <span className="text-xs font-semibold tracking-wider">{t('users.permissions.replay', 'REPLAY')}</span>
                                                                 </label>
                                                                 <label className="flex items-center gap-1.5 cursor-pointer">
                                                                     <input type="checkbox" checked={access.can_control} onChange={() => togglePermission('can_control')} className="rounded text-green-500 focus:ring-green-500 bg-muted border-border" />
-                                                                    <span className="text-xs font-semibold tracking-wider">CONTROL (PTZ)</span>
+                                                                    <span className="text-xs font-semibold tracking-wider">{t('users.permissions.control', 'CONTROL (PTZ)')}</span>
                                                                 </label>
                                                             </div>
                                                         </div>

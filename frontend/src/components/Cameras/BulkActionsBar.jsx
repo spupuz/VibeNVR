@@ -9,7 +9,7 @@ export const BulkActionsBar = ({ selectedCameraIds, setSelectedCameraIds, handle
             <div className="bg-card/95 backdrop-blur-md border border-primary/20 shadow-2xl rounded-2xl p-3 sm:px-6 sm:py-4 flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-foreground">
                 <div className="flex-1 w-full flex sm:block justify-between items-center text-center sm:text-left">
                     <p className="font-bold text-sm">
-                        {selectedCameraIds.length} <span className="hidden sm:inline">Camera(s) selected</span><span className="sm:hidden">selected</span>
+                        {selectedCameraIds.length} <span className="hidden sm:inline">{t('cameras.cameras_selected_count', 'Camera(s) selected')}</span><span className="sm:hidden">{t('cameras.selected_short', 'selected')}</span>
                     </p>
                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider hidden sm:block">{t('cameras.bulk_actions', 'Bulk Actions')}</p>
                     <button

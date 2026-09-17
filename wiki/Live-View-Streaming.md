@@ -24,7 +24,9 @@ This is the primary solution for **isolated LAN installations** where setting up
 - You avoid the complexity of local HTTPS setups.
 
 > [!WARNING]
+> [!WARNING]
 > **H.265 (HEVC) Limitation**: MSE cannot natively decode H.265 streams in most browsers. If VibeNVR detects an H.265 stream while in a non-secure HTTP context, it will automatically bypass MSE and fall back directly to MJPEG Polling.
+> *Note: To prevent slow/cheap H.264 cameras from erroneously triggering this fallback, VibeNVR waits up to 10 seconds to confirm the stream format before downgrading to MJPEG.*
 
 ## 3️⃣ Final Failsafe: MJPEG Polling (JPEG Poll)
 - **Technology**: Repeated HTTP `GET` requests for single JPEG frames.

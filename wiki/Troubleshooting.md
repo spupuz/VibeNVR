@@ -85,6 +85,12 @@ If you enable **Passthrough** recording and the resulting MP4 files are complete
 **Solution**: Disable **Passthrough** in the camera's settings. When Passthrough is disabled, VibeNVR's Engine will transcode the raw Annex-B stream and rebuild a standard-compliant MP4 file that plays perfectly across all devices.
 
 ### ⚡ Troubleshooting WebCodecs
+
+### ⚡ Live View Falls Back to MJPEG unexpectedly
+If you have an H.264 camera but the frontend displays `JPEG Poll` instead of `WS / H.264` or `MSE / H.264`:
+1. **Verify Codec**: Ensure the camera is actually outputting H.264. Browsers (and MSE) cannot natively decode H.265 (HEVC), so VibeNVR will automatically fallback to MJPEG for H.265 streams on HTTP.
+2. **Slow Startup**: Some cheaper/slower cameras take a long time to send the first keyframe. VibeNVR waits up to 10 seconds for a decodable frame before falling back. Ensure your camera's I-Frame interval is not set too high (recommend 1x or 2x the FPS).
+
 If you experience "black screens":
 1. Ensure your browser supports **WebCodecs API** (Chrome/Edge 94+).
 2. Check for **Secure Context** (HTTPS or localhost).

@@ -17,11 +17,14 @@ def mask_config(config):
     """Hide sensitive data in camera config for logging"""
     if not isinstance(config, dict):
         return config
+    try:
+        from utils import mask_url
+    except ImportError:
+        from .utils import mask_url
     masked = config.copy()
-    if 'rtsp_url' in masked:
-        import re
-        # Mask rtsp://user:pass@host
-        masked['rtsp_url'] = re.sub(r'(rtsp://)([^:]+):([^@]+)(@)', r'\1\2:****\4', masked['rtsp_url'])
+    for k, v in masked.items():
+        if isinstance(v, str):
+            masked[k] = mask_url(v)
     return masked
 
 class CameraManager:
