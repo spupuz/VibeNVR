@@ -149,8 +149,8 @@ def test_validate_webhook_url_valid_hostname(mock_getaddrinfo):
 def test_validate_webhook_url_unresolvable_hostname(mock_getaddrinfo):
     """Test hostname that cannot be resolved."""
     mock_getaddrinfo.side_effect = Exception("DNS lookup failed")
-    # The code catches Exception from socket.getaddrinfo and simply returns
-    _validate_webhook_url("http://unresolvable.local")
+    with pytest.raises(ValueError, match="Invalid or unreachable URL"):
+        _validate_webhook_url("http://unresolvable.local")
     mock_getaddrinfo.assert_called_once_with("unresolvable.local", None)
 
 def test_validate_setting_invalid_webhook_url():

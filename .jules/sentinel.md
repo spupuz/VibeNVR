@@ -414,3 +414,7 @@ I'll create a plan to fix these two vulnerabilities to prevent path traversal/de
 **Vulnerability:** The generic `update_user` endpoint allowed an admin to update their own password, bypassing the `old_password` verification required by the dedicated `update_password` endpoint.
 **Learning:** When multiple endpoints exist to update user records, all endpoints must enforce the same authentication constraints.
 **Prevention:** Ensure that password update checks (like verifying the old password) are either performed universally at the CRUD layer or that generic endpoints are blocked from modifying sensitive fields for the current user.
+## 2024-05-24 - Fix SSRF validation bypass and MitM vulnerability
+**Vulnerability:** Webhook SSRF validation failed open. The federation proxy explicitly disabled TLS verification.
+**Learning:** Exception handling during validation logic (like `socket.getaddrinfo`) must fail securely (e.g. raise `ValueError`) rather than failing open (`pass` or `return self`).
+**Prevention:** In security checks, always default to denial on exception. Avoid global `verify=False` flags in HTTP clients unless absolutely necessary for local untrusted endpoints.
