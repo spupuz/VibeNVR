@@ -145,7 +145,6 @@ export const CameraCard = memo(({ camera, onDelete, onEdit, onToggleActive, isSe
                         <Button
                             variant="ghost"
                             size="sm"
-                            aria-label={t('camera.export', 'Export camera settings')}
                             onClick={async () => {
                                 try {
                                     const res = await fetch(`/api/cameras/${camera.id}/export`, {
@@ -177,7 +176,8 @@ export const CameraCard = memo(({ camera, onDelete, onEdit, onToggleActive, isSe
                                 }
                             }}
                             className="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40"
-                            title="Export Camera Settings"
+                            title={t('camera.export', 'Export camera settings')}
+                            aria-label={t('camera.export', 'Export camera settings')}
                         >
                             <Download className="w-5 h-5" />
                         </Button>
@@ -187,7 +187,7 @@ export const CameraCard = memo(({ camera, onDelete, onEdit, onToggleActive, isSe
                             aria-label={t('camera.edit', 'Edit camera')}
                             onClick={() => onEdit(camera)}
                             className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/40"
-                            title="Edit Camera"
+                            title={t('camera.edit', 'Edit camera')}
                         >
                             <Edit className="w-5 h-5" />
                         </Button>
@@ -197,7 +197,7 @@ export const CameraCard = memo(({ camera, onDelete, onEdit, onToggleActive, isSe
                             aria-label={t('camera.delete', 'Delete camera')}
                             onClick={() => onDelete(camera.id)}
                             className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40"
-                            title="Delete Camera"
+                            title={t('camera.delete', 'Delete camera')}
                         >
                             <Trash2 className="w-5 h-5" />
                         </Button>
