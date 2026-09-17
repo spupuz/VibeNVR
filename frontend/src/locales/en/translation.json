@@ -565,7 +565,10 @@
     "archive_hours_help": "Hours to wait before moving.",
     "stream_validation_failed": "Failed to validate stream URLs. Retaining existing working configuration.",
     "ptz.audio_requires_stream": "Audio requires WebCodecs or MSE playback",
-    "force_mse": "Force MSE"
+    "force_mse": "Force MSE",
+    "export_all_json": "Export all cameras to JSON",
+    "import_vibenvr_json": "Import cameras from VibeNVR JSON",
+    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)"
   },
   "settings": {
     "general_preferences": "General Preferences",

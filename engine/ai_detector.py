@@ -18,11 +18,35 @@ os.environ.setdefault("TF_CPP_MIN_VLOG_LEVEL", "0")
 os.environ.setdefault("GLOG_minloglevel", "3")
 os.environ.setdefault("TFLITE_EXTERNAL_DELEGATE_VERBOSE", "0")
 
-try:
-    import tflite_runtime.interpreter as tflite
-    HAS_TFLITE = True
-except ImportError:
-    HAS_TFLITE = False
+def _cpu_has_avx():
+    """Official tflite-runtime wheels are built with AVX.
+    Importing them on a CPU without AVX (Intel Jasper Lake Celeron N5105, some Atoms/Pentiums)
+    raises SIGILL and kills the process — ImportError cannot catch that."""
+    print("AI: Checking for AVX/AVX2 CPU support...", flush=True)
+    try:
+        with open("/proc/cpuinfo", "r", encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("flags") or line.startswith("Features"):
+                    flags = set(line.split(":", 1)[-1].split())
+                    has_avx = "avx" in flags or "avx2" in flags
+                    print(f"AI: AVX support found: {has_avx}", flush=True)
+                    return has_avx
+    except OSError:
+        pass
+    print("AI: Could not determine AVX support; assuming True", flush=True)
+    return True # unknown platform: try the import
+
+HAS_TFLITE = False
+tflite = None
+
+if _cpu_has_avx():
+    try:
+        import tflite_runtime.interpreter as tflite
+        HAS_TFLITE = True
+    except ImportError:
+        HAS_TFLITE = False
+else:
+    print("AI: CPU has no AVX; skipping tflite-runtime import (would SIGILL)", flush=True)
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +173,10 @@ class AIDetector:
     def set_enabled(self, enabled: bool):
         """Enable or disable the AI detector dynamically"""
         with self.inference_lock:
+            if enabled and not HAS_TFLITE:
+                logger.error("AI: cannot enable — tflite-runtime unavailable (CPU has no AVX).")
+                self._enabled = False
+                return
             if enabled == self._enabled:
                 return
             
@@ -194,6 +222,12 @@ class AIDetector:
         3. If still failed, try SSD + TPU
         4. If still failed, try SSD + CPU
         """
+        if not HAS_TFLITE:
+            logger.error("AI: cannot load models — tflite-runtime unavailable (CPU has no AVX).")
+            self._enabled = False
+            self.interpreter = None
+            return
+
         self._is_loading = True
         try:
             self._load_model_impl(force_cpu)
