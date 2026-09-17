@@ -32,12 +32,10 @@ class TestNotificationConfig(BaseModel):
                         except Exception:
                             return self
                     for ip_addr in ip_addrs:
-                        if ip_addr.is_loopback or ip_addr.is_private or ip_addr.is_reserved or ip_addr.is_link_local:
-                            # Strict SSRF Protection: Block access to internal/private networks
-                            # This prevents targeting other containers (db, engine) or local services.
-                            # Exception: User might need local IPs for Home Assistant,
-                            # but for security we block by default.
-                            raise ValueError(f'Webhook cannot target private or reserved IP ranges ({ip_addr})')
+                        if ip_addr.is_loopback or ip_addr.is_unspecified or ip_addr.is_link_local or ip_addr.is_multicast:
+                            # SSRF Protection: Block access to restricted networks.
+                            # We intentionally allow private IPs (192.168.x.x) for Home Assistant integrations.
+                            raise ValueError(f'Webhook cannot target internal/restricted IP ranges ({ip_addr})')
                 except Exception as e:
                     if isinstance(e, ValueError): raise e
                     raise ValueError(f'Invalid or unreachable URL: {str(e)}')
@@ -407,12 +405,10 @@ class CameraBase(BaseModel):
                 for res in addr_info:
                     ip_str = res[4][0]
                     ip = ipaddress.ip_address(ip_str)
-                    if ip.is_loopback or ip.is_private or ip.is_reserved:
-                        # Strict SSRF Protection: Block access to internal/private networks
-                        # This prevents targeting other containers (db, engine) or local services.
-                        # Exception: User might need local IPs for Home Assistant,
-                        # but for security we block by default.
-                        raise ValueError(f'Webhook cannot target private or reserved IP ranges ({ip_str})')
+                    if ip.is_loopback or ip.is_unspecified or ip.is_link_local or ip.is_multicast:
+                        # SSRF Protection: Block access to restricted networks.
+                        # We intentionally allow private IPs (192.168.x.x) for Home Assistant integrations.
+                        raise ValueError(f'Webhook cannot target internal/restricted IP ranges ({ip_str})')
             except socket.gaierror:
                 pass # DNS fail - might be unreachable, but let requests handle it?
                 
@@ -811,6 +807,25 @@ class FederatedNodeBase(BaseModel):
                 raise ValueError('URL must start with http:// or https://')
             if v.endswith('/'):
                 v = v[:-1]
+
+            import socket
+            from urllib.parse import urlparse
+            import ipaddress
+
+            parsed = urlparse(v)
+            hostname = parsed.hostname
+            if hostname:
+                if hostname.lower() in ['localhost', 'loopback', '::1', '127.0.0.1']:
+                     raise ValueError('URL cannot target localhost')
+                try:
+                    addr_info = socket.getaddrinfo(hostname, None)
+                    for res in addr_info:
+                        ip_str = res[4][0]
+                        ip = ipaddress.ip_address(ip_str)
+                        if ip.is_loopback or ip.is_unspecified or ip.is_link_local or ip.is_multicast:
+                            raise ValueError(f'URL cannot target internal/restricted IP ranges ({ip_str})')
+                except socket.gaierror:
+                    pass
         return v
 
 class FederatedNodeCreate(FederatedNodeBase):
