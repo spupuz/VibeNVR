@@ -15,13 +15,14 @@ class StreamReader(threading.Thread):
     """
     Dedicated thread for reading frames from RTSP stream using PyAV.
     """
-    def __init__(self, camera_id, url, camera_name="Unknown", event_callback=None, rtsp_transport="tcp"):
+    def __init__(self, camera_id, url, camera_name="Unknown", event_callback=None, rtsp_transport="tcp", decode_video=True):
         super().__init__(daemon=True)
         self.camera_id = camera_id
         self.url = url
         self.camera_name = camera_name
         self.event_callback = event_callback
         self.rtsp_transport = rtsp_transport
+        self.decode_video = decode_video
         self.pre_buffer_duration = 10.0 # Will store up to 10s of packets
         self.latest_frame = None
         self.last_read_time = 0.0
@@ -378,31 +379,38 @@ class StreamReader(threading.Thread):
                                     logger.error(f"StreamReader ({self.camera_name}): WS Broadcast error: {e}")
 
                     if stream_type == 'video':
-                        try:
-                            if packet.size and packet.size > 0:
-                                for frame in packet.decode():
-                                    img = frame.to_ndarray(format='bgr24')
-                                    with self.lock:
-                                        self.latest_frame = img
-                                        self.last_read_time = time.time()
-                                        self.health_status = "CONNECTED"
-                        except Exception as e:
+                        if self.decode_video:
+                            try:
+                                if packet.size and packet.size > 0:
+                                    for frame in packet.decode():
+                                        img = frame.to_ndarray(format='bgr24')
+                                        with self.lock:
+                                            self.latest_frame = img
+                                            self.last_read_time = time.time()
+                                            self.health_status = "CONNECTED"
+                            except Exception as e:
+                                import logging
+                                logging.getLogger(__name__).error(f'Decode error: {e}')
+                            
                             import logging
-                            logging.getLogger(__name__).error(f'Decode error: {e}')
-                        
-                        import logging
-                        if self.latest_frame is not None:
-                            # just log once every 100 frames
-                            if not hasattr(self, 'frame_count'): self.frame_count = 0
-                            self.frame_count += 1
-                            if self.frame_count % 100 == 0:
-                                logging.getLogger(__name__).warning(f'Frames are successfully decoding for {self.camera_name}')
+                            if self.latest_frame is not None:
+                                # just log once every 100 frames
+                                if not hasattr(self, 'frame_count'): self.frame_count = 0
+                                self.frame_count += 1
+                                if self.frame_count % 100 == 0:
+                                    logging.getLogger(__name__).warning(f'Frames are successfully decoding for {self.camera_name}')
+                            else:
+                                logging.getLogger(__name__).warning(f'No frame decoded for {self.camera_name}')
+                            
+                            # YIELD CPU: Prevent PyAV from starving the EdgeTPU USB driver during RTSP burst/I-frame decoding.
+                            # This fixes the TPU freezing at the "first check" when passthrough is disabled.
+                            time.sleep(0.002)
                         else:
-                            logging.getLogger(__name__).warning(f'No frame decoded for {self.camera_name}')
-                        
-                        # YIELD CPU: Prevent PyAV from starving the EdgeTPU USB driver during RTSP burst/I-frame decoding.
-                        # This fixes the TPU freezing at the "first check" when passthrough is disabled.
-                        time.sleep(0.002)
+                            # Skip decoding to save CPU, but maintain connection health status
+                            with self.lock:
+                                self.last_read_time = time.time()
+                                if self.health_status != "CONNECTED":
+                                    self.health_status = "CONNECTED"
 
             except Exception as e:
                 if isinstance(e, av.error.FFmpegError) or "av.error" in str(type(e)):

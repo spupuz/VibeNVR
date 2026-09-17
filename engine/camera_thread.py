@@ -32,24 +32,27 @@ class CameraThread(threading.Thread):
         is_passthrough = self.config.get('movie_passthrough', False)
         
         # CPU Optimization: If Passthrough is enabled, we don't need to decode the High-Res stream in Python.
-        # We can route the Sub-Stream to the primary stream_reader to drive AI, Motion, and UI at near-zero CPU cost.
-        # The RecordingManager will still pull the High-Res main_url directly via ffmpeg subprocess.
+        # We can route the Sub-Stream to the engine for AI/Motion, but KEEP the main stream as the primary reader
+        # for RecordingManager and WebSockets (with decode_video=False to save CPU).
         if sub_url and isinstance(sub_url, str) and sub_url.strip() and is_passthrough:
-            primary_url = sub_url
-            primary_transport = self.config.get('sub_rtsp_transport', 'tcp')
-            secondary_url = None # We don't need a second reader since the primary is already low-res
-            logger.info(f"Camera {self.config.get('name', str(camera_id))} (ID: {self.camera_id}): Using Sub-Stream for Engine Processing (Passthrough active)")
+            primary_url = main_url
+            primary_transport = self.config.get('rtsp_transport', 'tcp')
+            secondary_url = sub_url
+            self._decode_primary = False
+            logger.info(f"Camera {self.config.get('name', str(camera_id))} (ID: {self.camera_id}): Using Sub-Stream for Engine Processing (Passthrough active, skipping Main Stream decode)")
         else:
             primary_url = main_url
             primary_transport = self.config.get('rtsp_transport', 'tcp')
             secondary_url = sub_url
+            self._decode_primary = True
 
         self.stream_reader = StreamReader(
             self.camera_id, 
             primary_url, 
             self.config.get('name', str(camera_id)), 
             event_callback=self.event_callback,
-            rtsp_transport=primary_transport
+            rtsp_transport=primary_transport,
+            decode_video=self._decode_primary
         )
 
         self.sub_stream_reader = None
@@ -194,7 +197,11 @@ class CameraThread(threading.Thread):
                         trigger_source = self.last_external_motion_source if motion_active else None
                         self.motion_recorder.start_recording(self.width, self.height, None, self.event_callback, reason="Motion", trigger_source=trigger_source)
 
-                frame, read_time = self.stream_reader.get_latest()
+                if not self._decode_primary and self.sub_stream_reader:
+                    frame, read_time = self.sub_stream_reader.get_latest()
+                else:
+                    frame, read_time = self.stream_reader.get_latest()
+                    
                 if frame is None or read_time == self.last_processed_read_time:
                     time.sleep(0.01)
                     continue
@@ -636,14 +643,17 @@ class CameraThread(threading.Thread):
         
         if needs_reader_reconfig:
             logger.info(f"Camera {self.camera_id}: Routing changed, reconfiguring stream readers")
+            
+            primary_url = new_rtsp_url
+            secondary_url = new_sub_rtsp_url
+            
             if new_sub_rtsp_url and isinstance(new_sub_rtsp_url, str) and new_sub_rtsp_url.strip() and new_passthrough:
-                primary_url = new_sub_rtsp_url
-                secondary_url = None
-                logger.info(f"Camera {self.config.get('name', str(self.camera_id))} (ID: {self.camera_id}): Switching to Sub-Stream for Engine Processing")
+                self._decode_primary = False
+                logger.info(f"Camera {self.config.get('name', str(self.camera_id))} (ID: {self.camera_id}): Using Sub-Stream for Engine Processing (Passthrough active, skipping Main Stream decode)")
             else:
-                primary_url = new_rtsp_url
-                secondary_url = new_sub_rtsp_url
+                self._decode_primary = True
                 
+            self.stream_reader.decode_video = self._decode_primary
             self.stream_reader.update_url(primary_url)
             
             if secondary_url and isinstance(secondary_url, str) and secondary_url.strip():
