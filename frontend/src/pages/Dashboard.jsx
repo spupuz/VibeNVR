@@ -183,23 +183,28 @@ export const Dashboard = () => {
     useEffect(() => {
         if (!token) return;
 
+        // Fetch cameras once for ID to Name mapping to avoid O(N) database loads in the polling loop
+        fetch('/api/cameras', { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => res.ok ? res.json() : [])
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setCameraMap(data.reduce((acc, cam) => ({ ...acc, [cam.id]: cam.name }), {}));
+                }
+            })
+            .catch(err => console.error("Failed to fetch cameras mapping", err));
+
         const fetchAll = async () => {
             try {
                 // Parallel fetch
-                const [statsRes, eventsRes, camsRes, graphRes, resRes] = await Promise.all([
+                const [statsRes, eventsRes, graphRes, resRes] = await Promise.all([
                     fetch('/api/stats', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
                     fetch('/api/events?limit=50', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
-                    fetch('/api/cameras', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
                     fetch('/api/stats/history', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
                     fetch('/api/stats/resources-history', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false }))
                 ]);
 
                 if (statsRes.ok) setStats(await statsRes.json());
                 if (eventsRes.ok) setRecentEvents(await eventsRes.json());
-                if (camsRes.ok) {
-                    const data = await camsRes.json();
-                    setCameraMap(data.reduce((acc, cam) => ({ ...acc, [cam.id]: cam.name }), {}));
-                }
                 if (graphRes.ok) setGraphData(await graphRes.json());
                 if (resRes.ok) {
                     const data = await resRes.json();

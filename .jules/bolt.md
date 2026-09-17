@@ -1,3 +1,6 @@
 ## 2024-05-23 - Prevent OOM crashes by streaming massive tables
 **Learning:** In backend background tasks (like `cleanup_orphans.py`, `fix_thumbnails.py`, and `repair_timestamps.py`), querying millions of rows using `.all()` fetches everything into Python memory simultaneously, causing memory spikes and OOM crashes.
 **Action:** Always stream massive datasets in SQLAlchemy background tasks using `.yield_per(1000)`. When full object models are not needed, combine this with `.with_entities()` to fetch only the required columns and further reduce memory footprint.
+## 2024-05-24 - Extract static mappings from high-frequency React polling loops
+**Learning:** In `frontend/src/pages/Dashboard.jsx`, the frontend polled the heavy `/api/cameras` endpoint (which eager-loads database relationships) every 30 seconds alongside metrics, solely to maintain a simple `camera.id` to `camera.name` mapping dictionary. This is a massive codebase anti-pattern that creates constant N+1-like overhead on the backend DB for data that rarely changes.
+**Action:** Extract rarely-changing lookup data fetches out of high-frequency frontend polling loops and `Promise.all` arrays. Fetch them exactly once on mount in a separate asynchronous call.
