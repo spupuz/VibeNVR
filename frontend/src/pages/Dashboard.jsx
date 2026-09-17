@@ -180,26 +180,31 @@ export const Dashboard = () => {
     };
 
     // Data Fetching
+    // ⚡ Bolt: Fetch static camera mapping data only once on mount instead of polling
+    useEffect(() => {
+        if (!token) return;
+        fetch('/api/cameras', { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => { if (res.ok) return res.json(); throw new Error('Fetch failed'); })
+            .then(data => setCameraMap(data.reduce((acc, cam) => ({ ...acc, [cam.id]: cam.name }), {})))
+            .catch(err => console.error("Failed to fetch cameras", err));
+    }, [token]);
+
     useEffect(() => {
         if (!token) return;
 
         const fetchAll = async () => {
             try {
                 // Parallel fetch
-                const [statsRes, eventsRes, camsRes, graphRes, resRes] = await Promise.all([
+                // ⚡ Bolt: Removed /api/cameras from frequent polling loop since it's static lookup data
+                const [statsRes, eventsRes, graphRes, resRes] = await Promise.all([
                     fetch('/api/stats', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
                     fetch('/api/events?limit=50', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
-                    fetch('/api/cameras', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
                     fetch('/api/stats/history', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
                     fetch('/api/stats/resources-history', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false }))
                 ]);
 
                 if (statsRes.ok) setStats(await statsRes.json());
                 if (eventsRes.ok) setRecentEvents(await eventsRes.json());
-                if (camsRes.ok) {
-                    const data = await camsRes.json();
-                    setCameraMap(data.reduce((acc, cam) => ({ ...acc, [cam.id]: cam.name }), {}));
-                }
                 if (graphRes.ok) setGraphData(await graphRes.json());
                 if (resRes.ok) {
                     const data = await resRes.json();
