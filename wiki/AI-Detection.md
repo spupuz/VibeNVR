@@ -366,6 +366,7 @@ VibeNVR implements **Non-Maximum Suppression (NMS)** for YOLOv8 models. This tec
 | **Settings Reset after Reboot** | Database Array Conflict | v1.28.5 introduced a native array parser to prevent accidental resets to defaults across dialects. |
 | `AI: invoke() timed out (6s)` | Queue contention across multiple cameras | The system now implements a **200ms submit lock timeout** to safely drop frames when the AI engine is heavily loaded. Additionally, a **passive watchdog** automatically restarts the TFLite interpreter if a silent stall is detected, ensuring continuous detection without requiring an engine restart. |
 | **Silent Detection Stall** | Interpreter state corruption | A passive watchdog runs with every inference request. If inference stops producing events for over 10 seconds despite successful invokes, the interpreter is automatically reinitialized. |
+| `Illegal instruction (SIGILL)` or `CPU has no AVX` | CPU lacks AVX instructions | The official `tflite-runtime` library requires AVX/AVX2 support (absent on some Celeron/Pentium/Atom CPUs like Jasper Lake). The engine will gracefully fall back to standard OpenCV motion detection. |
 
 ---
 
