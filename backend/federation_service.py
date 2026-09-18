@@ -45,7 +45,7 @@ async def proxy_request(node_url: str, api_token: str, path: str, request: Reque
         if request.method not in ["GET", "HEAD", "OPTIONS"]:
             req_kwargs["content"] = body
             
-        client = httpx.AsyncClient(timeout=30.0, verify=False)  # nosec B501
+        client = httpx.AsyncClient(timeout=30.0)
         req = client.build_request(**req_kwargs)
         
         response = await client.send(req, stream=True)

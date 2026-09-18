@@ -29,7 +29,7 @@ def _validate_webhook_url(value: str):
                 addr_info = socket.getaddrinfo(host, None)
                 ip_addrs = [ipaddress.ip_address(res[4][0]) for res in addr_info]
             except Exception:
-                return
+                raise ValueError('Invalid or unreachable URL')
         for ip_addr in ip_addrs:
             if ip_addr.is_loopback or ip_addr.is_unspecified or ip_addr.is_link_local or ip_addr.is_multicast:
                 raise ValueError(f'Webhook cannot target internal/restricted IP ranges ({ip_addr})')

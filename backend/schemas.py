@@ -30,7 +30,7 @@ class TestNotificationConfig(BaseModel):
                             addr_info = socket.getaddrinfo(host, None)
                             ip_addrs = [ipaddress.ip_address(res[4][0]) for res in addr_info]
                         except Exception:
-                            return self
+                            raise ValueError('Invalid or unreachable webhook hostname')
                     for ip_addr in ip_addrs:
                         if ip_addr.is_loopback or ip_addr.is_private or ip_addr.is_reserved or ip_addr.is_link_local:
                             # Strict SSRF Protection: Block access to internal/private networks
