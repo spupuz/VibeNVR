@@ -193,19 +193,26 @@ export const Dashboard = () => {
             })
             .catch(err => console.error("Failed to fetch cameras mapping", err));
 
+        const fetchHistory = async () => {
+            try {
+                const graphRes = await fetch('/api/stats/history', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false }));
+                if (graphRes.ok) setGraphData(await graphRes.json());
+            } catch (err) {
+                console.error("Dashboard history fetch error", err);
+            }
+        };
+
         const fetchAll = async () => {
             try {
-                // Parallel fetch
-                const [statsRes, eventsRes, graphRes, resRes] = await Promise.all([
+                // Parallel fetch (excluding slow hourly history)
+                const [statsRes, eventsRes, resRes] = await Promise.all([
                     fetch('/api/stats', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
                     fetch('/api/events?limit=50', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
-                    fetch('/api/stats/history', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
                     fetch('/api/stats/resources-history', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false }))
                 ]);
 
                 if (statsRes.ok) setStats(await statsRes.json());
                 if (eventsRes.ok) setRecentEvents(await eventsRes.json());
-                if (graphRes.ok) setGraphData(await graphRes.json());
                 if (resRes.ok) {
                     const data = await resRes.json();
                     setResourceHistory(data.map(item => ({
@@ -222,8 +229,15 @@ export const Dashboard = () => {
         };
 
         fetchAll();
+        fetchHistory();
+
         const interval = setInterval(fetchAll, 30000);
-        return () => clearInterval(interval);
+        const historyInterval = setInterval(fetchHistory, 300000); // 5 minutes
+
+        return () => {
+            clearInterval(interval);
+            clearInterval(historyInterval);
+        };
     }, [token]);
 
     const getCameraName = useCallback((id) => cameraMap[id] || `Camera ${id}`, [cameraMap]);
