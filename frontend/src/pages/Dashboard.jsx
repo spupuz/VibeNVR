@@ -193,18 +193,14 @@ export const Dashboard = () => {
             })
             .catch(err => console.error("Failed to fetch cameras mapping", err));
 
-        const fetchAll = async () => {
+        // ⚡ Bolt: Extract historical data fetching out of the polling loop to prevent unnecessary overhead on backend API endpoints.
+        const fetchHistory = async () => {
             try {
-                // Parallel fetch
-                const [statsRes, eventsRes, graphRes, resRes] = await Promise.all([
-                    fetch('/api/stats', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
-                    fetch('/api/events?limit=50', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
+                const [graphRes, resRes] = await Promise.all([
                     fetch('/api/stats/history', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
                     fetch('/api/stats/resources-history', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false }))
                 ]);
 
-                if (statsRes.ok) setStats(await statsRes.json());
-                if (eventsRes.ok) setRecentEvents(await eventsRes.json());
                 if (graphRes.ok) setGraphData(await graphRes.json());
                 if (resRes.ok) {
                     const data = await resRes.json();
@@ -217,12 +213,27 @@ export const Dashboard = () => {
                     })));
                 }
             } catch (err) {
+                console.error("Dashboard history fetch error", err);
+            }
+        };
+
+        const fetchLiveStats = async () => {
+            try {
+                const [statsRes, eventsRes] = await Promise.all([
+                    fetch('/api/stats', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
+                    fetch('/api/events?limit=50', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false }))
+                ]);
+
+                if (statsRes.ok) setStats(await statsRes.json());
+                if (eventsRes.ok) setRecentEvents(await eventsRes.json());
+            } catch (err) {
                 console.error("Dashboard data fetch error", err);
             }
         };
 
-        fetchAll();
-        const interval = setInterval(fetchAll, 30000);
+        fetchHistory();
+        fetchLiveStats();
+        const interval = setInterval(fetchLiveStats, 30000);
         return () => clearInterval(interval);
     }, [token]);
 

@@ -8,3 +8,7 @@
 ## 2024-05-23 - Prevent DB Locks when chunking I/O workloads
 **Learning:** Using `.yield_per()` to stream massive datasets during operations that involve slow file I/O or intermediate `db.commit()` statements causes long-lived database cursors to remain open. This leads to connection pool exhaustion and transaction timeouts. Furthermore, for SQLite compatibility, chunk sizes involving `IN` clauses must stay below the default 999 variable limit.
 **Action:** For bulk processing requiring slow I/O or incremental commits, use application-level chunking with `.limit(900).all()` inside a `while` loop rather than relying on `.yield_per()`.
+
+## 2024-10-24 - Separate static/historical data fetch from live polling
+**Learning:** Fetching aggregated historical data inside high-frequency polling intervals (like `setInterval` containing `Promise.all`) creates severe and unnecessary N+1-like overhead on heavy backend API endpoints.
+**Action:** Always extract rarely-changing data fetches out of high-frequency polling intervals. Fetch this static data once on component mount or on a significantly slower interval.
