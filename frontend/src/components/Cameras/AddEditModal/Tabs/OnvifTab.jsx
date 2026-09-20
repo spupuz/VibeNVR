@@ -299,6 +299,7 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                             disabled={probingPort}
                             className="absolute right-2 top-[34px] p-1.5 hover:bg-primary/10 rounded-md transition-all text-primary hover:text-primary-foreground disabled:opacity-50 z-10"
                             title="Probe ONVIF Port"
+                            aria-label="Probe ONVIF Port"
                         >
                             {probingPort ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -438,6 +439,7 @@ export const OnvifTab = ({ newCamera, setNewCamera }) => {
                                     onClick={handleUseStreams}
                                     className="h-7 px-2.5 text-[11px] shrink-0 gap-1.5"
                                     title={t('cameras.use_streams_help', 'Fill the main and sub-stream URLs from these profiles (credentials are reused from the current URL)')}
+                                    aria-label={t('cameras.use_streams_help', 'Fill the main and sub-stream URLs from these profiles (credentials are reused from the current URL)')}
                                 >
                                     {validatingStreams ? (
                                         <RefreshCw className="h-3.5 w-3.5 animate-spin" />
