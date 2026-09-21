@@ -294,24 +294,21 @@ async def download_event(event_id: int, request: Request, token: Optional[str] =
     file_path = access_result["file_path"]
     event_type = access_result["event_type"]
 
-    # Convert DB path to backend filesystem path
-    prefix = "/var/lib/motion"
-    backend_prefix = "/data"
+    from storage_service import translate_path
+    file_path = translate_path(file_path)
 
-    if file_path.startswith(prefix):
-        file_path = file_path.replace(prefix, backend_prefix, 1)
-    elif file_path.startswith("/var/lib/vibe/recordings"):
-        file_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
-
-    # Security Validation: Path must be within /data/
-    data_dir = os.path.abspath("/data")
-    if os.path.commonpath([os.path.abspath(file_path), data_dir]) != data_dir:
-        logger.warning(f"Security Alert: Attempted access to {file_path}")
-        raise HTTPException(
-            status_code=403, detail="Access denied: File outside storage directory"
-        )
-
-    if not os.path.exists(file_path):
+    # Security Validation
+    db = database.SessionLocal()
+    try:
+        if not event_file_service.is_path_safe(file_path, db):
+            logger.warning(f"Security Alert: Attempted access to {file_path}")
+            raise HTTPException(
+                status_code=403, detail="Access denied: File outside storage directory"
+            )
+    finally:
+        db.close()
+        
+    if not file_path or not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found on disk")
 
     # Get filename from path

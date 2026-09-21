@@ -94,12 +94,10 @@ def delete_event_files(event: models.Event, db: Session = None) -> int:
     if event.thumbnail_path:
         paths.append(("thumb", event.thumbnail_path))
 
+    from storage_service import translate_path
+
     for ptype, raw_path in paths:
-        path = raw_path
-        if path.startswith("/var/lib/motion"):
-            path = path.replace("/var/lib/motion", "/data", 1)
-        elif path.startswith("/var/lib/vibe/recordings"):
-            path = path.replace("/var/lib/vibe/recordings", "/data", 1)
+        path = translate_path(raw_path)
 
         try:
             # Security Validation: Final path must be safe
@@ -127,18 +125,16 @@ def cleanup_orphaned_file(file_path: str, camera_id: int):
     if not file_path:
         return
 
-    local_path = None
-    if file_path.startswith("/var/lib/motion"):
-        local_path = file_path.replace("/var/lib/motion", "/data", 1)
-    elif file_path.startswith("/var/lib/vibe/recordings"):
-        local_path = file_path.replace("/var/lib/vibe/recordings", "/data", 1)
+    from storage_service import translate_path
+    local_path = translate_path(file_path)
 
     # Security Validation
     if local_path:
-        abs_path = os.path.abspath(local_path)
-        if not abs_path.startswith("/data/"):
+        # Avoid creating DB connection if not strictly necessary, but is_path_safe requires DB session.
+        # Create ad-hoc session for safe validation.
+        if not is_path_safe(local_path):
             logger.warning(
-                f"Security Alert: Blocked orphaned file cleanup outside storage: {local_path}"
+                f"Security Alert: Blocked orphaned file deletion outside allowed directories: {local_path}"
             )
             return
 

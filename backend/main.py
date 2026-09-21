@@ -455,14 +455,22 @@ async def get_secure_media(file_path: str, request: Request, token: Optional[str
         logging.error(f"Media Auth Fail: Invalid token for {file_path} - {str(e)}")
         raise HTTPException(status_code=401, detail="Invalid media authentication")
 
-    # Security Validation: Ensure path is within /data/
-    # Normalize path to prevent traversals like /data/../etc/passwd
-    full_path = os.path.normpath(f"/data/{file_path}")
-    data_dir = os.path.abspath("/data")
+    # Use the shared is_path_safe helper for robust storage profile validation
+    # If the file_path already starts with an allowed base (like storage/ or data/), parse it securely.
+    file_path_clean = file_path.lstrip("/")
+    
+    # Try resolving to a valid absolute path based on known prefixes
+    if file_path_clean.startswith("storage/"):
+        full_path = os.path.normpath(f"/{file_path_clean}")
+    else:
+        full_path = os.path.normpath(f"/data/{file_path_clean}")
 
-    if os.path.commonpath([full_path, data_dir]) != data_dir:
-         logger.warning(f"Security Alert (Media): Attempted access to {full_path}")
-         raise HTTPException(status_code=403, detail="Access denied")
+    import event_file_service
+    # Re-use DB session for profile query if needed
+    with database.get_db_ctx() as db:
+        if not event_file_service.is_path_safe(full_path, db):
+             logger.warning(f"Security Alert (Media): Attempted access to {full_path}")
+             raise HTTPException(status_code=403, detail="Access denied")
 
     # RBAC for backups folder: Only allow admins to access anything in /data/backups/
     backup_dir = os.path.abspath("/data/backups")
