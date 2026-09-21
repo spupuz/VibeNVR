@@ -193,18 +193,25 @@ export const Dashboard = () => {
             })
             .catch(err => console.error("Failed to fetch cameras mapping", err));
 
-        const fetchAll = async () => {
+        const fetchLive = async () => {
             try {
-                // Parallel fetch
-                const [statsRes, eventsRes, graphRes, resRes] = await Promise.all([
+                const [statsRes, eventsRes] = await Promise.all([
                     fetch('/api/stats', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
-                    fetch('/api/events?limit=50', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
+                    fetch('/api/events?limit=50', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false }))
+                ]);
+                if (statsRes.ok) setStats(await statsRes.json());
+                if (eventsRes.ok) setRecentEvents(await eventsRes.json());
+            } catch (err) {
+                console.error("Dashboard live data fetch error", err);
+            }
+        };
+
+        const fetchHistorical = async () => {
+            try {
+                const [graphRes, resRes] = await Promise.all([
                     fetch('/api/stats/history', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false })),
                     fetch('/api/stats/resources-history', { headers: { Authorization: `Bearer ${token}` } }).catch(e => ({ ok: false }))
                 ]);
-
-                if (statsRes.ok) setStats(await statsRes.json());
-                if (eventsRes.ok) setRecentEvents(await eventsRes.json());
                 if (graphRes.ok) setGraphData(await graphRes.json());
                 if (resRes.ok) {
                     const data = await resRes.json();
@@ -217,13 +224,22 @@ export const Dashboard = () => {
                     })));
                 }
             } catch (err) {
-                console.error("Dashboard data fetch error", err);
+                console.error("Dashboard historical data fetch error", err);
             }
         };
 
-        fetchAll();
-        const interval = setInterval(fetchAll, 30000);
-        return () => clearInterval(interval);
+        // ⚡ Bolt: Extracted heavy historical data queries out of the 30s polling loop
+        // to prevent N+1-like database overhead. They are now polled every 5 minutes.
+        fetchLive();
+        fetchHistorical();
+
+        const liveInterval = setInterval(fetchLive, 30000);
+        const histInterval = setInterval(fetchHistorical, 300000);
+
+        return () => {
+            clearInterval(liveInterval);
+            clearInterval(histInterval);
+        };
     }, [token]);
 
     const getCameraName = useCallback((id) => cameraMap[id] || `Camera ${id}`, [cameraMap]);
