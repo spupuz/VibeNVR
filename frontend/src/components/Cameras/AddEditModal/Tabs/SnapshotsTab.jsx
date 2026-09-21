@@ -33,12 +33,12 @@ export const SnapshotsTab = ({ editingId, newCamera, setNewCamera, stats, handle
             />
             <SelectField
                 label={t('cameras.preserve_pictures', 'Preserve Pictures')}
-                value={(!['Forever', 'For One Month', 'For One Week', 'For One Day'].includes(newCamera.picture_preserve_pictures) && newCamera.picture_preserve_pictures !== undefined) ? 'Custom' : (newCamera.picture_preserve_pictures || 'Forever')}
+                value={(!['Forever', 'For One Month', 'For One Week', 'For One Day'].includes(newCamera.preserve_pictures) && newCamera.preserve_pictures !== undefined) ? 'Custom' : (newCamera.preserve_pictures || 'Forever')}
                 onChange={(val) => {
                     if (val === 'Custom') {
-                        setNewCamera({ ...newCamera, picture_preserve_pictures: '14' });
+                        setNewCamera({ ...newCamera, preserve_pictures: '14' });
                     } else {
-                        setNewCamera({ ...newCamera, picture_preserve_pictures: val });
+                        setNewCamera({ ...newCamera, preserve_pictures: val });
                     }
                 }}
                 options={[
@@ -49,12 +49,12 @@ export const SnapshotsTab = ({ editingId, newCamera, setNewCamera, stats, handle
                     { value: 'Custom', label: t('cameras.custom_days', 'Custom (Days)') }
                 ]}
             />
-            {(!['Forever', 'For One Month', 'For One Week', 'For One Day'].includes(newCamera.picture_preserve_pictures) && newCamera.picture_preserve_pictures !== undefined) && (
+            {(!['Forever', 'For One Month', 'For One Week', 'For One Day'].includes(newCamera.preserve_pictures) && newCamera.preserve_pictures !== undefined) && (
                 <InputField
                     label={t('cameras.custom_days', 'Custom Days')}
                     type="number"
-                    value={parseInt(newCamera.picture_preserve_pictures) || 14}
-                    onChange={(val) => setNewCamera({ ...newCamera, picture_preserve_pictures: String(val) })}
+                    value={parseInt(newCamera.preserve_pictures) || 14}
+                    onChange={(val) => setNewCamera({ ...newCamera, preserve_pictures: String(val) })}
                     min={1}
                 />
             )}
