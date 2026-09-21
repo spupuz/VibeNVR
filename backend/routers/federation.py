@@ -9,6 +9,7 @@ import crud_federation
 from database import get_db
 import auth_service
 from federation_service import proxy_request
+import utils
 
 router = APIRouter(
     prefix="/federation",
@@ -17,6 +18,9 @@ router = APIRouter(
 
 
 def _verify_remote_node(url: str, token: str):
+    if not utils.is_safe_webhook_url(url):
+        raise HTTPException(status_code=400, detail="Invalid or unsafe Node URL.")
+
     base_url = url.rstrip("/")
     try:
         resp = requests.get(f"{base_url}/api/auth/me", headers={"X-API-Key": token}, timeout=5, allow_redirects=False)
