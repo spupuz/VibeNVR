@@ -76,6 +76,6 @@ If an event reaches its retention limit and archival is enabled, it will be move
 If the total free space on the `/data` volume falls below **5%**, VibeNVR triggers an **Emergency Cleanup**. It will purge the oldest events from the system regardless of quotas or retention settings until at least 10% free space is recovered. This protects the database and OS from filesystem exhaustion.
 
 ## Technical Notes
-- **Path Traversal**: For security, paths cannot contain `..` and must start with `/`.
+- **Path Traversal**: For security, media paths are dynamically validated against configured `StorageProfile` directories (`is_path_safe`). Paths cannot contain `..` and must start with `/`. This replaces legacy strict `/data/` checks and allows custom storage profiles (like SSD/NAS) to function securely.
 - **Engine Sync**: When a camera's profile is changed, a new configuration is pushed to the VibeEngine, which immediately redirects its write streams.
 - **Backups**: Storage profiles are included in system backups. If you restore a backup to a new system, ensure the same paths are mounted in Docker.

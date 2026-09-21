@@ -82,9 +82,9 @@ VibeNVR's code includes specific mitigations against common attack vectors:
 3. **Robust PTZ Home Fallbacks**:
     - PTZ Home positioning utilizes a **3-stage fallback** (Native -> Existing Preset -> Create Preset) to ensure functionality on hardware with non-standard ONVIF implementations. This prevents sensitive 400-series errors from leaking directly to the UI and provides a consistent security boundary for device interactions.
 4. **Event File Deletion & Path Traversal**:
-    - The final resolved path MUST start with the `/data/` internal storage directory. Any attempt to delete files outside this boundary results in a security alert in the logs and the deletion is blocked.
+    - The final resolved path MUST be dynamically validated against active `StorageProfile` paths via the `is_path_safe` mechanism. Any attempt to access or delete files outside these authorized boundaries results in a security alert in the logs and the action is blocked, replacing legacy hardcoded `/data/` checks.
 5. **Tiered Archival Safety**:
-    - The tiered storage archival subsystem uses the identical path translation logic (`translate_path`) to ensure that all moved files remain securely within the `/data/` or designated absolute boundaries. This protects against traversal if an archival profile path is maliciously crafted.
+    - The tiered storage archival subsystem uses the identical path translation logic (`translate_path`) to ensure that all moved files remain securely within the designated absolute boundaries of valid storage profiles. This protects against traversal if an archival profile path is maliciously crafted.
 6. **Storage Resilience & Disk Safety**:
     - **Reactive Monitoring**: VibeNVR implements a reactive 10-minute monitoring loop for storage quotas. This ensures that disk usage remains within limits even under high-volume recording conditions.
     - **Emergency Disk Safety**: If absolute disk space falls below **5%**, an emergency archival and cleanup cycle is automatically triggered to prevent filesystem exhaustion and system instability.

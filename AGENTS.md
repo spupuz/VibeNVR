@@ -281,7 +281,7 @@ All file deletions must be performed via the `delete_event_files` helper to ensu
 # backend/routers/events.py (Pattern)
 def delete_event_files(event: models.Event) -> int:
     # 1. Map container paths (/var/lib/...) to backend paths (/data/...)
-    # 2. MANDATORY: Verify os.path.abspath(path).startswith("/data/")
+    # 2. MANDATORY: Verify path safety using `event_file_service.is_path_safe(path, db)`
     # 3. Securely remove file and return bytes deleted
 ```
 
