@@ -634,7 +634,11 @@ def get_storage_profiles(db: Session, skip: int = 0, limit: int = 100):
 
 
 def create_storage_profile(db: Session, profile: schemas.StorageProfileCreate):
-    db_profile = models.StorageProfile(**profile.dict())
+    profile_data = profile.dict()
+    if profile_data.get("sftp_password"):
+        import utils
+        profile_data["sftp_password"] = utils.encrypt_password(profile_data["sftp_password"])
+    db_profile = models.StorageProfile(**profile_data)
     db.add(db_profile)
     db.commit()
     db.refresh(db_profile)
@@ -650,7 +654,13 @@ def update_storage_profile(
         .first()
     )
     if db_profile:
-        for key, value in profile.dict().items():
+        profile_data = profile.dict()
+        if profile_data.get("sftp_password") and profile_data["sftp_password"] != "********":
+            import utils
+            profile_data["sftp_password"] = utils.encrypt_password(profile_data["sftp_password"])
+        elif profile_data.get("sftp_password") == "********":
+            profile_data.pop("sftp_password")
+        for key, value in profile_data.items():
             setattr(db_profile, key, value)
         db.commit()
         db.refresh(db_profile)

@@ -568,7 +568,16 @@
     "webhook_url": "Webhook URL​",
     "export_all_json": "Export all cameras to JSON​",
     "import_vibenvr_json": "Import cameras from VibeNVR JSON​",
-    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​"
+    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​",
+    "cameras_selected_count": "選択されたカメラ",
+    "selected_short": "選択済み",
+    "ai_disabled_fallback_msg": "グローバルAIアクティベーションスイッチは現在",
+    "ai_disabled_fallback_msg_2": "です。このカメラは",
+    "ai_disabled_fallback_msg_3": "にフォールバックします（AIが有効であっても）。",
+    "ai_detect_engine_note_1": "検出エンジンとして「AI」を選択したため、これらのオブジェクトは",
+    "ai_detect_engine_note_2": "モーションイベントをトリガーするものになります。",
+    "onvif_edge_desc": "カメラハードウェアに処理をオフロードし、NVRサーバーのCPU使用率を大幅に削減します。",
+    "tab_dot": "tab."
   },
   "settings": {
     "general_preferences": "一般設定",
@@ -1331,7 +1340,11 @@
   "profile": {
     "display_language": "表示言語",
     "copy_secret": "シークレットをコピーする",
-    "revoke_device": "デバイスを無効化"
+    "revoke_device": "デバイスを無効化",
+    "sso.title": "シングルサインオン (SSO)",
+    "sso.linked": "LINKED",
+    "sso.status_linked": "アカウントは{{provider}}にリンクされています。",
+    "sso.status_unlinked": "簡単にログインできるように、アカウントを{{provider}}にリンクしてください。"
   },
   "settings_go2rtc": {
     "activation": "go2rtc ゲートウェイを使用する",
@@ -1390,5 +1403,25 @@
     "api_token": "APIトークン",
     "node_went_offline": "アクティブノードがオフラインになりました。マスターに切り替えます。",
     "local_node": "ローカルマスターノード"
+  },
+  "users": {
+    "permissions.view": "VIEW",
+    "permissions.replay": "REPLAY",
+    "permissions.control": "CONTROL (PTZ)"
+  },
+  "storage": {
+    "connection_successful": "接続に成功しました",
+    "connection_failed": "接続に失敗しました",
+    "type": "ストレージタイプ",
+    "local": "ローカルストレージ",
+    "sftp": "SFTPリモートストレージ",
+    "sftp_host": "SFTPホスト",
+    "sftp_port": "SFTPポート",
+    "sftp_username": "SFTPユーザー名",
+    "sftp_password": "SFTPパスワード",
+    "sftp_password_placeholder": "変更しない場合は空白のままにしてください",
+    "sftp_remote_path": "リモートパス (相対または絶対)",
+    "testing": "テスト中...",
+    "test_connection": "接続と権限のテスト"
   }
 }

@@ -64,37 +64,53 @@ def get_dir_size(path):
 def delete_event_media(event, db: Session, reason="Unknown"):
     """Delete media files associated with an event and the event itself from DB"""
     try:
-        # Translate paths from /var/lib/motion (DB) to /data (Backend container)
-        def translate_path(p):
-            if not p:
+        if event.file_path and event.file_path.startswith("sftp://"):
+            try:
+                profile_id = int(event.file_path.split("sftp://")[1].split("/")[0])
+                remote_path = event.file_path.split(f"sftp://{profile_id}")[1]
+                import crud
+                profile = crud.get_storage_profile(db, profile_id)
+                if profile:
+                    import sftp_client
+                    sftp_client.delete_file(profile, remote_path)
+                    
+                    if event.thumbnail_path and event.thumbnail_path.startswith("sftp://"):
+                        thumb_remote = event.thumbnail_path.split(f"sftp://{profile_id}")[1]
+                        sftp_client.delete_file(profile, thumb_remote)
+            except Exception as e:
+                logger.error(f"Error deleting SFTP event media for event {event.id}: {e}")
+        else:
+            # Translate paths from /var/lib/motion (DB) to /data (Backend container)
+            def translate_path(p):
+                if not p:
+                    return p
+                # Support new Engine path
+                if p.startswith("/var/lib/vibe/recordings"):
+                    return p.replace("/var/lib/vibe/recordings", "/data", 1)
+                # Support legacy Motion path
+                if p.startswith("/var/lib/motion"):
+                    return p.replace("/var/lib/motion", "/data", 1)
                 return p
-            # Support new Engine path
-            if p.startswith("/var/lib/vibe/recordings"):
-                return p.replace("/var/lib/vibe/recordings", "/data", 1)
-            # Support legacy Motion path
-            if p.startswith("/var/lib/motion"):
-                return p.replace("/var/lib/motion", "/data", 1)
-            return p
 
-        file_path = translate_path(event.file_path)
-        thumb_path = translate_path(event.thumbnail_path)
+            file_path = translate_path(event.file_path)
+            thumb_path = translate_path(event.thumbnail_path)
 
-        # Security Check: Ensure we only delete files inside /data
-        data_dir = os.path.abspath("/data")
-        if file_path and os.path.commonpath([os.path.abspath(file_path), data_dir]) != data_dir:
-            logger.warning(f"Security blocked deletion of unsafe path: {file_path}")
-            file_path = None
+            # Security Check: Ensure we only delete files inside /data
+            data_dir = os.path.abspath("/data")
+            if file_path and os.path.commonpath([os.path.abspath(file_path), data_dir]) != data_dir:
+                logger.warning(f"Security blocked deletion of unsafe path: {file_path}")
+                file_path = None
 
-        if thumb_path and os.path.commonpath([os.path.abspath(thumb_path), data_dir]) != data_dir:
-            logger.warning(f"Security blocked deletion of unsafe path: {thumb_path}")
-            thumb_path = None
+            if thumb_path and os.path.commonpath([os.path.abspath(thumb_path), data_dir]) != data_dir:
+                logger.warning(f"Security blocked deletion of unsafe path: {thumb_path}")
+                thumb_path = None
 
-        if file_path and os.path.exists(file_path):
-            os.remove(file_path)
-            logger.info(f"[{reason}] Deleted files for event {event.id}: {file_path}")
+            if file_path and os.path.exists(file_path):
+                os.remove(file_path)
+                logger.info(f"[{reason}] Deleted files for event {event.id}: {file_path}")
 
-        if thumb_path and os.path.exists(thumb_path):
-            os.remove(thumb_path)
+            if thumb_path and os.path.exists(thumb_path):
+                os.remove(thumb_path)
 
         db.delete(event)
         return True
@@ -375,15 +391,21 @@ def cleanup_temp_files():
 def run_archival(db: Session):
     """Move old recordings to the designated archive storage profile."""
     try:
+        import sftp_client
         cameras = db.query(models.Camera).filter(
             models.Camera.archive_storage_profile_id.isnot(None),
             models.Camera.archive_after_hours > 0
         ).all()
         for camera in cameras:
-            if not camera.archive_storage_profile or not camera.archive_storage_profile.path:
+            profile = camera.archive_storage_profile
+            if not profile:
                 continue
             
-            archive_dir = os.path.abspath(camera.archive_storage_profile.path)
+            is_sftp = getattr(profile, "storage_type", "local") == "sftp"
+            if not is_sftp and not profile.path:
+                continue
+            
+            archive_dir = os.path.abspath(profile.path) if not is_sftp else None
             cutoff = datetime.utcnow() - timedelta(hours=camera.archive_after_hours)
             
             events = db.query(models.Event).filter(
@@ -393,7 +415,11 @@ def run_archival(db: Session):
             
             for event in events:
                 try:
-                    if not event.file_path or event.file_path.startswith(archive_dir):
+                    if not event.file_path:
+                        continue
+                    if not is_sftp and event.file_path.startswith(archive_dir):
+                        continue
+                    if is_sftp and event.file_path.startswith(f"sftp://{profile.id}/"):
                         continue
                         
                     src = translate_path(event.file_path)
@@ -402,31 +428,58 @@ def run_archival(db: Session):
                         
                     filename = os.path.basename(src)
                     date_folder = os.path.basename(os.path.dirname(src))
-                    dest_dir = os.path.join(archive_dir, str(camera.id), date_folder)
-                    os.makedirs(dest_dir, exist_ok=True)
-                    dest = os.path.join(dest_dir, filename)
                     
-                    if src != dest:
-                        shutil.copy2(src, dest)
-                        dest_thumb = None
-                        src_thumb = None
+                    if is_sftp:
+                        dest_suffix = f"{camera.id}/{date_folder}/{filename}"
+                        remote_dest = sftp_client.upload_file(profile, src, dest_suffix)
+                        if not remote_dest:
+                            continue
+                        
+                        event.file_path = f"sftp://{profile.id}/{dest_suffix}"
+                        
+                        # Handle thumbnail
                         if event.thumbnail_path:
                             src_thumb = translate_path(event.thumbnail_path)
                             if src_thumb and os.path.exists(src_thumb):
-                                dest_thumb = os.path.join(dest_dir, os.path.basename(src_thumb))
-                                shutil.copy2(src_thumb, dest_thumb)
-                        
-                        event.file_path = dest
-                        if dest_thumb:
-                            event.thumbnail_path = dest_thumb
+                                thumb_suffix = f"{camera.id}/{date_folder}/{os.path.basename(src_thumb)}"
+                                sftp_client.upload_file(profile, src_thumb, thumb_suffix)
+                                event.thumbnail_path = f"sftp://{profile.id}/{thumb_suffix}"
+                                
                         db.commit()
-                        
                         os.remove(src)
-                        if dest_thumb and src_thumb:
+                        if event.thumbnail_path and 'src_thumb' in locals() and os.path.exists(src_thumb):
                             try:
                                 os.remove(src_thumb)
                             except:
                                 pass
+                        
+                        logger.info(f"Archived event {event.id} to sftp://{profile.id}/{dest_suffix}")
+                    else:
+                        dest_dir = os.path.join(archive_dir, str(camera.id), date_folder)
+                        os.makedirs(dest_dir, exist_ok=True)
+                        dest = os.path.join(dest_dir, filename)
+                        
+                        if src != dest:
+                            shutil.copy2(src, dest)
+                            dest_thumb = None
+                            src_thumb = None
+                            if getattr(event, 'thumbnail_path', None):
+                                src_thumb = translate_path(event.thumbnail_path)
+                                if src_thumb and os.path.exists(src_thumb):
+                                    dest_thumb = os.path.join(dest_dir, os.path.basename(src_thumb))
+                                    shutil.copy2(src_thumb, dest_thumb)
+                            
+                            event.file_path = dest
+                            if dest_thumb:
+                                event.thumbnail_path = dest_thumb
+                            db.commit()
+                            
+                            os.remove(src)
+                            if dest_thumb and src_thumb and os.path.exists(src_thumb):
+                                try:
+                                    os.remove(src_thumb)
+                                except:
+                                    pass
                         
                         logger.info(f"Archived event {event.id} to {dest}")
                 except Exception as e:
@@ -569,6 +622,27 @@ def run_cleanup(quota_only=False):
             logger.error(f"Error during cleanup: {e}")
 
 
+def cleanup_sftp_cache():
+    cache_dir = "/data/cache/sftp"
+    if not os.path.exists(cache_dir):
+        return
+    now = time.time()
+    count = 0
+    size = 0
+    try:
+        for f in os.listdir(cache_dir):
+            fp = os.path.join(cache_dir, f)
+            if os.path.isfile(fp):
+                # 1 hour expiration (3600 seconds)
+                if now - os.path.getatime(fp) > 3600:
+                    size += os.path.getsize(fp)
+                    os.remove(fp)
+                    count += 1
+        if count > 0:
+            logger.info(f"Cleaned up {count} expired SFTP cache files ({size / 1024 / 1024:.1f} MB)")
+    except Exception as e:
+        logger.error(f"Error cleaning SFTP cache: {e}")
+
 def storage_monitor_loop():
     """Background loop to run cleanup and archival periodically"""
     last_full_cleanup_run = 0
@@ -576,6 +650,8 @@ def storage_monitor_loop():
 
     while True:
         try:
+            cleanup_sftp_cache()
+            
             now = time.time()
             with database.get_db_ctx() as db:
                 cleanup_enabled = get_setting(db, "cleanup_enabled") == "true"

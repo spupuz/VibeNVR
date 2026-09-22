@@ -95,27 +95,50 @@ def delete_event_files(event: models.Event, db: Session = None) -> int:
         paths.append(("thumb", event.thumbnail_path))
 
     from storage_service import translate_path
-
-    for ptype, raw_path in paths:
-        path = translate_path(raw_path)
-
-        try:
-            # Security Validation: Final path must be safe
-            if not is_path_safe(path, db):
-                logger.warning(
-                    f"Security Alert: Blocked attempted deletion of file outside allowed storage directories: {path}"
-                )
+    
+    # We might not have a session passed in, so we get one if needed for sftp
+    import database
+    import crud
+    db_local = db or database.SessionLocal()
+    
+    try:
+        for ptype, raw_path in paths:
+            if raw_path.startswith("sftp://"):
+                try:
+                    profile_id = int(raw_path.split("sftp://")[1].split("/")[0])
+                    remote_path = raw_path.split(f"sftp://{profile_id}")[1]
+                    profile = crud.get_storage_profile(db_local, profile_id)
+                    if profile:
+                        import sftp_client
+                        size = sftp_client.delete_file(profile, remote_path)
+                        if ptype == "file":
+                            deleted_bytes += size
+                except Exception as e:
+                    logger.error(f"Error deleting remote SFTP file {raw_path}: {e}")
                 continue
 
-            if os.path.exists(path):
-                if ptype == "file":  # Only count main file size for reporting
-                    try:
-                        deleted_bytes += os.path.getsize(path)
-                    except:
-                        pass
-                os.remove(path)
-        except Exception as e:
-            logger.error(f"Error deleting event file {path}: {e}")
+            path = translate_path(raw_path)
+
+            try:
+                # Security Validation: Final path must be safe
+                if not is_path_safe(path, db_local):
+                    logger.warning(
+                        f"Security Alert: Blocked attempted deletion of file outside allowed storage directories: {path}"
+                    )
+                    continue
+
+                if os.path.exists(path):
+                    if ptype == "file":  # Only count main file size for reporting
+                        try:
+                            deleted_bytes += os.path.getsize(path)
+                        except:
+                            pass
+                    os.remove(path)
+            except Exception as e:
+                logger.error(f"Error deleting event file {path}: {e}")
+    finally:
+        if not db:
+            db_local.close()
 
     return deleted_bytes
 
@@ -123,6 +146,25 @@ def delete_event_files(event: models.Event, db: Session = None) -> int:
 def cleanup_orphaned_file(file_path: str, camera_id: int):
     """Helper to delete files from disk if the camera no longer exists in DB"""
     if not file_path:
+        return
+
+    if file_path.startswith("sftp://"):
+        try:
+            profile_id = int(file_path.split("sftp://")[1].split("/")[0])
+            remote_path = file_path.split(f"sftp://{profile_id}")[1]
+            import database
+            import crud
+            with database.get_db_ctx() as db:
+                profile = crud.get_storage_profile(db, profile_id)
+                if profile:
+                    import sftp_client
+                    sftp_client.delete_file(profile, remote_path)
+                    # For thumbnails
+                    base, _ = os.path.splitext(remote_path)
+                    sftp_client.delete_file(profile, base + ".jpg")
+            logger.info(f"[WEBHOOK] Cleaned up orphaned SFTP file for deleted camera {camera_id}: {file_path}")
+        except Exception as e:
+            logger.error(f"[WEBHOOK] Failed to cleanup orphaned SFTP file: {e}")
         return
 
     from storage_service import translate_path
@@ -288,6 +330,58 @@ def process_webhook_file_event(
         else:
             # For picture_save, thumbnail is the same as image
             event_data.thumbnail_path = file_path
+
+        # ---- SFTP DIRECT UPLOAD BYPASS ----
+        # If target profile is SFTP, upload immediately instead of waiting for archiver
+        try:
+            target_profile = None
+            if db_event_type in ["motion", "manual"] and camera.motion_storage_profile:
+                target_profile = camera.motion_storage_profile
+            elif db_event_type == "continuous" and camera.continuous_storage_profile:
+                target_profile = camera.continuous_storage_profile
+            elif event_type == "picture_save" and camera.snapshot_storage_profile:
+                target_profile = camera.snapshot_storage_profile
+            else:
+                target_profile = camera.storage_profile
+
+            if target_profile and target_profile.storage_type == 'sftp':
+                import sftp_client
+                parts = file_path.split(os.sep)
+                if len(parts) >= 2:
+                    dest_suffix = f"{camera_id}/{parts[-2]}/{parts[-1]}"
+                else:
+                    dest_suffix = f"{camera_id}/{os.path.basename(file_path)}"
+                
+                # Upload Main File
+                if local_path and os.path.exists(local_path):
+                    remote_file = sftp_client.upload_file(target_profile, local_path, dest_suffix)
+                    if remote_file:
+                        event_data.file_path = f"sftp://{target_profile.id}{remote_file}"
+                        try:
+                            os.remove(local_path)
+                        except Exception:
+                            pass
+                
+                # Upload Thumbnail
+                if getattr(event_data, 'thumbnail_path', None):
+                    if event_type == "picture_save":
+                        # For snapshots, the thumbnail is the exact same file as the main event file
+                        # which was already uploaded and its path updated to sftp://...
+                        event_data.thumbnail_path = event_data.file_path
+                    else:
+                        local_thumb = storage_service.translate_path(event_data.thumbnail_path)
+                        if local_thumb and os.path.exists(local_thumb):
+                            thumb_suffix = dest_suffix.rsplit('.', 1)[0] + '.jpg'
+                            remote_thumb = sftp_client.upload_file(target_profile, local_thumb, thumb_suffix)
+                            if remote_thumb:
+                                event_data.thumbnail_path = f"sftp://{target_profile.id}{remote_thumb}"
+                                try:
+                                    os.remove(local_thumb)
+                                except Exception:
+                                    pass
+        except Exception as sftp_err:
+            logger.error(f"[BG-WORK] SFTP direct upload failed: {sftp_err}")
+        # -----------------------------------
 
         try:
             crud.create_event(db, event_data)

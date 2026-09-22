@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HardDrive, Plus, Trash2, Edit, Save, X, Info } from 'lucide-react';
+import { HardDrive, Activity, Plus, Trash2, Edit, Save, X, Info } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { Button } from './ui/Button';
@@ -19,9 +19,42 @@ export const StorageProfileManager = () => {
         name: '',
         path: '',
         description: '',
-        max_size_gb: 0
+        max_size_gb: 0, storage_type: "local", sftp_host: "", sftp_port: 22, sftp_username: "", sftp_password: "", sftp_remote_path: ""
     });
     const [confirmConfig, setConfirmConfig] = useState({ isOpen: false });
+    const [isTesting, setIsTesting] = useState(false);
+
+    const testSftpConnection = async () => {
+        setIsTesting(true);
+        try {
+            const res = await fetch('/api/storage/test-sftp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    sftp_host: newProfile.sftp_host || "",
+                    sftp_port: newProfile.sftp_port || 22,
+                    sftp_username: newProfile.sftp_username || "",
+                    sftp_password: newProfile.sftp_password || "",
+                    sftp_remote_path: newProfile.sftp_remote_path || "/",
+                    profile_id: editingId
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast(t("storage.connection_successful", "Connection Successful"), "success");
+            } else {
+                showToast(data.detail || t("storage.connection_failed", "Connection Failed"), "error");
+            }
+        } catch (err) {
+            showToast(t("storage.connection_failed", "Connection Failed"), "error");
+        } finally {
+            setIsTesting(false);
+        }
+    };
+
 
     useEffect(() => {
         fetchProfiles();
@@ -45,6 +78,7 @@ export const StorageProfileManager = () => {
     const handleSave = async (e) => {
         e.preventDefault();
         try {
+            if (newProfile.storage_type === "sftp" && !newProfile.path) newProfile.path = "/sftp";
             const url = editingId 
                 ? `/api/storage/profiles/${editingId}`
                 : '/api/storage/profiles';
@@ -63,7 +97,7 @@ export const StorageProfileManager = () => {
                 showToast(`Profile ${editingId ? 'updated' : 'created'} successfully`, 'success');
                 setIsCreating(false);
                 setEditingId(null);
-                setNewProfile({ name: '', path: '', description: '', max_size_gb: 0 });
+                setNewProfile({ name: '', path: '', description: '', max_size_gb: 0, storage_type: "local", sftp_host: "", sftp_port: 22, sftp_username: "", sftp_password: "", sftp_remote_path: "" });
                 fetchProfiles();
             } else {
                 const data = await res.json();
@@ -123,7 +157,7 @@ export const StorageProfileManager = () => {
                         setIsCreating(!isCreating);
                         if (!isCreating) {
                             setEditingId(null);
-                            setNewProfile({ name: '', path: '', description: '', max_size_gb: 0 });
+                            setNewProfile({ name: '', path: '', description: '', max_size_gb: 0, storage_type: "local", sftp_host: "", sftp_port: 22, sftp_username: "", sftp_password: "", sftp_remote_path: "" });
                         }
                     }}
                     className="flex items-center gap-1.5 w-full md:w-auto justify-center md:justify-start shrink-0"
@@ -144,14 +178,64 @@ export const StorageProfileManager = () => {
                                 placeholder="e.g. SSD Recordings"
                                 required
                             />
-                            <InputField 
-                                label="Absolute Path"
-                                value={newProfile.path}
-                                onChange={(val) => setNewProfile({...newProfile, path: val})}
-                                placeholder="e.g. /storage/ssd"
-                                help="Container path. This path must be mounted in docker-compose (e.g., VIBENVR_STORAGE_SSD: /storage/ssd)."
-                                required
-                            />
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-sm font-medium text-foreground">{t("storage.type", "Storage Type")}</label>
+                                <select 
+                                    className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                    value={newProfile.storage_type || 'local'}
+                                    onChange={(e) => setNewProfile({...newProfile, storage_type: e.target.value})}
+                                >
+                                    <option value="local">{t("storage.local", "Local Storage")}</option>
+                                    <option value="sftp">{t("storage.sftp", "SFTP Remote Storage")}</option>
+                                </select>
+                            </div>
+
+                            {newProfile.storage_type === 'sftp' ? (
+                                <>
+                                    <InputField 
+                                        label={t("storage.sftp_host", "SFTP Host")}
+                                        value={newProfile.sftp_host}
+                                        onChange={(val) => setNewProfile({...newProfile, sftp_host: val})}
+                                        placeholder="e.g. 192.168.1.100"
+                                    />
+                                    <InputField 
+                                        label={t("storage.sftp_port", "SFTP Port")}
+                                        type="number"
+                                        value={newProfile.sftp_port}
+                                        onChange={(val) => setNewProfile({...newProfile, sftp_port: parseInt(val) || 22})}
+                                        placeholder="22"
+                                    />
+                                    <InputField 
+                                        label={t("storage.sftp_username", "SFTP Username")}
+                                        value={newProfile.sftp_username}
+                                        onChange={(val) => setNewProfile({...newProfile, sftp_username: val})}
+                                    />
+                                    <InputField 
+                                        label={t("storage.sftp_password", "SFTP Password")}
+                                        type="password"
+                                        value={newProfile.sftp_password}
+                                        onChange={(val) => setNewProfile({...newProfile, sftp_password: val})}
+                                        placeholder={t("storage.sftp_password_placeholder", "Leave blank to keep unchanged")}
+                                    />
+                                    <InputField 
+                                        label={t("storage.sftp_remote_path", "Remote Path (Relative or Absolute)")}
+                                        value={newProfile.sftp_remote_path}
+                                        onChange={(val) => setNewProfile({...newProfile, sftp_remote_path: val})}
+                                        placeholder="e.g. /recordings/"
+                                    />
+                                    {/* Hide absolute path if SFTP */}
+
+                                </>
+                            ) : (
+                                <InputField 
+                                    label="Absolute Path"
+                                    value={newProfile.path}
+                                    onChange={(val) => setNewProfile({...newProfile, path: val})}
+                                    placeholder="e.g. /storage/ssd"
+                                    help="Container path. This path must be mounted in docker-compose (e.g., VIBENVR_STORAGE_SSD: /storage/ssd)."
+                                    required={newProfile.storage_type !== 'sftp'}
+                                />
+                            )}
                             <InputField 
                                 label="Description"
                                 value={newProfile.description}
@@ -166,7 +250,20 @@ export const StorageProfileManager = () => {
                                 help="Reserved for future use (quota per profile). Set to 0 for unlimited."
                             />
                         </div>
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border/50">
+                            {newProfile.storage_type === 'sftp' && (
+                                <Button 
+                                    type="button" 
+                                    variant="secondary" 
+                                    size="sm" 
+                                    className="flex items-center gap-1.5 bg-primary/10 text-primary hover:bg-primary/20"
+                                    onClick={testSftpConnection} 
+                                    disabled={isTesting || !newProfile.sftp_host || !newProfile.sftp_username}
+                                >
+                                    <Activity className="w-4 h-4" />
+                                    {isTesting ? t('storage.testing', 'Testing...') : t('storage.test_connection', 'Test Connection & Permissions')}
+                                </Button>
+                            )}
                             <Button type="submit" size="sm" className="flex items-center gap-1.5">
                                 <Save className="w-4 h-4" />
                                 {editingId ? 'Update Profile' : 'Create Profile'}

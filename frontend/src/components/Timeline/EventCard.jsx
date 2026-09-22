@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Video, Image as ImageIcon, Download, Trash2, Camera, HardDrive, Brain } from 'lucide-react';
+import { Video, Image as ImageIcon, Download, Trash2, Camera, HardDrive, Brain, CloudOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 /**
@@ -59,8 +59,17 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
                         onError={() => setImgError(true)}
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted">
-                        {event.type === 'video' ? <Video className="w-8 h-8 opacity-50" /> : <ImageIcon className="w-8 h-8 opacity-50" />}
+                    <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground bg-muted" title={event.file_path?.startsWith('sftp:/') ? t('timeline.media_offline', 'Media Offline') : undefined}>
+                        {event.file_path?.startsWith('sftp:/') ? (
+                            <>
+                                <CloudOff className="w-6 h-6 opacity-60 text-destructive mb-1" />
+                                <span className="text-[10px] uppercase font-bold text-destructive/80 leading-none">{t('timeline.offline', 'Offline')}</span>
+                            </>
+                        ) : event.type === 'video' ? (
+                            <Video className="w-8 h-8 opacity-50" />
+                        ) : (
+                            <ImageIcon className="w-8 h-8 opacity-50" />
+                        )}
                     </div>
                 )}
 
@@ -150,12 +159,28 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
                     <div className="flex items-center space-x-1 mb-0.5">
                         <Camera className="w-3 h-3 text-primary" />
                         <span className="text-xs font-semibold truncate">{camera?.name || `Camera ${event.camera_id}`}</span>
-                        {camera?.storage_profile && (
-                            <div className="flex items-center ml-1 text-[8px] bg-primary/10 text-primary px-1 rounded-sm border border-primary/20" title={`Stored on: ${camera.storage_profile.name}`}>
-                                <HardDrive className="w-2 h-2 mr-0.5" />
-                                <span className="uppercase font-bold">{camera.storage_profile.name}</span>
-                            </div>
-                        )}
+                        {(() => {
+                            const isEventSftp = event.file_path?.startsWith('sftp:/');
+                            const isCameraSftp = camera?.storage_profile?.storage_type === 'sftp';
+                            let badgeText = null;
+                            
+                            if (isEventSftp) {
+                                badgeText = isCameraSftp ? camera.storage_profile.name : 'SFTP';
+                            } else if (event.file_path) {
+                                // If it's a local event but camera is now SFTP, badge is LOCAL.
+                                // If camera is local, badge is the camera's local profile name.
+                                badgeText = isCameraSftp ? 'LOCAL' : (camera?.storage_profile?.name || 'LOCAL');
+                            }
+
+                            if (!badgeText) return null;
+
+                            return (
+                                <div className="flex items-center ml-1 text-[8px] bg-primary/10 text-primary px-1 rounded-sm border border-primary/20" title={`Stored on: ${badgeText}`}>
+                                    <HardDrive className="w-2 h-2 mr-0.5" />
+                                    <span className="uppercase font-bold">{badgeText}</span>
+                                </div>
+                            );
+                        })()}
                     </div>
                     <p className="text-[10px] text-muted-foreground truncate">
                         {event.file_path?.split('/').pop()}

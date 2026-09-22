@@ -66,6 +66,14 @@ def drop_column_if_exists(engine, table_name, column_name):
             logger.info(f"Dropped {column_name}.")
 
 def migrate():
+    # Storage Profiles
+    add_column_if_not_exists(engine, "storage_profiles", "storage_type", "VARCHAR", "local")
+    add_column_if_not_exists(engine, "storage_profiles", "sftp_host", "VARCHAR")
+    add_column_if_not_exists(engine, "storage_profiles", "sftp_port", "INTEGER", 22)
+    add_column_if_not_exists(engine, "storage_profiles", "sftp_username", "VARCHAR")
+    add_column_if_not_exists(engine, "storage_profiles", "sftp_password", "VARCHAR")
+    add_column_if_not_exists(engine, "storage_profiles", "sftp_remote_path", "VARCHAR")
+
     # Video Device
     add_column_if_not_exists(engine, "cameras", "resolution_width", "INTEGER", 800)
     add_column_if_not_exists(engine, "cameras", "resolution_height", "INTEGER", 600)

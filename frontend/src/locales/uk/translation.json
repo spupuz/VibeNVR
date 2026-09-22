@@ -568,7 +568,16 @@
     "force_mse": "Примусовий MSE",
     "export_all_json": "Export all cameras to JSON​",
     "import_vibenvr_json": "Import cameras from VibeNVR JSON​",
-    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​"
+    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​",
+    "cameras_selected_count": "Камера(и) вибрана(і)",
+    "selected_short": "вибрано",
+    "ai_disabled_fallback_msg": "Глобальний перемикач активації ШІ в даний час",
+    "ai_disabled_fallback_msg_2": ". Ця камера повернеться до",
+    "ai_disabled_fallback_msg_3": "виявлення руху, навіть якщо тут увімкнено ШІ.",
+    "ai_detect_engine_note_1": "Оскільки ви вибрали «ШІ» як механізм виявлення, ці об'єкти",
+    "ai_detect_engine_note_2": "будуть тим, що викликає подію руху.",
+    "onvif_edge_desc": "для перенесення обробки на апаратне забезпечення камери, що значно знижує завантаження ЦП сервера NVR.",
+    "tab_dot": "tab."
   },
   "settings": {
     "general_preferences": "Загальні налаштування",
@@ -1335,7 +1344,11 @@
   "profile": {
     "display_language": "Мова інтерфейсу",
     "copy_secret": "Копіювати секрет",
-    "revoke_device": "Відкликати пристрій"
+    "revoke_device": "Відкликати пристрій",
+    "sso.title": "Єдиний вхід (SSO)",
+    "sso.linked": "LINKED",
+    "sso.status_linked": "Ваш обліковий запис пов'язано з {{provider}}.",
+    "sso.status_unlinked": "Пов'яжіть свій обліковий запис із {{provider}} для зручного входу."
   },
   "camera": {
     "select": "Виберіть камеру",
@@ -1390,5 +1403,25 @@
     "aggregated_dashboard": "Огляд кількох сайтів",
     "waiting_stats": "Очікування телеметрії...",
     "edit_node": "Редагувати вузол"
+  },
+  "users": {
+    "permissions.view": "VIEW",
+    "permissions.replay": "REPLAY",
+    "permissions.control": "CONTROL (PTZ)"
+  },
+  "storage": {
+    "connection_successful": "Підключення успішне",
+    "connection_failed": "Помилка підключення",
+    "type": "Тип сховища",
+    "local": "Локальне сховище",
+    "sftp": "Віддалене сховище SFTP",
+    "sftp_host": "Хост SFTP",
+    "sftp_port": "Порт SFTP",
+    "sftp_username": "Ім'я користувача SFTP",
+    "sftp_password": "Пароль SFTP",
+    "sftp_password_placeholder": "Залиште порожнім, щоб не змінювати",
+    "sftp_remote_path": "Віддалений шлях (Відносний або Абсолютний)",
+    "testing": "Тестування...",
+    "test_connection": "Перевірка підключення та прав"
   }
 }

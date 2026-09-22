@@ -459,6 +459,36 @@ async def get_secure_media(file_path: str, request: Request, token: Optional[str
     # If the file_path already starts with an allowed base (like storage/ or data/), parse it securely.
     file_path_clean = file_path.lstrip("/")
     
+    if file_path_clean.startswith("sftp:/"):
+        sftp_uri = file_path
+        if not sftp_uri.startswith("sftp://"):
+            sftp_uri = "sftp://" + file_path_clean.replace("sftp:/", "")
+        try:
+            profile_id_str = sftp_uri.split("sftp://")[1].split("/")[0]
+            profile_id = int(profile_id_str)
+            remote_path = sftp_uri.split(f"sftp://{profile_id}")[1]
+            
+            cache_dir = "/data/cache/sftp"
+            os.makedirs(cache_dir, exist_ok=True)
+            import hashlib
+            safe_name = hashlib.md5(remote_path.encode()).hexdigest() + "_" + os.path.basename(remote_path)
+            local_tmp = os.path.join(cache_dir, safe_name)
+            
+            if not os.path.exists(local_tmp):
+                import sftp_client
+                import crud
+                with database.get_db_ctx() as db:
+                    profile = crud.get_storage_profile(db, profile_id)
+                    if not profile:
+                        raise HTTPException(status_code=404, detail="SFTP profile not found")
+                    success = sftp_client.download_file(profile, remote_path, local_tmp)
+                    if not success:
+                        raise HTTPException(status_code=404, detail="File not found on remote")
+            return FileResponse(local_tmp)
+        except Exception as e:
+            logging.error(f"Failed to serve SFTP media: {e}")
+            raise HTTPException(status_code=404, detail="Media not found")
+
     # Try resolving to a valid absolute path based on known prefixes
     if file_path_clean.startswith("storage/"):
         full_path = os.path.normpath(f"/{file_path_clean}")

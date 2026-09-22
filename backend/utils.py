@@ -51,3 +51,36 @@ def mask_url(text: str) -> str:
     return re.sub(
         r"([a-z0-9]+://[^:]+:)([^@]+)(@)", r"\1*****\3", text, flags=re.IGNORECASE
     )
+
+import os
+from cryptography.fernet import Fernet
+
+def get_encryption_key():
+    key_path = "/data/sftp_encryption.key"
+    # Fallback for local testing if /data doesn't exist
+    if not os.path.exists("/data"):
+        key_path = "sftp_encryption.key"
+        
+    if os.path.exists(key_path):
+        with open(key_path, "rb") as f:
+            return f.read()
+    else:
+        key = Fernet.generate_key()
+        with open(key_path, "wb") as f:
+            f.write(key)
+        return key
+
+def encrypt_password(password: str) -> str:
+    if not password:
+        return password
+    f = Fernet(get_encryption_key())
+    return f.encrypt(password.encode()).decode()
+
+def decrypt_password(encrypted_password: str) -> str:
+    if not encrypted_password:
+        return encrypted_password
+    f = Fernet(get_encryption_key())
+    try:
+        return f.decrypt(encrypted_password.encode()).decode()
+    except Exception:
+        return encrypted_password # Fallback if it was plain text or corrupted

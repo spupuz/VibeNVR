@@ -200,7 +200,7 @@
     "configured": "Configuradas",
     "active": "Activas",
     "online": "En línea",
-    "offline": "Fuera de línea",
+    "offline": "Desconectado",
     "auth_errors": "Errores de Autenticación",
     "deselect_ungrouped": "Deseleccionar No Agrupadas",
     "select_ungrouped": "Seleccionar No Agrupadas",
@@ -568,7 +568,16 @@
     "audio": "Audio​",
     "export_all_json": "Export all cameras to JSON​",
     "import_vibenvr_json": "Import cameras from VibeNVR JSON​",
-    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​"
+    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​",
+    "cameras_selected_count": "Cámara(s) seleccionada(s)",
+    "selected_short": "seleccionadas",
+    "ai_disabled_fallback_msg": "El interruptor global de activación de IA está actualmente",
+    "ai_disabled_fallback_msg_2": ". Esta cámara volverá a",
+    "ai_disabled_fallback_msg_3": "detección de movimiento incluso si la IA está habilitada aquí.",
+    "ai_detect_engine_note_1": "Dado que seleccionó \"IA\" como el Motor de Detección, estos objetos son",
+    "ai_detect_engine_note_2": "lo que activará un evento de movimiento.",
+    "onvif_edge_desc": "para descargar el procesamiento al hardware de la cámara, reduciendo drásticamente el uso de CPU del servidor NVR.",
+    "tab_dot": "tab."
   },
   "settings": {
     "general_preferences": "Preferencias generales",
@@ -1331,7 +1340,11 @@
   "profile": {
     "display_language": "Idioma de visualización",
     "copy_secret": "Copiar secreto",
-    "revoke_device": "Revocar dispositivo"
+    "revoke_device": "Revocar dispositivo",
+    "sso.title": "Inicio de sesión único (SSO)",
+    "sso.linked": "LINKED",
+    "sso.status_linked": "Su cuenta está vinculada a {{provider}}.",
+    "sso.status_unlinked": "Vincule su cuenta a {{provider}} para facilitar el inicio de sesión."
   },
   "settings_go2rtc": {
     "activation": "Utilice la puerta de enlace go2rtc",
@@ -1390,5 +1403,25 @@
     "local_node": "Nodo maestro local",
     "aggregated_dashboard": "Descripción general de varios sitios",
     "switch_to_site": "Cambiar al sitio"
+  },
+  "users": {
+    "permissions.view": "VIEW",
+    "permissions.replay": "REPLAY",
+    "permissions.control": "CONTROL (PTZ)"
+  },
+  "storage": {
+    "connection_successful": "Conexión Exitosa",
+    "connection_failed": "Error de Conexión",
+    "type": "Tipo de Almacenamiento",
+    "local": "Almacenamiento Local",
+    "sftp": "Almacenamiento Remoto SFTP",
+    "sftp_host": "Host SFTP",
+    "sftp_port": "Puerto SFTP",
+    "sftp_username": "Usuario SFTP",
+    "sftp_password": "Contraseña SFTP",
+    "sftp_password_placeholder": "Dejar en blanco para no cambiar",
+    "sftp_remote_path": "Ruta Remota (Relativa o Absoluta)",
+    "testing": "Probando...",
+    "test_connection": "Probar Conexión y Permisos"
   }
 }

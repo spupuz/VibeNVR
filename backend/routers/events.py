@@ -280,7 +280,15 @@ def delete_event(
     return event
 
 @router.get("/{event_id}/download")
-async def download_event(event_id: int, request: Request, token: Optional[str] = None):
+
+def safe_remove(path):
+    try:
+        if os.path.exists(path):
+            os.remove(path)
+    except Exception as e:
+        logger.error(f"Failed to cleanup temp file {path}: {e}")
+
+async def download_event(event_id: int, request: Request, background_tasks: BackgroundTasks, token: Optional[str] = None):
     """Download event file with proper headers for cross-origin support"""
     # Try query param first (for backward compatibility), then cookie
     media_token = token or request.cookies.get("media_token")
@@ -308,16 +316,53 @@ async def download_event(event_id: int, request: Request, token: Optional[str] =
     finally:
         db.close()
         
+
+    # Handle SFTP remote files
+    if file_path and file_path.startswith("sftp://"):
+        try:
+            profile_id, remote_path = file_path[7:].split("/", 1)
+            db = database.SessionLocal()
+            try:
+                profile = db.query(models.StorageProfile).filter(models.StorageProfile.id == int(profile_id)).first()
+                if not profile or profile.storage_type != "sftp":
+                    raise HTTPException(status_code=404, detail="SFTP profile not found")
+                
+                import sftp_client
+                import tempfile
+                
+                tmp_dir = "/data/cache/sftp"
+                os.makedirs(tmp_dir, exist_ok=True)
+                
+                # We need a stable temp name to avoid re-downloading if possible, but for now unique
+                fd, local_tmp = tempfile.mkstemp(dir=tmp_dir, suffix=os.path.basename(remote_path))
+                os.close(fd)
+                
+                success = sftp_client.download_file(profile, remote_path, local_tmp)
+                if not success:
+                    raise HTTPException(status_code=500, detail="Failed to download remote file")
+                    
+                file_path = local_tmp
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error(f"Error serving SFTP file {file_path}: {e}")
+            raise HTTPException(status_code=500, detail="SFTP file access error")
+
     if not file_path or not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found on disk")
 
     # Get filename from path
     filename = os.path.basename(file_path)
 
+
     # Determine media type
     media_type = "video/mp4" if event_type == "video" else "image/jpeg"
 
+    if file_path.startswith("/data/cache/sftp"):
+        background_tasks.add_task(safe_remove, file_path)
+
     return FileResponse(
+
         path=file_path,
         filename=filename,
         media_type=media_type,

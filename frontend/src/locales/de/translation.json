@@ -90,7 +90,7 @@
     "edit": "Bearbeiten",
     "export": "Export​",
     "name": "Name​",
-    "offline": "Offline​",
+    "offline": "Offline",
     "online": "Online​"
   },
   "login": {
@@ -200,7 +200,7 @@
     "configured": "Konfiguriert",
     "active": "Aktiv",
     "online": "Online​",
-    "offline": "Offline​",
+    "offline": "Offline",
     "auth_errors": "Authentifizierungsfehler",
     "deselect_ungrouped": "Gruppenlose abwählen",
     "select_ungrouped": "Gruppenlose auswählen",
@@ -568,7 +568,16 @@
     "bus": "Bus​",
     "export_all_json": "Export all cameras to JSON​",
     "import_vibenvr_json": "Import cameras from VibeNVR JSON​",
-    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​"
+    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​",
+    "cameras_selected_count": "Kamera(s) ausgewählt",
+    "selected_short": "ausgewählt",
+    "ai_disabled_fallback_msg": "Der globale KI-Aktivierungsschalter ist derzeit",
+    "ai_disabled_fallback_msg_2": ". Diese Kamera greift zurück auf",
+    "ai_disabled_fallback_msg_3": "Bewegungserkennung, auch wenn KI hier aktiviert ist.",
+    "ai_detect_engine_note_1": "Da Sie \"KI\" als Erkennungs-Engine ausgewählt haben, sind diese Objekte",
+    "ai_detect_engine_note_2": "das, was ein Bewegungsereignis auslöst.",
+    "onvif_edge_desc": "um die Verarbeitung an die Kamera-Hardware auszulagern und die CPU-Auslastung des NVR-Servers drastisch zu reduzieren.",
+    "tab_dot": "tab."
   },
   "settings": {
     "general_preferences": "Allgemeine Einstellungen",
@@ -1331,7 +1340,11 @@
   "profile": {
     "display_language": "Anzeigesprache",
     "copy_secret": "Geheimnis kopieren",
-    "revoke_device": "Gerät widerrufen"
+    "revoke_device": "Gerät widerrufen",
+    "sso.title": "Single Sign-On (SSO)",
+    "sso.linked": "LINKED",
+    "sso.status_linked": "Ihr Konto ist mit {{provider}} verknüpft.",
+    "sso.status_unlinked": "Verknüpfen Sie Ihr Konto mit {{provider}} für eine einfache Anmeldung."
   },
   "settings_go2rtc": {
     "activation": "Verwenden Sie das go2rtc-Gateway",
@@ -1390,5 +1403,25 @@
     "aggregated_dashboard": "Multi-Site-Übersicht",
     "waiting_stats": "Warten auf Telemetrie...",
     "switch_to_site": "Wechseln Sie zur Website"
+  },
+  "users": {
+    "permissions.view": "VIEW",
+    "permissions.replay": "REPLAY",
+    "permissions.control": "CONTROL (PTZ)"
+  },
+  "storage": {
+    "connection_successful": "Verbindung erfolgreich",
+    "connection_failed": "Verbindung fehlgeschlagen",
+    "type": "Speichertyp",
+    "local": "Lokaler Speicher",
+    "sftp": "SFTP-Remotespeicher",
+    "sftp_host": "SFTP-Host",
+    "sftp_port": "SFTP-Port",
+    "sftp_username": "SFTP-Benutzername",
+    "sftp_password": "SFTP-Passwort",
+    "sftp_password_placeholder": "Leer lassen, um nicht zu ändern",
+    "sftp_remote_path": "Remote-Pfad (Relativ oder Absolut)",
+    "testing": "Wird getestet...",
+    "test_connection": "Verbindung & Berechtigungen testen"
   }
 }

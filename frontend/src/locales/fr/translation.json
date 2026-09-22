@@ -568,7 +568,16 @@
     "port": "Port​",
     "export_all_json": "Export all cameras to JSON​",
     "import_vibenvr_json": "Import cameras from VibeNVR JSON​",
-    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​"
+    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​",
+    "cameras_selected_count": "Caméra(s) sélectionnée(s)",
+    "selected_short": "sélectionnées",
+    "ai_disabled_fallback_msg": "L'interrupteur global d'activation de l'IA est actuellement",
+    "ai_disabled_fallback_msg_2": ". Cette caméra basculera vers",
+    "ai_disabled_fallback_msg_3": "la détection de mouvement même si l'IA est activée ici.",
+    "ai_detect_engine_note_1": "Puisque vous avez sélectionné \"IA\" comme moteur de détection, ces objets sont",
+    "ai_detect_engine_note_2": "ce qui déclenchera un événement de mouvement.",
+    "onvif_edge_desc": "pour décharger le traitement vers le matériel de la caméra, réduisant drastiquement l'utilisation du processeur du serveur NVR.",
+    "tab_dot": "tab."
   },
   "settings": {
     "general_preferences": "Préférences générales",
@@ -1331,7 +1340,11 @@
   "profile": {
     "display_language": "Langue d'affichage",
     "copy_secret": "Copier le secret",
-    "revoke_device": "Révoquer l'appareil"
+    "revoke_device": "Révoquer l'appareil",
+    "sso.title": "Authentification unique (SSO)",
+    "sso.linked": "LINKED",
+    "sso.status_linked": "Votre compte est lié à {{provider}}.",
+    "sso.status_unlinked": "Liez votre compte à {{provider}} pour une connexion facile."
   },
   "settings_go2rtc": {
     "activation": "Utiliser la passerelle go2rtc",
@@ -1390,5 +1403,25 @@
     "aggregated_dashboard": "Présentation multi-sites",
     "switch_to_site": "Passer au site",
     "site": "Site​"
+  },
+  "users": {
+    "permissions.view": "VIEW",
+    "permissions.replay": "REPLAY",
+    "permissions.control": "CONTROL (PTZ)"
+  },
+  "storage": {
+    "connection_successful": "Connexion Réussie",
+    "connection_failed": "Échec de la Connexion",
+    "type": "Type de Stockage",
+    "local": "Stockage Local",
+    "sftp": "Stockage Distant SFTP",
+    "sftp_host": "Hôte SFTP",
+    "sftp_port": "Port SFTP",
+    "sftp_username": "Nom d'utilisateur SFTP",
+    "sftp_password": "Mot de passe SFTP",
+    "sftp_password_placeholder": "Laissez vide pour ne pas modifier",
+    "sftp_remote_path": "Chemin Distant (Relatif ou Absolu)",
+    "testing": "Test en cours...",
+    "test_connection": "Tester la Connexion & les Permissions"
   }
 }

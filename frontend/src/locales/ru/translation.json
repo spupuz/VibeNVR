@@ -89,7 +89,7 @@
     "add_new": "Добавить новый",
     "name": "Имя",
     "save": "Сохранять",
-    "offline": "Оффлайн",
+    "offline": "Офлайн",
     "online": "Онлайн",
     "edit": "Редактировать"
   },
@@ -568,7 +568,16 @@
     "2560x1440_qhd": "2560x1440 (QHD)​",
     "export_all_json": "Export all cameras to JSON​",
     "import_vibenvr_json": "Import cameras from VibeNVR JSON​",
-    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​"
+    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​",
+    "cameras_selected_count": "Камера(ы) выбрана(ы)",
+    "selected_short": "выбрано",
+    "ai_disabled_fallback_msg": "Глобальный переключатель активации ИИ в настоящее время",
+    "ai_disabled_fallback_msg_2": ". Эта камера вернется к",
+    "ai_disabled_fallback_msg_3": "обнаружению движения, даже если здесь включен ИИ.",
+    "ai_detect_engine_note_1": "Поскольку вы выбрали «ИИ» в качестве механизма обнаружения, эти объекты",
+    "ai_detect_engine_note_2": "будут тем, что вызывает событие движения.",
+    "onvif_edge_desc": "для переноса обработки на аппаратное обеспечение камеры, что значительно снижает загрузку ЦП сервера NVR.",
+    "tab_dot": "tab."
   },
   "settings": {
     "general_preferences": "Общие настройки",
@@ -1331,7 +1340,11 @@
   "profile": {
     "display_language": "Язык дисплея",
     "copy_secret": "Копировать секрет",
-    "revoke_device": "Отозвать устройство"
+    "revoke_device": "Отозвать устройство",
+    "sso.title": "Единый вход (SSO)",
+    "sso.linked": "LINKED",
+    "sso.status_linked": "Ваша учетная запись связана с {{provider}}.",
+    "sso.status_unlinked": "Свяжите свою учетную запись с {{provider}} для удобного входа."
   },
   "settings_go2rtc": {
     "activation": "Используйте шлюз go2rtc",
@@ -1390,5 +1403,25 @@
     "aggregated_dashboard": "Обзор нескольких сайтов",
     "waiting_stats": "Ждем телеметрию...",
     "switch_to_site": "Перейти на сайт"
+  },
+  "users": {
+    "permissions.view": "VIEW",
+    "permissions.replay": "REPLAY",
+    "permissions.control": "CONTROL (PTZ)"
+  },
+  "storage": {
+    "connection_successful": "Подключение успешно",
+    "connection_failed": "Ошибка подключения",
+    "type": "Тип хранилища",
+    "local": "Локальное хранилище",
+    "sftp": "Удаленное хранилище SFTP",
+    "sftp_host": "Хост SFTP",
+    "sftp_port": "Порт SFTP",
+    "sftp_username": "Имя пользователя SFTP",
+    "sftp_password": "Пароль SFTP",
+    "sftp_password_placeholder": "Оставьте пустым, чтобы не изменять",
+    "sftp_remote_path": "Удаленный путь (Относительный или Абсолютный)",
+    "testing": "Тестирование...",
+    "test_connection": "Проверка подключения и прав"
   }
 }

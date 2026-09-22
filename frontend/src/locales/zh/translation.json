@@ -568,7 +568,16 @@
     "3840x2160_4k": "3840x2160 (4K)​",
     "export_all_json": "Export all cameras to JSON​",
     "import_vibenvr_json": "Import cameras from VibeNVR JSON​",
-    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​"
+    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​",
+    "cameras_selected_count": "已选摄像头",
+    "selected_short": "已选",
+    "ai_disabled_fallback_msg": "全局AI激活开关当前",
+    "ai_disabled_fallback_msg_2": "。此摄像机将退回到",
+    "ai_disabled_fallback_msg_3": "运动检测，即使在此处启用了AI。",
+    "ai_detect_engine_note_1": "由于您选择了“AI”作为检测引擎，这些对象是",
+    "ai_detect_engine_note_2": "触发运动事件的事物。",
+    "onvif_edge_desc": "将处理卸载到摄像机硬件，从而大幅降低NVR服务器CPU使用率。",
+    "tab_dot": "tab."
   },
   "settings": {
     "general_preferences": "常规首选项",
@@ -1331,7 +1340,11 @@
   "profile": {
     "display_language": "显示语言",
     "copy_secret": "复制秘密",
-    "revoke_device": "撤销设备"
+    "revoke_device": "撤销设备",
+    "sso.title": "单点登录 (SSO)",
+    "sso.linked": "LINKED",
+    "sso.status_linked": "您的帐户已链接到 {{provider}}。",
+    "sso.status_unlinked": "将您的帐户链接到 {{provider}} 以便轻松登录。"
   },
   "settings_go2rtc": {
     "activation": "使用go2rtc网关",
@@ -1390,5 +1403,25 @@
     "local_node": "本地主节点",
     "aggregated_dashboard": "多站点概述",
     "waiting_stats": "等待遥测..."
+  },
+  "users": {
+    "permissions.view": "VIEW",
+    "permissions.replay": "REPLAY",
+    "permissions.control": "CONTROL (PTZ)"
+  },
+  "storage": {
+    "connection_successful": "连接成功",
+    "connection_failed": "连接失败",
+    "type": "存储类型",
+    "local": "本地存储",
+    "sftp": "SFTP 远程存储",
+    "sftp_host": "SFTP 主机",
+    "sftp_port": "SFTP 端口",
+    "sftp_username": "SFTP 用户名",
+    "sftp_password": "SFTP 密码",
+    "sftp_password_placeholder": "留空以保持不变",
+    "sftp_remote_path": "远程路径（相对或绝对）",
+    "testing": "测试中...",
+    "test_connection": "测试连接与权限"
   }
 }

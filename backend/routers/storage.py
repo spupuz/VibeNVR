@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+import sftp_client
+import utils
 import crud
 import schemas
 import database
@@ -46,3 +48,33 @@ def update_storage_profile(profile_id: int, profile: schemas.StorageProfileCreat
 def delete_storage_profile(profile_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     crud.delete_storage_profile(db, profile_id=profile_id)
     return {"message": "Storage profile deleted successfully"}
+
+
+@router.post("/test-sftp")
+def test_sftp_connection(
+    request: schemas.SFTPTestRequest,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin)
+):
+    password = request.sftp_password
+    
+    # If the password is obscured (e.g. from an existing profile being edited), we need to fetch it
+    if password == "********" and request.profile_id:
+        profile = db.query(models.StorageProfile).filter(models.StorageProfile.id == request.profile_id).first()
+        if profile and profile.sftp_password:
+            password = utils.decrypt_password(profile.sftp_password)
+        else:
+            return {"success": False, "message": "Original password not found."}
+    
+    result = sftp_client.test_connection(
+        host=request.sftp_host,
+        port=request.sftp_port,
+        username=request.sftp_username,
+        password=password,
+        remote_path=request.sftp_remote_path
+    )
+    
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["message"])
+        
+    return {"message": result["message"]}

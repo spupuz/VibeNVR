@@ -206,6 +206,12 @@ class StorageProfile(Base):
     path = Column(String, nullable=False)
     description = Column(String, nullable=True)
     max_size_gb = Column(Float, default=0) # 0 = unlimited
+    storage_type = Column(String, default="local")
+    sftp_host = Column(String, nullable=True)
+    sftp_port = Column(Integer, default=22)
+    sftp_username = Column(String, nullable=True)
+    sftp_password = Column(String, nullable=True)
+    sftp_remote_path = Column(String, nullable=True)
 
     cameras = relationship("Camera", back_populates="storage_profile", foreign_keys="[Camera.storage_profile_id]")
 

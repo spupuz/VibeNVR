@@ -88,7 +88,7 @@
     "add_new": "Adicionar novo",
     "name": "Nome",
     "save": "Salvar",
-    "offline": "Off-line",
+    "offline": "Offline",
     "online": "On-line",
     "edit": "Editar",
     "download": "Download​"
@@ -200,7 +200,7 @@
     "configured": "Configuradas",
     "active": "Ativas",
     "online": "On-line",
-    "offline": "Off-line",
+    "offline": "Offline",
     "auth_errors": "Erros de Autenticação",
     "deselect_ungrouped": "Desmarcar Não Agrupadas",
     "select_ungrouped": "Selecionar Não Agrupadas",
@@ -568,7 +568,16 @@
     "3840x2160_4k": "3840x2160 (4K)​",
     "export_all_json": "Export all cameras to JSON​",
     "import_vibenvr_json": "Import cameras from VibeNVR JSON​",
-    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​"
+    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​",
+    "cameras_selected_count": "Câmera(s) selecionada(s)",
+    "selected_short": "selecionadas",
+    "ai_disabled_fallback_msg": "O interruptor global de ativação de IA está atualmente",
+    "ai_disabled_fallback_msg_2": ". Esta câmera retornará para",
+    "ai_disabled_fallback_msg_3": "detecção de movimento, mesmo que a IA esteja ativada aqui.",
+    "ai_detect_engine_note_1": "Como você selecionou \"IA\" como Motor de Detecção, esses objetos são",
+    "ai_detect_engine_note_2": "o que acionará um evento de movimento.",
+    "onvif_edge_desc": "para transferir o processamento para o hardware da câmera, reduzindo drasticamente o uso da CPU do servidor NVR.",
+    "tab_dot": "tab."
   },
   "settings": {
     "general_preferences": "Preferências gerais",
@@ -1331,7 +1340,11 @@
   "profile": {
     "display_language": "Idioma de exibição",
     "copy_secret": "Copiar segredo",
-    "revoke_device": "Revogar Dispositivo"
+    "revoke_device": "Revogar Dispositivo",
+    "sso.title": "Single Sign-On (SSO)",
+    "sso.linked": "LINKED",
+    "sso.status_linked": "Sua conta está vinculada ao {{provider}}.",
+    "sso.status_unlinked": "Vincule sua conta ao {{provider}} para facilitar o login."
   },
   "settings_go2rtc": {
     "activation": "Use o gateway go2rtc",
@@ -1390,5 +1403,25 @@
     "waiting_stats": "Aguardando telemetria...",
     "switch_to_site": "Mudar para o site",
     "site": "Site​"
+  },
+  "users": {
+    "permissions.view": "VIEW",
+    "permissions.replay": "REPLAY",
+    "permissions.control": "CONTROL (PTZ)"
+  },
+  "storage": {
+    "connection_successful": "Conexão Bem-sucedida",
+    "connection_failed": "Falha na Conexão",
+    "type": "Tipo de Armazenamento",
+    "local": "Armazenamento Local",
+    "sftp": "Armazenamento Remoto SFTP",
+    "sftp_host": "Host SFTP",
+    "sftp_port": "Porta SFTP",
+    "sftp_username": "Usuário SFTP",
+    "sftp_password": "Senha SFTP",
+    "sftp_password_placeholder": "Deixe em branco para não alterar",
+    "sftp_remote_path": "Caminho Remoto (Relativo ou Absoluto)",
+    "testing": "Testando...",
+    "test_connection": "Testar Conexão & Permissões"
   }
 }

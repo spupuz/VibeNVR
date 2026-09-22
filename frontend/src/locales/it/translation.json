@@ -90,7 +90,7 @@
     "online": "In linea",
     "saved_successfully": "Salvato con successo",
     "deleted_successfully": "Eliminato con successo",
-    "offline": "Non in linea",
+    "offline": "Offline",
     "edit": "Modificare"
   },
   "login": {
@@ -200,7 +200,7 @@
     "configured": "Configurate",
     "active": "Attive",
     "online": "In linea",
-    "offline": "Non in linea",
+    "offline": "Offline",
     "auth_errors": "Errori di Autenticazione",
     "deselect_ungrouped": "Deseleziona Non Raggruppate",
     "select_ungrouped": "Seleziona Non Raggruppate",
@@ -568,7 +568,16 @@
     "password": "Password​",
     "export_all_json": "Export all cameras to JSON​",
     "import_vibenvr_json": "Import cameras from VibeNVR JSON​",
-    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​"
+    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)​",
+    "cameras_selected_count": "Telecamera(e) selezionate",
+    "selected_short": "selezionate",
+    "ai_disabled_fallback_msg": "L'interruttore globale di attivazione AI è attualmente",
+    "ai_disabled_fallback_msg_2": ". Questa telecamera tornerà a",
+    "ai_disabled_fallback_msg_3": "rilevamento del movimento anche se l'IA è abilitata qui.",
+    "ai_detect_engine_note_1": "Poiché hai selezionato \"IA\" come Motore di Rilevamento, questi oggetti sono",
+    "ai_detect_engine_note_2": "ciò che innescherà un evento di movimento.",
+    "onvif_edge_desc": "per delegare l'elaborazione all'hardware della telecamera, riducendo drasticamente l'uso della CPU del server NVR.",
+    "tab_dot": "tab."
   },
   "settings": {
     "general_preferences": "Preferenze Generali",
@@ -1331,7 +1340,11 @@
   "profile": {
     "display_language": "Lingua di visualizzazione",
     "copy_secret": "Copia segreto",
-    "revoke_device": "Revoca dispositivo"
+    "revoke_device": "Revoca dispositivo",
+    "sso.title": "Single Sign-On (SSO)",
+    "sso.linked": "LINKED",
+    "sso.status_linked": "Il tuo account è collegato a {{provider}}.",
+    "sso.status_unlinked": "Collega il tuo account a {{provider}} per un facile accesso."
   },
   "settings_go2rtc": {
     "activation": "Proxy di Rete (Gateway go2rtc)",
@@ -1388,5 +1401,25 @@
     "test_failed": "Connessione non riuscita o non autorizzata.",
     "name_placeholder": "ad esempio, Server del magazzino",
     "test_success": "Connessione riuscita!"
+  },
+  "users": {
+    "permissions.view": "VIEW",
+    "permissions.replay": "REPLAY",
+    "permissions.control": "CONTROL (PTZ)"
+  },
+  "storage": {
+    "connection_successful": "Connessione Riuscita",
+    "connection_failed": "Connessione Fallita",
+    "type": "Tipo di Archiviazione",
+    "local": "Archiviazione Locale",
+    "sftp": "Archiviazione Remota SFTP",
+    "sftp_host": "Host SFTP",
+    "sftp_port": "Porta SFTP",
+    "sftp_username": "Username SFTP",
+    "sftp_password": "Password SFTP",
+    "sftp_password_placeholder": "Lascia vuoto per non modificare",
+    "sftp_remote_path": "Percorso Remoto (Relativo o Assoluto)",
+    "testing": "Test in corso...",
+    "test_connection": "Test Connessione & Permessi"
   }
 }

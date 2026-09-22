@@ -551,11 +551,26 @@ class CameraGroup(CameraGroupBase):
     cameras: list[Camera] = []
 
 # Storage Profiles
+
+class SFTPTestRequest(BaseModel):
+    sftp_host: str
+    sftp_port: int = 22
+    sftp_username: str
+    sftp_password: str
+    sftp_remote_path: str = "/"
+    profile_id: Optional[int] = None
+
 class StorageProfileBase(BaseModel):
     name: str
     path: str
     description: Optional[str] = None
     max_size_gb: Optional[float] = 0
+    storage_type: Optional[str] = "local"
+    sftp_host: Optional[str] = None
+    sftp_port: Optional[int] = 22
+    sftp_username: Optional[str] = None
+    sftp_password: Optional[str] = None
+    sftp_remote_path: Optional[str] = None
 
     @field_validator('path')
     @classmethod
@@ -572,6 +587,10 @@ class StorageProfileCreate(StorageProfileBase):
     pass
 
 class StorageProfile(StorageProfileBase):
+    @field_validator("sftp_password")
+    @classmethod
+    def obscure_password(cls, v: Optional[str]) -> Optional[str]:
+        return "********" if v else v
     id: int
 
 class CameraSummary(BaseModel):

@@ -568,7 +568,16 @@
     "force_mse": "Force MSE",
     "export_all_json": "Export all cameras to JSON",
     "import_vibenvr_json": "Import cameras from VibeNVR JSON",
-    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)"
+    "import_motioneye_backup": "Import from MotionEye backup (.tar.gz)",
+    "cameras_selected_count": "Camera(s) selected",
+    "selected_short": "selected",
+    "ai_disabled_fallback_msg": "The global AI activation switch is currently",
+    "ai_disabled_fallback_msg_2": ". This camera will fallback to",
+    "ai_disabled_fallback_msg_3": "motion detection even if AI is enabled here.",
+    "ai_detect_engine_note_1": "Since you selected \"AI\" as the Detection Engine, these objects are the",
+    "ai_detect_engine_note_2": "thing that will trigger a motion event.",
+    "onvif_edge_desc": "to offload processing to camera hardware, drastically reducing NVR server CPU usage.",
+    "tab_dot": "tab."
   },
   "settings": {
     "general_preferences": "General Preferences",
@@ -869,7 +878,10 @@
     "cancel_selection": "Cancel selection",
     "delete_selected_items": "Delete {{count}} selected items",
     "recording_reason": "Recording Reason",
-    "group_name_label": "Group Name"
+    "group_name_label": "Group Name",
+    "offline": "Offline",
+    "media_unavailable": "Media unavailable or remote storage is currently unreachable.",
+    "media_offline": "Media Offline"
   },
   "live": {
     "title": "Live View",
@@ -1335,7 +1347,11 @@
   "profile": {
     "display_language": "Display Language",
     "copy_secret": "Copy Secret",
-    "revoke_device": "Revoke Device"
+    "revoke_device": "Revoke Device",
+    "sso.title": "Single Sign-On (SSO)",
+    "sso.linked": "LINKED",
+    "sso.status_linked": "Your account is linked to {{provider}}.",
+    "sso.status_unlinked": "Link your account to {{provider}} for easy login."
   },
   "camera": {
     "select": "Select camera",
@@ -1388,5 +1404,25 @@
     "aggregated_dashboard": "Multi-Site Overview",
     "waiting_stats": "Awaiting telemetry...",
     "switch_to_site": "Switch to Site"
+  },
+  "users": {
+    "permissions.view": "VIEW",
+    "permissions.replay": "REPLAY",
+    "permissions.control": "CONTROL (PTZ)"
+  },
+  "storage": {
+    "connection_successful": "Connection Successful",
+    "connection_failed": "Connection Failed",
+    "type": "Storage Type",
+    "local": "Local Storage",
+    "sftp": "SFTP Remote Storage",
+    "sftp_host": "SFTP Host",
+    "sftp_port": "SFTP Port",
+    "sftp_username": "SFTP Username",
+    "sftp_password": "SFTP Password",
+    "sftp_password_placeholder": "Leave blank to keep unchanged",
+    "sftp_remote_path": "Remote Path (Relative or Absolute)",
+    "testing": "Testing...",
+    "test_connection": "Test Connection & Permissions"
   }
 }

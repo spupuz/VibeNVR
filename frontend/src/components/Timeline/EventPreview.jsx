@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-// from 'react';
-import { X, Download, Trash2, Play, HardDrive } from 'lucide-react';
+import { X, Download, Trash2, Play, HardDrive, CloudOff } from 'lucide-react';
 
 /**
  * Event Preview and Video Player Component
@@ -43,6 +42,29 @@ export const EventPreview = React.memo(({
     isMobile = false
 }) => {
     const { t } = useTranslation();
+    const [mediaError, setMediaError] = useState(false);
+
+    useEffect(() => {
+        let isMounted = true;
+        setMediaError(false);
+        
+        if (selectedEvent) {
+            // Quick check to see if media is reachable (catches Circuit Breaker 404 instantly)
+            const url = getMediaUrl(selectedEvent.file_path);
+            fetch(url, { method: 'HEAD', credentials: 'include' })
+                .then(res => {
+                    if (!res.ok && isMounted) {
+                        setMediaError(true);
+                    }
+                })
+                .catch(() => {
+                    if (isMounted) setMediaError(true);
+                });
+        }
+        
+        return () => { isMounted = false; };
+    }, [selectedEvent?.id]);
+
     if (!selectedEvent) {
         if (isMobile) return null;
         return (
@@ -106,7 +128,13 @@ export const EventPreview = React.memo(({
                     </div>
                 </div>
                 <div className="aspect-video bg-black rounded-lg overflow-hidden relative">
-                    {selectedEvent.type === 'video' ? (
+                    {mediaError ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
+                            <CloudOff className="w-12 h-12 opacity-50 mb-2" />
+                            <span className="text-sm font-bold uppercase">{t('timeline.offline', 'Offline')}</span>
+                            <span className="text-xs">{t('timeline.media_unavailable', 'Media unavailable')}</span>
+                        </div>
+                    ) : selectedEvent.type === 'video' ? (
                         <video
                             ref={videoRef}
                             controls
@@ -115,12 +143,14 @@ export const EventPreview = React.memo(({
                             src={getMediaUrl(selectedEvent.file_path)}
                             onEnded={handleVideoEnded}
                             onLoadedMetadata={(e) => e.target.playbackRate = playbackSpeed}
+                            onError={() => setMediaError(true)}
                         />
                     ) : (
                         <img
                             src={getMediaUrl(selectedEvent.file_path)}
                             alt="Event"
                             className="w-full h-full object-contain"
+                            onError={() => setMediaError(true)}
                         />
                     )}
                     {/* Mobile Speed Overlay */}
@@ -230,7 +260,13 @@ export const EventPreview = React.memo(({
             </div>
 
             <div className="flex-1 bg-black rounded-lg overflow-hidden flex items-center justify-center min-h-0">
-                {selectedEvent.type === 'video' ? (
+                {mediaError ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
+                        <CloudOff className="w-16 h-16 opacity-50 mb-4" />
+                        <span className="text-xl font-bold uppercase">{t('timeline.offline', 'Offline')}</span>
+                        <span className="text-sm mt-1">{t('timeline.media_unavailable', 'Media unavailable or remote storage is currently unreachable.')}</span>
+                    </div>
+                ) : selectedEvent.type === 'video' ? (
                     <video
                         ref={videoRef}
                         controls
@@ -239,6 +275,7 @@ export const EventPreview = React.memo(({
                         src={getMediaUrl(selectedEvent.file_path)}
                         onEnded={handleVideoEnded}
                         onLoadedMetadata={(e) => e.target.playbackRate = playbackSpeed}
+                        onError={() => setMediaError(true)}
                     >
                         {t('timeline.no_video_support', 'Your browser does not support video.')}
                     </video>
@@ -247,6 +284,7 @@ export const EventPreview = React.memo(({
                         src={getMediaUrl(selectedEvent.file_path)}
                         alt="Event"
                         className="max-w-full max-h-full object-contain"
+                        onError={() => setMediaError(true)}
                     />
                 )}
             </div>

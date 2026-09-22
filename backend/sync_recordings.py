@@ -16,7 +16,7 @@ from zoneinfo import ZoneInfo
 sys.path.append('/app')
 
 from database import SessionLocal
-from models import Event, Camera
+from models import Event, Camera, StorageProfile
 import logging
 
 # Configure logging
@@ -320,6 +320,10 @@ def _cleanup_corrupted_videos(db, dry_run: bool) -> tuple[int, int]:
             file_path = file_path.replace('/var/lib/vibe/recordings', '/data', 1)
         elif file_path.startswith('/var/lib/motion'):
             file_path = file_path.replace('/var/lib/motion', '/data', 1)
+            
+        if file_path.startswith('sftp:/'):
+            # Do not attempt to sync or clean up remote SFTP files locally
+            continue
 
         if not os.path.exists(file_path):
             # File missing - prepare to delete DB entry
@@ -426,6 +430,114 @@ def _fix_zero_duration_events(db, dry_run: bool) -> int:
 
     return fixed_duration_count
 
+
+
+def _scan_sftp_profile(db, profile, cameras, dry_run):
+    import paramiko
+    import utils
+    
+    logger.info(f"Scanning SFTP Profile: {profile.name}...")
+    added_count = 0
+    skipped_count = 0
+    
+    try:
+        transport = paramiko.Transport((profile.sftp_host, profile.sftp_port))
+        password = utils.decrypt_password(profile.sftp_password)
+        transport.connect(username=profile.sftp_username, password=password)
+        sftp = paramiko.SFTPClient.from_transport(transport)
+        
+        base_remote = profile.sftp_remote_path or "/"
+        if not base_remote.endswith("/"):
+            base_remote += "/"
+            
+        try:
+            cam_dirs = sftp.listdir(base_remote)
+        except IOError:
+            sftp.close()
+            transport.close()
+            return 0, 0
+            
+        for cam_id_str in cam_dirs:
+            if not cam_id_str.isdigit() or cam_id_str not in cameras:
+                continue
+                
+            camera = cameras[cam_id_str]
+            cam_path = base_remote + cam_id_str + "/"
+            
+            existing_events = db.query(Event.file_path).filter(
+                Event.camera_id == int(cam_id_str),
+                Event.type == "video"
+            ).yield_per(1000)
+            existing_file_paths = {e[0] for e in existing_events if e[0]}
+            
+            try:
+                date_dirs = sftp.listdir(cam_path)
+            except IOError:
+                continue
+                
+            events_to_add = []
+                
+            for date_dir in date_dirs:
+                date_path = cam_path + date_dir + "/"
+                try:
+                    files = sftp.listdir_attr(date_path)
+                except IOError:
+                    continue
+                    
+                for f_attr in files:
+                    f = f_attr.filename
+                    if not f.lower().endswith(('.mp4', '.mkv', '.avi')):
+                        continue
+                        
+                    db_file_path = f"sftp://{profile.id}{date_path}{f}"
+                    
+                    if db_file_path in existing_file_paths:
+                        skipped_count += 1
+                        continue
+                        
+                    try:
+                        time_part = f.split(".")[0].split("-00")[0]
+                        dt_str = f"{date_dir} {time_part}"
+                        timestamp_start = datetime.strptime(dt_str, "%Y-%m-%d %H-%M-%S")
+                        timestamp_start = timestamp_start.replace(tzinfo=LOCAL_TZ)
+                    except ValueError:
+                        continue
+                        
+                    # Calculate duration if possible (stubbed for remote speed)
+                    file_size = f_attr.st_size
+                    duration_sec = 0.0 # Bypassed remote ffprobe
+                    timestamp_end = timestamp_start + timedelta(seconds=duration_sec)
+                    
+                    # Assume thumbnail exists if video exists
+                    thumb_db_path = f"sftp://{profile.id}{date_path}{f.rsplit('.', 1)[0]}.jpg"
+                    
+                    new_event = Event(
+                        camera_id=int(cam_id_str),
+                        timestamp_start=timestamp_start,
+                        timestamp_end=timestamp_end,
+                        type="video",
+                        event_type="unknown",
+                        file_path=db_file_path,
+                        thumbnail_path=thumb_db_path,
+                        file_size=file_size,
+                        motion_score=0.0
+                    )
+                    events_to_add.append(new_event)
+            
+            if events_to_add:
+                added_count += len(events_to_add)
+                if not dry_run:
+                    db.bulk_save_objects(events_to_add)
+                    db.commit()
+                    logger.info(f"  + Imported {len(events_to_add)} missing SFTP events for Camera {cam_id_str}")
+                    
+        sftp.close()
+        transport.close()
+    except Exception as e:
+        logger.error(f"Error scanning SFTP profile {profile.name}: {e}")
+        
+    return added_count, skipped_count
+
 def sync_recordings(dry_run=False):
     logger.info("=" * 60)
     logger.info("VibeNVR - Orphan Recording Recovery")
@@ -448,11 +560,20 @@ def sync_recordings(dry_run=False):
         for cam_id, cam in cameras.items():
             logger.info(f"  - ID {cam_id}: {cam.name}")
         
-        # Scan for orphans
+        # Initialize counters
         total_added_count = 0
         total_skipped_count = 0
         unknown_camera_files = 0
         unknown_camera_size = 0
+
+        # Scan SFTP profiles
+        sftp_profiles = db.query(StorageProfile).filter(StorageProfile.storage_type == 'sftp').all()
+        for profile in sftp_profiles:
+            a, s = _scan_sftp_profile(db, profile, cameras, dry_run)
+            total_added_count += a
+            total_skipped_count += s
+            
+        # Scan for local orphans
         
         for entry in os.listdir(data_root):
             entry_path = os.path.join(data_root, entry)
