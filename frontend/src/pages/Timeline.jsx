@@ -125,7 +125,7 @@ export const Timeline = () => {
     }, [cameraId, type, searchParams, selectedDate, token, eventId]);
 
     const fetchCameras = useCallback(() => {
-        fetch(`${getApiBase()}/cameras`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${getApiBase()}/cameras?lightweight=true`, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => { if (!res.ok) throw new Error('Fetch failed'); return res.json(); })
             .then(data => {
                 const replayCameras = data.filter(cam => hasPermission(cam, 'can_replay'));

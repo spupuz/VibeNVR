@@ -226,6 +226,7 @@ def read_cameras(
     request: Request,
     skip: int = 0,
     limit: int = 100,
+    lightweight: bool = False,
     db: Session = Depends(database.get_db),
     auth_info: tuple[models.User, bool] = Depends(
         auth_service.get_current_user_or_token
@@ -239,7 +240,10 @@ def read_cameras(
             db, user.id, permission="view"
         )
 
-    cameras = crud.get_cameras(db, skip=skip, limit=limit, allowed_camera_ids=allowed_ids)
+    if lightweight:
+        cameras = crud.get_cameras_lightweight(db, skip=skip, limit=limit, allowed_camera_ids=allowed_ids)
+    else:
+        cameras = crud.get_cameras(db, skip=skip, limit=limit, allowed_camera_ids=allowed_ids)
 
     is_federation = request.headers.get("x-federation-proxy") == "true"
     if is_token and not is_federation:
