@@ -8,6 +8,11 @@
 ## 2024-05-23 - Prevent DB Locks when chunking I/O workloads
 **Learning:** Using `.yield_per()` to stream massive datasets during operations that involve slow file I/O or intermediate `db.commit()` statements causes long-lived database cursors to remain open. This leads to connection pool exhaustion and transaction timeouts. Furthermore, for SQLite compatibility, chunk sizes involving `IN` clauses must stay below the default 999 variable limit.
 **Action:** For bulk processing requiring slow I/O or incremental commits, use application-level chunking with `.limit(900).all()` inside a `while` loop rather than relying on `.yield_per()`.
+
 ## 2024-05-24 - Extract Heavy Historical Data Fetching from High-Frequency Polling
 **Learning:** Polling heavy aggregated historical database endpoints (like `/api/stats/history`) in the same high-frequency loop as live status endpoints (like `/api/stats`) causes massive unnecessary overhead and N+1-like database bottlenecks.
 **Action:** Always extract rarely-changing data fetches out of high-frequency polling intervals and fetch them on a significantly slower interval (e.g. 5 minutes) or only on component mount to prevent severe backend overload.
+
+## 2024-11-20 - N+1 Queries in High-Frequency Polling
+**Learning:** During periodic background polling by the frontend (like the `LiveView`, `Dashboard`, and `Cameras` pages polling `/api/cameras`), the backend eagerly loaded heavy relationships (`groups`, `storage_profile`) on every call. This resulted in significant memory bloat, extra DB load, and unnecessary serialization overhead for data the frontend often just used for simple `id -> name` mapping.
+**Action:** Implemented a `?lightweight=true` parameter on the backend `GET /api/cameras` route that uses a separate query skipping eager loading. Updated UI components that don't need relational data (like Dashboard mapping logic and Timeline views) to use the lightweight flag to avoid database bottlenecks.
