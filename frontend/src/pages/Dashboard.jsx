@@ -184,7 +184,7 @@ export const Dashboard = () => {
         if (!token) return;
 
         // Fetch cameras once for ID to Name mapping to avoid O(N) database loads in the polling loop
-        fetch('/api/cameras', { headers: { Authorization: `Bearer ${token}` } })
+        fetch('/api/cameras?lightweight=true', { headers: { Authorization: `Bearer ${token}` } })
             .then(res => res.ok ? res.json() : [])
             .then(data => {
                 if (Array.isArray(data)) {

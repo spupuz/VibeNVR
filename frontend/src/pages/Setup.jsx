@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router';
-import { ShieldCheck, User, Lock, Mail } from 'lucide-react';
+import { ShieldCheck, User, Lock, Mail, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useTranslation } from 'react-i18next';
 
@@ -11,12 +11,14 @@ export const Setup = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setIsLoading(true);
 
         try {
             const res = await fetch('/api/auth/setup', {
@@ -60,6 +62,8 @@ export const Setup = () => {
             }
         } catch (err) {
             setError('Setup failed. Please check your connection.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -126,7 +130,8 @@ export const Setup = () => {
 
                     {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
-                    <Button className="w-full" size="lg" type="submit">
+                    <Button className="w-full" size="lg" type="submit" disabled={isLoading}>
+                        {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin inline-block" /> : null}
                         Create Administrator
                     </Button>
                 </form>
