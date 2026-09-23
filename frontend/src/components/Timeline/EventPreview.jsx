@@ -49,11 +49,14 @@ export const EventPreview = React.memo(({
         setMediaError(false);
         
         if (selectedEvent) {
-            // Quick check to see if media is reachable (catches Circuit Breaker 404 instantly)
+            // Check if media is reachable (catches Circuit Breaker 404 instantly).
+            // Use GET with Range to avoid FastAPI 405 Method Not Allowed on HEAD requests.
             const url = getMediaUrl(selectedEvent.file_path);
-            fetch(url, { method: 'HEAD', credentials: 'include' })
+            fetch(url, { method: 'GET', headers: { 'Range': 'bytes=0-0' }, credentials: 'include' })
                 .then(res => {
-                    if (!res.ok && isMounted) {
+                    // 404 means file missing or Circuit Breaker tripped.
+                    // 401/403/200/206 means the server processed the route successfully.
+                    if (res.status === 404 && isMounted) {
                         setMediaError(true);
                     }
                 })

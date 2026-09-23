@@ -275,7 +275,13 @@ def _generate_backup_data(db: Session) -> dict:
                 "name": p.name,
                 "path": p.path,
                 "description": p.description,
-                "max_size_gb": p.max_size_gb
+                "max_size_gb": p.max_size_gb,
+                "storage_type": p.storage_type,
+                "sftp_host": p.sftp_host,
+                "sftp_port": p.sftp_port,
+                "sftp_username": p.sftp_username,
+                "sftp_password": p.sftp_password,
+                "sftp_remote_path": p.sftp_remote_path
             } for p in db.query(models.StorageProfile).all()
         ],
         "associations": [{"camera_id": a.camera_id, "group_id": a.group_id} for a in db.query(models.CameraGroupAssociation).all()],

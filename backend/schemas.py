@@ -560,6 +560,27 @@ class SFTPTestRequest(BaseModel):
     sftp_remote_path: str = "/"
     profile_id: Optional[int] = None
 
+    @field_validator('sftp_host')
+    @classmethod
+    def validate_sftp_host(cls, v: str) -> str:
+        if v:
+            import socket
+            import ipaddress
+            hostname = v.strip().lower()
+            if hostname in ['localhost', 'loopback', '::1', '127.0.0.1']:
+                raise ValueError('Host cannot target localhost')
+            try:
+                addr_info = socket.getaddrinfo(hostname, None)
+                for res in addr_info:
+                    ip_str = res[4][0]
+                    ip = ipaddress.ip_address(ip_str)
+                    if ip.is_loopback or ip.is_unspecified or ip.is_link_local or ip.is_multicast:
+                        raise ValueError('Host cannot target internal reserved IPs')
+            except socket.gaierror:
+                pass
+        return v
+
+
 class StorageProfileBase(BaseModel):
     name: str
     path: str
@@ -571,6 +592,27 @@ class StorageProfileBase(BaseModel):
     sftp_username: Optional[str] = None
     sftp_password: Optional[str] = None
     sftp_remote_path: Optional[str] = None
+
+    @field_validator('sftp_host')
+    @classmethod
+    def validate_sftp_host(cls, v: str) -> str:
+        if v:
+            import socket
+            import ipaddress
+            hostname = v.strip().lower()
+            if hostname in ['localhost', 'loopback', '::1', '127.0.0.1']:
+                raise ValueError('Host cannot target localhost')
+            try:
+                addr_info = socket.getaddrinfo(hostname, None)
+                for res in addr_info:
+                    ip_str = res[4][0]
+                    ip = ipaddress.ip_address(ip_str)
+                    if ip.is_loopback or ip.is_unspecified or ip.is_link_local or ip.is_multicast:
+                        raise ValueError('Host cannot target internal reserved IPs')
+            except socket.gaierror:
+                pass
+        return v
+
 
     @field_validator('path')
     @classmethod

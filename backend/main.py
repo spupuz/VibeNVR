@@ -471,7 +471,7 @@ async def get_secure_media(file_path: str, request: Request, token: Optional[str
             cache_dir = "/data/cache/sftp"
             os.makedirs(cache_dir, exist_ok=True)
             import hashlib
-            safe_name = hashlib.md5(remote_path.encode()).hexdigest() + "_" + os.path.basename(remote_path)
+            safe_name = hashlib.sha256(remote_path.encode()).hexdigest()[:16] + "_" + os.path.basename(remote_path)
             local_tmp = os.path.join(cache_dir, safe_name)
             
             if not os.path.exists(local_tmp):

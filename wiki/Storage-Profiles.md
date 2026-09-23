@@ -3,6 +3,7 @@
 VibeNVR allows you to map different cameras to different storage locations on your host system. This enables flexible storage strategies, such as manually separating recordings based on performance needs:
 - **SSD**: Use for cameras requiring fast access or high-res snapshots.
 - **NAS/HDD**: Use for cameras with high-volume, long-term recordings.
+- **SFTP / Remote Storage**: Connect directly to remote SSH/SFTP servers without complex OS-level mounts, ideal for off-site backups or distributed archival.
 
 ## Concepts
 
@@ -37,7 +38,27 @@ services:
 3. Enter the name and the **absolute container path** (e.g., `/storage/nas`).
 4. Set an optional quota (GB).
 
-### 3. Assign Cameras
+
+### 3. Remote SFTP Volumes (New)
+Instead of relying on OS-level mounts or Docker volumes (which can be fragile over unreliable networks), VibeNVR natively supports connecting to remote SFTP servers. This can be used for **Primary Storage**, **Tiered Archival**, or specific Routing (e.g., saving only Snapshots to SFTP).
+
+**How it works under the hood**:
+1. **Zero-Loss Local Buffer**: The VibeEngine is built for extreme performance. To prevent network bottlenecks from causing dropped frames on 4K cameras, the Engine *always* writes the live, in-progress recording to the fast local SSD first, even if an SFTP profile is assigned.
+2. **Post-Processing Upload (Primary Mode)**: If an SFTP profile is assigned as the *Primary*, *Continuous*, or *Motion* profile, VibeNVR activates an **Upload Bypass**. The moment a recording segment finishes, the Backend immediately extracts the thumbnail/duration, uploads the finalized clip securely to the SFTP server, and deletes the local temporary file. This provides the exact experience of "saving to SFTP directly" without risking live stream stability.
+3. **Background Archival (Tiering Mode)**: If the SFTP profile is assigned exclusively as the *Archive Profile*, files remain on the local disk until they reach the "Archive After" threshold, at which point the `StorageService` gracefully moves them to the remote server.
+4. **Smart Caching for Playback**: When viewing a remote recording on the Timeline, the Backend dynamically pulls the requested MP4 file from the SFTP server into a temporary local cache (`/data/cache/sftp`), hashing it with SHA-256. Once cached, the video is streamed via HTTP Range Requests, ensuring flawless playback and scrubbing without buffering.
+5. **Security First**: To prevent Server-Side Request Forgery (SSRF) attacks, the SFTP configuration actively rejects connections to internal or loopback IP addresses (like `127.0.0.1` or `localhost`). Only legitimate remote hosts are allowed.
+
+**Setup Instructions**:
+1. Navigate to **Settings** -> **Storage Management** -> **Add Profile**.
+2. Select **SFTP** as the Storage Type.
+3. Provide the Host (IP or domain), Port (default 22), Username, Password, and the Remote Path (e.g., `/mnt/backup/vibenvr`).
+4. **Mandatory**: Use the **Test Connection** button to verify connectivity, permissions, and SSRF compliance securely before saving.
+
+> [!TIP]
+> Since the SFTP upload acts as a post-processing step, short network outages won't affect your live recording. The local buffer will simply hold the files until the webhook successfully completes the upload.
+
+### 4. Assign Cameras
 1. Edit a **Camera** configuration.
 2. In the **General** tab, select the desired **Storage Profile**.
 3. Save the camera settings. The engine will automatically begin saving new recordings to the new path.
