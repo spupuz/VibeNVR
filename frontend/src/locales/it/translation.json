@@ -880,8 +880,8 @@
         "recording_reason": "Motivo della registrazione",
         "group_name_label": "Nome del gruppo",
         "offline": "Offline",
-        "media_unavailable": "File Multimediale Non Disponibile",
-        "media_offline": "Media Offline"
+        "media_unavailable": "File multimediale non disponibile o memoria remota attualmente irraggiungibile.",
+        "media_offline": "Media non in linea"
     },
     "live": {
         "title": "Vista Live",
@@ -1345,7 +1345,7 @@
         "copy_secret": "Copia segreto",
         "revoke_device": "Revoca dispositivo",
         "sso.title": "Single Sign-On (SSO)",
-        "sso.linked": "LINKED",
+        "sso.linked": "COLLEGATO",
         "sso.status_linked": "Il tuo account è collegato a {{provider}}.",
         "sso.status_unlinked": "Collega il tuo account a {{provider}} per un facile accesso."
     },
@@ -1406,9 +1406,9 @@
         "test_success": "Connessione riuscita!"
     },
     "users": {
-        "permissions.view": "VIEW",
-        "permissions.replay": "REPLAY",
-        "permissions.control": "CONTROL (PTZ)"
+        "permissions.view": "VISUALIZZAZIONE",
+        "permissions.replay": "RIPRODUZIONE",
+        "permissions.control": "CONTROLLO (PTZ)"
     },
     "storage": {
         "connection_successful": "Connessione Riuscita",

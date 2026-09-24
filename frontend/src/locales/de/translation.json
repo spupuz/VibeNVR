@@ -1345,7 +1345,7 @@
         "copy_secret": "Geheimnis kopieren",
         "revoke_device": "Gerät widerrufen",
         "sso.title": "Single Sign-On (SSO)",
-        "sso.linked": "LINKED",
+        "sso.linked": "VERKNÜPFT",
         "sso.status_linked": "Ihr Konto ist mit {{provider}} verknüpft.",
         "sso.status_unlinked": "Verknüpfen Sie Ihr Konto mit {{provider}} für eine einfache Anmeldung."
     },
@@ -1408,9 +1408,9 @@
         "switch_to_site": "Wechseln Sie zur Website"
     },
     "users": {
-        "permissions.view": "VIEW",
-        "permissions.replay": "REPLAY",
-        "permissions.control": "CONTROL (PTZ)"
+        "permissions.view": "ANSICHT",
+        "permissions.replay": "WIEDERGABE",
+        "permissions.control": "STEUERUNG (PTZ)"
     },
     "storage": {
         "connection_successful": "Verbindung erfolgreich",

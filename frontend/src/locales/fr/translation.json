@@ -1345,7 +1345,7 @@
         "copy_secret": "Copier le secret",
         "revoke_device": "Révoquer l'appareil",
         "sso.title": "Authentification unique (SSO)",
-        "sso.linked": "LINKED",
+        "sso.linked": "LIÉ",
         "sso.status_linked": "Votre compte est lié à {{provider}}.",
         "sso.status_unlinked": "Liez votre compte à {{provider}} pour une connexion facile."
     },
@@ -1408,9 +1408,9 @@
         "site": "Site​"
     },
     "users": {
-        "permissions.view": "VIEW",
-        "permissions.replay": "REPLAY",
-        "permissions.control": "CONTROL (PTZ)"
+        "permissions.view": "VOIR",
+        "permissions.replay": "REJOUER",
+        "permissions.control": "CONTRÔLE (PTZ)"
     },
     "storage": {
         "connection_successful": "Connexion Réussie",

@@ -880,8 +880,8 @@
         "recording_reason": "Причина запису",
         "group_name_label": "Назва групи",
         "offline": "Offline",
-        "media_unavailable": "Media unavailable or remote storage is currently unreachable.",
-        "media_offline": "Media Offline"
+        "media_unavailable": "Медіа недоступні або віддалене сховище наразі недоступне.",
+        "media_offline": "Медіа офлайн"
     },
     "live": {
         "title": "Прямий ефір",
@@ -1349,7 +1349,7 @@
         "copy_secret": "Копіювати секрет",
         "revoke_device": "Відкликати пристрій",
         "sso.title": "Єдиний вхід (SSO)",
-        "sso.linked": "LINKED",
+        "sso.linked": "ЗВ'ЯЗАНО",
         "sso.status_linked": "Ваш обліковий запис пов'язано з {{provider}}.",
         "sso.status_unlinked": "Пов'яжіть свій обліковий запис із {{provider}} для зручного входу."
     },
@@ -1408,9 +1408,9 @@
         "edit_node": "Редагувати вузол"
     },
     "users": {
-        "permissions.view": "VIEW",
-        "permissions.replay": "REPLAY",
-        "permissions.control": "CONTROL (PTZ)"
+        "permissions.view": "ПЕРЕГЛЯД",
+        "permissions.replay": "ВІДТВОРЕННЯ",
+        "permissions.control": "КОНТРОЛЬ (PTZ)"
     },
     "storage": {
         "connection_successful": "Підключення успішне",

@@ -1345,7 +1345,7 @@
         "copy_secret": "Copiar segredo",
         "revoke_device": "Revogar Dispositivo",
         "sso.title": "Single Sign-On (SSO)",
-        "sso.linked": "LINKED",
+        "sso.linked": "VINCULADO",
         "sso.status_linked": "Sua conta está vinculada ao {{provider}}.",
         "sso.status_unlinked": "Vincule sua conta ao {{provider}} para facilitar o login."
     },
@@ -1408,9 +1408,9 @@
         "site": "Site​"
     },
     "users": {
-        "permissions.view": "VIEW",
-        "permissions.replay": "REPLAY",
-        "permissions.control": "CONTROL (PTZ)"
+        "permissions.view": "VISUALIZAR",
+        "permissions.replay": "REPRODUZIR",
+        "permissions.control": "CONTROLE (PTZ)"
     },
     "storage": {
         "connection_successful": "Conexão Bem-sucedida",

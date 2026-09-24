@@ -5,7 +5,7 @@ psycopg2-binary
 pydantic
 requests[socks]>=2.33.0
 httpx
-python-multipart>=0.0.27
+python-multipart>=0.0.31
 pyotp
 passlib[argon2]
 PyJWT[crypto]>=2.13.0
@@ -13,10 +13,10 @@ psutil
 slowapi
 python-magic
 onvif-zeep
-zeep
+zeep>=4.3.3
 sse-starlette
 websockets
-urllib3>=2.6.3
+urllib3>=2.7.0
 cryptography>=46.0.7
 aiohttp>=3.14.0
 authlib

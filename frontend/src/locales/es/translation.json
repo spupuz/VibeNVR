@@ -1345,7 +1345,7 @@
         "copy_secret": "Copiar secreto",
         "revoke_device": "Revocar dispositivo",
         "sso.title": "Inicio de sesión único (SSO)",
-        "sso.linked": "LINKED",
+        "sso.linked": "VINCULADO",
         "sso.status_linked": "Su cuenta está vinculada a {{provider}}.",
         "sso.status_unlinked": "Vincule su cuenta a {{provider}} para facilitar el inicio de sesión."
     },
@@ -1408,8 +1408,8 @@
         "switch_to_site": "Cambiar al sitio"
     },
     "users": {
-        "permissions.view": "VIEW",
-        "permissions.replay": "REPLAY",
+        "permissions.view": "VER",
+        "permissions.replay": "REPRODUCIR",
         "permissions.control": "CONTROL (PTZ)"
     },
     "storage": {

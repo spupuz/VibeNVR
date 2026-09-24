@@ -1345,7 +1345,7 @@
         "copy_secret": "复制秘密",
         "revoke_device": "撤销设备",
         "sso.title": "单点登录 (SSO)",
-        "sso.linked": "LINKED",
+        "sso.linked": "已链接",
         "sso.status_linked": "您的帐户已链接到 {{provider}}。",
         "sso.status_unlinked": "将您的帐户链接到 {{provider}} 以便轻松登录。"
     },
@@ -1408,9 +1408,9 @@
         "waiting_stats": "等待遥测..."
     },
     "users": {
-        "permissions.view": "VIEW",
-        "permissions.replay": "REPLAY",
-        "permissions.control": "CONTROL (PTZ)"
+        "permissions.view": "查看",
+        "permissions.replay": "回放",
+        "permissions.control": "控制 (PTZ)"
     },
     "storage": {
         "connection_successful": "连接成功",

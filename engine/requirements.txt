@@ -2,9 +2,9 @@ av<14.0.0
 fastapi
 uvicorn[standard]
 websockets
-requests>=2.32.0,<2.33.0
-python-multipart<=0.0.20
+requests>=2.33.0
+python-multipart>=0.0.31
 psutil
 numpy<2
 paho-mqtt
-urllib3<2.3.0
+urllib3>=2.7.0

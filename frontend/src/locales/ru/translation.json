@@ -1345,7 +1345,7 @@
         "copy_secret": "Копировать секрет",
         "revoke_device": "Отозвать устройство",
         "sso.title": "Единый вход (SSO)",
-        "sso.linked": "LINKED",
+        "sso.linked": "СВЯЗАН",
         "sso.status_linked": "Ваша учетная запись связана с {{provider}}.",
         "sso.status_unlinked": "Свяжите свою учетную запись с {{provider}} для удобного входа."
     },
@@ -1408,9 +1408,9 @@
         "switch_to_site": "Перейти на сайт"
     },
     "users": {
-        "permissions.view": "VIEW",
-        "permissions.replay": "REPLAY",
-        "permissions.control": "CONTROL (PTZ)"
+        "permissions.view": "ПРОСМОТР",
+        "permissions.replay": "ВОСПРОИЗВЕДЕНИЕ",
+        "permissions.control": "УПРАВЛЕНИЕ (PTZ)"
     },
     "storage": {
         "connection_successful": "Подключение успешно",

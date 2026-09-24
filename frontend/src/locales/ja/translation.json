@@ -1345,7 +1345,7 @@
         "copy_secret": "シークレットをコピーする",
         "revoke_device": "デバイスを無効化",
         "sso.title": "シングルサインオン (SSO)",
-        "sso.linked": "LINKED",
+        "sso.linked": "リンク済み",
         "sso.status_linked": "アカウントは{{provider}}にリンクされています。",
         "sso.status_unlinked": "簡単にログインできるように、アカウントを{{provider}}にリンクしてください。"
     },
@@ -1408,9 +1408,9 @@
         "local_node": "ローカルマスターノード"
     },
     "users": {
-        "permissions.view": "VIEW",
-        "permissions.replay": "REPLAY",
-        "permissions.control": "CONTROL (PTZ)"
+        "permissions.view": "表示",
+        "permissions.replay": "再生",
+        "permissions.control": "制御 (PTZ)"
     },
     "storage": {
         "connection_successful": "接続に成功しました",
