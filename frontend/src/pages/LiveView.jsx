@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { Camera, CameraOff, Maximize2, Minimize2, Settings, Image as ImageIcon, Play, Square, Power, Disc, Grid, X, Volume2, VolumeX, Move, AlertTriangle } from 'lucide-react';
 import { Toggle } from '../components/ui/FormControls';
@@ -497,7 +497,7 @@ export const LiveView = () => {
         }
     };
 
-    const fetchCameras = () => {
+    const fetchCameras = useCallback(() => {
         fetch(`${getApiBase()}/cameras`, {
             headers: { Authorization: `Bearer ${token}` }
         })
@@ -507,7 +507,7 @@ export const LiveView = () => {
             })
             .then(data => setCameras(Array.isArray(data) ? data : []))
             .catch(err => console.error(err));
-    };
+    }, [token]);
 
     const fetchMotionStatus = () => {
         fetch(`${getApiBase()}/events/status`, {
@@ -558,11 +558,11 @@ export const LiveView = () => {
         setShowInsecureWarning(false);
     };
 
-    const toggleFocus = (id) => {
+    const toggleFocus = useCallback((id) => {
         setFocusCameraId(prev => prev === id ? null : id);
-    };
+    }, []);
 
-    const handleToggleActive = async (camera) => {
+    const handleToggleActive = useCallback(async (camera) => {
         try {
             const res = await fetch(`${getApiBase()}/cameras/${camera.id}`, {
                 method: 'PUT',
@@ -574,9 +574,9 @@ export const LiveView = () => {
             });
             if (res.ok) fetchCameras();
         } catch (err) { console.error(err); }
-    };
+    }, [token, fetchCameras]);
 
-    const handleToggleRecording = async (camera) => {
+    const handleToggleRecording = useCallback(async (camera) => {
         try {
             const res = await fetch(`${getApiBase()}/cameras/${camera.id}/recording`, {
                 method: 'POST',
@@ -586,11 +586,11 @@ export const LiveView = () => {
             });
             if (res.ok) fetchCameras();
         } catch (err) { console.error(err); }
-    };
+    }, [token, fetchCameras]);
 
-    const handleToggleAudio = (id) => {
+    const handleToggleAudio = useCallback((id) => {
         setAuditingCameraId(prev => prev === id ? null : id);
-    };
+    }, []);
 
     const [selectedGroup, setSelectedGroup] = useState('all');
     const [isGroupView, setIsGroupView] = useState(() => {
