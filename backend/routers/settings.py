@@ -835,6 +835,9 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
             if not all([smtp_server, smtp_from, recipient]):
                 raise ValueError("Missing required Email settings (Server, From, Recipient). Configure them in Global Settings first.")
                 
+            if not utils.is_safe_host(smtp_server):
+                raise ValueError("Unsafe SMTP server. Link-local, loopback, and multicast IPs are blocked.")
+
             msg = MIMEText("This is a test notification from VibeNVR.\nIf you see this, your Email settings are correct!")
             msg['Subject'] = "VibeNVR Test Notification"
             msg['From'] = smtp_from

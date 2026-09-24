@@ -11,3 +11,7 @@
 **Vulnerability:** Overly strict SSRF validation blocked private IP addresses.
 **Learning:** In NVR systems, webhooks must be able to target private IPs (like 192.168.x.x) for local Home Assistant integrations, so blocking them breaks functionality.
 **Prevention:** Use `ip.is_loopback`, `is_unspecified`, `is_link_local`, and `is_multicast` to prevent SSRF against internal host/cloud metadata without breaking local network features.
+## 2026-01-20 - SSRF Vulnerability in Test Endpoints
+**Vulnerability:** The `test_notification` endpoint allowed arbitrary internal SMTP connections (SSRF) because it lacked the loopback/link-local validation used for webhooks.
+**Learning:** SSRF protections were tightly coupled inside the webhook validation function rather than being a reusable network security utility, leading to gaps in coverage for other network calls (like SMTP/SFTP).
+**Prevention:** Abstracted IP validation into a centralized `utils.is_safe_host()` function to enforce consistent defense-in-depth across all outbound network connections in the application.
