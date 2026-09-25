@@ -1403,7 +1403,8 @@
     "local_node": "Local Master Node",
     "aggregated_dashboard": "Multi-Site Overview",
     "waiting_stats": "Awaiting telemetry...",
-    "switch_to_site": "Switch to Site"
+    "switch_to_site": "Switch to Site",
+    "switch_to_site_name": "Switch to site: {{name}}"
   },
   "users": {
     "permissions.view": "VIEW",
