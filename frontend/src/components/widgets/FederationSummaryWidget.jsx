@@ -99,6 +99,7 @@ export const FederationSummaryWidget = () => {
                             <button 
                                 onClick={() => setActiveNode(node.id)}
                                 disabled={node.status !== 'online'}
+                                aria-label={t('federation.switch_to_site_name', 'Switch to site: {{name}}', { name: node.name })}
                                 className="mt-4 w-full flex items-center justify-center gap-1 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {t('federation.switch_to_site', 'Switch to Site')} <ArrowRight className="w-3 h-3" />
