@@ -11,3 +11,7 @@
 **Vulnerability:** Overly strict SSRF validation blocked private IP addresses.
 **Learning:** In NVR systems, webhooks must be able to target private IPs (like 192.168.x.x) for local Home Assistant integrations, so blocking them breaks functionality.
 **Prevention:** Use `ip.is_loopback`, `is_unspecified`, `is_link_local`, and `is_multicast` to prevent SSRF against internal host/cloud metadata without breaking local network features.
+## 2025-05-18 - SSRF Prevention in SFTP Client
+**Vulnerability:** The SFTP client connected to user-provided hosts without validation, leading to potential Server-Side Request Forgery (SSRF) when verifying profiles or transferring files. This could be used to probe internal services or interact with internal SSH endpoints.
+**Learning:** We must apply existing SSRF validations (`utils.is_safe_host`) to all user-provided endpoints, not just webhooks (defense in depth). The SFTP functionality relies on these endpoints, so verifying them safely prevents internal network scanning.
+**Prevention:** Apply strict SSRF validation (blocking loopback, link-local, multicast, unspecified IPs) on any user-provided host before making SFTP connections. Ensure internal validations (like `is_safe_host`) are reused effectively across all network clients.
