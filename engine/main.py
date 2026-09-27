@@ -1,8 +1,8 @@
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 import asyncio
-from pydantic import BaseModel, field_validator
-from typing import Optional, List, Any
+from pydantic import BaseModel, field_validator, Field
+from typing import Optional, List, Any, Literal
 import logging
 import psutil
 import os
@@ -200,6 +200,7 @@ class CameraConfig(BaseModel):
     ptz_can_zoom: bool = True
     detect_motion_mode: str = "Always"
     detect_engine: str = "OpenCV"
+    event_provider: Literal["server", "onvif", "hikvision_isapi"] = "server"
     rtsp_transport: str = "tcp"
     sub_rtsp_url: Optional[str] = None
     sub_rtsp_transport: str = "tcp"
@@ -235,8 +236,15 @@ class CameraConfig(BaseModel):
 
 
 class EventTrigger(BaseModel):
-    event_type: str = "motion"
-    source: str = "external"
+    event_type: Literal["motion"] = "motion"
+    state: Literal["active", "inactive"] = "active"
+    source: Literal["onvif", "hikvision_isapi"] = "onvif"
+    labels: List[Literal["person", "vehicle"]] = []
+    timestamp: Optional[str] = Field(default=None, max_length=128)
+    channel: Optional[str] = Field(default=None, max_length=128)
+    rule: Optional[str] = Field(default=None, max_length=128)
+    region: Optional[str] = Field(default=None, max_length=128)
+    provider_event_type: Optional[str] = Field(default=None, max_length=128)
 
 @app.get("/")
 def health_check():
@@ -533,7 +541,8 @@ def update_camera_config(camera_id: int, config: CameraConfig):
 @app.post("/cameras/{camera_id}/trigger_event")
 def trigger_event(camera_id: int, trigger: EventTrigger):
     """Inject an external event (e.g., from ONVIF) into the camera's processing pipeline."""
-    success = manager.trigger_external_event(camera_id, trigger.event_type, trigger.source)
+    success = manager.trigger_external_event(camera_id, trigger.event_type, trigger.source, trigger.state,
+                                             trigger.labels, trigger.model_dump(include={"timestamp", "channel", "rule", "region", "provider_event_type"}, exclude_none=True))
     if not success:
         raise HTTPException(status_code=404, detail="Camera not found or not active")
     return {"status": "triggered", "camera_id": camera_id, "type": trigger.event_type, "source": trigger.source}

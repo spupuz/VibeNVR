@@ -18,7 +18,7 @@ class MotionDetector:
         self.motion_frame_counter = 0
         self.last_trigger_source = None
 
-    def detect(self, frame, event_callback, save_snapshot_cb, privacy_polygons, motion_polygons, apply_masks_fn, external_motion_time=0, source="external"):
+    def detect(self, frame, event_callback, save_snapshot_cb, privacy_polygons, motion_polygons, apply_masks_fn, external_motion_time=0, source="external", external_active=False, external_labels=None):
         detect_mode = self.config.get('detect_motion_mode', 'Always')
         recording_mode = self.config.get('recording_mode', 'Motion Triggered')
         detect_engine = self.config.get('detect_engine', 'OpenCV')
@@ -51,7 +51,7 @@ class MotionDetector:
             return False
 
         if detect_engine == 'ONVIF Edge':
-            return self._handle_onvif_edge(ext_motion_active, source, frame, event_callback, save_snapshot_cb)
+            return self._handle_onvif_edge(external_active, source, frame, event_callback, save_snapshot_cb, external_labels or [])
 
         # OpenCV or AI Fallback
         if detect_engine.startswith('OpenCV'):
@@ -59,7 +59,7 @@ class MotionDetector:
 
         return self.motion_detected
 
-    def _handle_onvif_edge(self, ext_motion_active, source, frame, event_callback, save_snapshot_cb):
+    def _handle_onvif_edge(self, ext_motion_active, source, frame, event_callback, save_snapshot_cb, labels):
         if ext_motion_active:
             self.last_motion_time = time.time()
             if not self.motion_detected:
@@ -74,7 +74,9 @@ class MotionDetector:
                 elif vid_mode != 'Off':
                     snap_path = save_snapshot_cb(frame, is_temp=True)
                 if event_callback:
-                    payload = {'file_path': snap_path, 'source': self.last_trigger_source} if snap_path else {'source': self.last_trigger_source}
+                    payload = {'source': self.last_trigger_source, 'ai_metadata': labels}
+                    if snap_path:
+                        payload['file_path'] = snap_path
                     event_callback(self.camera_id, 'motion_start', payload)
         else:
             motion_gap = self.config.get('motion_gap', 10)

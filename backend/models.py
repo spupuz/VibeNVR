@@ -23,6 +23,10 @@ class Camera(Base):
     onvif_port = Column(Integer, default=80)
     onvif_username = Column(String, nullable=True)
     onvif_password = Column(String, nullable=True)
+    event_provider = Column(String, nullable=True)  # None preserves legacy detect_engine selection
+    isapi_port = Column(Integer, nullable=True)
+    isapi_username = Column(String, nullable=True)
+    isapi_password = Column(String, nullable=True)
     onvif_profile_token = Column(String, nullable=True)
     onvif_manufacturer = Column(String, nullable=True)
     onvif_model = Column(String, nullable=True)
@@ -231,6 +235,8 @@ class Event(Base):
     height = Column(Integer, nullable=True)
     motion_score = Column(Float, nullable=True)
     ai_metadata = Column(String, nullable=True) # JSON object of detections
+    event_source = Column(String, nullable=True)
+    event_metadata = Column(String, nullable=True)  # JSON, bounded provider fields only
     
     camera = relationship("Camera", back_populates="events")
 

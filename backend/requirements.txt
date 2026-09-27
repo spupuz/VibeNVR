@@ -2,6 +2,7 @@ fastapi
 uvicorn
 sqlalchemy
 psycopg2-binary
+psycopg[binary]>=3.2
 pydantic
 requests[socks]>=2.33.0
 httpx

@@ -1,4 +1,5 @@
 import subprocess
+import json
 import os
 import time
 import logging
@@ -60,7 +61,7 @@ class RecordingManager:
                 return True
         return False
 
-    def handle_recording(self, frame, motion_detected, last_motion_time, stop_recording_cb, trigger_source=None, ai_results=None, pre_buffer_frames=None, override_should_record=None, override_reason=None):
+    def handle_recording(self, frame, motion_detected, last_motion_time, stop_recording_cb, trigger_source=None, ai_results=None, pre_buffer_frames=None, override_should_record=None, override_reason=None, provider_metadata=None):
         if override_should_record is not None and override_reason is not None:
             should_record = override_should_record
             reason = override_reason
@@ -86,6 +87,12 @@ class RecordingManager:
             pre_buf = pre_buffer_frames or []
             pre_buf.append(frame.copy())
             self.start_recording(frame.shape[1], frame.shape[0], pre_buf, reason=reason, trigger_source=trigger_source)
+            if provider_metadata:
+                self.current_event_metadata = provider_metadata.copy()
+            for res in ai_results or []:
+                label = res.get('label')
+                if label and label not in self.current_ai_detections:
+                    self.current_ai_detections.append(label)
             return "STARTED"
         elif not should_record and self.is_recording:
             post_cap = self.config.get('post_capture', 5)
@@ -453,6 +460,8 @@ class RecordingManager:
         is_fallback_or_restart = (reason in ["Fallback", "Restart"])
         if not is_fallback_or_restart:
             self.current_recording_reason = reason
+            self.current_trigger_source = trigger_source if reason.lower() == "motion" else None
+            self.current_event_metadata = {}
             
         actual_reason = getattr(self, 'current_recording_reason', reason)
         self.motion_during_current_recording = (actual_reason == "Motion" or actual_reason == "motion")
@@ -551,6 +560,8 @@ class RecordingManager:
                  "width": width, 
                  "height": height,
                  "ai_metadata": ai_meta_str,
+                 "event_source": getattr(self, 'current_trigger_source', None),
+                 "event_metadata": json.dumps(getattr(self, 'current_event_metadata', {})) if getattr(self, 'current_event_metadata', None) else None,
                  "reason": reason,
                  "method": method
              })

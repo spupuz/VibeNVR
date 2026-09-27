@@ -134,6 +134,7 @@ def perform_group_action(group_id: int, action: schemas.GroupAction, db: Session
                 'threshold', 'despeckle_filter', 'motion_gap', 'captured_before', 'captured_after', 
                 'min_motion_frames', 'show_frame_changes', 'auto_threshold_tuning', 
                 'auto_noise_detection', 'light_switch_detection', 'detect_motion_mode', 'detect_engine',
+                'event_provider', 'isapi_port', 'isapi_username', 'isapi_password',
                 'framerate', 'rotation'
             ],
             'masks': ['mask', 'privacy_masks', 'motion_masks'],

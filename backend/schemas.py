@@ -69,6 +69,25 @@ class CameraBase(BaseModel):
     onvif_port: Optional[int] = 80
     onvif_username: Optional[str] = None
     onvif_password: Optional[str] = None
+    event_provider: Optional[str] = None
+    isapi_port: Optional[int] = None
+    isapi_username: Optional[str] = None
+    isapi_password: Optional[str] = None
+
+    @field_validator('event_provider')
+    @classmethod
+    def validate_event_provider(cls, value):
+        if value not in (None, 'server', 'onvif', 'hikvision_isapi'):
+            raise ValueError('Unsupported camera event provider')
+        return value
+
+    @field_validator('isapi_port')
+    @classmethod
+    def validate_isapi_port(cls, value):
+        if value is not None and not 1 <= value <= 65535:
+            raise ValueError('ISAPI port must be between 1 and 65535')
+        return value
+
     onvif_profile_token: Optional[str] = None
     onvif_manufacturer: Optional[str] = None
     onvif_model: Optional[str] = None
@@ -426,6 +445,19 @@ class CameraCreate(CameraBase):
     def validate_ai_passthrough(self) -> 'CameraCreate':
         if self.detect_engine == "AI" and not self.movie_passthrough:
             raise ValueError('AI Object Detection requires movie_passthrough to be True.')
+        if self.event_provider in ('onvif', 'hikvision_isapi') and self.detect_engine != 'ONVIF Edge':
+            raise ValueError('Camera-native providers require camera-side detection')
+        if self.event_provider == 'server' and self.detect_engine == 'ONVIF Edge':
+            raise ValueError('Server provider requires OpenCV or AI detection')
+        if self.event_provider == 'hikvision_isapi':
+            import re
+            host = self.onvif_host or ''
+            if (not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9.-]{0,252}', host)
+                    or host.lower() in ('localhost', '0.0.0.0', '127.0.0.1')
+                    or host.startswith('127.')):
+                raise ValueError('ISAPI requires a valid camera host')
+            if bool(self.isapi_username) != bool(self.isapi_password):
+                raise ValueError('ISAPI username and password must both be set or both be empty')
         return self
 
 # Groups
@@ -460,6 +492,8 @@ class EventBase(BaseModel):
     height: Optional[int] = None
     motion_score: Optional[float] = None
     ai_metadata: Optional[str] = None
+    event_source: Optional[str] = None
+    event_metadata: Optional[str] = None
 
 class EventCreate(EventBase):
     pass

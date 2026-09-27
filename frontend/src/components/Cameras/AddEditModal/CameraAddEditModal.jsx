@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { 
-    X, Info, Settings2, Activity, EyeOff, Shield, Film, Image, Bell, Type, Copy, Check, Brain 
+    X, Info, Settings2, Activity, EyeOff, Shield, Film, Image, Bell, Type, Copy, Check, Brain, Radio
 } from 'lucide-react';
 import { Portal } from '../../ui/Portal';
 import { SelectField } from '../../ui/FormControls';
@@ -11,6 +11,7 @@ import { CAMERA_SETTINGS_CATEGORIES, CATEGORY_FIELD_MAP, EXCLUDED_FIELDS } from 
 import { GeneralTab } from './Tabs/GeneralTab';
 import { DeviceTab } from './Tabs/DeviceTab';
 import { MotionTab } from './Tabs/MotionTab';
+import { EventSourcesTab } from './Tabs/EventSourcesTab';
 import { PrivacyTab } from './Tabs/PrivacyTab';
 import { MotionZonesTab } from './Tabs/MotionZonesTab';
 import { MoviesTab } from './Tabs/MoviesTab';
@@ -100,6 +101,7 @@ export const CameraAddEditModal = ({
     const tabs = [
         { id: 'general', label: t('cameras.general', 'General'), icon: Info },
         { id: 'video', label: t('cameras.device', 'Device'), icon: Settings2 },
+        { id: 'event_sources', label: t('cameras.event_sources', 'Event Sources'), icon: Radio },
         { id: 'motion', label: t('cameras.motion', 'Motion'), icon: Activity },
         { id: 'privacy', label: t('cameras.privacy_mask', 'Privacy Mask'), icon: EyeOff },
         { id: 'motion_zones', label: t('cameras.motion_zones', 'Motion Zones'), icon: Shield },
@@ -220,11 +222,18 @@ export const CameraAddEditModal = ({
                                     setNewCamera={setNewCamera} 
                                 />
                             )}
+                            {activeTab === 'event_sources' && (
+                                <EventSourcesTab
+                                    newCamera={newCamera}
+                                    setNewCamera={setNewCamera}
+                                    globalSettings={globalSettings}
+                                    setActiveTab={setActiveTab}
+                                />
+                            )}
                             {activeTab === 'motion' && (
                                 <MotionTab 
                                     newCamera={newCamera} 
                                     setNewCamera={setNewCamera} 
-                                    setActiveTab={setActiveTab}
                                     globalSettings={globalSettings}
                                 />
                             )}

@@ -255,7 +255,11 @@ const VideoPlayer = ({
                         <span className="text-[10px] font-black text-white tracking-widest uppercase">
                             {(() => {
                                 if (isLiveMotion) {
-                                    if (camera.detect_engine === 'ONVIF Edge') return 'EDGE MOTION';
+                                    if (camera.event_provider === 'hikvision_isapi') {
+                                        const labels = liveMotionData?.ai_metadata?.map(item => item.label).filter(Boolean);
+                                        return labels?.length ? `${t('cameras.isapi_short', 'ISAPI')}: ${[...new Set(labels)].join(', ')}` : t('live.edge_motion', 'EDGE MOTION');
+                                    }
+                                    if (camera.detect_engine === 'ONVIF Edge') return t('live.edge_motion', 'EDGE MOTION');
                                     if (liveMotionData?.source?.includes('AI Engine')) {
                                         const aiMeta = liveMotionData?.ai_metadata;
                                         if (aiMeta && Array.isArray(aiMeta) && aiMeta.length > 0) {

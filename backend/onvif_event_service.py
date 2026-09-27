@@ -13,6 +13,7 @@ import onvif.exceptions
 from database import SessionLocal
 import models
 import onvif_service
+from camera_event_provider import CameraEvent, selected_provider
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -25,6 +26,8 @@ class OnvifEventManager:
         self._loop = None
         self._thread = None
         self._last_motion_state: Dict[int, bool] = {} # camera_id -> bool
+        self._last_motion_seen: Dict[int, float] = {}
+        self._last_motion_sent: Dict[int, float] = {}
         self._http_session = requests.Session()
 
     def start(self):
@@ -66,7 +69,7 @@ class OnvifEventManager:
             ).all()
             
             for camera in cameras:
-                if camera.onvif_can_events:
+                if camera.onvif_can_events and selected_provider(camera) == "onvif":
                     self.update_subscription(camera.id)
         finally:
             db.close()
@@ -99,13 +102,16 @@ class OnvifEventManager:
             
             if camera_id in self._subscriptions:
                 del self._subscriptions[camera_id]
+        self._last_motion_state.pop(camera_id, None)
+        self._last_motion_seen.pop(camera_id, None)
+        self._last_motion_sent.pop(camera_id, None)
 
         # Check if we should still be subscribed
         db = SessionLocal()
         camera = db.query(models.Camera).get(camera_id)
         db.close()
 
-        if not camera or not camera.is_active or camera.detect_engine != "ONVIF Edge":
+        if not camera or not camera.is_active or selected_provider(camera) != "onvif":
             logger.info(f"Camera {camera_id}: ONVIF Edge not active, skipping subscription")
             return
 
@@ -217,6 +223,10 @@ class OnvifEventManager:
                     if hasattr(response, 'NotificationMessage'):
                         for msg in response.NotificationMessage:
                             self._handle_notification(camera.id, msg)
+                    if (self._last_motion_state.get(camera.id)
+                            and time.monotonic() - self._last_motion_seen.get(camera.id, 0) > 30):
+                        self._last_motion_state[camera.id] = False
+                        self._trigger_engine(camera.id, "inactive")
                     
                     # Reset error counter on success
                     if consecutive_errors > 0:
@@ -368,22 +378,29 @@ class OnvifEventManager:
                         logger.info(f"Camera {camera_id}: Motion topic received with no payload. Treating as trigger.")
                         is_motion = True
 
+            if not is_motion_topic:
+                return
+
             # 5. Trigger Engine only on state change (Rising Edge)
             last_state = self._last_motion_state.get(camera_id, False)
             if is_motion:
+                self._last_motion_seen[camera_id] = time.monotonic()
                 if not last_state:
                     # Rising edge: Start of motion
                     logger.info(f"🏃 [ONVIF] Motion START detected for camera {camera_id}")
                     self._last_motion_state[camera_id] = True
-                    self._trigger_engine(camera_id)
+                    self._trigger_engine(camera_id, "active")
+                    self._last_motion_sent[camera_id] = time.monotonic()
                 else:
-                    # Still active: No need to re-trigger engine
-                    pass
+                    if time.monotonic() - self._last_motion_sent.get(camera_id, 0) > 10:
+                        self._trigger_engine(camera_id, "active")
+                        self._last_motion_sent[camera_id] = time.monotonic()
             else:
                 if last_state:
                     # Falling edge: End of motion
                     logger.info(f"🛑 [ONVIF] Motion END detected for camera {camera_id}")
                     self._last_motion_state[camera_id] = False
+                    self._trigger_engine(camera_id, "inactive")
                 else:
                     # Still inactive
                     pass
@@ -392,12 +409,13 @@ class OnvifEventManager:
             logger.error(f"Error parsing ONVIF message for camera {camera_id}: {e}")
             logger.debug(traceback.format_exc())
 
-    def _trigger_engine(self, camera_id: int):
+    def _trigger_engine(self, camera_id: int, state: str):
         """Call the Engine API to trigger an external event."""
         def do_post():
             try:
                 url = f"{ENGINE_BASE_URL}/cameras/{camera_id}/trigger_event"
-                self._http_session.post(url, json={"event_type": "motion", "source": "ONVIF PullPoint"}, timeout=3)
+                event = CameraEvent(camera_id, "motion", state, "onvif")
+                self._http_session.post(url, json=event.engine_payload(), timeout=3)
             except Exception as e:
                 logger.error(f"Failed to trigger engine for camera {camera_id}: {e}")
         

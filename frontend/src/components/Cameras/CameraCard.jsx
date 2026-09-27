@@ -90,7 +90,7 @@ export const CameraCard = memo(({ camera, onDelete, onEdit, onToggleActive, isSe
 
                             {camera.detect_engine === 'ONVIF Edge' && (
                                 <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-indigo-500/10 text-indigo-600 border-indigo-500/20" title="Camera-side Motion Detection">
-                                    <span>{t('cameras.edge', 'EDGE')}</span>
+                                    <span>{camera.event_provider === 'hikvision_isapi' ? t('cameras.isapi_short', 'ISAPI') : t('cameras.edge', 'EDGE')}</span>
                                 </div>
                             )}
 

@@ -308,7 +308,7 @@ async def probe_ptz_features(
     await run_in_threadpool(_update_camera_features, camera_id, features)
     
     # Trigger subscription update if mode is ONVIF Edge
-    from onvif_event_service import event_manager
-    event_manager.update_subscription(camera_id)
+    from camera_event_coordinator import event_coordinator
+    event_coordinator.update_subscription(camera_id)
     
     return features
