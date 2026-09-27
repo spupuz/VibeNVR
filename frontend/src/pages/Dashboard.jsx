@@ -49,6 +49,9 @@ const SortableWidget = ({ id, span, children }) => {
                 {...attributes}
                 {...listeners}
                 className="absolute top-2 right-2 p-1.5 rounded cursor-grab active:cursor-grabbing text-muted-foreground/20 hover:text-muted-foreground hover:bg-muted z-20 opacity-0 group-hover/widget:opacity-100 transition-opacity"
+                title={t('dragToReorder', 'Drag to reorder')}
+                aria-label={t('dragToReorder', 'Drag to reorder')}
+                role="button"
             >
                 <GripHorizontal className="w-4 h-4" />
             </div>
