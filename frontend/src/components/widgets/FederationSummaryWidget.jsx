@@ -16,7 +16,10 @@ export const FederationSummaryWidget = () => {
 
         const fetchAllNodes = async () => {
             const statsObj = { ...nodeStats };
-            for (const node of nodes) {
+
+            // ⚡ Bolt: Use Promise.all to fetch federated nodes stats concurrently instead of sequentially
+            // Eliminates O(N) latency blocking when multiple nodes are configured.
+            await Promise.all(nodes.map(async (node) => {
                 try {
                     const res = await fetch(`/api/federation/proxy/${node.id}/stats`, {
                         headers: { Authorization: `Bearer ${token}` }
@@ -30,7 +33,8 @@ export const FederationSummaryWidget = () => {
                 } catch (e) {
                     statsObj[node.id] = { error: true };
                 }
-            }
+            }));
+
             setNodeStats(statsObj);
         };
 
