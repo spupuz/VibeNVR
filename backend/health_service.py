@@ -84,10 +84,12 @@ async def check_federation_health():
                     try:
                         # Re-use _verify_remote_node logic but suppress exceptions
                         import requests
-                        base_url = node.url.rstrip("/")
-                        resp = requests.get(f"{base_url}/api/auth/me", headers={"X-API-Key": node.api_token}, timeout=5, allow_redirects=False)
-                        if resp.status_code == 200:
-                            is_online = True
+                        import utils
+                        if utils.is_safe_webhook_url(node.url):
+                            base_url = node.url.rstrip("/")
+                            resp = requests.get(f"{base_url}/api/auth/me", headers={"X-API-Key": node.api_token}, timeout=5, allow_redirects=False)
+                            if resp.status_code == 200:
+                                is_online = True
                     except Exception:
                         pass
                     
