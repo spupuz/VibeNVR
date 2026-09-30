@@ -16,3 +16,6 @@
 ## 2024-11-20 - N+1 Queries in High-Frequency Polling
 **Learning:** During periodic background polling by the frontend (like the `LiveView`, `Dashboard`, and `Cameras` pages polling `/api/cameras`), the backend eagerly loaded heavy relationships (`groups`, `storage_profile`) on every call. This resulted in significant memory bloat, extra DB load, and unnecessary serialization overhead for data the frontend often just used for simple `id -> name` mapping.
 **Action:** Implemented a `?lightweight=true` parameter on the backend `GET /api/cameras` route that uses a separate query skipping eager loading. Updated UI components that don't need relational data (like Dashboard mapping logic and Timeline views) to use the lightweight flag to avoid database bottlenecks.
+## 2026-09-30 - Concurrent Fetching in Polling Loops
+**Learning:** Sequential `await fetch` calls inside a `for...of` loop during frequent polling (e.g., `setInterval`) create a cascading latency bottleneck, especially across remote federation nodes.
+**Action:** Always map over arrays and use `Promise.all` for network requests inside polling intervals to resolve O(N) latency bloat.

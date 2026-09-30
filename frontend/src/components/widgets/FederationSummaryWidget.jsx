@@ -14,23 +14,28 @@ export const FederationSummaryWidget = () => {
     useEffect(() => {
         if (!nodes || nodes.length === 0) return;
 
+        // ⚡ Bolt: Fetch all node stats concurrently to eliminate O(N) latency bottleneck
         const fetchAllNodes = async () => {
-            const statsObj = { ...nodeStats };
-            for (const node of nodes) {
-                try {
-                    const res = await fetch(`/api/federation/proxy/${node.id}/stats`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        statsObj[node.id] = data;
-                    } else {
-                        statsObj[node.id] = { error: true };
+            const results = await Promise.all(
+                nodes.map(async (node) => {
+                    try {
+                        const res = await fetch(`/api/federation/proxy/${node.id}/stats`, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        if (res.ok) {
+                            return { id: node.id, data: await res.json() };
+                        }
+                        return { id: node.id, data: { error: true } };
+                    } catch (e) {
+                        return { id: node.id, data: { error: true } };
                     }
-                } catch (e) {
-                    statsObj[node.id] = { error: true };
-                }
-            }
+                })
+            );
+
+            const statsObj = { ...nodeStats };
+            results.forEach(({ id, data }) => {
+                statsObj[id] = data;
+            });
             setNodeStats(statsObj);
         };
 
