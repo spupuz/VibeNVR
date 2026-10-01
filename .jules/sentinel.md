@@ -19,3 +19,7 @@
 **Vulnerability:** The federation health check in `health_service.py` made HTTP requests to node URLs without verifying if they were safe against SSRF, potentially allowing a compromised database entry to trigger requests to internal services.
 **Learning:** We must apply existing SSRF validations (`utils.is_safe_webhook_url`) to all outbound HTTP requests in background tasks, even if the URL was presumably validated at creation time (defense in depth).
 **Prevention:** Apply strict SSRF validation on any URL retrieved from the database before making background HTTP requests.
+## 2024-05-30 - SSRF Vulnerability in SFTP Client
+**Vulnerability:** The SFTP client established socket connections (`socket.create_connection`) directly to user-provided SFTP hostnames/IPs without validating them against a blocklist, leading to a Server-Side Request Forgery (SSRF) vulnerability targeting loopback, multicast, or cloud-metadata endpoints.
+**Learning:** `is_safe_webhook_url` in `utils.py` contained the robust SSRF validation logic but was tightly coupled to URL parsing. This restricted its use for cases where only a hostname is provided (like SFTP).
+**Prevention:** Extract core SSRF validation logic into a reusable `is_safe_host(hostname)` function and use it universally before establishing outbound connections.
