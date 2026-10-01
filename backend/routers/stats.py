@@ -1,3 +1,4 @@
+import storage_service
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 import shutil
@@ -21,6 +22,33 @@ router = APIRouter(
 )
 
 START_TIME = time.time()
+
+STORAGE_HEALTH_CACHE = {}
+
+def check_profile_health(p) -> str:
+    import time, os, socket
+    from storage_service import translate_path
+    now = time.time()
+    cached = STORAGE_HEALTH_CACHE.get(p.id)
+    if cached and (now - cached[1]) < 60:
+        return cached[0]
+    
+    status = "OK"
+    if p.storage_type == "local" or not p.storage_type:
+        real_path = translate_path(p.path)
+        if not real_path or not os.path.exists(real_path):
+            status = "Path Not Found"
+    elif p.storage_type == "sftp":
+        try:
+            with socket.create_connection((p.sftp_host, p.sftp_port), timeout=2):
+                pass
+        except Exception:
+            status = "Unreachable"
+            
+    STORAGE_HEALTH_CACHE[p.id] = (status, now)
+    return status
+
+
 
 # In-memory storage for resource history (last 60 minutes)
 RESOURCE_HISTORY = deque(maxlen=60)
@@ -264,9 +292,14 @@ def _get_detailed_storage_stats(db: Session, cameras: list, allowed_ids: list | 
         "name": "Default Profile",
         "path": default_path,
         "size_gb": round(default_size / (1024**3), 2),
-        "count": default_count
+        "count": default_count,
+        "storage_type": "local",
+        "host": "Local",
+        "max_size_gb": 0,
+                "status": "OK" if os.path.exists(storage_service.translate_path(default_path) or "") else "Path Not Found"
     }
     
+
     # Calculate Custom Profiles
     for p in profiles:
         p_size = db.query(func.sum(models.Event.file_size)).filter(models.Event.file_path.like(f"{p.path}%")).scalar() or 0
@@ -275,7 +308,11 @@ def _get_detailed_storage_stats(db: Session, cameras: list, allowed_ids: list | 
             "name": p.name,
             "path": p.path,
             "size_gb": round(p_size / (1024**3), 2),
-            "count": p_count
+            "count": p_count,
+            "storage_type": p.storage_type or "local",
+            "host": p.sftp_host if p.storage_type == "sftp" else "Local",
+            "max_size_gb": p.max_size_gb,
+            "status": check_profile_health(p)
         }
 
     return global_movies, global_pics, global_stats, camera_stats, profile_stats
@@ -288,14 +325,16 @@ def _get_disk_usage_stats(global_movies: tuple, global_pics: tuple) -> tuple:
         storage_total_gb = round(total / (2**30), 1)
         storage_free_gb = round(free / (2**30), 1)
         
-        vibe_used_bytes = (global_movies[1] or 0) + (global_pics[1] or 0)
-        storage_used_gb = round(vibe_used_bytes / (1024**3), 2)
+        physical_used_gb = round(used_physical / (2**30), 1)
+        physical_percent = round((used_physical / total) * 100) if total > 0 else 0
         
-        storage_percent = round((vibe_used_bytes / total) * 100) if total > 0 else 0
+        vibe_used_bytes = (global_movies[1] or 0) + (global_pics[1] or 0)
+        vibe_used_gb = round(vibe_used_bytes / (1024**3), 2)
+        
     except Exception as e:
         print(f"Error getting disk usage: {e}")
-        storage_total_gb = storage_used_gb = storage_free_gb = storage_percent = 0
-    return storage_total_gb, storage_free_gb, storage_used_gb, storage_percent
+        storage_total_gb = storage_free_gb = physical_used_gb = physical_percent = vibe_used_gb = 0
+    return storage_total_gb, storage_free_gb, physical_used_gb, physical_percent, vibe_used_gb
 
 def _get_retention_estimates(db: Session, cameras: list, storage_total_gb: float, camera_stats: dict, allowed_ids: list | None = None) -> dict:
     """Calculates retention estimates and storage requirements based on daily usage."""
@@ -487,7 +526,7 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
     global_movies, global_pics, global_stats, camera_stats, profile_stats = _get_detailed_storage_stats(db, cameras, allowed_ids)
 
     # 3. Storage Usage
-    storage_total_gb, storage_free_gb, storage_used_gb, storage_percent = _get_disk_usage_stats(global_movies, global_pics)
+    storage_total_gb, storage_free_gb, physical_used_gb, physical_percent, vibe_used_gb = _get_disk_usage_stats(global_movies, global_pics)
 
     # 4. Retention Estimation Logic
     retention_info = _get_retention_estimates(db, cameras, storage_total_gb, camera_stats, allowed_ids)
@@ -519,16 +558,17 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
         "picture_count": global_pics[0] or 0,
         "storage": {
             "total_gb": storage_total_gb,
-            "used_gb": storage_used_gb,
+            "used_gb": physical_used_gb,
+            "vibe_used_gb": vibe_used_gb,
             "free_gb": storage_free_gb,
-            "percent": storage_percent,
+            "percent": physical_percent,
             "estimated_retention_days": retention_info["global_retention_days"],
             "daily_rate_gb": round(retention_info["global_daily_gb"], 2),
             "configured_retention": retention_info["configured_retention_setting"],
             "configured_retention_days": retention_info["configured_retention_days"],
             "required_storage_gb": retention_info["required_storage_gb"],
             "total_quota_gb": retention_info["max_global_gb"],
-            "quota_percent": round((storage_used_gb / retention_info["max_global_gb"]) * 100) if retention_info["max_global_gb"] > 0 else 0
+            "quota_percent": round((vibe_used_gb / retention_info["max_global_gb"]) * 100) if retention_info["max_global_gb"] > 0 else 0
         },
         "resources": {
             "cpu_percent": total_cpu,

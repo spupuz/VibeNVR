@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request, Form
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session, selectinload
@@ -261,11 +261,12 @@ def init_default_settings(db: Session = Depends(database.get_db), current_user: 
 # BACKUP & RESTORE
 # -----------------------------------------------------------------------------
 
-def _generate_backup_data(db: Session) -> dict:
+def _generate_backup_data(db: Session, comment: str = None) -> dict:
     """Helper to generate backup data from the database."""
     return {
         "timestamp": datetime.datetime.now().isoformat(),
         "version": "1.0",
+        "comment": comment or "",
         "settings": jsonable_encoder(db.query(models.SystemSettings).all()),
         "cameras": jsonable_encoder([schemas.Camera.model_validate(c) for c in db.query(models.Camera).all()]),
         "groups": jsonable_encoder([schemas.CameraGroup.model_validate(g) for g in db.query(models.CameraGroup).all()]),
@@ -325,7 +326,8 @@ def _generate_backup_data(db: Session) -> dict:
 @limiter.limit("5/minute")
 def export_backup(request: Request, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Export configuration to JSON"""
-    data = _generate_backup_data(db)
+    iso_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    data = _generate_backup_data(db, comment=f"Backup made on {iso_date} CET")
     
     filename = f"vibenvr_backup_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     return JSONResponse(
@@ -662,10 +664,23 @@ def list_backups(current_user: models.User = Depends(auth_service.get_current_ac
         if f.endswith(".json"):
             path = os.path.join(backup_service.BACKUP_DIR, f)
             stats = os.stat(path)
+            
+            comment = ""
+            try:
+                with open(path, "r", encoding="utf-8") as file:
+                    head = file.read(2048)
+                    import re
+                    match = re.search(r'"comment":\s*"([^"]*)"', head)
+                    if match:
+                        comment = match.group(1)
+            except Exception:
+                pass
+                
             files.append({
                 "filename": f,
                 "size": stats.st_size,
-                "created_at": datetime.datetime.fromtimestamp(stats.st_ctime).isoformat()
+                "created_at": datetime.datetime.fromtimestamp(stats.st_ctime).isoformat(),
+                "comment": comment
             })
     
     # Sort descending
@@ -673,9 +688,9 @@ def list_backups(current_user: models.User = Depends(auth_service.get_current_ac
     return files
 
 @router.post("/backup/run")
-def manual_backup(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
+def manual_backup(comment: Optional[str] = Form(None), db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_service.get_current_active_admin)):
     """Manually trigger a system backup"""
-    backup_service.run_backup(is_manual=True)
+    backup_service.run_backup(is_manual=True, comment=comment)
     return {"message": "Manual backup completed successfully"}
 
 @router.delete("/backup/{filename}")

@@ -23,6 +23,7 @@ You can enable automated backups in **Settings > Global Settings**.
 Manual backups can be triggered at any time from the UI or the API.
 - **Retention**: Manual backups are **NEVER** automatically deleted. They remain on the server until you manually delete them.
 - **Naming**: Manual backups are prefixed with `_manual_` for easy identification.
+- **Comments**: You can attach an optional custom text comment when creating a manual backup. This is highly recommended for storing test scenarios, before-update snapshots, or keeping track of specific configurations. The comment is displayed directly in the Backup Management table.
  
 ## 🛠 Restoration Procedures
  

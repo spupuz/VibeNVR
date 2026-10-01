@@ -209,7 +209,7 @@
     "no_cameras_found_add_one": "カメラが見つかりません。開始するには1つ追加してください。",
     "enter_a_range_and_scan_to": "範囲を入力してスキャンし、カメラを見つけます",
     "found": "見つかりました",
-    "onvif": "ONVIF​",
+    "onvif": "ONVIF",
     "searching_ports": "ポートを検索しています...",
     "enter_onvif_credentials_f": "ストリームプロファイルを取得するには、このデバイスのONVIF認証情報を入力してください。",
     "connect_probe": "接続してプローブ",
@@ -1416,7 +1416,7 @@
     "external_id": "ID プロバイダーからの外部 ID",
     "sso": "SSO​",
     "linked": "LINKED​",
-    "none": "NONE​",
+    "none": "なし",
     "enable_auto_redirect": "SSO への自動リダイレクトを有効にする",
     "enable_auto_redirect_help": "ローカルのログイン ページをバイパスし、SSO プロバイダーに直接リダイレクトします。この設定をバイパスするには、URL で ?local=true を使用します。"
   },

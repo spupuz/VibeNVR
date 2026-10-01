@@ -71,8 +71,19 @@ VibeNVR employs a hierarchical, **reactive** cleanup strategy. The system automa
 2. **Camera-Level Controls**: Users can define specific `Max Storage (GB)` and `Retention` (Preset intervals like 1 week, or a Custom number of days) per camera.
 3. **Profile/Global Limit**: The system ensures the total disk usage across all cameras remains within the defined profile or global quota, purging the oldest events from any camera as needed.
 
+## Monitoring & Dashboard Analytics
+VibeNVR provides robust telemetry to monitor your storage health across multiple locations directly from the **Dashboard**:
+
+1. **Storage Used (Global Overview)**:
+   - **Physical Disk**: Accurately reports the real hardware capacity and utilization of the primary system disk (the `/data` mount), regardless of which profiles or VibeNVR files are present.
+   - **App Quota**: Reports the virtual "global weight" of VibeNVR. It sums the size of all recordings and snapshots—including those saved on remote SFTP servers—and compares them to the system's Max Global Storage limit.
+2. **Storage Locations Widget**:
+   - A dedicated table providing real-time status for every configured Storage Profile (Local and Remote).
+   - Shows the exact path/host, the logical capacity (Quota), and current consumption.
+   - Includes an intelligent **Health check** (e.g., `OK`, `Path Not Found`, `Unreachable`) powered by a lightweight 2-second socket ping to prevent remote host timeouts from freezing your dashboard.
+
 ## Storage Maintenance & Breakdown
-The **Storage Management** section in Settings provides a detailed breakdown of space usage:
+The **Storage Management** section in Settings provides a deeper breakdown of space usage for maintenance:
 - **Profile Breakdown**: A dedicated table showing the total storage quota, used space, and remaining capacity *per Storage Profile*.
 - **Camera Metrics**: See exactly how many GBs of Video and Snapshots each camera is consuming.
 - **Granular Cleanup**: Use the dedicated **Cleanup** buttons (Trash icons) in the breakdown table to manually purge only videos or only snapshots for a specific camera.

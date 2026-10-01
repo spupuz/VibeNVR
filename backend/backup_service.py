@@ -16,11 +16,12 @@ logger = logging.getLogger(__name__)
 
 BACKUP_DIR = "/data/backups"
 
-def _generate_backup_data(db: Session) -> dict:
+def _generate_backup_data(db: Session, comment: str = None) -> dict:
     """Helper function to collect and format all database entities for backup"""
     return {
         "timestamp": datetime.datetime.now().isoformat(),
         "version": "1.0",
+        "comment": comment or "",
         "settings": jsonable_encoder(db.query(models.SystemSettings).all()),
         "cameras": jsonable_encoder([schemas.Camera.model_validate(c) for c in db.query(models.Camera).all()]),
         "groups": jsonable_encoder([schemas.CameraGroup.model_validate(g) for g in db.query(models.CameraGroup).all()]),
@@ -88,7 +89,7 @@ def _generate_backup_data(db: Session) -> dict:
         } for n in db.query(models.FederatedNode).all()]
     }
 
-def run_backup(is_manual: bool = False):
+def run_backup(is_manual: bool = False, comment: str = None):
     """Generate a configuration backup and save it to the backup folder"""
     try:
         if not os.path.exists(BACKUP_DIR):
@@ -97,7 +98,10 @@ def run_backup(is_manual: bool = False):
         with database.get_db_ctx() as db:
             logger.info(f"Starting {'manual' if is_manual else 'automatic'} configuration backup...")
             
-            data = _generate_backup_data(db)
+            if not comment:
+                comment = f"Backup made on {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+
+            data = _generate_backup_data(db, comment=comment)
 
             prefix = "manual" if is_manual else "auto"
             filename = f"vibe_backup_{prefix}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"

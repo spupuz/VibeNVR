@@ -13,6 +13,7 @@ export const BackupManager = () => {
     const [backups, setBackups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
+    const [comment, setComment] = useState('');
     const [confirmConfig, setConfirmConfig] = useState({ isOpen: false });
 
     const fetchBackups = async () => {
@@ -36,15 +37,24 @@ export const BackupManager = () => {
         if (token) fetchBackups();
     }, [token]);
 
-    const handleBackupNow = async () => {
+        const handleBackupNow = async () => {
         setActionLoading(true);
         try {
+            const formData = new URLSearchParams();
+            if (comment.trim()) {
+                formData.append('comment', comment.trim());
+            }
             const res = await fetch('/api/settings/backup/run', {
                 method: 'POST',
-                headers: { Authorization: `Bearer ${token}` }
+                headers: { 
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: formData.toString()
             });
             if (res.ok) {
                 showToast('Manual backup created successfully', 'success');
+                setComment('');
                 fetchBackups();
             } else {
                 showToast('Failed to trigger backup', 'error');
@@ -138,15 +148,24 @@ export const BackupManager = () => {
                     </h3>
                     <p className="text-sm text-muted-foreground truncate opacity-70">{t('timeline.system_snapshots_and_manu', 'System snapshots and manual backups.')}</p>
                 </div>
-                <Button 
-                    onClick={handleBackupNow} 
-                    disabled={actionLoading}
-                    variant="primary"
-                    className="w-full sm:w-auto flex items-center justify-center gap-3 py-4 sm:py-3 min-h-[48px] sm:min-h-[44px] font-bold text-base shadow-sm"
-                >
-                    {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-6 h-6" />}
-                    Backup NOW
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <input 
+                        type="text" 
+                        placeholder={t('timeline.backup_comment', 'Backup comment (optional)')}
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        className="bg-card border border-border/50 text-foreground text-sm rounded-lg block w-full p-2.5 min-h-[44px] sm:min-w-[250px]"
+                    />
+                    <Button 
+                        onClick={handleBackupNow} 
+                        disabled={actionLoading}
+                        variant="primary"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 py-4 sm:py-3 min-h-[48px] sm:min-h-[44px] font-bold text-base shadow-sm whitespace-nowrap"
+                    >
+                        {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                        Backup NOW
+                    </Button>
+                </div>
             </div>
 
             {loading ? (
@@ -168,6 +187,7 @@ export const BackupManager = () => {
                                     <th className="px-5 py-4">{t('timeline.filename', 'Filename')}</th>
                                     <th className="px-5 py-4 text-center">{t('timeline.type', 'Type')}</th>
                                     <th className="px-5 py-4">{t('timeline.size', 'Size')}</th>
+                                    <th className="px-5 py-4">{t('timeline.comment', 'Comment')}</th>
                                     <th className="px-5 py-4">{t('timeline.created', 'Created')}</th>
                                     <th className="px-5 py-4 text-right">{t('timeline.actions', 'Actions')}</th>
                                 </tr>
@@ -189,6 +209,9 @@ export const BackupManager = () => {
                                         </td>
                                         <td className="px-5 py-4 text-foreground/80 whitespace-nowrap">
                                             {formatSize(b.size)}
+                                        </td>
+                                        <td className="px-5 py-4 text-muted-foreground text-xs max-w-[200px] truncate" title={b.comment || '-'}>
+                                            {b.comment || '-'}
                                         </td>
                                         <td className="px-5 py-4 text-muted-foreground whitespace-nowrap">
                                             <div className="flex items-center gap-1.5 text-xs">
@@ -243,6 +266,7 @@ export const BackupManager = () => {
                                         </span>
                                         <span className="text-xs font-semibold text-muted-foreground">{formatSize(b.size)}</span>
                                     </div>
+                                    {b.comment && <div className="text-xs text-muted-foreground truncate">{b.comment}</div>}
                                 </div>
                                 <div className="flex items-center justify-between pt-4 border-t border-border/40 gap-4">
                                     <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium opacity-80">

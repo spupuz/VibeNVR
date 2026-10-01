@@ -90,7 +90,7 @@
     "name": "姓名",
     "save": "节省",
     "offline": "离线",
-    "online": "在线的",
+    "online": "在线",
     "edit": "编辑",
     "connected": "已连接",
     "disconnected": "已断开"
@@ -209,7 +209,7 @@
     "no_cameras_found_add_one": "未找到摄像机。添加一个以开始。",
     "enter_a_range_and_scan_to": "输入范围并扫描以查找摄像机",
     "found": "找到",
-    "onvif": "ONVIF​",
+    "onvif": "ONVIF",
     "searching_ports": "正在搜索端口...",
     "enter_onvif_credentials_f": "输入此设备的 ONVIF 凭据以检索流配置文件。",
     "connect_probe": "连接并探测",
@@ -1416,7 +1416,7 @@
     "external_id": "来自身份提供商的外部 ID",
     "sso": "SSO​",
     "linked": "LINKED​",
-    "none": "NONE​",
+    "none": "无",
     "enable_auto_redirect": "启用自动重定向到 SSO",
     "enable_auto_redirect_help": "绕过本地登录页面并直接重定向到 SSO 提供商。在 URL 中使用 ?local=true 可以绕过此设置。"
   },

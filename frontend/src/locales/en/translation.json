@@ -187,7 +187,14 @@
     "rec_accel_tooltip": "Hardware acceleration is active and used for video recording encoding.",
     "rec_accel": "REC ACCEL",
     "req_for": "Req. for {{days}} days",
-    "federation_summary_widget": "Multi-Site Overview"
+    "federation_summary_widget": "Multi-Site Overview",
+    "storage_locations": "Storage Locations",
+    "name": "Name",
+    "type": "Type",
+    "health": "Health",
+    "usage": "Usage",
+    "remote": "Remote",
+    "local": "Local"
   },
   "cameras": {
     "event_sources": "Event Sources",
@@ -916,7 +923,9 @@
     "group_name_label": "Group Name",
     "offline": "Offline",
     "media_unavailable": "Media unavailable or remote storage is currently unreachable.",
-    "media_offline": "Media Offline"
+    "media_offline": "Media Offline",
+    "backup_comment": "Backup comment (optional)",
+    "comment": "Comment"
   },
   "live": {
     "edge_motion": "EDGE MOTION",

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router';
-import { Activity, Camera, HardDrive, ShieldAlert, Film, Image, CalendarClock, Cpu, MemoryStick, Settings, GripVertical, GripHorizontal, Network, Database, Zap, Share2, Bot, Brain } from 'lucide-react';
+import { Activity, Camera, HardDrive, Server, Cloud, ShieldAlert, Film, Image, CalendarClock, Cpu, MemoryStick, Settings, GripVertical, GripHorizontal, Network, Database, Zap, Share2, Bot, Brain } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useFederation } from '../contexts/FederationContext';
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -114,7 +114,7 @@ export const Dashboard = () => {
         'federation_summary',
         'storage_movies', 'storage_pictures', 'storage_retention',
         'active_cameras', 'total_events', 'network_stats', 'db_stats',
-        'storage_used', 'cpu_usage', 'memory_usage', 'system_status',
+        'storage_used', 'storage_locations', 'cpu_usage', 'memory_usage', 'system_status',
         'mqtt_status', 'ai_processor',
         'resource_graph', 'network_graph', 'activity_graph', 'media_graph', 'recent_events'
     ];
@@ -404,7 +404,7 @@ export const Dashboard = () => {
                                         style={{ width: `${Math.min(100, stats.storage.quota_percent)}%` }}
                                     />
                                 </div>
-                                <p className="text-[10px] text-muted-foreground mt-0.5 text-right">{stats.storage.used_gb}GB / {stats.storage.total_quota_gb}GB</p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5 text-right">{stats.storage.vibe_used_gb || stats.storage.used_gb}GB / {stats.storage.total_quota_gb}GB</p>
                             </div>
                         )}
 
@@ -425,6 +425,64 @@ export const Dashboard = () => {
                 </div>
             )
         },
+
+        storage_locations: {
+            span: 'col-span-12',
+            group: 'storage',
+            render: () => (
+                <div className="p-4 md:p-6 rounded-xl bg-card border border-border flex flex-col h-full hover:shadow-lg transition-shadow duration-300">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('dashboard.storage_locations', 'Storage Locations')}</h3>
+                        <div className="rounded-full bg-primary/10 p-2 text-primary group-hover:scale-110 transition-transform">
+                            <Server className="w-5 h-5" />
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-border/50 text-muted-foreground">
+                                    <th className="py-2 px-3">{t('dashboard.name', 'Name')}</th>
+                                    <th className="py-2 px-3">{t('dashboard.type', 'Type')}</th>
+                                    <th className="py-2 px-3">{t('dashboard.health', 'Health')}</th>
+                                    <th className="py-2 px-3">{t('dashboard.usage', 'Usage')}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Object.values(stats.details?.profiles || {}).map((p, i) => (
+                                    <tr key={i} className="border-b border-border/10 last:border-0 hover:bg-muted/50 transition-colors">
+                                        <td className="py-2 px-3 font-medium">{p.name}</td>
+                                        <td className="py-2 px-3">
+                                            {p.storage_type === 'sftp' ? (
+                                                <span className="flex items-center text-blue-500 gap-1"><Cloud className="w-3 h-3"/> {t('dashboard.remote', 'Remote')}</span>
+                                            ) : (
+                                                <span className="flex items-center text-primary gap-1"><HardDrive className="w-3 h-3"/> {t('dashboard.local', 'Local')}</span>
+                                            )}
+                                        </td>
+                                        <td className="py-2 px-3">
+                                            {p.status === 'OK' ? (
+                                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-500">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                                                    OK
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-500">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                                                    {p.status || 'Error'}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="py-2 px-3 text-muted-foreground">
+                                            {p.size_gb} GB {p.max_size_gb > 0 ? `/ ${p.max_size_gb} GB (${Math.round((p.size_gb / p.max_size_gb) * 100)}%)` : ''}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )
+        },
+
         cpu_usage: { group: 'system', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title={t('dashboard.cpu_usage', 'CPU Usage')} value={`${stats.resources?.cpu_percent || 0}%`} subtext={`${t('dashboard.engine', 'Engine')}: ${stats.resources?.engine_cpu || 0}%`} icon={Cpu} /> },
         memory_usage: { group: 'system', span: 'col-span-12 md:col-span-6 lg:col-span-3', render: () => <StatCard title={t('dashboard.memory', 'Memory')} value={`${Math.round(stats.resources?.memory_mb || 0)} MB`} subtext={`${t('dashboard.engine', 'Engine')}: ${Math.round(stats.resources?.engine_mem_mb || 0)} MB`} icon={MemoryStick} /> },
         system_status: {
