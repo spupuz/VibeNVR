@@ -15,3 +15,7 @@
 **Vulnerability:** The `test_notification` endpoint allowed arbitrary internal SMTP connections (SSRF) because it lacked the loopback/link-local validation used for webhooks.
 **Learning:** SSRF protections were tightly coupled inside the webhook validation function rather than being a reusable network security utility, leading to gaps in coverage for other network calls (like SMTP/SFTP).
 **Prevention:** Abstracted IP validation into a centralized `utils.is_safe_host()` function to enforce consistent defense-in-depth across all outbound network connections in the application.
+## 2024-05-25 - SSRF Prevention in Federation Node Health Check
+**Vulnerability:** The federation health check in `health_service.py` made HTTP requests to node URLs without verifying if they were safe against SSRF, potentially allowing a compromised database entry to trigger requests to internal services.
+**Learning:** We must apply existing SSRF validations (`utils.is_safe_webhook_url`) to all outbound HTTP requests in background tasks, even if the URL was presumably validated at creation time (defense in depth).
+**Prevention:** Apply strict SSRF validation on any URL retrieved from the database before making background HTTP requests.
