@@ -518,9 +518,10 @@ export const Cameras = () => {
                     return;
                 }
 
-                for (const targetId of copyTargets) {
+                // ⚡ Bolt: Execute copy updates concurrently to eliminate O(N) wait times
+                await Promise.all(copyTargets.map(async (targetId) => {
                     const targetCam = cameras.find(c => c.id === targetId);
-                    if (!targetCam) continue;
+                    if (!targetCam) return;
 
                     const updatedCam = { ...targetCam, ...settingsToCopy };
                     try {
@@ -537,7 +538,7 @@ export const Cameras = () => {
                         console.error(`Failed to update camera ${targetId}`, err);
                         showToast(`Failed to copy to camera ${targetCam.name}: ${err.message}`, 'error');
                     }
-                }
+                }));
 
                 setShowCopyModal(false);
                 setCopyTargets([]);
