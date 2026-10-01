@@ -51,7 +51,7 @@ class MotionDetector:
             return False
 
         if detect_engine == 'ONVIF Edge':
-            return self._handle_onvif_edge(external_active, source, frame, event_callback, save_snapshot_cb, external_labels or [])
+            return self._handle_onvif_edge(external_active or ext_motion_active, source, frame, event_callback, save_snapshot_cb, external_labels or [])
 
         # OpenCV or AI Fallback
         if detect_engine.startswith('OpenCV'):

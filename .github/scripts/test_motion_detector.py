@@ -55,7 +55,7 @@ def test_onvif_edge_start_motion(base_config, dummy_frame, mock_callbacks):
     assert result is True
     assert md.motion_detected is True
     assert md.last_trigger_source == "external"
-    event_cb.assert_called_once_with(1, 'motion_start', {'file_path': '/tmp/snap.jpg', 'source': 'external'})
+    event_cb.assert_called_once_with(1, 'motion_start', {'source': 'external', 'ai_metadata': [], 'file_path': '/tmp/snap.jpg'})
 
 def test_onvif_edge_end_motion(base_config, dummy_frame, mock_callbacks):
     base_config['detect_engine'] = 'ONVIF Edge'
