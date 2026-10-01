@@ -27,6 +27,10 @@ def _trip_circuit_breaker(host, port):
 
 def upload_file(profile, src_path, dest_path_suffix):
     """Uploads a file to SFTP with retry logic."""
+    if not utils.is_safe_host(profile.sftp_host):
+        logger.error(f"SFTP Upload aborted: Unsafe host {profile.sftp_host}")
+        return None
+
     if _check_circuit_breaker(profile.sftp_host, profile.sftp_port):
         logger.warning(f"SFTP Upload aborted: {profile.sftp_host} is offline (Circuit Breaker)")
         return None
@@ -71,6 +75,10 @@ def upload_file(profile, src_path, dest_path_suffix):
 
 def download_file(profile, remote_path, local_path):
     """Downloads a file from SFTP to a local path with retry logic."""
+    if not utils.is_safe_host(profile.sftp_host):
+        logger.error(f"SFTP Download aborted: Unsafe host {profile.sftp_host}")
+        return False
+
     if _check_circuit_breaker(profile.sftp_host, profile.sftp_port):
         logger.warning(f"SFTP Download aborted: {profile.sftp_host} is offline (Circuit Breaker)")
         return False
@@ -101,6 +109,9 @@ import time
 
 def test_connection(host, port, username, password, remote_path):
     """Test SFTP connection and write permissions."""
+    if not utils.is_safe_host(host):
+        return {"success": False, "message": f"Connection failed: Unsafe host {host}"}
+
     try:
         sock = socket.create_connection((host, port), timeout=5)
         transport = paramiko.Transport(sock)
@@ -142,6 +153,10 @@ def test_connection(host, port, username, password, remote_path):
 
 def delete_file(profile, remote_path):
     """Deletes a file from SFTP."""
+    if not utils.is_safe_host(profile.sftp_host):
+        logger.error(f"SFTP Delete aborted: Unsafe host {profile.sftp_host}")
+        return 0
+
     if _check_circuit_breaker(profile.sftp_host, profile.sftp_port):
         logger.warning(f"SFTP Delete aborted: {profile.sftp_host} is offline (Circuit Breaker)")
         return 0

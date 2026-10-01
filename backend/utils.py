@@ -4,14 +4,9 @@ import ipaddress
 from urllib.parse import urlparse
 
 
-def is_safe_webhook_url(url: str) -> bool:
-    """Check if a webhook URL is safe from SSRF attacks."""
+def is_safe_host(hostname: str) -> bool:
+    """Check if a hostname or IP is safe from SSRF attacks."""
     try:
-        parsed = urlparse(url)
-        if parsed.scheme not in ("http", "https"):
-            return False
-
-        hostname = parsed.hostname
         if not hostname:
             return False
 
@@ -38,6 +33,18 @@ def is_safe_webhook_url(url: str) -> bool:
                 return False
 
         return True
+    except Exception:
+        return False
+
+def is_safe_webhook_url(url: str) -> bool:
+    """Check if a webhook URL is safe from SSRF attacks."""
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+
+        hostname = parsed.hostname
+        return is_safe_host(hostname)
     except Exception:
         return False
 

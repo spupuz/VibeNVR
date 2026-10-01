@@ -1,7 +1,12 @@
 import pytest
+import os
+import sys
 from fastapi import HTTPException
-from routers.federation import _verify_remote_node
 from unittest.mock import patch
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../backend')))
+
+from routers.federation import _verify_remote_node
 
 def test_verify_remote_node_ssrf_protection():
     unsafe_urls = [
