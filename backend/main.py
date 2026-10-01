@@ -20,6 +20,7 @@ from slowapi.errors import RateLimitExceeded
 import database
 from database import engine, Base
 from routers import cameras, events, stats, settings, auth, users, groups, logs, homepage, api_tokens, onvif_router, storage
+from routers import camera_event_sources
 import auth_service
 import models
 import storage_service
@@ -280,8 +281,8 @@ async def lifespan(app: FastAPI):
     telemetry_service.start_telemetry()
     import backup_service
     backup_service.start_scheduler()
-    from onvif_event_service import event_manager
-    event_manager.start()
+    from camera_event_coordinator import event_coordinator
+    event_coordinator.start()
 
     # Regenerate motion config
     with database.get_db_ctx() as db:
@@ -293,6 +294,9 @@ async def lifespan(app: FastAPI):
             settings.init_default_settings(db, current_user=None) # Bypass admin check during startup
         except Exception as e:
             logger.warning(f"Startup warning: {e}")
+
+    event_coordinator.bootstrap()
+
 
     # Background orphan recovery (delayed to not overload startup)
     def run_orphan_recovery():
@@ -310,8 +314,8 @@ async def lifespan(app: FastAPI):
 
     yield
     # Shutdown actions (if any)
-    from onvif_event_service import event_manager
-    event_manager.stop()
+    from camera_event_coordinator import event_coordinator
+    event_coordinator.stop()
 
 # Read version from package.json
 try:
@@ -415,6 +419,7 @@ async def database_exception_handler(request: Request, exc: OperationalError):
     )
 
 app.include_router(cameras.router)
+app.include_router(camera_event_sources.router)
 app.include_router(events.router)
 app.include_router(stats.router)
 app.include_router(settings.router)

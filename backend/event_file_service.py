@@ -251,6 +251,8 @@ def process_webhook_file_event(
             height=payload.get("height"),
             motion_score=0.0,
             ai_metadata=payload.get("ai_metadata"),
+            event_source=payload.get("event_source"),
+            event_metadata=payload.get("event_metadata"),
         )
 
         if event_type == "movie_end":
@@ -400,4 +402,3 @@ def process_webhook_file_event(
         db.close()
 
     return {"status": "received"}
-

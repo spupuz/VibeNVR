@@ -425,6 +425,10 @@ export const Cameras = () => {
 
     const handleCreate = async (e, shouldClose = true) => {
         if (e) e.preventDefault();
+        if (newCamera.event_provider === 'hikvision_isapi' && newCamera._isapi_use_separate && (!newCamera.isapi_username || !newCamera.isapi_password)) {
+            showToast(t('cameras.isapi_credentials_required', 'Enter both an ISAPI username and password to use separate credentials.'), 'error');
+            return;
+        }
         try {
             const url = editingId
                 ? `/api/cameras/${editingId}`

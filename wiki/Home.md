@@ -22,6 +22,7 @@ This Wiki serves as the extended documentation hub for advanced configurations, 
 - **[Backup & Restore](Backups.md)** - System snapshots and configuration management.
 - **[UniFi Protect Integration](UniFi-Protect.md)** - Native support for RSTSPS and UniFi ports.
 - **[ONVIF Management](ONVIF-Management.md)** - Pan-Tilt-Zoom (PTZ) controls and hardware probing.
+- **[Camera Event Providers](Camera-Event-Providers.md)** - Guide to Hikvision ISAPI, ONVIF Edge, and Server AI.
 - **[Users & Roles](Users-and-Roles.md)** - Role-Based Access Control (RBAC) and restricted viewer configurations.
 - **[2FA & Trusted Devices](MFA-Trusted-Devices.md)** - Two-Factor Authentication, recovery codes, and security tokens.
 - **[SSO & OAuth](SSO-OAuth-Integration.md)** - Integrating with Authentik, Keycloak, or Google for Single Sign-On.

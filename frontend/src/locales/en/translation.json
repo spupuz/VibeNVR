@@ -91,7 +91,9 @@
     "save": "Save",
     "offline": "Offline",
     "online": "Online",
-    "edit": "Edit"
+    "edit": "Edit",
+    "connected": "Connected",
+    "disconnected": "Disconnected"
   },
   "login": {
     "welcome_back": "Welcome Back",
@@ -188,6 +190,38 @@
     "federation_summary_widget": "Multi-Site Overview"
   },
   "cameras": {
+    "event_sources": "Event Sources",
+    "event_source": "Event Source",
+    "event_source_description": "Choose how this camera detects events. Recording settings remain independent.",
+    "configure_camera_host": "Configure the camera host in ONVIF settings to use camera-native event sources.",
+    "hikvision_isapi_provider": "Hikvision ISAPI (Camera-side Classification)",
+    "isapi_event_settings": "Hikvision ISAPI Events",
+    "isapi_connection_description": "Connect to the camera HTTP API for classified events.",
+    "isapi_camera_host": "Camera host",
+    "not_configured": "Not configured",
+    "edit_camera_host": "Edit host",
+    "isapi_credentials": "ISAPI credentials",
+    "isapi_use_onvif_credentials": "Use ONVIF credentials",
+    "isapi_use_separate_credentials": "Use separate ISAPI credentials",
+    "isapi_username_required": "ISAPI username",
+    "isapi_password_required": "ISAPI password",
+    "isapi_credentials_required": "Enter both an ISAPI username and password to use separate credentials.",
+    "isapi_onvif_credentials_info": "Using the saved ONVIF username and password for this camera.",
+    "isapi_short": "ISAPI",
+    "isapi_reuse_onvif": "Uses the ONVIF host and credentials unless overridden below.",
+    "isapi_http_port": "ISAPI HTTP port",
+    "isapi_username": "ISAPI username (optional)",
+    "isapi_password": "ISAPI password (optional)",
+    "event_provider_status": "Event provider status",
+    "observed_labels": "Observed labels",
+    "last_event": "Last event",
+    "connection_issue": "Connection issue",
+    "isapi_error_unauthorized": "Authentication rejected",
+    "isapi_error_not_found": "ISAPI alert stream not found",
+    "isapi_error_http_error": "Camera returned an HTTP error",
+    "isapi_error_timeout": "Camera did not send data before timeout",
+    "isapi_error_connection_error": "Cannot connect to camera HTTP port",
+    "isapi_error_unexpected_response": "Unexpected ISAPI stream response",
     "title": "Cameras",
     "subtitle": "Manage your video sources.",
     "add_camera": "Add Camera",
@@ -602,6 +636,7 @@
     "federation_desc": "Connect and manage remote VibeNVR instances from this Master node."
   },
   "timeline": {
+    "hikvision_isapi": "Hikvision ISAPI",
     "title": "Timeline",
     "events": "events",
     "subtitle": "Browse recorded events and media.",
@@ -884,6 +919,7 @@
     "media_offline": "Media Offline"
   },
   "live": {
+    "edge_motion": "EDGE MOTION",
     "title": "Live View",
     "cameras": "cameras",
     "subtitle": "Monitor your cameras in real-time.",

@@ -185,6 +185,9 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
                     <p className="text-[10px] text-muted-foreground truncate">
                         {event.file_path?.split('/').pop()}
                     </p>
+                    {event.event_source === 'hikvision_isapi' && (
+                        <span className="text-[9px] text-muted-foreground">{t('timeline.hikvision_isapi', 'Hikvision ISAPI')}</span>
+                    )}
                     {event.ai_metadata && (
                         <div className="flex flex-wrap gap-1 mt-1">
                             {[...new Set(event.ai_metadata.split(',').map(l => l.trim().toLowerCase()).filter(l => l))].map((label, idx) => (

@@ -213,9 +213,9 @@ def create_camera(
         )
 
     # Update ONVIF Event subscription if needed
-    from onvif_event_service import event_manager
+    from camera_event_coordinator import event_coordinator
 
-    event_manager.update_subscription(new_camera.id)
+    event_coordinator.update_subscription(new_camera.id)
 
     motion_service.generate_motion_config(db)
     return new_camera
@@ -326,17 +326,21 @@ def _sync_camera_engine_state(
         )
         if db_camera.is_active:
             motion_service.update_camera_runtime(db_camera)
+            from camera_event_coordinator import event_coordinator
+            event_coordinator.update_subscription(camera_id)
         else:
             motion_service.stop_camera(db_camera.id)
+            from camera_event_coordinator import event_coordinator
+            event_coordinator.update_subscription(camera_id)
     else:
         # Just update runtime config if active
         if db_camera.is_active:
             logger.info(f"Camera {db_camera.name} updated. Applying runtime config...")
             motion_service.update_camera_runtime(db_camera)
             # Update ONVIF Event subscription if needed
-            from onvif_event_service import event_manager
+            from camera_event_coordinator import event_coordinator
 
-            event_manager.update_subscription(camera_id)
+            event_coordinator.update_subscription(camera_id)
             # Immediate health refresh
             background_tasks.add_task(health_service.refresh_camera_health, camera_id)
         else:
@@ -344,6 +348,8 @@ def _sync_camera_engine_state(
                 f"Camera {db_camera.name} updated (inactive). Ensuring it is stopped..."
             )
             motion_service.stop_camera(db_camera.id)
+            from camera_event_coordinator import event_coordinator
+            event_coordinator.update_subscription(camera_id)
 
 
 @router.put("/{camera_id}", response_model=schemas.Camera)

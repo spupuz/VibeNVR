@@ -9,6 +9,14 @@ RUN npm config set fetch-retries 5 && \
     npm install --no-audit --no-fund --legacy-peer-deps || \
     (rm -rf node_modules package-lock.json && npm install --no-audit --no-fund)
 
+# npm can omit Rolldown's ARM64/musl optional native binding when the lockfile
+# was generated on another platform. Install the exact installed JS version.
+RUN if [ "$(uname -m)" = "aarch64" ]; then \
+      npm install --no-save --package-lock=false --no-audit --no-fund --legacy-peer-deps \
+        "rolldown@$(node -p "require('rolldown/package.json').version")" \
+        "@rolldown/binding-linux-arm64-musl@$(node -p "require('rolldown/package.json').version")"; \
+    fi
+
 COPY index.html vite.config.js tailwind.config.js postcss.config.js ./
 COPY src ./src
 COPY public ./public

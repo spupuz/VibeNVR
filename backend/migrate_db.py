@@ -97,6 +97,10 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "onvif_port", "INTEGER", 80)
     add_column_if_not_exists(engine, "cameras", "onvif_username", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "onvif_password", "VARCHAR")
+    add_column_if_not_exists(engine, "cameras", "event_provider", "VARCHAR")
+    add_column_if_not_exists(engine, "cameras", "isapi_port", "INTEGER")
+    add_column_if_not_exists(engine, "cameras", "isapi_username", "VARCHAR")
+    add_column_if_not_exists(engine, "cameras", "isapi_password", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "onvif_profile_token", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "onvif_manufacturer", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "onvif_model", "VARCHAR")
@@ -215,6 +219,8 @@ def migrate():
     add_column_if_not_exists(engine, "events", "motion_score", "FLOAT")
     add_column_if_not_exists(engine, "events", "thumbnail_path", "VARCHAR")
     add_column_if_not_exists(engine, "events", "ai_metadata", "TEXT")
+    add_column_if_not_exists(engine, "events", "event_source", "VARCHAR")
+    add_column_if_not_exists(engine, "events", "event_metadata", "TEXT")
 
     # Users
     add_column_if_not_exists(engine, "users", "avatar_path", "VARCHAR")

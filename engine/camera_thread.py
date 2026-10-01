@@ -76,6 +76,11 @@ class CameraThread(threading.Thread):
         self.last_frame_update_time = 0.0
         self.last_external_motion_time = 0.0
         self.last_external_motion_source = "none"
+        self.external_motion_active = False
+        self.external_motion_seen = 0.0
+        self.external_motion_labels = set()
+        self.external_event_metadata = {}
+        self.last_reported_external_labels = set()
         self.latest_ai_results = []
         self.last_ai_update_time = 0.0
         self._sw_recording_started_at = 0.0  # Tracks SW encode start for libx264 startup skip
@@ -246,6 +251,7 @@ class CameraThread(threading.Thread):
                     
                 # AI Inference Logic
                 ai_results = []
+                external_results = []
                 motion_active = False
                 
                 if detect_engine == 'AI':
@@ -359,11 +365,25 @@ class CameraThread(threading.Thread):
                     motion_active = (time.time() - self.motion_detector.last_motion_time) < post_motion_delay
                 else:
                     # OpenCV or ONVIF Mode: Run motion detector first
+                    with self.lock:
+                        if self.external_motion_active and time.monotonic() - self.external_motion_seen > 30:
+                            self.external_motion_active = False
+                        external_active = self.external_motion_active
+                        external_labels = list(self.external_motion_labels) if external_active else []
+                    external_results = [{'label': label} for label in external_labels]
+                    if self.motion_detector.motion_detected and set(external_labels) != self.last_reported_external_labels:
+                        self.last_reported_external_labels = set(external_labels)
+                        if external_results and self.event_callback:
+                            self.event_callback(self.camera_id, 'motion_on', {
+                                'source': self.last_external_motion_source, 'ai_metadata': external_results
+                            })
                     motion_active = self.motion_detector.detect(
                         frame, self.event_callback, self.save_snapshot, 
                         self.privacy_polygons, self.motion_polygons, apply_masks,
                         external_motion_time=self.last_external_motion_time,
-                        source=self.last_external_motion_source
+                        source=self.last_external_motion_source,
+                        external_active=external_active,
+                        external_labels=external_results
                     )
                     
                     # AI as a filter is no longer supported per user request.
@@ -395,7 +415,8 @@ class CameraThread(threading.Thread):
                 res = self.motion_recorder.handle_recording(
                     frame, motion_active, self.motion_detector.last_motion_time, 
                     lambda: self.motion_recorder.stop_recording(self.event_callback, self.width, self.height),
-                    trigger_source=trigger_source, ai_results=ai_results, pre_buffer_frames=pre_buf,
+                    trigger_source=trigger_source, ai_results=external_results if detect_engine == 'ONVIF Edge' else ai_results,
+                    provider_metadata=self.external_event_metadata if detect_engine == 'ONVIF Edge' else None, pre_buffer_frames=pre_buf,
                     override_should_record=should_record_motion, override_reason="Motion"
                 )
                 if res == "STARTED":
@@ -523,12 +544,26 @@ class CameraThread(threading.Thread):
         self.continuous_recorder.stop_recording(self.event_callback, self.width, self.height)
         self.motion_recorder.stop_recording(self.event_callback, self.width, self.height)
 
-    def trigger_external_event(self, event_type: str, source: str = "external"):
+    def trigger_external_event(self, event_type: str, source: str = "onvif", state: str = "active", labels=None, metadata=None):
         """Inject an event from outside (e.g., local sensor, ONVIF PullPoint)"""
-        if event_type == "motion":
-            self.last_external_motion_time = time.time()
-            self.last_external_motion_source = source
-            logger.debug(f"Camera {self.config.get('name')}: External motion event received (Source: {source})")
+        if event_type != 'motion' or self.config.get('event_provider') != source:
+            return False
+        with self.lock:
+            if state == 'inactive':
+                self.external_motion_active = False
+                self.external_motion_labels.clear()
+            else:
+                if not self.external_motion_active:
+                    self.external_motion_labels.clear()
+                    self.last_reported_external_labels.clear()
+                    self.external_event_metadata = {}
+                self.external_motion_active = True
+                self.external_motion_seen = time.monotonic()
+                self.last_external_motion_time = time.time()
+                self.last_external_motion_source = source
+                self.external_motion_labels.update(labels or [])
+                self.external_event_metadata.update(metadata or {})
+        return True
             
     def _draw_single_box(self, frame, res):
         """Helper to draw a single AI detection box and label"""

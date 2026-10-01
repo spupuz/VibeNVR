@@ -64,7 +64,7 @@ def _send_telegram_notification(
             prefix = (
                 "🤖 <b>AI</b> "
                 if "AI Engine" in source
-                else ("📷 <b>Edge</b> " if source == "ONVIF Edge" else "🚨 ")
+                else ("📷 <b>Edge</b> " if source in ("ONVIF Edge", "onvif", "hikvision_isapi") else "🚨 ")
             )
             caption = f"{prefix}<b>Motion Detected!</b>\n📷 Camera: {safe_name}\n⏰ Time: {safe_ts}"
 
@@ -540,4 +540,3 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
             db_notify.close()
 
     threading.Thread(target=_send, daemon=True).start()
-

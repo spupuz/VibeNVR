@@ -279,8 +279,6 @@ def delete_event(
 
     return event
 
-@router.get("/{event_id}/download")
-
 def safe_remove(path):
     try:
         if os.path.exists(path):
@@ -288,6 +286,7 @@ def safe_remove(path):
     except Exception as e:
         logger.error(f"Failed to cleanup temp file {path}: {e}")
 
+@router.get("/{event_id}/download")
 async def download_event(event_id: int, request: Request, background_tasks: BackgroundTasks, token: Optional[str] = None):
     """Download event file with proper headers for cross-origin support"""
     # Try query param first (for backward compatibility), then cookie

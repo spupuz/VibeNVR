@@ -71,10 +71,9 @@ class CameraManager:
         else:
             self.start_camera(camera_id, config)
 
-    def trigger_external_event(self, camera_id: int, event_type: str, source: str = "external"):
+    def trigger_external_event(self, camera_id: int, event_type: str, source: str = "onvif", state: str = "active", labels=None, metadata=None):
         if camera_id in self.cameras:
-            self.cameras[camera_id].trigger_external_event(event_type, source)
-            return True
+            return self.cameras[camera_id].trigger_external_event(event_type, source, state, labels or [], metadata or {})
         return False
 
     def get_frame(self, camera_id: int):
@@ -158,6 +157,8 @@ class CameraManager:
                     data["reason"] = payload.get("reason", "unknown")
                     if "ai_metadata" in payload:
                         data["ai_metadata"] = payload["ai_metadata"]
+                    data["event_source"] = payload.get("event_source")
+                    data["event_metadata"] = payload.get("event_metadata")
                 else:
                     data["file_path"] = payload # legacy string payload
 
