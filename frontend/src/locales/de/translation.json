@@ -187,7 +187,14 @@
     "rec_accel_tooltip": "Die Hardwarebeschleunigung ist aktiv und wird für die Kodierung der Videoaufzeichnung verwendet.",
     "req_for": "Anf. für {{days}} Tage",
     "federation_summary_widget": "Multi-Site-Übersicht",
-    "rec_accel": "REC ACCEL​"
+    "rec_accel": "REC ACCEL​",
+    "storage_locations": "Speicherorte",
+    "name": "Name",
+    "type": "Typ",
+    "health": "Zustand",
+    "usage": "Nutzung",
+    "remote": "Remote",
+    "local": "Lokal"
   },
   "cameras": {
     "title": "Kameras",
@@ -611,7 +618,9 @@
     "isapi_error_http_error": "Die Kamera gab einen HTTP-Fehler zurück",
     "isapi_error_timeout": "Kamera sendete keine Daten vor Timeout",
     "isapi_error_connection_error": "Kann keine Verbindung zum HTTP-Port der Kamera herstellen",
-    "isapi_error_unexpected_response": "Unerwartete ISAPI-Stream-Antwort"
+    "isapi_error_unexpected_response": "Unerwartete ISAPI-Stream-Antwort",
+    "isapi_trim_quiet_tail": "Ruhiges Filmmaterial aus Bewegungsclips kürzen",
+    "isapi_trim_quiet_tail_help": "Überprüfen Sie nur den fertigen Clip; behalten Sie die Sekunden für Aufnahme Nach nach der letzten deutlichen Bewegung bei. Im Zweifelsfall Original behalten."
   },
   "settings": {
     "general_preferences": "Allgemeine Einstellungen",
@@ -916,7 +925,9 @@
     "offline": "Offline",
     "media_unavailable": "Medien nicht verfügbar",
     "media_offline": "Medien Offline",
-    "hikvision_isapi": "Hikvision ISAPI"
+    "hikvision_isapi": "Hikvision ISAPI",
+    "backup_comment": "Backup-Kommentar (optional)",
+    "comment": "Kommentar"
   },
   "live": {
     "title": "Live-Ansicht",

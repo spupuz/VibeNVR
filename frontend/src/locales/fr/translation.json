@@ -187,7 +187,14 @@
     "rec_accel_tooltip": "L'accélération matérielle est active et utilisée pour l'encodage de l'enregistrement vidéo.",
     "rec_accel": "ENR. ACCÉL.",
     "req_for": "Exig. pendant {{days}} jours",
-    "federation_summary_widget": "Présentation multi-sites"
+    "federation_summary_widget": "Présentation multi-sites",
+    "storage_locations": "Emplacements de stockage",
+    "name": "Nom",
+    "type": "Type",
+    "health": "Santé",
+    "usage": "Utilisation",
+    "remote": "Distant",
+    "local": "Local"
   },
   "cameras": {
     "title": "Caméras",
@@ -611,7 +618,9 @@
     "isapi_error_http_error": "La caméra a renvoyé une erreur HTTP",
     "isapi_error_timeout": "La caméra n'a pas envoyé de données avant l'expiration",
     "isapi_error_connection_error": "Impossible de se connecter au port HTTP de la caméra",
-    "isapi_error_unexpected_response": "Réponse inattendue du flux ISAPI"
+    "isapi_error_unexpected_response": "Réponse inattendue du flux ISAPI",
+    "isapi_trim_quiet_tail": "Supprimer les séquences calmes des clips de mouvement",
+    "isapi_trim_quiet_tail_help": "Vérifiez uniquement le clip terminé ; conservez les secondes de Capture Après après le dernier mouvement clair. Conservez l'original en cas de doute."
   },
   "settings": {
     "general_preferences": "Préférences générales",
@@ -916,7 +925,9 @@
     "offline": "Hors ligne",
     "media_unavailable": "Média Indisponible",
     "media_offline": "Média Hors ligne",
-    "hikvision_isapi": "Hikvision ISAPI"
+    "hikvision_isapi": "Hikvision ISAPI",
+    "backup_comment": "Commentaire de sauvegarde (facultatif)",
+    "comment": "Commentaire"
   },
   "live": {
     "title": "Vue en direct",

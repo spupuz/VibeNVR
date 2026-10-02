@@ -187,7 +187,14 @@
     "rec_accel_tooltip": "Аппаратное ускорение активно и используется для кодирования видеозаписи.",
     "rec_accel": "УСКОРЕНИЕ ЗАПИСИ",
     "req_for": "Треб. на {{days}} дней",
-    "federation_summary_widget": "Обзор нескольких сайтов"
+    "federation_summary_widget": "Обзор нескольких сайтов",
+    "storage_locations": "Места хранения",
+    "name": "Имя",
+    "type": "Тип",
+    "health": "Состояние",
+    "usage": "Использование",
+    "remote": "Удаленный",
+    "local": "Локальный"
   },
   "cameras": {
     "title": "Камеры",
@@ -611,7 +618,9 @@
     "isapi_error_http_error": "Камера вернула ошибку HTTP",
     "isapi_error_timeout": "Камера не отправила данные вовремя",
     "isapi_error_connection_error": "Не удалось подключиться к HTTP-порту",
-    "isapi_error_unexpected_response": "Неожиданный ответ потока ISAPI"
+    "isapi_error_unexpected_response": "Неожиданный ответ потока ISAPI",
+    "isapi_trim_quiet_tail": "Обрезать спокойные кадры из клипов движения",
+    "isapi_trim_quiet_tail_help": "Проверяйте только готовый клип; сохраните секунды «Запись После» после последнего четкого движения. Оставьте оригинал, если не уверены."
   },
   "settings": {
     "general_preferences": "Общие настройки",
@@ -916,7 +925,9 @@
     "offline": "Офлайн",
     "media_unavailable": "Медиафайл недоступен",
     "media_offline": "Медиа Офлайн",
-    "hikvision_isapi": "Hikvision ISAPI"
+    "hikvision_isapi": "Hikvision ISAPI",
+    "backup_comment": "Комментарий к резервной копии (необязательно)",
+    "comment": "Комментарий"
   },
   "live": {
     "title": "Прямой эфир",

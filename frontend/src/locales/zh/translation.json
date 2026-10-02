@@ -187,7 +187,14 @@
     "rec_accel_tooltip": "硬件加速处于活动状态并用于视频录制编码。",
     "rec_accel": "录音加速",
     "req_for": "要求。持续 {{days}} 天",
-    "federation_summary_widget": "多站点概述"
+    "federation_summary_widget": "多站点概述",
+    "storage_locations": "存储位置",
+    "name": "名称",
+    "type": "类型",
+    "health": "健康状态",
+    "usage": "使用情况",
+    "remote": "远程",
+    "local": "本地"
   },
   "cameras": {
     "title": "相机",
@@ -611,7 +618,9 @@
     "isapi_error_http_error": "摄像机返回了HTTP错误",
     "isapi_error_timeout": "超时未收到摄像机数据",
     "isapi_error_connection_error": "无法连接到摄像机 HTTP 端口",
-    "isapi_error_unexpected_response": "意外的 ISAPI 流响应"
+    "isapi_error_unexpected_response": "意外的 ISAPI 流响应",
+    "isapi_trim_quiet_tail": "从运动剪辑中修剪静止画面",
+    "isapi_trim_quiet_tail_help": "仅检查完成的片段；在最后一次清晰的运动后保留\"之后捕捉\"的秒数。如果不确定则保留原件。"
   },
   "settings": {
     "general_preferences": "常规首选项",
@@ -916,7 +925,9 @@
     "offline": "离线",
     "media_unavailable": "媒体不可用",
     "media_offline": "媒体离线",
-    "hikvision_isapi": "Hikvision ISAPI"
+    "hikvision_isapi": "Hikvision ISAPI",
+    "backup_comment": "备份评论（可选）",
+    "comment": "评论"
   },
   "live": {
     "title": "实时视图",

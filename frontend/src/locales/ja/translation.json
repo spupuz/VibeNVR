@@ -187,7 +187,14 @@
     "rec_accel_tooltip": "ハードウェア アクセラレーションがアクティブであり、ビデオ録画のエンコードに使用されます。",
     "rec_accel": "RECアクセル",
     "req_for": "必須{{days}}日間",
-    "federation_summary_widget": "マルチサイトの概要"
+    "federation_summary_widget": "マルチサイトの概要",
+    "storage_locations": "ストレージの場所",
+    "name": "名前",
+    "type": "タイプ",
+    "health": "状態",
+    "usage": "使用状況",
+    "remote": "リモート",
+    "local": "ローカル"
   },
   "cameras": {
     "title": "カメラ",
@@ -611,7 +618,9 @@
     "isapi_error_http_error": "カメラがHTTPエラーを返しました",
     "isapi_error_timeout": "タイムアウト前にカメラからデータが送信されませんでした",
     "isapi_error_connection_error": "カメラのHTTPポートに接続できません",
-    "isapi_error_unexpected_response": "予期しないISAPIストリームの応答"
+    "isapi_error_unexpected_response": "予期しないISAPIストリームの応答",
+    "isapi_trim_quiet_tail": "モーションクリップから静止映像をトリミングする",
+    "isapi_trim_quiet_tail_help": "完成したクリップのみを確認してください。最後の明確な動きの後に「事後録画」の秒数を維持します。確信が持てない場合はオリジナルを維持してください。"
   },
   "settings": {
     "general_preferences": "一般設定",
@@ -916,7 +925,9 @@
     "offline": "オフライン",
     "media_unavailable": "メディアを利用できません",
     "media_offline": "メディアオフライン",
-    "hikvision_isapi": "Hikvision ISAPI"
+    "hikvision_isapi": "Hikvision ISAPI",
+    "backup_comment": "バックアップのコメント（オプション）",
+    "comment": "コメント"
   },
   "live": {
     "title": "ライブビュー",
