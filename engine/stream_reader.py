@@ -284,6 +284,18 @@ class StreamReader(threading.Thread):
                     if stream_type not in ('video', 'audio'):
                         continue
                         
+                    if stream_type == 'video' and not hasattr(self, 'is_annexb'):
+                        raw_orig = bytes(packet)
+                        # An AVCC length prefix of 0x00000001 means a 1-byte NALU, which is invalid.
+                        # However, 0x000001XX means a 256-511 byte NALU, which is common (e.g. PPS/SEI).
+                        # Therefore, we MUST NOT check for b'\x00\x00\x01', only b'\x00\x00\x00\x01' or extradata.
+                        if self.video_stream.extradata and len(self.video_stream.extradata) > 0:
+                            self.is_annexb = (self.video_stream.extradata[0] != 1)
+                        elif len(raw_orig) >= 4:
+                            self.is_annexb = raw_orig.startswith(b'\x00\x00\x00\x01')
+                        else:
+                            self.is_annexb = False
+
                     if stream_type == 'video' and getattr(self, 'bsf', None):
                         try:
                             p_copy = av.Packet(packet)
