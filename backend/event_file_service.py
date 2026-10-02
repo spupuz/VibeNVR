@@ -15,6 +15,7 @@ import events_state
 import auth_service
 import storage_service
 import notification_service
+import motion_tail_service
 
 logger = logging.getLogger(__name__)
 
@@ -232,6 +233,13 @@ def process_webhook_file_event(
         except:
             ts = datetime.datetime.now().astimezone()
 
+        stop_time = ts
+        if event_type == "movie_end" and payload.get("recording_stopped_at"):
+            try:
+                stop_time = datetime.datetime.fromisoformat(payload["recording_stopped_at"])
+            except (TypeError, ValueError):
+                pass
+
         reason = str(payload.get("reason", "unknown")).lower()
         if reason in ["continuous", "motion", "manual"]:
             db_event_type = reason
@@ -240,9 +248,22 @@ def process_webhook_file_event(
                 logger.warning(f"Unrecognized recording reason '{reason}', defaulting to 'unknown'")
             db_event_type = "unknown"
 
+        trimmed_seconds = 0
+        if local_path and os.path.exists(local_path) and motion_tail_service.should_trim_event(
+            event_type, db_event_type, payload.get('event_source'),
+            getattr(camera, 'isapi_trim_quiet_tail', True)
+        ):
+            with THUMBNAIL_SEMAPHORE:
+                trimmed_seconds = motion_tail_service.trim_quiet_tail(
+                    local_path, camera.captured_after if camera.captured_after is not None else 0
+                )
+            file_size = os.path.getsize(local_path)
+
+        recording_end_time = stop_time - datetime.timedelta(seconds=trimmed_seconds)
+
         event_data = schemas.EventCreate(
             camera_id=camera_id,
-            timestamp_start=ts,
+            timestamp_start=recording_end_time if event_type == "movie_end" else ts,
             type="video" if event_type == "movie_end" else "snapshot",
             event_type=db_event_type,
             file_path=file_path,
@@ -289,9 +310,9 @@ def process_webhook_file_event(
                             duration_str = result.stdout.strip()
                             if duration_str and duration_str != "N/A":
                                 duration_sec = float(duration_str)
-                                event_data.timestamp_end = ts + datetime.timedelta(
-                                    seconds=duration_sec
-                                )
+                                if duration_sec > 0:
+                                    event_data.timestamp_start = recording_end_time - datetime.timedelta(seconds=duration_sec)
+                                    event_data.timestamp_end = recording_end_time
                     except Exception as e:
                         logger.error(f"[BG-WORK] ffprobe failed: {e}")
 

@@ -17,6 +17,13 @@ from ai_detector import AIDetector
 
 logger = logging.getLogger(__name__)
 
+
+def encoded_prebuffer_seconds(config):
+    """Convert Captured Before frame count to seconds within the existing packet cap."""
+    framerate = max(1, config.get('framerate') or 15)
+    return min(10.0, max(0, (config.get('pre_capture') or 0) / framerate))
+
+
 class CameraThread(threading.Thread):
     def __init__(self, camera_id, config, manager=None, event_callback=None):
         super().__init__(name=f"CameraThread-{camera_id}")
@@ -54,6 +61,7 @@ class CameraThread(threading.Thread):
             rtsp_transport=primary_transport,
             decode_video=self._decode_primary
         )
+        self.stream_reader.pre_buffer_duration = encoded_prebuffer_seconds(self.config)
 
         self.sub_stream_reader = None
         if secondary_url and isinstance(secondary_url, str) and secondary_url.strip():
@@ -366,17 +374,16 @@ class CameraThread(threading.Thread):
                 else:
                     # OpenCV or ONVIF Mode: Run motion detector first
                     with self.lock:
-                        if self.external_motion_active and time.monotonic() - self.external_motion_seen > 30:
+                        event_timeout = 30
+                        if self.config.get('event_provider') == 'hikvision_isapi':
+                            event_timeout = max(1, self.config.get('motion_gap', 10))
+                        if self.external_motion_active and time.monotonic() - self.external_motion_seen > event_timeout:
                             self.external_motion_active = False
                         external_active = self.external_motion_active
                         external_labels = list(self.external_motion_labels) if external_active else []
                     external_results = [{'label': label} for label in external_labels]
-                    if self.motion_detector.motion_detected and set(external_labels) != self.last_reported_external_labels:
-                        self.last_reported_external_labels = set(external_labels)
-                        if external_results and self.event_callback:
-                            self.event_callback(self.camera_id, 'motion_on', {
-                                'source': self.last_external_motion_source, 'ai_metadata': external_results
-                            })
+                    if external_active:
+                        self._report_external_labels(external_labels)
                     motion_active = self.motion_detector.detect(
                         frame, self.event_callback, self.save_snapshot, 
                         self.privacy_polygons, self.motion_polygons, apply_masks,
@@ -544,6 +551,17 @@ class CameraThread(threading.Thread):
         self.continuous_recorder.stop_recording(self.event_callback, self.width, self.height)
         self.motion_recorder.stop_recording(self.event_callback, self.width, self.height)
 
+    def _report_external_labels(self, labels):
+        current = set(labels)
+        if current == self.last_reported_external_labels:
+            return
+        self.last_reported_external_labels = current
+        if self.motion_detector.motion_detected and current and self.event_callback:
+            self.event_callback(self.camera_id, 'motion_on', {
+                'source': self.last_external_motion_source,
+                'ai_metadata': [{'label': label} for label in sorted(current)]
+            })
+
     def trigger_external_event(self, event_type: str, source: str = "onvif", state: str = "active", labels=None, metadata=None):
         """Inject an event from outside (e.g., local sensor, ONVIF PullPoint)"""
         if event_type != 'motion' or self.config.get('event_provider') != source:
@@ -555,7 +573,8 @@ class CameraThread(threading.Thread):
             else:
                 if not self.external_motion_active:
                     self.external_motion_labels.clear()
-                    self.last_reported_external_labels.clear()
+                    if not self.motion_detector.motion_detected:
+                        self.last_reported_external_labels.clear()
                     self.external_event_metadata = {}
                 self.external_motion_active = True
                 self.external_motion_seen = time.monotonic()
@@ -716,6 +735,7 @@ class CameraThread(threading.Thread):
         old_sub_rtsp_url = self.config.get('sub_rtsp_url')
 
         self.config.update(new_config)
+        self.stream_reader.pre_buffer_duration = encoded_prebuffer_seconds(self.config)
         self.motion_detector.config = self.config
         self.continuous_recorder.config = self.config
         self.motion_recorder.config = self.config
