@@ -187,7 +187,14 @@
     "rec_accel_tooltip": "L'accelerazione hardware è attiva e utilizzata per la codifica della registrazione video.",
     "req_for": "Richiesto per {{days}} giorni",
     "federation_summary_widget": "Panoramica multisito",
-    "rec_accel": "REC ACCEL​"
+    "rec_accel": "REC ACCEL​",
+    "storage_locations": "Posizioni di archiviazione",
+    "name": "Nome",
+    "type": "Tipo",
+    "health": "Salute",
+    "usage": "Utilizzo",
+    "remote": "Remoto",
+    "local": "Locale"
   },
   "cameras": {
     "title": "Telecamere",
@@ -611,7 +618,9 @@
     "isapi_error_http_error": "La telecamera ha restituito un errore HTTP",
     "isapi_error_timeout": "La telecamera non ha inviato dati entro il timeout",
     "isapi_error_connection_error": "Impossibile connettersi alla porta HTTP della telecamera",
-    "isapi_error_unexpected_response": "Risposta inattesa dallo stream ISAPI"
+    "isapi_error_unexpected_response": "Risposta inattesa dallo stream ISAPI",
+    "isapi_trim_quiet_tail": "Taglia le riprese silenziose dalle clip di movimento",
+    "isapi_trim_quiet_tail_help": "Controlla solo la clip finita; mantieni i secondi di 'Cattura Dopo' dopo l'ultimo movimento chiaro. Mantieni l'originale in caso di incertezza."
   },
   "settings": {
     "general_preferences": "Preferenze Generali",
@@ -916,7 +925,9 @@
     "offline": "Offline",
     "media_unavailable": "File multimediale non disponibile o memoria remota attualmente irraggiungibile.",
     "media_offline": "Media non in linea",
-    "hikvision_isapi": "Hikvision ISAPI"
+    "hikvision_isapi": "Hikvision ISAPI",
+    "backup_comment": "Commento di backup (opzionale)",
+    "comment": "Commento"
   },
   "live": {
     "title": "Vista Live",

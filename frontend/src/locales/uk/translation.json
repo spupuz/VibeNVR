@@ -187,7 +187,14 @@
     "rec_accel_tooltip": "Апаратне прискорення активне і використовується для кодування запису відео.",
     "req_for": "Req. протягом {{days}} днів",
     "federation_summary_widget": "Огляд кількох сайтів",
-    "rec_accel": "REC ACCEL​"
+    "rec_accel": "REC ACCEL​",
+    "storage_locations": "Місця зберігання",
+    "name": "Ім'я",
+    "type": "Тип",
+    "health": "Стан",
+    "usage": "Використання",
+    "remote": "Віддалений",
+    "local": "Локальний"
   },
   "cameras": {
     "title": "Камери",
@@ -611,7 +618,9 @@
     "isapi_error_http_error": "Камера повернула помилку HTTP",
     "isapi_error_timeout": "Камера не надіслала дані вчасно",
     "isapi_error_connection_error": "Не вдалося підключитися до порту HTTP",
-    "isapi_error_unexpected_response": "Неочікувана відповідь потоку ISAPI"
+    "isapi_error_unexpected_response": "Неочікувана відповідь потоку ISAPI",
+    "isapi_trim_quiet_tail": "Обрізати спокійні кадри з кліпів руху",
+    "isapi_trim_quiet_tail_help": "Перевіряйте тільки готовий кліп; збережіть секунди \"Запис Після\" після останнього чіткого руху. Залиште оригінал, якщо не впевнені."
   },
   "settings": {
     "general_preferences": "Загальні налаштування",
@@ -916,7 +925,9 @@
     "offline": "Offline",
     "media_unavailable": "Медіа недоступні або віддалене сховище наразі недоступне.",
     "media_offline": "Медіа офлайн",
-    "hikvision_isapi": "Hikvision ISAPI"
+    "hikvision_isapi": "Hikvision ISAPI",
+    "backup_comment": "Коментар до резервної копії (необов'язково)",
+    "comment": "Коментар"
   },
   "live": {
     "title": "Прямий ефір",
