@@ -15,22 +15,28 @@ export const FederationSummaryWidget = () => {
         if (!nodes || nodes.length === 0) return;
 
         const fetchAllNodes = async () => {
-            const statsObj = { ...nodeStats };
-            for (const node of nodes) {
+            // ⚡ Bolt: Fetch all node stats concurrently instead of sequentially in a for loop to avoid N+1-like network delays
+            const fetchPromises = nodes.map(async (node) => {
                 try {
                     const res = await fetch(`/api/federation/proxy/${node.id}/stats`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     if (res.ok) {
-                        const data = await res.json();
-                        statsObj[node.id] = data;
+                        return { id: node.id, data: await res.json() };
                     } else {
-                        statsObj[node.id] = { error: true };
+                        return { id: node.id, data: { error: true } };
                     }
                 } catch (e) {
-                    statsObj[node.id] = { error: true };
+                    return { id: node.id, data: { error: true } };
                 }
-            }
+            });
+
+            const results = await Promise.all(fetchPromises);
+            const statsObj = { ...nodeStats };
+            results.forEach(result => {
+                statsObj[result.id] = result.data;
+            });
+
             setNodeStats(statsObj);
         };
 
