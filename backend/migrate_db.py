@@ -101,6 +101,7 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "isapi_port", "INTEGER")
     add_column_if_not_exists(engine, "cameras", "isapi_username", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "isapi_password", "VARCHAR")
+    add_column_if_not_exists(engine, "cameras", "isapi_trim_quiet_tail", "BOOLEAN", True)
     add_column_if_not_exists(engine, "cameras", "onvif_profile_token", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "onvif_manufacturer", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "onvif_model", "VARCHAR")

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../../contexts/AuthContext';
-import { InputField, SectionHeader, SelectField } from '../../../ui/FormControls';
+import { InputField, SectionHeader, SelectField, Toggle } from '../../../ui/FormControls';
 
 export const EventSourcesTab = ({ newCamera, setNewCamera, globalSettings, setActiveTab }) => {
     const { t } = useTranslation();
@@ -106,6 +106,12 @@ export const EventSourcesTab = ({ newCamera, setNewCamera, globalSettings, setAc
                     ) : (
                         <p className="text-xs text-muted-foreground">{t('cameras.isapi_onvif_credentials_info', 'Using the saved ONVIF username and password for this camera.')}</p>
                     )}
+                    <Toggle
+                        label={t('cameras.isapi_trim_quiet_tail', 'Trim quiet footage from motion clips')}
+                        checked={newCamera.isapi_trim_quiet_tail !== false}
+                        onChange={(value) => setNewCamera(prev => ({ ...prev, isapi_trim_quiet_tail: value }))}
+                        help={t('cameras.isapi_trim_quiet_tail_help', 'Check the finished clip only; keep Captured After seconds after the last clear movement. Keep the original when uncertain.')}
+                    />
                     {status && (
                         <p className="text-xs text-muted-foreground">
                             {t('cameras.event_provider_status', 'Event provider status')}: {status.state === 'connected' ? t('common.connected', 'Connected') : status.state === 'unauthorized' ? t('cameras.isapi_error_unauthorized', 'Authentication rejected') : t('common.disconnected', 'Disconnected')}

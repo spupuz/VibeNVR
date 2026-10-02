@@ -509,6 +509,7 @@ class RecordingManager:
 
     def stop_recording(self, event_callback=None, width=0, height=0):
         if not self.is_recording: return
+        stopped_at = datetime.now().astimezone().isoformat()
         logger.info(f"[RECORDING] Camera {self.camera_name} (ID: {self.camera_id}): Stop Recording")
         
         self.is_recording = False
@@ -569,6 +570,7 @@ class RecordingManager:
                  "ai_metadata": ai_meta_str,
                  "event_source": getattr(self, 'current_trigger_source', None),
                  "event_metadata": json.dumps(getattr(self, 'current_event_metadata', {})) if getattr(self, 'current_event_metadata', None) else None,
+                 "recording_stopped_at": stopped_at,
                  "reason": reason,
                  "method": method
              })

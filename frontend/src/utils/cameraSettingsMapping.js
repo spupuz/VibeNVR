@@ -16,7 +16,7 @@ export const CATEGORY_FIELD_MAP = {
     motion: [
         'threshold', 'despeckle_filter', 'motion_gap', 'captured_before', 'captured_after', 
         'min_motion_frames', 'show_frame_changes', 'auto_threshold_tuning', 
-        'auto_noise_detection', 'light_switch_detection', 'detect_motion_mode', 'detect_engine', 'event_provider',
+        'auto_noise_detection', 'light_switch_detection', 'detect_motion_mode', 'detect_engine', 'event_provider', 'isapi_trim_quiet_tail',
         'framerate', 'rotation'
     ],
     storage: ['storage_profile_id', 'motion_storage_profile_id', 'continuous_storage_profile_id', 'snapshot_storage_profile_id', 'archive_storage_profile_id', 'archive_after_hours'],

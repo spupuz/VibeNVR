@@ -182,6 +182,14 @@ class HikvisionEventManager:
         except requests.RequestException:
             logger.warning("Camera %s: unable to deliver provider event to engine", event.camera_id)
 
+    def _watch_motion(self, camera_id, lifecycle, state_lock, stop):
+        """Expire quiet alarms without waiting for another HTTP stream chunk."""
+        while not stop.wait(0.25):
+            with state_lock:
+                now = time.monotonic()
+                if lifecycle.expired(now):
+                    self._send(CameraEvent(camera_id, "motion", "inactive", "hikvision_isapi"))
+
     def _run(self, camera_id, stop):
         delay = 2
         while not stop.is_set():
@@ -193,11 +201,15 @@ class HikvisionEventManager:
                 host, port = camera.onvif_host, http_port(camera)
                 user = camera.isapi_username or camera.onvif_username or ""
                 password = camera.isapi_password or camera.onvif_password or ""
+                motion_gap = max(1, camera.motion_gap if camera.motion_gap is not None else 10)
             finally:
                 db.close()
             session = requests.Session()
             response = None
-            lifecycle = EventLifecycle()
+            lifecycle = EventLifecycle(timeout=motion_gap)
+            state_lock = threading.Lock()
+            watcher_stop = threading.Event()
+            watcher = None
             failure_reason = None
             try:
                 # Host is the validated ONVIF hostname, never a user-supplied URL/path.
@@ -217,13 +229,14 @@ class HikvisionEventManager:
                 parser = MultipartEvents((match.group(1) or match.group(2)).encode())
                 self._set_status(camera_id, state="connected", last_error=None)
                 delay = 2
+                watcher = threading.Thread(target=self._watch_motion,
+                                           args=(camera_id, lifecycle, state_lock, watcher_stop), daemon=True)
+                watcher.start()
                 # urllib3 waits for a full read; small XML notifications must not sit
                 # buffered until 4 KiB of camera data arrives.
                 for chunk in response.iter_content(chunk_size=1):
                     if stop.is_set():
                         break
-                    if lifecycle.expired(time.monotonic()):
-                        self._send(CameraEvent(camera_id, "motion", "inactive", "hikvision_isapi"))
                     for part in parser.feed(chunk):
                         try:
                             event = parse_notification(part, camera_id)
@@ -232,9 +245,11 @@ class HikvisionEventManager:
                         if event.event_type == "unknown":
                             continue
                         if event.triggers_motion:
-                            transition = lifecycle.accept(event, time.monotonic())
-                            if transition:
-                                self._send(event)
+                            with state_lock:
+                                now = time.monotonic()
+                                transition = lifecycle.accept(event, now)
+                                if transition:
+                                    self._send(event)
                         self._set_status(camera_id, last_event=event.event_type,
                                          last_event_at=event.timestamp,
                                          observed_labels=sorted(set(self.diagnostics(camera_id)["observed_labels"]) | set(event.labels)))
@@ -244,14 +259,18 @@ class HikvisionEventManager:
                 self._set_status(camera_id, last_error=reason)
                 logger.warning("Camera %s: ISAPI event stream %s; reconnecting after backoff", camera_id, reason)
             finally:
+                watcher_stop.set()
+                if watcher:
+                    watcher.join(timeout=4)
                 with self.lock:
                     if self.responses.get(camera_id) is response:
                         self.responses.pop(camera_id, None)
                 if response is not None:
                     response.close()
                 session.close()
-                if lifecycle.active:
-                    self._send(CameraEvent(camera_id, "motion", "inactive", "hikvision_isapi"))
+                with state_lock:
+                    if lifecycle.active:
+                        self._send(CameraEvent(camera_id, "motion", "inactive", "hikvision_isapi"))
                 self._set_status(camera_id, state="unauthorized" if failure_reason == "unauthorized" else "disconnected")
             stop.wait(reconnect_delay(failure_reason, delay))
             delay = min(delay * 2, 300)

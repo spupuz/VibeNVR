@@ -214,6 +214,8 @@
     "isapi_password_required": "ISAPI password",
     "isapi_credentials_required": "Enter both an ISAPI username and password to use separate credentials.",
     "isapi_onvif_credentials_info": "Using the saved ONVIF username and password for this camera.",
+    "isapi_trim_quiet_tail": "Trim quiet footage from motion clips",
+    "isapi_trim_quiet_tail_help": "Check the finished clip only; keep Captured After seconds after the last clear movement. Keep the original when uncertain.",
     "isapi_short": "ISAPI",
     "isapi_reuse_onvif": "Uses the ONVIF host and credentials unless overridden below.",
     "isapi_http_port": "ISAPI HTTP port",
