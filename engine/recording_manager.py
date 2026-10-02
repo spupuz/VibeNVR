@@ -503,6 +503,11 @@ class RecordingManager:
             self.current_recording_method = "passthrough" if self.passthrough_active else "transcoded"
         
         if self.passthrough_active:
+            if self.stream_reader and getattr(self.stream_reader, 'is_annexb', False):
+                logger.warning(f"Camera {self.camera_name} outputs raw Annex-B packets. Changing container to MKV to preserve passthrough without corruption.")
+                full_path = full_path.rsplit('.', 1)[0] + '.mkv'
+                self.current_recording_method = "passthrough (mkv)"
+                return self._start_passthrough_recording(full_path, width, height, event_callback)
             return self._start_passthrough_recording(full_path, width, height, event_callback)
 
         return self._start_transcoded_recording(full_path, width, height, pre_buffer_frames, event_callback)
