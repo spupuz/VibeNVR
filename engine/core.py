@@ -155,6 +155,7 @@ class CameraManager:
                     data["width"] = payload.get("width")
                     data["height"] = payload.get("height")
                     data["reason"] = payload.get("reason", "unknown")
+                    data["recording_stopped_at"] = payload.get("recording_stopped_at")
                     if "ai_metadata" in payload:
                         data["ai_metadata"] = payload["ai_metadata"]
                     data["event_source"] = payload.get("event_source")

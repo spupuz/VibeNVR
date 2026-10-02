@@ -17,6 +17,7 @@ class MotionDetector:
         self.consecutive_still_frames = 0
         self.motion_frame_counter = 0
         self.last_trigger_source = None
+        self.external_idle_since = None
 
     def detect(self, frame, event_callback, save_snapshot_cb, privacy_polygons, motion_polygons, apply_masks_fn, external_motion_time=0, source="external", external_active=False, external_labels=None):
         detect_mode = self.config.get('detect_motion_mode', 'Always')
@@ -61,6 +62,7 @@ class MotionDetector:
 
     def _handle_onvif_edge(self, ext_motion_active, source, frame, event_callback, save_snapshot_cb, labels):
         if ext_motion_active:
+            self.external_idle_since = None
             self.last_motion_time = time.time()
             if not self.motion_detected:
                 self.motion_detected = True
@@ -79,6 +81,17 @@ class MotionDetector:
                         payload['file_path'] = snap_path
                     event_callback(self.camera_id, 'motion_start', payload)
         else:
+            if source == 'hikvision_isapi':
+                if self.motion_detected:
+                    if self.external_idle_since is None:
+                        self.external_idle_since = time.time()
+                        self.last_motion_time = self.external_idle_since
+                    if time.time() - self.external_idle_since >= self.config.get('post_capture', 5):
+                        self.motion_detected = False
+                        self.external_idle_since = None
+                        if event_callback:
+                            event_callback(self.camera_id, 'motion_end')
+                return self.motion_detected
             motion_gap = self.config.get('motion_gap', 10)
             if self.motion_detected and (time.time() - self.last_motion_time > motion_gap):
                 self.motion_detected = False

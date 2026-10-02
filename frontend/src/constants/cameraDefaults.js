@@ -92,5 +92,6 @@ export const DEFAULT_CAMERA_STATE = {
     event_provider: 'server',
     isapi_port: null,
     isapi_username: null,
-    isapi_password: null
+    isapi_password: null,
+    isapi_trim_quiet_tail: true
 };

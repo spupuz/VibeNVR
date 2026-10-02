@@ -73,6 +73,7 @@ class CameraBase(BaseModel):
     isapi_port: Optional[int] = None
     isapi_username: Optional[str] = None
     isapi_password: Optional[str] = None
+    isapi_trim_quiet_tail: bool = True
 
     @field_validator('event_provider')
     @classmethod

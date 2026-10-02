@@ -27,6 +27,7 @@ class Camera(Base):
     isapi_port = Column(Integer, nullable=True)
     isapi_username = Column(String, nullable=True)
     isapi_password = Column(String, nullable=True)
+    isapi_trim_quiet_tail = Column(Boolean, default=True)
     onvif_profile_token = Column(String, nullable=True)
     onvif_manufacturer = Column(String, nullable=True)
     onvif_model = Column(String, nullable=True)
