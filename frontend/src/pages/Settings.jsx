@@ -540,8 +540,8 @@ export const Settings = () => {
     }
 
     const occupationPercent = globalSettings.max_global_storage_gb > 0
-        ? (storageStats.storage?.used_gb / globalSettings.max_global_storage_gb) * 100
-        : 0;
+        ? ((storageStats.storage?.vibe_used_gb || 0) / globalSettings.max_global_storage_gb) * 100
+        : (storageStats.storage?.percent || 0);
 
     return (
         <div className="space-y-12 relative w-full pb-52 min-w-0 max-w-full overflow-hidden">

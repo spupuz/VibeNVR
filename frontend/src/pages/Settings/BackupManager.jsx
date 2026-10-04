@@ -300,7 +300,7 @@ export const BackupManager = () => {
 
             <ConfirmModal 
                 isOpen={confirmConfig.isOpen}
-                onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+                onCancel={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
                 onConfirm={confirmConfig.onConfirm}
                 title={confirmConfig.title}
                 message={confirmConfig.message}
