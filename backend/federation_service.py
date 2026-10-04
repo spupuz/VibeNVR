@@ -1,5 +1,6 @@
 import httpx
 from fastapi import Request, HTTPException
+import utils
 from fastapi.responses import StreamingResponse
 
 # Setup a global async client to reuse connections
@@ -11,6 +12,9 @@ async def proxy_request(node_url: str, api_token: str, path: str, request: Reque
     """
     Proxies an incoming FastAPI Request to a remote federated node.
     """
+    if not utils.is_safe_webhook_url(node_url):
+        raise HTTPException(status_code=400, detail="Invalid or unsafe Node URL.")
+
     # Clean up base URL and path to avoid double slashes
     base_url = node_url.rstrip("/")
     if not path.startswith("api/"):
@@ -72,6 +76,10 @@ async def proxy_websocket(node_url: str, api_token: str, path: str, websocket: W
     """
     Proxies an incoming WebSocket connection to a remote federated node.
     """
+    if not utils.is_safe_webhook_url(node_url):
+        await websocket.close(code=1008, reason="Invalid or unsafe Node URL")
+        return
+
     base_url = node_url.rstrip("/")
     if not path.startswith("api/"):
         path = f"api/{path}"
