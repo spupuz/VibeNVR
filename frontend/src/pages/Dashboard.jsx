@@ -407,7 +407,7 @@ export const Dashboard = () => {
                                         style={{ width: `${Math.min(100, stats.storage.quota_percent)}%` }}
                                     />
                                 </div>
-                                <p className="text-[10px] text-muted-foreground mt-0.5 text-right">{stats.storage.vibe_used_gb || stats.storage.used_gb}GB / {stats.storage.total_quota_gb}GB</p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5 text-right">{stats.storage.vibe_used_gb ?? stats.storage.used_gb}GB / {stats.storage.total_quota_gb}GB</p>
                             </div>
                         )}
 

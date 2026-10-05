@@ -38,7 +38,7 @@ export const StorageManager = ({
                     <div className="flex justify-between items-end mb-2">
                         <span className="text-sm font-medium">{t('settings_forms.storage_occ', 'Storage Occupation')}</span>
                         <span className="text-xs text-muted-foreground">
-                            {storageStats.storage?.used_gb} GB / {globalSettings.max_global_storage_gb > 0 ? globalSettings.max_global_storage_gb : storageStats.storage?.total_gb} GB
+                            {globalSettings.max_global_storage_gb > 0 ? (storageStats.storage?.vibe_used_gb || 0) : storageStats.storage?.used_gb} GB / {globalSettings.max_global_storage_gb > 0 ? globalSettings.max_global_storage_gb : storageStats.storage?.total_gb} GB
                             ({Math.round(occupationPercent)}%)
                         </span>
                     </div>
@@ -52,7 +52,7 @@ export const StorageManager = ({
                     </div>
                     <p className="text-xs text-muted-foreground mt-2 italic opacity-70">
                         {globalSettings.max_global_storage_gb > 0
-                            ? t('settings_forms.storage_using', 'Currently using {{used}} GB of your {{max}} GB limit.', {used: storageStats.storage?.used_gb, max: globalSettings.max_global_storage_gb})
+                            ? t('settings_forms.storage_using', 'Currently using {{used}} GB of your {{max}} GB limit.', {used: storageStats.storage?.vibe_used_gb || 0, max: globalSettings.max_global_storage_gb})
                             : t('settings_forms.storage_no_limit', 'Total disk usage. No global limit set.')}
                     </p>
                     <div className="mt-3 p-2 bg-blue-500/10 border border-blue-500/20 rounded text-[10px] text-blue-600 dark:text-blue-400">

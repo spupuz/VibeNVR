@@ -88,7 +88,7 @@ def get_homepage_stats(
 
     storage_used_gb = round(vibe_usage / (1024**3), 2)
     storage_total_gb = round(total / (1024**3), 1)
-    storage_percent = round((vibe_usage / total) * 100) if total > 0 else 0
+    storage_percent = min(round((vibe_usage / total) * 100), 100) if total > 0 else 0
 
     # Uptime
     uptime_seconds = int(time.time() - stats.START_TIME)

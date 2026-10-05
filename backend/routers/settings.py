@@ -424,6 +424,8 @@ async def perform_restore(data: dict, db: Session):
                 for k, v in clean_cam.model_dump(exclude_unset=True).items():
                      if k == "storage_profile_id" and v in profile_id_map:
                          setattr(existing_cam, k, profile_id_map[v])
+                     elif k == "ai_object_types" and isinstance(v, list):
+                         setattr(existing_cam, k, json.dumps(v))
                      elif hasattr(existing_cam, k):
                          setattr(existing_cam, k, v)
                 

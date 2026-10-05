@@ -23,3 +23,7 @@
 **Vulnerability:** The SFTP client established socket connections (`socket.create_connection`) directly to user-provided SFTP hostnames/IPs without validating them against a blocklist, leading to a Server-Side Request Forgery (SSRF) vulnerability targeting loopback, multicast, or cloud-metadata endpoints.
 **Learning:** `is_safe_webhook_url` in `utils.py` contained the robust SSRF validation logic but was tightly coupled to URL parsing. This restricted its use for cases where only a hostname is provided (like SFTP).
 **Prevention:** Extract core SSRF validation logic into a reusable `is_safe_host(hostname)` function and use it universally before establishing outbound connections.
+## 2024-10-04 - SSRF vulnerability in federation proxy
+**Vulnerability:** The federation service proxies HTTP and WebSocket requests directly to URLs stored in the database without re-validating them for SSRF at the time of connection.
+**Learning:** URLs must be validated at the time of use (e.g., using `utils.is_safe_webhook_url`), not just at creation time, to prevent SSRF via database tampering or DNS rebinding.
+**Prevention:** Always enforce defense-in-depth by re-validating external URLs immediately before initiating network connections, particularly in proxy-like services.
