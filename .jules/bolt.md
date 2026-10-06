@@ -21,3 +21,6 @@
 ## 2025-01-26 - Concurrent Promises vs Sequential Fetches in Loops
 **Learning:** Fetching data inside a `for...of` loop with `await fetch` creates a sequential waterfall, which is highly inefficient for independent network requests (such as polling stats from multiple federated nodes).
 **Action:** To optimize frontend network requests and eliminate O(N) latency bottlenecks, refactor sequential `await fetch` calls inside `for...of` loops to run concurrently using `Promise.all(array.map(...))`.
+## 2025-02-12 - Prevent O(N) database bottlenecks in high-frequency background polling
+**Learning:** Polling `/api/stats` every 15 seconds from the frontend triggered two separate `db.query().filter(models.Event.file_path.like(...)).scalar()` calls (COUNT and SUM) inside a loop over custom storage profiles in `_get_detailed_storage_stats`. Doing multiple `LIKE` string matches per profile on the potentially massive `events` table caused severe CPU and I/O bottlenecks.
+**Action:** Always combine aggregate database queries into a single SQL `SELECT COUNT(), SUM()` query to immediately halve the number of heavy `LIKE` operations and optimize backend polling routes.
