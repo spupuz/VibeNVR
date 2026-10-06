@@ -311,6 +311,10 @@ def _send_email_notification(
 
 
         # Connect and send
+        if not utils.is_safe_host(smtp_server):
+            logger.warning(f"[NOTIFY] Email failed: Unsafe SMTP server {smtp_server}")
+            return
+
         server = smtplib.SMTP(smtp_server, smtp_port)
         server.set_debuglevel(0)
         server.ehlo()
