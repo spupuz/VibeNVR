@@ -286,8 +286,10 @@ def _get_detailed_storage_stats(db: Session, cameras: list, allowed_ids: list | 
     
     # Calculate Default Profile
     default_path = "/var/lib/vibe/recordings"
-    default_size = db.query(func.sum(models.Event.file_size)).filter(models.Event.file_path.like(f"{default_path}%")).scalar() or 0
-    default_count = db.query(func.count(models.Event.id)).filter(models.Event.file_path.like(f"{default_path}%")).scalar() or 0
+    # ⚡ Bolt: Combine COUNT and SUM into a single query to halve heavy LIKE operations
+    default_res = db.query(func.count(models.Event.id), func.sum(models.Event.file_size)).filter(models.Event.file_path.like(f"{default_path}%")).first()
+    default_count = default_res[0] or 0 if default_res else 0
+    default_size = default_res[1] or 0 if default_res else 0
     profile_stats["default"] = {
         "name": "Default Profile",
         "path": default_path,
@@ -302,8 +304,10 @@ def _get_detailed_storage_stats(db: Session, cameras: list, allowed_ids: list | 
 
     # Calculate Custom Profiles
     for p in profiles:
-        p_size = db.query(func.sum(models.Event.file_size)).filter(models.Event.file_path.like(f"{p.path}%")).scalar() or 0
-        p_count = db.query(func.count(models.Event.id)).filter(models.Event.file_path.like(f"{p.path}%")).scalar() or 0
+        # ⚡ Bolt: Combine COUNT and SUM into a single query to halve heavy LIKE operations
+        p_res = db.query(func.count(models.Event.id), func.sum(models.Event.file_size)).filter(models.Event.file_path.like(f"{p.path}%")).first()
+        p_count = p_res[0] or 0 if p_res else 0
+        p_size = p_res[1] or 0 if p_res else 0
         profile_stats[str(p.id)] = {
             "name": p.name,
             "path": p.path,
