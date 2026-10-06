@@ -55,6 +55,7 @@ export const CopySettingsModal = ({
                                         key={cat.id}
                                         role="checkbox"
                                         aria-checked={selectedCategories.includes(cat.id)}
+                                        aria-label={cat.label}
                                         tabIndex={0}
                                         className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${selectedCategories.includes(cat.id) ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'hover:bg-muted text-muted-foreground'}`}
                                         onClick={() => toggleCategory(cat.id)}
@@ -87,6 +88,7 @@ export const CopySettingsModal = ({
                                         key={cam.id}
                                         role="checkbox"
                                         aria-checked={copyTargets.includes(cam.id)}
+                                        aria-label={cam.name}
                                         tabIndex={0}
                                         className={`flex items-center p-2 rounded-md cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${copyTargets.includes(cam.id) ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-muted-foreground'}`}
                                         onClick={() => {
