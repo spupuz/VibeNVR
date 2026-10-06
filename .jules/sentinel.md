@@ -31,3 +31,7 @@
 **Vulnerability:** The `telegram_proxy_url` setting in `TestNotificationConfig` and `SystemSettings` was not validated for Server-Side Request Forgery (SSRF), allowing an admin to input a malicious local proxy URL (e.g., `http://127.0.0.1:8000`).
 **Learning:** Even proxy configurations passed to `requests` can be abused to perform SSRF if an attacker controls them. The `notify_webhook_url` was protected, but `telegram_proxy_url` was overlooked during initial development because it's a proxy, not a direct endpoint.
 **Prevention:** Apply `utils.is_safe_webhook_url()` (or a similar SSRF check that blocks loopback, link-local, and multicast IPs) to all URL configurations that the backend might interact with, including proxy configurations. Ensure validation is consistently applied across all settings.
+## 2024-10-26 - SSRF Vulnerability in Email Notifications
+**Vulnerability:** The email notification service in `notification_service.py` connected to arbitrary user-provided SMTP servers without SSRF validation.
+**Learning:** Even internal services like email notifications must validate the server host to prevent SSRF, as malicious users could exploit this to scan internal networks or connect to unauthorized services.
+**Prevention:** Always validate external hosts using `utils.is_safe_host()` before making network connections, especially when the host is user-configurable.
