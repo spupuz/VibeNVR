@@ -2,6 +2,7 @@ from pydantic import BaseModel, field_validator, model_validator, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import json
+import utils
 
 class TestNotificationConfig(BaseModel):
     channel: str # 'email', 'telegram', 'webhook'
@@ -11,34 +12,13 @@ class TestNotificationConfig(BaseModel):
     def validate_webhook_settings(self) -> 'TestNotificationConfig':
         if self.channel == 'webhook':
             url = self.settings.get('notify_webhook_url')
-            if url:
-                # We reuse the validation logic but manually here or call a helper
-                import socket
-                from urllib.parse import urlparse
-                import ipaddress
-                try:
-                    parsed = urlparse(url)
-                    if not parsed.scheme or not parsed.netloc:
-                        raise ValueError('Invalid URL format')
-                    host = parsed.hostname
-                    if not host:
-                        raise ValueError('Invalid URL format: missing host')
-                    try:
-                        ip_addrs = [ipaddress.ip_address(host)]
-                    except ValueError:
-                        try:
-                            addr_info = socket.getaddrinfo(host, None)
-                            ip_addrs = [ipaddress.ip_address(res[4][0]) for res in addr_info]
-                        except Exception:
-                            raise ValueError('Invalid or unreachable webhook hostname')
-                    for ip_addr in ip_addrs:
-                        if ip_addr.is_loopback or ip_addr.is_unspecified or ip_addr.is_link_local or ip_addr.is_multicast:
-                            # SSRF Protection: Block access to loopback and other restricted networks
-                            # Note: We allow private IPs for local integrations (e.g., Home Assistant)
-                            raise ValueError(f'Webhook cannot target restricted IP ranges ({ip_addr})')
-                except Exception as e:
-                    if isinstance(e, ValueError): raise e
-                    raise ValueError(f'Invalid or unreachable URL: {str(e)}')
+            if url and not utils.is_safe_webhook_url(url):
+                raise ValueError(f'Invalid or unsafe URL: {url}')
+        elif self.channel == 'telegram':
+            proxy_url = self.settings.get('telegram_proxy_url')
+            if proxy_url and str(self.settings.get('telegram_proxy_enabled', 'false')).lower() == 'true':
+                if not utils.is_safe_webhook_url(proxy_url):
+                    raise ValueError(f'Invalid or unsafe proxy URL: {proxy_url}')
         return self
 
 class CameraBase(BaseModel):
