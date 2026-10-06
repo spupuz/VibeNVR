@@ -503,8 +503,8 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('timeline.2_settings_categories', '2. Settings Categories')}</span>
                                     <div className="flex gap-2">
-                                        <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded" onClick={() => setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id))}>{t('timeline.all', 'All')}</button>
-                                        <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded" onClick={() => setSelectedCategories([])}>{t('timeline.none', 'None')}</button>
+                                        <button type="button" aria-label={t('timeline.select_all_categories', 'Select all categories')} className="text-[10px] uppercase font-bold text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded" onClick={() => setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id))}>{t('timeline.all', 'All')}</button>
+                                        <button type="button" aria-label={t('timeline.deselect_all_categories', 'Deselect all categories')} className="text-[10px] uppercase font-bold text-muted-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded" onClick={() => setSelectedCategories([])}>{t('timeline.none', 'None')}</button>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-1 gap-1.5 bg-muted/20 p-2 rounded-lg border border-border/50">
@@ -534,8 +534,9 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                         </div>
 
                         <div className="flex justify-end space-x-2 pt-4 border-t border-border">
-                            <button onClick={() => { setCopyingGroup(null); setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); }} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">{t('timeline.cancel', 'Cancel')}</button>
+                            <button type="button" onClick={() => { setCopyingGroup(null); setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id)); }} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">{t('timeline.cancel', 'Cancel')}</button>
                             <button
+                                type="button"
                                 onClick={() => handleAction(copyingGroup.id, 'copy_settings', sourceCameraId, selectedCategories)}
                                 disabled={!sourceCameraId || selectedCategories.length === 0}
                                 className="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50 disabled:bg-muted disabled:text-muted-foreground shadow-lg shadow-blue-500/10 transition-all font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
@@ -557,12 +558,14 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                             </div>
                             <div className="flex items-center space-x-2">
                                 <button
+                                    type="button"
                                     onClick={() => setSelectedGroupIds([])}
                                     className="px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                                 >
                                     {t('timeline.clear', 'Clear')}
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={handleBulkDeleteGroups}
                                     className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-all flex items-center shadow-lg shadow-red-500/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                                 >
