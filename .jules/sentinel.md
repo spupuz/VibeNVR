@@ -27,3 +27,7 @@
 **Vulnerability:** The federation service proxies HTTP and WebSocket requests directly to URLs stored in the database without re-validating them for SSRF at the time of connection.
 **Learning:** URLs must be validated at the time of use (e.g., using `utils.is_safe_webhook_url`), not just at creation time, to prevent SSRF via database tampering or DNS rebinding.
 **Prevention:** Always enforce defense-in-depth by re-validating external URLs immediately before initiating network connections, particularly in proxy-like services.
+## 2024-10-26 - SSRF Vulnerability in Email Notifications
+**Vulnerability:** The email notification service in `notification_service.py` connected to arbitrary user-provided SMTP servers without SSRF validation.
+**Learning:** Even internal services like email notifications must validate the server host to prevent SSRF, as malicious users could exploit this to scan internal networks or connect to unauthorized services.
+**Prevention:** Always validate external hosts using `utils.is_safe_host()` before making network connections, especially when the host is user-configurable.
