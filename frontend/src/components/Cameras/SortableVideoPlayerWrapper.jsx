@@ -36,7 +36,7 @@ export const SortableVideoPlayerWrapper = memo(function SortableVideoPlayerWrapp
                     {...listeners} 
                     className="absolute top-1 left-1/2 -translate-x-1/2 z-20 p-0.5 px-3 bg-background/40 hover:bg-background/80 rounded-full text-muted-foreground/70 hover:text-foreground cursor-grab active:cursor-grabbing backdrop-blur-md transition-colors border border-border/50 shadow-sm opacity-50 hover:opacity-100"
                     title={t('dragToReorder', 'Drag to reorder')}
-                    aria-label={t('dragToReorder', 'Drag to reorder')}
+                    aria-label={t('dragToReorder_name', { defaultValue: 'Drag to reorder {{name}}', name: props.camera.name })}
                     role="button"
                 >
                     <GripHorizontal className="w-4 h-4" />
