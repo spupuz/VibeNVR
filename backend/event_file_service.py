@@ -138,6 +138,11 @@ def delete_event_files(event: models.Event, db: Session = None) -> int:
             except Exception as e:
                 logger.error(f"Error deleting event file {path}: {e}")
     finally:
+        try:
+            import playback_service
+            playback_service.cleanup_event_cache(event.id)
+        except Exception:
+            pass
         if not db:
             db_local.close()
 

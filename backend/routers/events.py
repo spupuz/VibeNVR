@@ -286,11 +286,18 @@ def safe_remove(path):
     except Exception as e:
         logger.error(f"Failed to cleanup temp file {path}: {e}")
 
+def _extract_media_token(request: Request, token: Optional[str] = None) -> Optional[str]:
+    if token:
+        return token
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        return auth_header[7:].strip()
+    return request.cookies.get("media_token")
+
 @router.get("/{event_id}/download")
 async def download_event(event_id: int, request: Request, background_tasks: BackgroundTasks, token: Optional[str] = None):
     """Download event file with proper headers for cross-origin support"""
-    # Try query param first (for backward compatibility), then cookie
-    media_token = token or request.cookies.get("media_token")
+    media_token = _extract_media_token(request, token)
     if not media_token:
         raise HTTPException(status_code=401, detail="Missing media authentication")
 
@@ -367,6 +374,172 @@ async def download_event(event_id: int, request: Request, background_tasks: Back
         media_type=media_type,
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+@router.get("/{event_id}/playback")
+async def get_event_playback(
+    event_id: int,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    transcode: bool = False,
+    token: Optional[str] = None
+):
+    """
+    Serve video with codec/container compatibility.
+    - If MKV: automatically remuxes to MP4 (zero CPU).
+    - If transcode=True: transcodes to H.264 MP4 for web playback.
+    - Otherwise serves directly with byte-range support for seeking.
+    """
+    media_token = _extract_media_token(request, token)
+    if not media_token:
+        raise HTTPException(status_code=401, detail="Missing media authentication")
+
+    access_result = await run_in_threadpool(event_file_service._verify_event_access_sync, media_token, event_id)
+    if access_result["status"] != 200:
+        raise HTTPException(status_code=access_result["status"], detail=access_result["detail"])
+
+    file_path = access_result["file_path"]
+    from storage_service import translate_path
+    file_path = translate_path(file_path)
+
+    # Handle SFTP remote files
+    if file_path and file_path.startswith("sftp://"):
+        try:
+            profile_id, remote_path = file_path[7:].split("/", 1)
+            db = database.SessionLocal()
+            try:
+                profile = db.query(models.StorageProfile).filter(models.StorageProfile.id == int(profile_id)).first()
+                if not profile or profile.storage_type != "sftp":
+                    raise HTTPException(status_code=404, detail="SFTP profile not found")
+
+                import sftp_client
+                import tempfile
+
+                tmp_dir = "/data/cache/sftp"
+                os.makedirs(tmp_dir, exist_ok=True)
+                fd, local_tmp = tempfile.mkstemp(dir=tmp_dir, suffix=os.path.basename(remote_path))
+                os.close(fd)
+
+                success = sftp_client.download_file(profile, remote_path, local_tmp)
+                if not success:
+                    raise HTTPException(status_code=500, detail="Failed to download remote file")
+                file_path = local_tmp
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error(f"Error serving SFTP file {file_path}: {e}")
+            raise HTTPException(status_code=500, detail="SFTP file access error")
+
+    db = database.SessionLocal()
+    try:
+        if not event_file_service.is_path_safe(file_path, db):
+            raise HTTPException(status_code=403, detail="Access denied")
+    finally:
+        db.close()
+
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
+    import playback_service
+    playback_file = await run_in_threadpool(
+        playback_service.get_or_create_playback_file,
+        event_id=event_id,
+        source_path=file_path,
+        transcode=transcode
+    )
+
+    if not playback_file or not os.path.exists(playback_file):
+        raise HTTPException(status_code=500, detail="Failed to prepare media for playback")
+
+    filename = os.path.basename(playback_file)
+    if file_path.startswith("/data/cache/sftp"):
+        background_tasks.add_task(safe_remove, file_path)
+
+    return FileResponse(
+        path=playback_file,
+        filename=filename,
+        media_type="video/mp4",
+        headers={"Accept-Ranges": "bytes"}
+    )
+
+@router.get("/{event_id}/probe")
+async def probe_event(
+    event_id: int,
+    request: Request,
+    token: Optional[str] = None
+):
+    """Probe an event's media file for codec and container format."""
+    media_token = _extract_media_token(request, token)
+    if not media_token:
+        raise HTTPException(status_code=401, detail="Missing media authentication")
+
+    access_result = await run_in_threadpool(event_file_service._verify_event_access_sync, media_token, event_id)
+    if access_result["status"] != 200:
+        raise HTTPException(status_code=access_result["status"], detail=access_result["detail"])
+
+    file_path = access_result["file_path"]
+    from storage_service import translate_path
+    file_path = translate_path(file_path)
+
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
+    import playback_service
+    info = await run_in_threadpool(playback_service.probe_media, file_path)
+    cached_transcode = os.path.exists(os.path.join(playback_service.CACHE_DIR, f"transcode_{event_id}.mp4"))
+    cached_remux = os.path.exists(os.path.join(playback_service.CACHE_DIR, f"remux_{event_id}.mp4"))
+
+    return {
+        "event_id": event_id,
+        **info,
+        "cached_transcode": cached_transcode,
+        "cached_remux": cached_remux,
+    }
+
+@router.post("/{event_id}/transcode")
+async def transcode_event(
+    event_id: int,
+    request: Request,
+    token: Optional[str] = None
+):
+    """Trigger on-demand H.264 transcoding for web playback."""
+    media_token = _extract_media_token(request, token)
+    if not media_token:
+        raise HTTPException(status_code=401, detail="Missing media authentication")
+
+    access_result = await run_in_threadpool(event_file_service._verify_event_access_sync, media_token, event_id)
+    if access_result["status"] != 200:
+        raise HTTPException(status_code=access_result["status"], detail=access_result["detail"])
+
+    file_path = access_result["file_path"]
+    from storage_service import translate_path
+    file_path = translate_path(file_path)
+
+    db = database.SessionLocal()
+    try:
+        if not event_file_service.is_path_safe(file_path, db):
+            raise HTTPException(status_code=403, detail="Access denied")
+    finally:
+        db.close()
+
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
+    import playback_service
+    target_path = await run_in_threadpool(
+        playback_service.get_or_create_playback_file,
+        event_id=event_id,
+        source_path=file_path,
+        transcode=True
+    )
+
+    if not target_path or not os.path.exists(target_path):
+        raise HTTPException(status_code=500, detail="Transcoding failed")
+
+    return {
+        "status": "ready",
+        "event_id": event_id,
+        "playback_url": f"/events/{event_id}/playback?transcode=true"
+    }
 
 @router.post("/bulk-delete")
 def bulk_delete_events(

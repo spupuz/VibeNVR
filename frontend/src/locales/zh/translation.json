@@ -927,7 +927,17 @@
     "media_offline": "媒体离线",
     "hikvision_isapi": "Hikvision ISAPI",
     "backup_comment": "备份评论（可选）",
-    "comment": "评论"
+    "comment": "评论",
+    "codec_unsupported_title": "浏览器不支持直接播放",
+    "codec_unsupported_desc": "您的浏览器无法直接解码此视频格式（H.265/HEVC 或 MKV 容器）。磁盘上的录像文件完好无损。",
+    "unsupported_codec": "不支持的编码格式",
+    "passthrough": "直通 (Passthrough)",
+    "transcode_playback": "转码以便网页播放",
+    "transcoding_in_progress": "正在使用 FFmpeg 进行视频转码...",
+    "transcode_failed": "转码失败。请下载原文件观看。",
+    "download_original": "下载原始文件",
+    "tip_label": "提示",
+    "transcode_tip": "若要在任何浏览器中即时播放而无需转码，请在摄像机设置中将录像模式切换为“转码”。"
   },
   "live": {
     "title": "实时视图",

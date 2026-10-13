@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Download, Trash2, Play, HardDrive, CloudOff } from 'lucide-react';
+import { X, Download, Trash2, Play, HardDrive, CloudOff, Film, RefreshCw, Loader2 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+
+const getApiBase = () => window.__ACTIVE_NODE_ID ? `/api/federation/proxy/${window.__ACTIVE_NODE_ID}` : `/api`;
 
 /**
  * Event Preview and Video Player Component
@@ -42,31 +45,76 @@ export const EventPreview = React.memo(({
     isMobile = false
 }) => {
     const { t } = useTranslation();
-    const [mediaError, setMediaError] = useState(false);
+    const { token } = useAuth();
+    const [storageError, setStorageError] = useState(false);
+    const [codecError, setCodecError] = useState(false);
+    const [isTranscoding, setIsTranscoding] = useState(false);
+    const [transcodeError, setTranscodeError] = useState(null);
+    const [playbackSource, setPlaybackSource] = useState('');
 
     useEffect(() => {
         let isMounted = true;
-        setMediaError(false);
-        
+        setStorageError(false);
+        setCodecError(false);
+        setIsTranscoding(false);
+        setTranscodeError(null);
+
         if (selectedEvent) {
+            const isMkv = selectedEvent.file_path?.toLowerCase().endsWith('.mkv');
+            if (isMkv) {
+                // Browsers cannot play MKV natively; route through the zero-CPU remux endpoint
+                setPlaybackSource(`${getApiBase()}/events/${selectedEvent.id}/playback${token ? `?token=${encodeURIComponent(token)}` : ''}`);
+            } else {
+                setPlaybackSource(getMediaUrl(selectedEvent.file_path));
+            }
+
             // Check if media is reachable (catches Circuit Breaker 404 instantly).
             // Use GET with Range to avoid FastAPI 405 Method Not Allowed on HEAD requests.
             const url = getMediaUrl(selectedEvent.file_path);
             fetch(url, { method: 'GET', headers: { 'Range': 'bytes=0-0' }, credentials: 'include' })
                 .then(res => {
-                    // 404 means file missing or Circuit Breaker tripped.
-                    // 401/403/200/206 means the server processed the route successfully.
                     if (res.status === 404 && isMounted) {
-                        setMediaError(true);
+                        setStorageError(true);
                     }
                 })
                 .catch(() => {
-                    if (isMounted) setMediaError(true);
+                    if (isMounted) setStorageError(true);
                 });
         }
-        
+
         return () => { isMounted = false; };
-    }, [selectedEvent?.id]);
+    }, [selectedEvent?.id, getMediaUrl, token]);
+
+    const handleVideoError = useCallback(() => {
+        if (storageError) return;
+        setCodecError(true);
+    }, [storageError]);
+
+    const handleTranscode = useCallback(async () => {
+        if (!selectedEvent) return;
+        setIsTranscoding(true);
+        setTranscodeError(null);
+        try {
+            const res = await fetch(`${getApiBase()}/events/${selectedEvent.id}/transcode`, {
+                method: 'POST',
+                headers: {
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                credentials: 'include'
+            });
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || t('timeline.transcode_failed', 'Transcoding failed. Please download the file to view.'));
+            }
+            const newUrl = `${getApiBase()}/events/${selectedEvent.id}/playback?transcode=true${token ? `&token=${encodeURIComponent(token)}` : ''}&t=${Date.now()}`;
+            setPlaybackSource(newUrl);
+            setCodecError(false);
+        } catch (err) {
+            setTranscodeError(err.message || t('timeline.transcode_failed', 'Transcoding failed. Please download the file to view.'));
+        } finally {
+            setIsTranscoding(false);
+        }
+    }, [selectedEvent, token, t]);
 
     if (!selectedEvent) {
         if (isMobile) return null;
@@ -79,6 +127,118 @@ export const EventPreview = React.memo(({
     }
 
     const camera = getCamera(selectedEvent.camera_id);
+
+    const renderPlayerContent = (isMobileLayout = false) => {
+        if (storageError) {
+            return (
+                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-4 text-center">
+                    <CloudOff className={`${isMobileLayout ? 'w-10 h-10' : 'w-16 h-16'} opacity-50 mb-2`} />
+                    <span className={`${isMobileLayout ? 'text-sm' : 'text-xl'} font-bold uppercase`}>{t('timeline.offline', 'Offline')}</span>
+                    <span className={`${isMobileLayout ? 'text-xs' : 'text-sm'} mt-1`}>{t('timeline.media_unavailable', 'Media unavailable or remote storage is currently unreachable.')}</span>
+                </div>
+            );
+        }
+
+        if (codecError) {
+            const isMkv = selectedEvent?.file_path?.toLowerCase().endsWith('.mkv');
+            const isHevc = camera?.codec?.includes('hevc') || camera?.codec?.includes('h265');
+            const downloadUrl = `${getApiBase()}/events/${selectedEvent.id}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+
+            return (
+                <div className="w-full h-full flex flex-col items-center justify-center p-3 lg:p-6 text-center bg-zinc-950 text-muted-foreground overflow-y-auto">
+                    <div className="p-2 lg:p-3 bg-amber-500/10 text-amber-400 rounded-full mb-2 border border-amber-500/20">
+                        <Film className={`${isMobileLayout ? 'w-6 h-6' : 'w-8 h-8'}`} />
+                    </div>
+
+                    <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-[10px] lg:text-xs uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            {isHevc ? 'H.265 / HEVC' : isMkv ? 'MKV Container' : t('timeline.unsupported_codec', 'Unsupported Codec')}
+                        </span>
+                        <span className="text-[10px] lg:text-xs uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                            {t('timeline.passthrough', 'Passthrough')}
+                        </span>
+                    </div>
+
+                    <h4 className="text-xs lg:text-sm font-semibold text-foreground mt-0.5">
+                        {t('timeline.codec_unsupported_title', 'Browser Playback Unsupported')}
+                    </h4>
+
+                    <p className="text-[10px] lg:text-xs text-muted-foreground max-w-sm mt-0.5 mb-2.5">
+                        {t('timeline.codec_unsupported_desc', 'This video format cannot be decoded directly by your browser (H.265/HEVC or MKV container). The recording is intact on disk.')}
+                    </p>
+
+                    {transcodeError && (
+                        <p className="text-[10px] lg:text-xs text-destructive mb-2 px-2 text-center">
+                            {transcodeError}
+                        </p>
+                    )}
+
+                    <div className="flex flex-wrap items-center justify-center gap-1.5 mb-2.5">
+                        <button
+                            type="button"
+                            onClick={handleTranscode}
+                            disabled={isTranscoding}
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold rounded-lg transition-all active:scale-95 disabled:opacity-50 cursor-pointer shadow-sm"
+                        >
+                            {isTranscoding ? (
+                                <>
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    <span>{t('timeline.transcoding_in_progress', 'Transcoding video with FFmpeg...')}</span>
+                                </>
+                            ) : (
+                                <>
+                                    <RefreshCw className="w-3.5 h-3.5" />
+                                    <span>{t('timeline.transcode_playback', 'Transcode for Web Playback')}</span>
+                                </>
+                            )}
+                        </button>
+
+                        <a
+                            href={downloadUrl}
+                            download
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs font-medium rounded-lg transition-all border border-border"
+                        >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>{t('timeline.download_original', 'Download Original File')}</span>
+                        </a>
+                    </div>
+
+                    <div className="text-[9px] lg:text-[10px] text-muted-foreground/80 bg-muted/30 px-2 py-1 rounded-md max-w-xs border border-border/50 text-left">
+                        <p>
+                            💡 <strong className="text-foreground/90">{t('timeline.tip_label', 'Tip')}:</strong>{' '}
+                            {t('timeline.transcode_tip', 'To play recordings immediately in any browser without transcoding, switch Recording Mode to Transcoded in Camera Settings.')}
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
+        if (selectedEvent.type === 'video') {
+            return (
+                <video
+                    ref={videoRef}
+                    controls
+                    autoPlay
+                    className="w-full h-full object-contain"
+                    src={playbackSource}
+                    onEnded={handleVideoEnded}
+                    onLoadedMetadata={(e) => { e.target.playbackRate = playbackSpeed; }}
+                    onError={handleVideoError}
+                >
+                    {t('timeline.no_video_support', 'Your browser does not support video.')}
+                </video>
+            );
+        }
+
+        return (
+            <img
+                src={playbackSource || getMediaUrl(selectedEvent.file_path)}
+                alt="Event"
+                className="w-full h-full object-contain"
+                onError={() => setStorageError(true)}
+            />
+        );
+    };
 
     if (isMobile) {
         return (
@@ -131,33 +291,9 @@ export const EventPreview = React.memo(({
                     </div>
                 </div>
                 <div className="aspect-video bg-black rounded-lg overflow-hidden relative">
-                    {mediaError ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
-                            <CloudOff className="w-12 h-12 opacity-50 mb-2" />
-                            <span className="text-sm font-bold uppercase">{t('timeline.offline', 'Offline')}</span>
-                            <span className="text-xs">{t('timeline.media_unavailable', 'Media unavailable')}</span>
-                        </div>
-                    ) : selectedEvent.type === 'video' ? (
-                        <video
-                            ref={videoRef}
-                            controls
-                            autoPlay
-                            className="w-full h-full object-contain"
-                            src={getMediaUrl(selectedEvent.file_path)}
-                            onEnded={handleVideoEnded}
-                            onLoadedMetadata={(e) => e.target.playbackRate = playbackSpeed}
-                            onError={() => setMediaError(true)}
-                        />
-                    ) : (
-                        <img
-                            src={getMediaUrl(selectedEvent.file_path)}
-                            alt="Event"
-                            className="w-full h-full object-contain"
-                            onError={() => setMediaError(true)}
-                        />
-                    )}
+                    {renderPlayerContent(true)}
                     {/* Mobile Speed Overlay */}
-                    {selectedEvent.type === 'video' && (
+                    {selectedEvent.type === 'video' && !codecError && !storageError && (
                         <div className="absolute top-2 right-2 px-2.5 py-1 rounded-md backdrop-blur-md shadow-lg bg-black/40 border border-white/20 active:scale-90 transition-all">
                             <select
                                 aria-label={t('timeline.playback_speed', 'Playback Speed')}
@@ -222,7 +358,7 @@ export const EventPreview = React.memo(({
                     </div>
 
                     {/* Speed Selection */}
-                    {selectedEvent.type === 'video' && (
+                    {selectedEvent.type === 'video' && !codecError && !storageError && (
                         <div className="flex items-center space-x-1 bg-muted/50 hover:bg-muted rounded-lg px-2 py-1 transition-colors border border-transparent hover:border-border">
                             <select
                                 aria-label={t('timeline.playback_speed', 'Playback Speed')}
@@ -241,7 +377,7 @@ export const EventPreview = React.memo(({
                     <div className="w-px h-6 bg-border mx-1"></div>
 
                     <a
-                        href={`${window.__ACTIVE_NODE_ID ? `/api/federation/proxy/${window.__ACTIVE_NODE_ID}` : `/api`}/events/${selectedEvent.id}/download`}
+                        href={`${getApiBase()}/events/${selectedEvent.id}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`}
                         download
                         className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                         title={t('common.download', 'Download')}
@@ -262,34 +398,8 @@ export const EventPreview = React.memo(({
                 </div>
             </div>
 
-            <div className="flex-1 bg-black rounded-lg overflow-hidden flex items-center justify-center min-h-0">
-                {mediaError ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
-                        <CloudOff className="w-16 h-16 opacity-50 mb-4" />
-                        <span className="text-xl font-bold uppercase">{t('timeline.offline', 'Offline')}</span>
-                        <span className="text-sm mt-1">{t('timeline.media_unavailable', 'Media unavailable or remote storage is currently unreachable.')}</span>
-                    </div>
-                ) : selectedEvent.type === 'video' ? (
-                    <video
-                        ref={videoRef}
-                        controls
-                        autoPlay
-                        className="max-w-full max-h-full object-contain"
-                        src={getMediaUrl(selectedEvent.file_path)}
-                        onEnded={handleVideoEnded}
-                        onLoadedMetadata={(e) => e.target.playbackRate = playbackSpeed}
-                        onError={() => setMediaError(true)}
-                    >
-                        {t('timeline.no_video_support', 'Your browser does not support video.')}
-                    </video>
-                ) : (
-                    <img
-                        src={getMediaUrl(selectedEvent.file_path)}
-                        alt="Event"
-                        className="max-w-full max-h-full object-contain"
-                        onError={() => setMediaError(true)}
-                    />
-                )}
+            <div className="flex-1 bg-black rounded-lg overflow-hidden flex items-center justify-center min-h-0 relative">
+                {renderPlayerContent(false)}
             </div>
 
             <div className="mt-2 text-[10px] text-muted-foreground font-mono bg-muted/30 p-1.5 rounded truncate">

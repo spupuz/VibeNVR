@@ -927,7 +927,17 @@
     "media_offline": "Medien Offline",
     "hikvision_isapi": "Hikvision ISAPI",
     "backup_comment": "Backup-Kommentar (optional)",
-    "comment": "Kommentar"
+    "comment": "Kommentar",
+    "codec_unsupported_title": "Browser-Wiedergabe nicht unterstützt",
+    "codec_unsupported_desc": "Dieses Videoformat kann von Ihrem Browser nicht direkt dekodiert werden (H.265/HEVC oder MKV-Container). Die Aufnahme ist auf der Festplatte intakt.",
+    "unsupported_codec": "Nicht unterstützter Codec",
+    "passthrough": "Passthrough",
+    "transcode_playback": "Für Web-Wiedergabe transkodieren",
+    "transcoding_in_progress": "Videotranskodierung mit FFmpeg läuft...",
+    "transcode_failed": "Transkodierung fehlgeschlagen. Bitte laden Sie die Datei herunter, um sie anzusehen.",
+    "download_original": "Originaldatei herunterladen",
+    "tip_label": "Tipp",
+    "transcode_tip": "Um Aufnahmen in jedem Browser sofort ohne Transkodierung abzuspielen, stellen Sie den Aufnahmemodus in den Kameraeinstellungen auf Transkodiert."
   },
   "live": {
     "title": "Live-Ansicht",

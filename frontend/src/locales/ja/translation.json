@@ -927,7 +927,17 @@
     "media_offline": "メディアオフライン",
     "hikvision_isapi": "Hikvision ISAPI",
     "backup_comment": "バックアップのコメント（オプション）",
-    "comment": "コメント"
+    "comment": "コメント",
+    "codec_unsupported_title": "ブラウザでの再生に非対応",
+    "codec_unsupported_desc": "このビデオ形式はブラウザで直接デコードできません（H.265/HEVCまたはMKVコンテナ）。ディスク上の録画は正常です。",
+    "unsupported_codec": "非対応コーデック",
+    "passthrough": "パススルー",
+    "transcode_playback": "Web再生用にトランスコード",
+    "transcoding_in_progress": "FFmpegで動画をトランスコード中...",
+    "transcode_failed": "トランスコードに失敗しました。ファイルを開くにはダウンロードしてください。",
+    "download_original": "元のファイルをダウンロード",
+    "tip_label": "ヒント",
+    "transcode_tip": "トランスコードなしでどのブラウザでもすぐに録画を再生するには、カメラ設定で録画モードを「トランスコード」に変更してください。"
   },
   "live": {
     "title": "ライブビュー",

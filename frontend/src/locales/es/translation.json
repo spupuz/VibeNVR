@@ -927,7 +927,17 @@
     "media_offline": "Medios Desconectados",
     "hikvision_isapi": "Hikvision ISAPI",
     "backup_comment": "Comentario de respaldo (opcional)",
-    "comment": "Comentario"
+    "comment": "Comentario",
+    "codec_unsupported_title": "Reproducción no admitida en el navegador",
+    "codec_unsupported_desc": "Este formato de vídeo no puede ser decodificado directamente por su navegador (H.265/HEVC o contenedor MKV). La grabación está intacta en el disco.",
+    "unsupported_codec": "Códec no compatible",
+    "passthrough": "Passthrough",
+    "transcode_playback": "Transcodificar para reproducir en web",
+    "transcoding_in_progress": "Transcodificando vídeo con FFmpeg en curso...",
+    "transcode_failed": "Error en la transcodificación. Descargue el archivo para verlo.",
+    "download_original": "Descargar archivo original",
+    "tip_label": "Sugerencia",
+    "transcode_tip": "Para reproducir grabaciones al instante en cualquier navegador sin transcodificar, cambie el modo de grabación a Transcodificado en la configuración de la cámara."
   },
   "live": {
     "title": "Vista en vivo",

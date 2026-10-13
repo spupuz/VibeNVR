@@ -927,7 +927,17 @@
     "media_offline": "Média Hors ligne",
     "hikvision_isapi": "Hikvision ISAPI",
     "backup_comment": "Commentaire de sauvegarde (facultatif)",
-    "comment": "Commentaire"
+    "comment": "Commentaire",
+    "codec_unsupported_title": "Lecture non prise en charge par le navigateur",
+    "codec_unsupported_desc": "Ce format vidéo ne peut pas être décodé directement par votre navigateur (H.265/HEVC ou conteneur MKV). L'enregistrement est intact sur le disque.",
+    "unsupported_codec": "Codec non pris en charge",
+    "passthrough": "Passthrough",
+    "transcode_playback": "Transcoder pour la lecture web",
+    "transcoding_in_progress": "Transcodage vidéo avec FFmpeg en cours...",
+    "transcode_failed": "Échec du transcodage. Veuillez télécharger le fichier pour le visionner.",
+    "download_original": "Télécharger le fichier original",
+    "tip_label": "Conseil",
+    "transcode_tip": "Pour lire instantanément les enregistrements dans n'importe quel navigateur sans transcodage, réglez le mode d'enregistrement sur Transcodé dans les paramètres de la caméra."
   },
   "live": {
     "title": "Vue en direct",
