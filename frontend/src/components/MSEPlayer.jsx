@@ -116,7 +116,7 @@ export const MSEPlayer = ({ camera, onStateChange, videoEnabled = true, isAuditi
             ctx.textBaseline = 'alphabetic';
             ctx.fillText(textRight, w - metrics.width - 10, h - 10);
         }
-    }, [camera]);
+    }, [camera?.name, camera?.text_left, camera?.text_right, camera?.text_scale]);
 
     const drawAIBoxes = useCallback((ctx, w, h) => {
         const metadata = latestMetadataRef.current;
