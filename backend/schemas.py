@@ -480,6 +480,111 @@ class Camera(CameraBase):
 class CameraReorderRequest(BaseModel):
     camera_ids: List[int]
 
+class CameraUpdate(BaseModel):
+    name: Optional[str] = None
+    rtsp_url: Optional[str] = None
+    sub_rtsp_url: Optional[str] = None
+    location: Optional[str] = None
+    is_active: Optional[bool] = None
+    sort_order: Optional[int] = None
+    status: Optional[str] = None
+    recording_mode: Optional[str] = None
+    movie_quality: Optional[str] = None
+    movie_passthrough: Optional[bool] = None
+    max_movie_length: Optional[int] = None
+    preserve_movies: Optional[int] = None
+    max_storage_gb: Optional[float] = None
+    picture_quality: Optional[str] = None
+    picture_recording_mode: Optional[str] = None
+    preserve_pictures: Optional[int] = None
+    max_pictures_storage_gb: Optional[float] = None
+    enable_manual_snapshots: Optional[bool] = None
+    threshold: Optional[int] = None
+    despeckle_filter: Optional[str] = None
+    motion_gap: Optional[int] = None
+    captured_before: Optional[int] = None
+    captured_after: Optional[int] = None
+    min_motion_frames: Optional[int] = None
+    mask: Optional[str] = None
+    privacy_masks: Optional[str] = None
+    motion_masks: Optional[str] = None
+    show_frame_changes: Optional[bool] = None
+    text_left: Optional[str] = None
+    text_right: Optional[str] = None
+    text_scale: Optional[int] = None
+    notify_webhook_url: Optional[str] = None
+    notify_telegram_token: Optional[str] = None
+    notify_telegram_chat_id: Optional[str] = None
+    notify_email_address: Optional[str] = None
+    notify_start_email: Optional[bool] = None
+    notify_start_telegram: Optional[bool] = None
+    notify_start_webhook: Optional[bool] = None
+    notify_start_command: Optional[str] = None
+    notify_end_webhook: Optional[bool] = None
+    notify_end_command: Optional[str] = None
+    notify_attach_image_email: Optional[bool] = None
+    notify_attach_image_telegram: Optional[bool] = None
+    notify_health_webhook_url: Optional[str] = None
+    notify_health_telegram_token: Optional[str] = None
+    notify_health_telegram_chat_id: Optional[str] = None
+    notify_health_email_recipient: Optional[str] = None
+    notify_health_email: Optional[bool] = None
+    notify_health_telegram: Optional[bool] = None
+    notify_health_webhook: Optional[bool] = None
+    auto_threshold_tuning: Optional[bool] = None
+    auto_noise_detection: Optional[bool] = None
+    light_switch_detection: Optional[int] = None
+    live_view_mode: Optional[str] = None
+    rtsp_transport: Optional[str] = None
+    sub_rtsp_transport: Optional[str] = None
+    detect_motion_mode: Optional[str] = None
+    detect_engine: Optional[str] = None
+    framerate: Optional[int] = None
+    rotation: Optional[int] = None
+    onvif_host: Optional[str] = None
+    onvif_port: Optional[int] = None
+    onvif_username: Optional[str] = None
+    onvif_password: Optional[str] = None
+    onvif_profile_token: Optional[str] = None
+    ptz_can_pan_tilt: Optional[bool] = None
+    ptz_can_zoom: Optional[bool] = None
+    onvif_can_events: Optional[bool] = None
+    event_provider: Optional[str] = None
+    isapi_port: Optional[int] = None
+    isapi_username: Optional[str] = None
+    isapi_password: Optional[str] = None
+    isapi_trim_quiet_tail: Optional[bool] = None
+    record_audio: Optional[bool] = None
+    schedule_monday: Optional[bool] = None
+    schedule_monday_start: Optional[str] = None
+    schedule_monday_end: Optional[str] = None
+    schedule_tuesday: Optional[bool] = None
+    schedule_tuesday_start: Optional[str] = None
+    schedule_tuesday_end: Optional[str] = None
+    schedule_wednesday: Optional[bool] = None
+    schedule_wednesday_start: Optional[str] = None
+    schedule_wednesday_end: Optional[str] = None
+    schedule_thursday: Optional[bool] = None
+    schedule_thursday_start: Optional[str] = None
+    schedule_thursday_end: Optional[str] = None
+    schedule_friday: Optional[bool] = None
+    schedule_friday_start: Optional[str] = None
+    schedule_friday_end: Optional[str] = None
+    schedule_saturday: Optional[bool] = None
+    schedule_saturday_start: Optional[str] = None
+    schedule_saturday_end: Optional[str] = None
+    schedule_sunday: Optional[bool] = None
+    schedule_sunday_start: Optional[str] = None
+    schedule_sunday_end: Optional[str] = None
+    ai_enabled: Optional[bool] = None
+    ai_object_types: Optional[List[str]] = None
+    ai_threshold: Optional[float] = None
+    ai_tracking_enabled: Optional[bool] = None
+
+class CameraBulkUpdateRequest(BaseModel):
+    camera_ids: List[int]
+    update_data: CameraUpdate
+
 class EventBase(BaseModel):
     camera_id: int
     timestamp_start: datetime

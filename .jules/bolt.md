@@ -21,3 +21,11 @@
 ## 2025-01-26 - Concurrent Promises vs Sequential Fetches in Loops
 **Learning:** Fetching data inside a `for...of` loop with `await fetch` creates a sequential waterfall, which is highly inefficient for independent network requests (such as polling stats from multiple federated nodes).
 **Action:** To optimize frontend network requests and eliminate O(N) latency bottlenecks, refactor sequential `await fetch` calls inside `for...of` loops to run concurrently using `Promise.all(array.map(...))`.
+
+## 2025-02-12 - N+1 Queries in Client-Side Promise.all Loops
+**Learning:** While `Promise.all()` improves frontend latency for sequential fetches, dispatching multiple concurrent PUT/POST requests (e.g., when copying settings to multiple cameras) creates N+1 API and database bottlenecks on the backend.
+**Action:** For operations modifying multiple entities simultaneously, always implement and use a single bulk API endpoint (e.g., `POST /bulk-update`) rather than mapping over items with individual API calls.
+
+## 2025-02-12 - Bulk Update Schema Validation
+**Learning:** When defining a Pydantic schema for a partial or bulk update operation, inheriting directly from a base schema with required fields causes 422 validation failures when the frontend sends a subset of keys. Furthermore, using `Dict[str, Any]` bypasses validation entirely and creates Mass Assignment risks.
+**Action:** Always define a strict Pydantic update schema where all modifiable fields are explicitly marked as `Optional` and use `.model_dump(exclude_unset=True)` (or `.dict()` in v1) to safely extract only the provided fields for updates.
