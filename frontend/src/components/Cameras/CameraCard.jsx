@@ -31,7 +31,7 @@ export const CameraCard = memo(({ camera, onDelete, onEdit, onToggleActive, isSe
                     role="checkbox"
                     aria-checked={isSelected}
                     tabIndex={0}
-                    aria-label={t('camera.select', 'Select camera')}
+                    aria-label={t('camera.select_name', { defaultValue: 'Select {{name}}', name: camera.name })}
                     className={`absolute top-4 left-4 z-10 w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${isSelected ? 'bg-primary border-primary' : 'bg-background/80 border-border group-hover:border-primary/50'
                         }`}
                     onClick={(e) => {
@@ -143,7 +143,7 @@ export const CameraCard = memo(({ camera, onDelete, onEdit, onToggleActive, isSe
                 {user?.role === 'admin' && (
                     <>
                         <button
-                            aria-label={t('camera.export', 'Export camera settings')}
+                            aria-label={t('camera.export_name', { defaultValue: 'Export {{name}} settings', name: camera.name })}
                             onClick={async () => {
                                 try {
                                     const res = await fetch(`/api/cameras/${camera.id}/export`, {
@@ -180,7 +180,7 @@ export const CameraCard = memo(({ camera, onDelete, onEdit, onToggleActive, isSe
                             <Download className="w-5 h-5" />
                         </button>
                         <button
-                            aria-label={t('camera.edit', 'Edit camera')}
+                            aria-label={t('camera.edit_name', { defaultValue: 'Edit {{name}}', name: camera.name })}
                             onClick={() => onEdit(camera)}
                             className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                             title={t('camera.edit', 'Edit camera')}
@@ -188,7 +188,7 @@ export const CameraCard = memo(({ camera, onDelete, onEdit, onToggleActive, isSe
                             <Edit className="w-5 h-5" />
                         </button>
                         <button
-                            aria-label={t('camera.delete', 'Delete camera')}
+                            aria-label={t('camera.delete_name', { defaultValue: 'Delete {{name}}', name: camera.name })}
                             onClick={() => onDelete(camera.id)}
                             className="p-2 hover:bg-red-50 dark:hover:bg-red-900/40 text-muted-foreground hover:text-red-500 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                             title={t('camera.delete', 'Delete camera')}
