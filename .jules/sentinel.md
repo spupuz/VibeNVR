@@ -27,3 +27,7 @@
 **Vulnerability:** The federation service proxies HTTP and WebSocket requests directly to URLs stored in the database without re-validating them for SSRF at the time of connection.
 **Learning:** URLs must be validated at the time of use (e.g., using `utils.is_safe_webhook_url`), not just at creation time, to prevent SSRF via database tampering or DNS rebinding.
 **Prevention:** Always enforce defense-in-depth by re-validating external URLs immediately before initiating network connections, particularly in proxy-like services.
+## 2025-02-27 - Server-Side Request Forgery (SSRF) in Telegram Proxy
+**Vulnerability:** The Telegram `proxy_url` configuration parameters (`telegram_proxy_url`) were used directly in `requests.post` without URL parsing and hostname validation, allowing an attacker to configure an internal proxy address and cause the backend to send requests to local or internal loopback IPs, risking SSRF.
+**Learning:** `urllib.parse.urlparse` must be used to properly extract the `hostname` before checking it with `utils.is_safe_host()`.
+**Prevention:** Before assigning proxy variables from user-configurable settings, explicitly parse the URL and validate `parsed_proxy.hostname` using `utils.is_safe_host()`.
