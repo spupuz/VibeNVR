@@ -27,3 +27,7 @@
 **Vulnerability:** The federation service proxies HTTP and WebSocket requests directly to URLs stored in the database without re-validating them for SSRF at the time of connection.
 **Learning:** URLs must be validated at the time of use (e.g., using `utils.is_safe_webhook_url`), not just at creation time, to prevent SSRF via database tampering or DNS rebinding.
 **Prevention:** Always enforce defense-in-depth by re-validating external URLs immediately before initiating network connections, particularly in proxy-like services.
+## 2025-02-27 - Added SSRF protection to SMTP test notification
+**Vulnerability:** Server-Side Request Forgery (SSRF) was possible in the SMTP test notification feature because the user-provided `smtp_server` was not validated before attempting a connection.
+**Learning:** Network connections to user-provided hosts must always be validated, even for administrative testing tools like SMTP notifications, as attackers can use them to probe internal networks.
+**Prevention:** Use `utils.is_safe_host()` to validate all user-provided hostnames and IPs before establishing any outbound connection (e.g. SMTP, SFTP, HTTP).
