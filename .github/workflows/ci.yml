@@ -37,6 +37,11 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Camera editor and storage UI tests
+        run: |
+          node ../.github/scripts/frontend_tests/test_camera_editor.mjs
+          node ../.github/scripts/frontend_tests/test_storage_ui.mjs
+
   backend-e2e:
     name: Backend & E2E Tests
     runs-on: ubuntu-latest

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router';
+import { Navigate, useLocation, useMatch, useNavigate, useSearchParams } from 'react-router';
 import { Camera, Plus, Trash2, MapPin, Activity, Download, Upload, Search } from 'lucide-react';
 import { Toggle } from '../components/ui/FormControls';
 import { GroupsManager } from '../components/GroupsManager';
@@ -14,10 +14,10 @@ import { CameraCard } from '../components/Cameras/CameraCard';
 import { SortableCameraCard } from '../components/Cameras/SortableCameraCard';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
-import { CameraAddEditModal } from '../components/Cameras/AddEditModal/CameraAddEditModal';
+import { CameraEditor } from './CameraEditor';
 import { CopySettingsModal } from '../components/Cameras/CopySettingsModal';
-import { parseRtspUrl } from '../utils/cameraUtils';
-import { DEFAULT_CAMERA_STATE } from '../constants/cameraDefaults';
+import { cameraDraftSnapshot, cameraToDraft, createCameraDraft } from '../utils/cameraEditorUtils';
+import { useCameraEditorNavigation } from '../hooks/useCameraEditorNavigation';
 import { CATEGORY_FIELD_MAP, EXCLUDED_FIELDS } from '../utils/cameraSettingsMapping';
 import { BulkActionsBar } from '../components/Cameras/BulkActionsBar';
 import { ProcessingOverlay } from '../components/Cameras/ProcessingOverlay';
@@ -28,11 +28,21 @@ export const Cameras = () => {
     const { t } = useTranslation();
     const [cameras, setCameras] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [showAddModal, setShowAddModal] = useState(false);
+    const navigate = useNavigate();
+    const location = useLocation();
+    const newRoute = useMatch('/cameras/new');
+    const editRoute = useMatch('/cameras/:cameraId/edit');
+    const editorPath = newRoute || editRoute ? location.pathname : null;
+    const isEditor = Boolean(editorPath);
+    const [initializedEditorPath, setInitializedEditorPath] = useState(null);
+    const [savedSnapshot, setSavedSnapshot] = useState(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [cameraLoadError, setCameraLoadError] = useState(false);
+    const scannerDraft = useRef(null);
     const [showScanner, setShowScanner] = useState(false);
     const fileInputRef = useRef(null);
     const motionEyeInputRef = useRef(null);
-    const [newCamera, setNewCamera] = useState({...DEFAULT_CAMERA_STATE});
+    const [newCamera, setNewCamera] = useState(createCameraDraft);
 
     const [stats, setStats] = useState(null);
     const [storageProfiles, setStorageProfiles] = useState([]);
@@ -56,7 +66,9 @@ export const Cameras = () => {
     const [importCandidates, setImportCandidates] = useState([]);
     const [showImportModal, setShowImportModal] = useState(false);
 
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
+    const isDirty = Boolean(editorPath && initializedEditorPath === editorPath && savedSnapshot !== cameraDraftSnapshot(newCamera));
+    const { blocker, allowNavigation } = useCameraEditorNavigation(isDirty, isSaving);
 
     // DND Sensors
     const sensors = useSensors(
@@ -89,7 +101,7 @@ export const Cameras = () => {
 
     // Fetch Cameras & Periodic Polling
     useEffect(() => {
-        if (!token) return;
+        if (!token || (isEditor && user?.role !== 'admin')) return;
         
         // Initial fetch
         fetchCameras();
@@ -104,7 +116,7 @@ export const Cameras = () => {
         }, 15000);
 
         return () => clearInterval(pollInterval);
-    }, [token]);
+    }, [token, user?.role, isEditor]);
 
     const fetchStorageProfiles = async () => {
         try {
@@ -140,6 +152,7 @@ export const Cameras = () => {
                 setGlobalSettings({
                     max_global_storage_gb: data.max_global_storage_gb?.value !== undefined ? parseFloat(data.max_global_storage_gb.value) : 0,
                     cleanup_enabled: data.cleanup_enabled?.value === 'true',
+                    archival_enabled: data.archival_enabled?.value === 'true',
                     ai_enabled: data.ai_enabled?.value === 'true' || data.ai_enabled?.value === true
                 });
             }
@@ -148,38 +161,42 @@ export const Cameras = () => {
         }
     };
 
-    // Check for edit parameter in URL
+    // Preserve links from Live View and other existing ?edit= entry points.
     useEffect(() => {
         const editId = searchParams.get('edit');
-        if (editId && cameras.length > 0) {
-            const camera = cameras.find(c => c.id === parseInt(editId));
-            if (camera) {
-                const { user, pass, host } = parseRtspUrl(camera.rtsp_url);
-                setNewCamera({
-                    ...camera,
-                    rtsp_username: user,
-                    rtsp_password: pass,
-                    rtsp_host: host
-                });
-                setEditingId(camera.id);
-                setShowAddModal(true);
-                // Clear the URL parameter after opening modal
-                setSearchParams({});
-            }
+        if (!editorPath && user?.role === 'admin' && /^\d+$/.test(editId || '')) {
+            navigate(`/cameras/${Number(editId)}/edit`, { replace: true });
         }
-    }, [cameras, searchParams]);
+    }, [editorPath, user?.role, searchParams, navigate]);
 
-    // Handle ESC key to close modal
     useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key === 'Escape' && showAddModal) {
-                setShowAddModal(false);
+        if (!editorPath) {
+            if (initializedEditorPath) {
+                setInitializedEditorPath(null);
+                setSavedSnapshot(null);
+                setNewCamera(createCameraDraft());
                 setEditingId(null);
+                setShowCopyModal(false);
+                setConfirmConfig({ isOpen: false });
             }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [showAddModal]);
+            allowNavigation.current = false;
+            return;
+        }
+        if (initializedEditorPath === editorPath || user?.role !== 'admin' || (!newRoute && loading)) return;
+        const camera = editRoute && cameras.find(camera => String(camera.id) === editRoute.params.cameraId);
+        if (!newRoute && !camera) return;
+        const draft = newRoute ? (scannerDraft.current || createCameraDraft()) : cameraToDraft(camera);
+        scannerDraft.current = null;
+        setNewCamera(draft);
+        setEditingId(camera?.id || null);
+        setActiveTab('general');
+        setShowCopyModal(false);
+        setCopyTargets([]);
+        setConfirmConfig({ isOpen: false });
+        setSavedSnapshot(cameraDraftSnapshot(draft));
+        setInitializedEditorPath(editorPath);
+        allowNavigation.current = false;
+    }, [editorPath, initializedEditorPath, cameras, loading, user?.role]);
 
     const fetchCameras = async () => {
         try {
@@ -189,9 +206,13 @@ export const Cameras = () => {
             if (res.ok) {
                 const data = await res.json();
                 setCameras(data);
+                setCameraLoadError(false);
+            } else {
+                setCameraLoadError(true);
             }
         } catch (err) {
             console.error("Failed to fetch cameras", err);
+            setCameraLoadError(true);
         } finally {
             setLoading(false);
         }
@@ -350,15 +371,7 @@ export const Cameras = () => {
     };
 
     const handleEdit = (camera) => {
-        const { user, pass, host } = parseRtspUrl(camera.rtsp_url);
-        setNewCamera({
-            ...camera,
-            rtsp_username: user,
-            rtsp_password: pass,
-            rtsp_host: host
-        });
-        setEditingId(camera.id);
-        setShowAddModal(true);
+        navigate(`/cameras/${camera.id}/edit`);
     };
 
     const handleCleanup = async (cameraId, type) => {
@@ -425,10 +438,12 @@ export const Cameras = () => {
 
     const handleCreate = async (e, shouldClose = true) => {
         if (e) e.preventDefault();
+        if (isSaving || user?.role !== 'admin') return;
         if (newCamera.event_provider === 'hikvision_isapi' && newCamera._isapi_use_separate && (!newCamera.isapi_username || !newCamera.isapi_password)) {
             showToast(t('cameras.isapi_credentials_required', 'Enter both an ISAPI username and password to use separate credentials.'), 'error');
             return;
         }
+        setIsSaving(true);
         try {
             const url = editingId
                 ? `/api/cameras/${editingId}`
@@ -446,45 +461,43 @@ export const Cameras = () => {
             });
             if (res.ok) {
                 const savedCamera = await res.json();
+                const draft = cameraToDraft(savedCamera);
+                setSavedSnapshot(cameraDraftSnapshot(draft));
 
                 if (shouldClose) {
-                    setShowAddModal(false);
-                    setNewCamera({...DEFAULT_CAMERA_STATE, text_left: 'Camera Name', max_storage_gb: 0, notify_attach_image_email: true, notify_attach_image_telegram: true});
-
-                    setEditingId(null);
+                    allowNavigation.current = true;
+                    navigate('/cameras');
                 } else {
                     // Update state to reflect that we are now editing an existing camera
                     setEditingId(savedCamera.id);
-                    const { user, pass, host } = parseRtspUrl(savedCamera.rtsp_url);
-                    setNewCamera({
-                        ...savedCamera,
-                        rtsp_username: user,
-                        rtsp_password: pass,
-                        rtsp_host: host
-                    });
+                    setNewCamera(draft);
                     showToast("Settings saved successfully.", "success");
                 }
                 fetchCameras();
+            } else {
+                showToast(t('camera_editor.save_failed', 'Could not save the camera. Your changes have been kept.'), 'error');
             }
         } catch (err) {
             console.error("Failed to save", err);
             showToast("Failed to save: " + err.message, "error");
+        } finally {
+            setIsSaving(false);
         }
     };
 
     const handleScannerAdd = (discoveryData) => {
         const hostPath = `${discoveryData.ip}${discoveryData.port && discoveryData.port !== 80 ? ':' + discoveryData.port : ''}${discoveryData.path || ''}`;
 
-        setNewCamera(prev => ({
-            ...prev,
+        scannerDraft.current = {
+            ...createCameraDraft(),
             name: discoveryData.name,
             rtsp_url: discoveryData.rtsp_url,
             rtsp_username: discoveryData.rtsp_username,
             rtsp_password: discoveryData.rtsp_password,
             rtsp_host: hostPath,
             location: discoveryData.location || ''
-        }));
-        setShowAddModal(true);
+        };
+        navigate('/cameras/new');
         setShowScanner(false);
     };
 
@@ -578,6 +591,55 @@ export const Cameras = () => {
         }
     };
 
+    if (editorPath) {
+        if (user?.role !== 'admin') return <Navigate to="/cameras" replace />;
+        if (initializedEditorPath !== editorPath && (cameraLoadError || (!newRoute && !loading && !cameras.some(camera => String(camera.id) === editRoute.params.cameraId)))) {
+            return (
+                <div className="space-y-4 rounded-xl border border-border bg-card p-6">
+                    <h1 className="text-xl font-bold">{t('cameras.edit_camera', 'Edit Camera')}</h1>
+                    <p className="text-muted-foreground">{cameraLoadError ? t('camera_editor.load_failed', 'Could not load cameras. Please try again.') : t('camera_editor.not_found', 'Camera not found on the selected node.')}</p>
+                    <Button onClick={() => navigate('/cameras')}>{t('camera_editor.back', 'Back to cameras')}</Button>
+                </div>
+            );
+        }
+        if (initializedEditorPath !== editorPath) return <div className="flex justify-center p-12"><Activity className="animate-spin w-8 h-8 text-primary" /></div>;
+        return (
+            <>
+                <CameraEditor
+                    editingId={editingId}
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                    newCamera={newCamera}
+                    setNewCamera={setNewCamera}
+                    storageProfiles={storageProfiles}
+                    cameras={cameras}
+                    token={token}
+                    stats={stats}
+                    handleCreate={handleCreate}
+                    handleCleanup={handleCleanup}
+                    handleTestNotification={handleTestNotification}
+                    setShowCopyModal={setShowCopyModal}
+                    globalSettings={globalSettings}
+                    onLeave={() => navigate('/cameras')}
+                    isDirty={isDirty}
+                    isSaving={isSaving}
+                />
+                <CopySettingsModal showCopyModal={showCopyModal} setShowCopyModal={setShowCopyModal} cameras={cameras} editingId={editingId} copyTargets={copyTargets} setCopyTargets={setCopyTargets} handleCopySettings={handleCopySettings} />
+                {isProcessing && <ProcessingOverlay isProcessing={isProcessing} processingMessage={processingMessage} />}
+                <ConfirmModal {...confirmConfig} />
+                <ConfirmModal
+                    isOpen={blocker.state === 'blocked' && !isSaving && isDirty}
+                    title={t('camera_editor.discard_title', 'Discard unsaved changes?')}
+                    message={t('camera_editor.discard_message', 'You have unsaved camera changes. Leave without saving?')}
+                    confirmText={t('camera_editor.leave', 'Leave without saving')}
+                    cancelText={t('camera_editor.stay', 'Keep editing')}
+                    onConfirm={() => blocker.proceed()}
+                    onCancel={() => blocker.reset()}
+                />
+            </>
+        );
+    }
+
     return (
         <div className="space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -614,11 +676,7 @@ export const Cameras = () => {
                         <>
 
                             <Button
-                                onClick={() => {
-                                    setEditingId(null);
-                                    setNewCamera({...DEFAULT_CAMERA_STATE, rtsp_username: '', rtsp_password: '', rtsp_host: '', max_storage_gb: 0, notify_attach_image_email: true, notify_attach_image_telegram: true});
-                                    setShowAddModal(true);
-                                }}
+                                onClick={() => navigate('/cameras/new')}
                             >
                                 <Plus className="w-4 h-4 mr-2" />
                                 <span>{t('cameras.add_camera', 'Add Camera')}</span>
@@ -990,26 +1048,6 @@ export const Cameras = () => {
                 )
             }
 
-            <CameraAddEditModal
-                showAddModal={showAddModal}
-                setShowAddModal={setShowAddModal}
-                editingId={editingId}
-                setEditingId={setEditingId}
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                newCamera={newCamera}
-                setNewCamera={setNewCamera}
-                storageProfiles={storageProfiles}
-                cameras={cameras}
-                token={token}
-                stats={stats}
-                handleCreate={handleCreate}
-                handleCleanup={handleCleanup}
-                handleTestNotification={handleTestNotification}
-                setShowCopyModal={setShowCopyModal}
-                globalSettings={globalSettings}
-            />
-
             <CopySettingsModal
                 showCopyModal={showCopyModal}
                 setShowCopyModal={setShowCopyModal}
@@ -1020,7 +1058,7 @@ export const Cameras = () => {
                 handleCopySettings={handleCopySettings}
             />
             {/* Bulk Actions Floating Bar */}
-            {selectedCameraIds.length > 0 && !showAddModal && (
+            {selectedCameraIds.length > 0 && (
                 <BulkActionsBar 
                     selectedCameraIds={selectedCameraIds} 
                     setSelectedCameraIds={setSelectedCameraIds} 

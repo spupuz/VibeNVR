@@ -16,7 +16,14 @@ export const FederationProvider = ({ children }) => {
     });
     const [nodes, setNodes] = useState([]);
 
-    const setActiveNode = (node) => {
+    const setActiveNode = (node, { automatic = false } = {}) => {
+        if (String(node || '') !== String(window.__ACTIVE_NODE_ID || '')) {
+            const event = new CustomEvent('vibenvr:before-node-change', {
+                cancelable: true,
+                detail: { automatic }
+            });
+            if (!window.dispatchEvent(event)) return false;
+        }
         window.__ACTIVE_NODE_ID = node;
         setActiveNodeState(node);
         if (node) {
@@ -24,6 +31,7 @@ export const FederationProvider = ({ children }) => {
         } else {
             localStorage.removeItem('vibenvr_active_node');
         }
+        return true;
     };
 
     // Load nodes periodically to check health
@@ -44,8 +52,9 @@ export const FederationProvider = ({ children }) => {
                     if (currNodeId) {
                         const current = data.find(n => n.id.toString() === currNodeId.toString());
                         if (current && current.status !== 'online') {
-                            showToast(t('federation.node_went_offline', 'The active node went offline. Switching to Master.'), 'error');
-                            setActiveNode(null);
+                            if (setActiveNode(null, { automatic: true })) {
+                                showToast(t('federation.node_went_offline', 'The active node went offline. Switching to Master.'), 'error');
+                            }
                         }
                     }
                 })
