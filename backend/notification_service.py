@@ -186,6 +186,11 @@ def _send_email_notification(
     if not (should_notify_email and smtp_server and email_recipient):
         return
 
+    import utils
+    if not utils.is_safe_host(smtp_server):
+        logger.error(f"[NOTIFY] Email aborted: Unsafe SMTP server host {smtp_server}")
+        return
+
     try:
         msg = MIMEMultipart()
         msg["Subject"] = subject
