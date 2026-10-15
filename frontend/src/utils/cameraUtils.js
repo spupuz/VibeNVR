@@ -61,3 +61,14 @@ export const getSnapshotUrl = (cameraId, streamIndex = 0, eventId = null) => {
 
   return url;
 };
+
+// Video rotation values supported by the camera settings (degrees)
+export const ROTATION_VALUES = [0, 90, 180, 270];
+
+// Value to feed the rotation <select>. It must match the option values exactly
+// ('0', '90', '180', '270'): any other string selects no option, so the browser
+// silently shows the first one (0°) even though the stored rotation is different.
+export const toRotationSelectValue = (rotation) => {
+  const value = Number(rotation);
+  return ROTATION_VALUES.includes(value) ? String(value) : '0';
+};

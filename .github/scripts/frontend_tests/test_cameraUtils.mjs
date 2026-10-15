@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { getSnapshotUrl, parseRtspUrl } from '../../../frontend/src/utils/cameraUtils.js';
+import { getSnapshotUrl, parseRtspUrl, toRotationSelectValue } from '../../../frontend/src/utils/cameraUtils.js';
 
 // --- Test getSnapshotUrl ---
 console.log('Testing getSnapshotUrl...');
@@ -88,4 +88,27 @@ try {
 }
 
 console.log('✅ parseRtspUrl tests passed.');
+// --- Test toRotationSelectValue ---
+console.log('Testing toRotationSelectValue...');
+
+// The returned string must equal the <option value> used by the rotation <select>
+// (no degree sign, otherwise no option matches and the UI always shows 0°).
+assert.strictEqual(toRotationSelectValue(0), '0');
+assert.strictEqual(toRotationSelectValue(90), '90');
+assert.strictEqual(toRotationSelectValue(180), '180');
+assert.strictEqual(toRotationSelectValue(270), '270');
+
+// Numeric strings (e.g. coming from the API or a form) are normalised
+assert.strictEqual(toRotationSelectValue('90'), '90');
+assert.strictEqual(toRotationSelectValue('270'), '270');
+
+// Missing or unsupported values fall back to 0
+assert.strictEqual(toRotationSelectValue(undefined), '0');
+assert.strictEqual(toRotationSelectValue(null), '0');
+assert.strictEqual(toRotationSelectValue(''), '0');
+assert.strictEqual(toRotationSelectValue('abc'), '0');
+assert.strictEqual(toRotationSelectValue(45), '0');
+assert.strictEqual(toRotationSelectValue('90°'), '0');
+
+console.log('✅ toRotationSelectValue tests passed.');
 console.log('🎉 All cameraUtils tests passed successfully.');

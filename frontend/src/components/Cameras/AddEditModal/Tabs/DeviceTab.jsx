@@ -1,6 +1,7 @@
 import React from 'react';
 import { Toggle, SelectField, Slider, SectionHeader } from '../../../ui/FormControls';
 import { useTranslation } from 'react-i18next';
+import { toRotationSelectValue } from '../../../../utils/cameraUtils';
 
 export const DeviceTab = ({ newCamera, setNewCamera }) => {
   const { t } = useTranslation();
@@ -42,7 +43,7 @@ export const DeviceTab = ({ newCamera, setNewCamera }) => {
             )}
             <SelectField
                 label={t('cameras.video_rotation', 'Video Rotation')}
-                value={`${newCamera.rotation}°`}
+                value={toRotationSelectValue(newCamera.rotation)}
                 onChange={(val) => setNewCamera({ ...newCamera, rotation: parseInt(val) })}
                 options={[
                     { value: '0', label: '0°' },
