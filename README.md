@@ -59,6 +59,7 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | 📊 **Standardized Logging** | Unified timestamping and formatting across all containers. Includes **Automatic Redaction** of sensitive credentials (RTSP, tokens) and binary noise filtering. |
 | 🐳 **Docker-Native** | Zero-dependency deployment with **Tag-Driven CI/CD**. Images are ultra-lean (~1GB) and protected by recursive `.dockerignore` policies to prevent artifact leakage. **NEW**: Multi-Arch support for `amd64` and `arm64` (e.g. Raspberry Pi 5, Apple M-Series). |
 | 🌍 **Multi-Language Support** | Full internationalization (i18n) covering 10 languages (EN, IT, FR, DE, ES, PT, RU, ZH, JA, UK) across the entire UI. |
+| 🌗 **Interface Themes** | 3-state theme selector supporting **Dark**, **Light**, and **Follow System** with dedicated dropdown window and full OS color-scheme synchronization. |
 
 ---
 

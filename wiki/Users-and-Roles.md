@@ -19,7 +19,7 @@ The `viewer` role is designed for standard monitoring purposes and is strictly *
 - **Privileges:**
   - View live camera streams via WebSockets or MJPEG.
   - Browse the event timeline and download recorded media.
-  - Manage their own personal profile and configure 2FA for their account.
+  - Manage their own personal profile, configure 2FA, and select their preferred interface theme (**Dark**, **Light**, or **Follow System**).
 - **Restrictions:**
   - Cannot modify system settings, create cameras, or delete media. Any attempt to access state-altering APIs will result in an HTTP 403 Forbidden.
 
