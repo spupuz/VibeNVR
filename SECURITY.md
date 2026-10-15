@@ -129,7 +129,7 @@ VibeNVR's code includes specific mitigations against common attack vectors:
 12. **Hardened Engine Synchronization**:
     - Critical streaming parameters are synchronized via Admin-only authenticated routes and validated through Pydantic schemas to prevent injection or invalid configuration states.
 13. **SECRET_KEY Security Enforcement**:
-    - In production, the application **refuses to start** with an explicitly set weak `SECRET_KEY` (shorter than 32 chars). If left unset, it generates a secure random URL-safe token, but this will invalidate sessions on restart. Weak key usage can be overridden via `ALLOW_WEAK_SECRET=true` for troubleshooting only.
+    - The backend evaluates the strength and entropy of the configured `SECRET_KEY` on startup. If a default or weak key (< 32 characters) is detected, critical warnings are emitted to logs and a **persistent, high-visibility security warning banner** is rendered in the administration interface until a cryptographically secure key is generated and provided. The key check can be acknowledged in production with `ALLOW_WEAK_SECRET=true`. To protect against information disclosure, the weak key diagnostic is restricted exclusively to authenticated admin sessions and is never leaked via public health endpoints.
 14. **Browser Security Headers**: 
     - VibeNVR implements standard security headers via middleware (`X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Strict-Transport-Security`, `Referrer-Policy`).
     - A strict **Content-Security-Policy (CSP)** is actively enforced to mitigate cross-site scripting and unauthorized resource loading.

@@ -18,11 +18,14 @@ security_opt:
 
 As a last resort, use `privileged: true` on the affected service.
 
-### Backend fails to start
+### Weak or default SECRET_KEY warning
 
-If the backend fails to start with a `SystemExit: 1`, check that `SECRET_KEY` is not set to one of the default values and is at least 32 characters long.
+If you see critical warnings in the backend logs regarding `SECRET_KEY` or a persistent red security banner across the web interface:
 
-In production (`ENVIRONMENT=production`), the app will strictly enforce this. To bypass it for troubleshooting, you can set `ALLOW_WEAK_SECRET=true` in your `.env` file.
+1. Check that `SECRET_KEY` in `.env` is not set to one of the default values and is at least 32 characters long.
+2. Generate a secure random key using `openssl rand -hex 32`.
+3. Update `.env` and restart the containers with `docker compose down && docker compose up -d --build`.
+4. To acknowledge a weak key during troubleshooting without blocking production warnings, you can set `ALLOW_WEAK_SECRET=true` in `.env`. Note that weak key diagnostics are strictly restricted to authenticated administrator sessions and are never leaked via public health endpoints.
 
 ### Cameras not connecting
 

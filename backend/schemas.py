@@ -646,6 +646,7 @@ class User(UserBase):
     created_at: datetime
     camera_accesses: List[AllowedResource] = []
     group_accesses: List[AllowedResource] = []
+    is_weak_key: Optional[bool] = False
 
     model_config = ConfigDict(from_attributes=True)
 

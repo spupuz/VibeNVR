@@ -55,7 +55,7 @@ Bootstrap the session from the HttpOnly `auth_token` cookie. Used by the fronten
 - **Auth Required**: Valid `auth_token` cookie
 
 #### **GET** `/auth/me`
-Retrieve profile information for the currently authenticated user.
+Retrieve profile information for the currently authenticated user. For admin users, this response also includes system security diagnostics (`is_weak_key`).
 - **Auth Required**: JWT or API Key
 - **Response Example**:
 ```json
@@ -64,7 +64,26 @@ Retrieve profile information for the currently authenticated user.
   "email": "user@example.com",
   "role": "admin",
   "is_2fa_enabled": true,
+  "is_weak_key": false,
   "id": 1
+}
+```
+
+---
+
+### 🏥 System Health (`/health`)
+
+#### **GET** `/health`
+Public liveness and component readiness probe for load balancers and orchestrators. To prevent information disclosure, security evaluations (such as weak key diagnostics) are never exposed on this public endpoint.
+- **Auth Required**: None
+- **Response Example**:
+```json
+{
+  "status": "ok",
+  "components": {
+    "database": "ok",
+    "engine": "ok"
+  }
 }
 ```
 

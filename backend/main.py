@@ -187,17 +187,15 @@ async def lifespan(app: FastAPI):
         logger.warning("!! This is a security risk. Please set a secure SECRET_KEY in your .env file. !!")
         logger.warning("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
-        # Only exit if in production and not explicitly bypassed
+        # In production, warn critically and persist warning in UI for admin
         if os.getenv("ENVIRONMENT", "production").lower() == "production":
              if os.getenv("ALLOW_WEAK_SECRET", "false").lower() != "true":
-                 logger.error("!! CRITICAL: Strict security is enabled (ENVIRONMENT=production).       !!")
-                 logger.error("!! The application will not start with a weak key.                      !!")
-                 logger.error("!! To bypass this (NOT RECOMMENDED), set ALLOW_WEAK_SECRET=true.         !!")
+                 logger.error("!! CRITICAL: Weak or default SECRET_KEY detected in production.         !!")
+                 logger.error("!! A persistent warning banner will be displayed to administrators.      !!")
+                 logger.error("!! Please set a secure SECRET_KEY in your .env file immediately.         !!")
                  logger.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                 # We no longer exit, but persist the warning in the UI
-                 # sys.exit(1)
              else:
-                 logger.warning("!! WARNING: Bypassing weak SECRET_KEY check in production.              !!")
+                 logger.warning("!! WARNING: ALLOW_WEAK_SECRET=true set. Weak key acknowledged.          !!")
                  logger.warning("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
     # Wait for DB to be ready
@@ -535,7 +533,7 @@ def read_root():
 
 @app.get("/health")
 async def health_check(background_tasks: BackgroundTasks):
-    health_status = {"status": "ok", "components": {}, "is_weak_key": auth_service.IS_WEAK_KEY}
+    health_status = {"status": "ok", "components": {}}
     is_healthy = True
 
     # 1. Check Database

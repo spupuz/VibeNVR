@@ -14,7 +14,7 @@ export const Layout = ({ children, activeTab, onTabChange, theme, toggleTheme })
     const mainRef = useRef(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const isWeakKey = healthDetails?.is_weak_key && user?.role === 'admin';
+    const isWeakKey = (user?.is_weak_key || healthDetails?.is_weak_key) && user?.role === 'admin';
 
     useEffect(() => {
         if (isCameraEditorPage) mainRef.current?.scrollTo({ top: 0 });

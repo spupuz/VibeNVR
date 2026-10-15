@@ -289,7 +289,10 @@ def auth_status(request: Request, db: Session = Depends(database.get_db)):
 
 @router.get("/me", response_model=schemas.User)
 async def read_users_me(current_user: models.User = Depends(auth_service.get_current_user)):
-    return current_user
+    user_data = schemas.User.model_validate(current_user)
+    if current_user.role == "admin":
+        user_data.is_weak_key = auth_service.IS_WEAK_KEY
+    return user_data
 
 class LanguageUpdate(BaseModel):
     language: str
@@ -357,10 +360,14 @@ async def me_from_cookie(request: Request, response: Response, db: Session = Dep
         secure=is_secure
     )
 
+    user_data = schemas.User.model_validate(user)
+    if user.role == "admin":
+        user_data.is_weak_key = auth_service.IS_WEAK_KEY
+
     # Return both user and the token so the frontend can store token in-memory
     # (needed for Authorization: Bearer headers on subsequent API calls)
     return {
-        "user": schemas.User.model_validate(user),
+        "user": user_data,
         "access_token": token
     }
 

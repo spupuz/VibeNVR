@@ -10,9 +10,9 @@ All configuration is done via the `.env` file in the project root. Below is a co
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `SECRET_KEY` | *(dynamic random)* | **Change this.** Used to sign JWT tokens (min 32 chars). If left unset, a secure random key is generated on each startup, which will log out all users when the container restarts. In production, the app **will not start** if explicitly set to a weak key. |
+| `SECRET_KEY` | *(dynamic random)* | **Change this.** Used to sign JWT tokens (min 32 chars). If left unset, a secure random key is generated on each startup, which will log out all users when the container restarts. If explicitly set to a weak key, the system emits critical log warnings and displays a **persistent security warning banner** in the administration interface. |
 | `WEBHOOK_SECRET` | *(insecure default)* | Shared secret between backend and engine for internal webhook verification. Generate with: `openssl rand -hex 32`. |
-| `ALLOW_WEAK_SECRET` | `false` | Set to `true` to bypass the `SECRET_KEY` security check in production (NOT RECOMMENDED). |
+| `ALLOW_WEAK_SECRET` | `false` | Set to `true` to acknowledge and silence strict production warnings for a weak key (NOT RECOMMENDED). |
 
 ```env
 SECRET_KEY=your_64_char_random_hex_here
