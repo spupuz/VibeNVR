@@ -4,6 +4,7 @@ import { CollapsibleSection } from '../../../components/ui/CollapsibleSection';
 import { SelectField, Toggle } from '../../../components/ui/FormControls';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '../../../components/LanguageSwitcher';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 export const GeneralSettings = ({
     globalSettings,
@@ -12,6 +13,7 @@ export const GeneralSettings = ({
     onToggle
 }) => {
     const { t } = useTranslation();
+    const { theme, setTheme } = useTheme();
     return (
         <CollapsibleSection
             id="general"
@@ -22,6 +24,18 @@ export const GeneralSettings = ({
             onToggle={onToggle}
         >
             <div className="max-w-md space-y-4">
+                <SelectField
+                    label={t('settings.theme', 'Interface Theme')}
+                    value={theme}
+                    onChange={setTheme}
+                    help={t('settings.theme_help', 'Choose between Light, Dark, or automatically follow your system appearance')}
+                    options={[
+                        { value: 'light', label: t('theme.light', 'Light') },
+                        { value: 'dark', label: t('theme.dark', 'Dark') },
+                        { value: 'system', label: t('theme.system', 'Follow System') }
+                    ]}
+                />
+
                 <SelectField
                     label={t('settings_forms.default_landing', 'Default Landing Page')}
                     value={globalSettings.default_landing_page}

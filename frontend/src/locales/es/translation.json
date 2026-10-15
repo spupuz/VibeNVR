@@ -646,7 +646,9 @@
     "unlimited": "Ilimitado",
     "federation": "Federación de sitios múltiples",
     "federation_desc": "Conecte y administre instancias remotas de VibeNVR desde este nodo maestro.",
-    "role": "Role"
+    "role": "Role",
+    "theme": "Tema de la interfaz",
+    "theme_help": "Elige entre Claro, Oscuro o sigue automáticamente la apariencia del sistema"
   },
   "timeline": {
     "title": "Línea de tiempo",
@@ -1553,5 +1555,14 @@
     "cleanup_schedule": "Programa de limpieza automática",
     "cleanup_check": "Verifique la retención cada",
     "bulk_warning": "Estas acciones eliminan grabaciones, incluidos los archivos archivados. No mueven archivos a un archivo y no se pueden deshacer."
+  },
+  "theme": {
+    "theme": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Seguir el sistema",
+    "light_mode": "Modo claro",
+    "dark_mode": "Modo oscuro",
+    "system_mode": "Seguir el sistema"
   }
 }

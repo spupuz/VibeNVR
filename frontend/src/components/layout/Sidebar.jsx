@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Camera, Film, History, Settings, LogOut, Moon, Sun, X, Info, FileText, Github, Coffee } from 'lucide-react';
+import { LayoutDashboard, Camera, Film, History, Settings, LogOut, X, Info, FileText, Github, Coffee } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Avatar } from '../ui/Avatar';
 import packageJson from '../../../package.json';
 import { useTranslation } from 'react-i18next';
 import { useFederation } from '../../contexts/FederationContext';
-import { Network, Server } from 'lucide-react';
+import { Network } from 'lucide-react';
+import { ThemeDropWindow } from '../ThemeDropWindow';
 
 const SiteSelector = () => {
     const { t } = useTranslation();
@@ -55,8 +57,9 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     </button>
 );
 
-export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, onClose }) => {
+export const Sidebar = ({ activeTab, onTabChange, isOpen, onClose }) => {
     const { user, logout } = useAuth();
+    const { isDark } = useTheme();
     const [latestVersion, setLatestVersion] = useState(null);
 
     useEffect(() => {
@@ -95,7 +98,7 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
         `}>
             <div className="p-6 flex flex-col items-center">
                 <img
-                    src={theme === 'dark' ? "/vibe_logo_dark.png" : "/vibe_logo_variant_2.png"}
+                    src={isDark ? "/vibe_logo_dark.png" : "/vibe_logo_variant_2.png"}
                     alt="VibeNVR"
                     className="h-20 lg:h-24 w-auto"
                 />
@@ -129,8 +132,6 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
             <div className="p-4 border-t border-border space-y-2">
                 <button
                     onClick={() => onTabChange('profile')}
-                    title={user?.username || 'Profile'}
-                    aria-label={user?.username || 'Profile'}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card
                     ${activeTab === 'profile'
                             ? 'bg-primary/10 text-primary'
@@ -143,21 +144,8 @@ export const Sidebar = ({ activeTab, onTabChange, theme, toggleTheme, isOpen, on
 
                 <SidebarItem icon={LogOut} label={t('nav.logout', 'Logout')} onClick={logout} />
 
-                <button
-                    onClick={toggleTheme}
-                    title={theme === 'dark' ? t('nav.light_mode', 'Light Mode') : t('nav.dark_mode', 'Dark Mode')}
-                    aria-label={theme === 'dark' ? t('nav.light_mode', 'Light Mode') : t('nav.dark_mode', 'Dark Mode')}
-                    className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
-                >
-                    {theme === 'dark' ? (
-                        <Sun className="w-5 h-5 group-hover:text-yellow-500 transition-colors" />
-                    ) : (
-                        <Moon className="w-5 h-5 group-hover:text-blue-500 transition-colors" />
-                    )}
-                    <span className="font-medium text-sm">
-                        {theme === 'dark' ? t('nav.light_mode', 'Light Mode') : t('nav.dark_mode', 'Dark Mode')}
-                    </span>
-                </button>
+                {/* Theme Drop Window */}
+                <ThemeDropWindow />
 
                 <div className="pt-3 pb-6 lg:pb-1 flex flex-col items-center justify-center space-y-1">
                     <div className="flex items-center space-x-3 text-muted-foreground mt-1">

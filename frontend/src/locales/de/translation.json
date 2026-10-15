@@ -646,7 +646,9 @@
     "archival_interval_desc": "Wie oft wird geprüft, ob Aufzeichnungen im Sekundärspeicher archiviert werden?",
     "unlimited": "Unbegrenzt",
     "federation": "Multi-Site-Föderation",
-    "federation_desc": "Verbinden und verwalten Sie Remote-VibeNVR-Instanzen von diesem Master-Knoten aus."
+    "federation_desc": "Verbinden und verwalten Sie Remote-VibeNVR-Instanzen von diesem Master-Knoten aus.",
+    "theme": "Oberflächendesign",
+    "theme_help": "Wählen Sie zwischen Hell, Dunkel oder passen Sie sich automatisch dem System an"
   },
   "timeline": {
     "title": "Zeitleiste",
@@ -1553,5 +1555,14 @@
     "cleanup_schedule": "Automatischer Reinigungsplan",
     "cleanup_check": "Überprüfen Sie die Aufbewahrung alle",
     "bulk_warning": "Diese Aktionen löschen Aufzeichnungen, einschließlich archivierter Dateien. Sie verschieben Dateien nicht in ein Archiv und können nicht rückgängig gemacht werden."
+  },
+  "theme": {
+    "theme": "Design",
+    "light": "Hell",
+    "dark": "Dunkel",
+    "system": "Systemstandard",
+    "light_mode": "Heller Modus",
+    "dark_mode": "Dunkler Modus",
+    "system_mode": "Systemstandard"
   }
 }

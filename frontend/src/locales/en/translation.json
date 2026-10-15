@@ -711,7 +711,9 @@
     "archival_interval_desc": "How often to check for archiving recordings to secondary storage",
     "unlimited": "Unlimited",
     "federation": "Multi-Site Federation",
-    "federation_desc": "Connect and manage remote VibeNVR instances from this Master node."
+    "federation_desc": "Connect and manage remote VibeNVR instances from this Master node.",
+    "theme": "Interface Theme",
+    "theme_help": "Choose between Light, Dark, or automatically follow your system appearance"
   },
   "timeline": {
     "hikvision_isapi": "Hikvision ISAPI",
@@ -1551,5 +1553,14 @@
     "sftp_remote_path": "Remote Path (Relative or Absolute)",
     "testing": "Testing...",
     "test_connection": "Test Connection & Permissions"
+  },
+  "theme": {
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "Follow System",
+    "light_mode": "Light Mode",
+    "dark_mode": "Dark Mode",
+    "system_mode": "Follow System"
   }
 }

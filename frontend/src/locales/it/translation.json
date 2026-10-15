@@ -646,7 +646,9 @@
     "archival_interval_desc": "La frequenza con cui verificare l'archiviazione delle registrazioni nell'archivio secondario",
     "unlimited": "Illimitato",
     "federation": "Federazione multisito",
-    "federation_desc": "Connetti e gestisci istanze VibeNVR remote da questo nodo Master."
+    "federation_desc": "Connetti e gestisci istanze VibeNVR remote da questo nodo Master.",
+    "theme": "Tema Interfaccia",
+    "theme_help": "Scegli tra Chiaro, Scuro o segui automaticamente l'aspetto del sistema"
   },
   "timeline": {
     "title": "Cronologia",
@@ -1551,5 +1553,14 @@
     "cleanup_schedule": "Pianificazione pulizia automatica",
     "cleanup_check": "Controlla ritenzione ogni",
     "bulk_warning": "Queste azioni eliminano definitivamente le registrazioni, inclusi i file archiviati. Non possono essere annullate."
+  },
+  "theme": {
+    "theme": "Tema",
+    "light": "Chiaro",
+    "dark": "Scuro",
+    "system": "Segui il sistema",
+    "light_mode": "Modalità Chiara",
+    "dark_mode": "Modalità Scura",
+    "system_mode": "Segui il sistema"
   }
 }

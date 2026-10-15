@@ -646,7 +646,9 @@
     "archival_interval_desc": "À quelle fréquence vérifier l’archivage des enregistrements sur un stockage secondaire",
     "unlimited": "Illimité",
     "federation": "Fédération multi-sites",
-    "federation_desc": "Connectez et gérez les instances VibeNVR distantes à partir de ce nœud maître."
+    "federation_desc": "Connectez et gérez les instances VibeNVR distantes à partir de ce nœud maître.",
+    "theme": "Thème de l'interface",
+    "theme_help": "Choisissez entre Clair, Sombre ou suivez automatiquement l'apparence du système"
   },
   "timeline": {
     "title": "Chronologie",
@@ -1553,5 +1555,14 @@
     "cleanup_schedule": "Programme de nettoyage automatique",
     "cleanup_check": "Vérifiez la rétention tous les",
     "bulk_warning": "Ces actions suppriment les enregistrements, y compris les fichiers archivés. Ils ne déplacent pas les fichiers vers une archive et ne peuvent pas être annulés."
+  },
+  "theme": {
+    "theme": "Thème",
+    "light": "Clair",
+    "dark": "Sombre",
+    "system": "Suivre le système",
+    "light_mode": "Mode clair",
+    "dark_mode": "Mode sombre",
+    "system_mode": "Suivre le système"
   }
 }

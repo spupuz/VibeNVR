@@ -646,7 +646,9 @@
     "archival_interval_desc": "检查将录音存档到辅助存储的频率",
     "unlimited": "无限",
     "federation": "多站点联合",
-    "federation_desc": "从此主节点连接和管理远程 VibeNVR 实例。"
+    "federation_desc": "从此主节点连接和管理远程 VibeNVR 实例。",
+    "theme": "界面主题",
+    "theme_help": "选择浅色、深色或自动跟随系统外观"
   },
   "timeline": {
     "title": "时间轴",
@@ -1553,5 +1555,14 @@
     "cleanup_schedule": "自动清理计划",
     "cleanup_check": "检查保留时间",
     "bulk_warning": "这些操作会删除录音，包括存档文件。它们不会将文件移动到存档并且无法撤消。"
+  },
+  "theme": {
+    "theme": "主题",
+    "light": "浅色",
+    "dark": "深色",
+    "system": "跟随系统",
+    "light_mode": "浅色模式",
+    "dark_mode": "深色模式",
+    "system_mode": "跟随系统"
   }
 }

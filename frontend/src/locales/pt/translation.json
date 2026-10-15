@@ -646,7 +646,9 @@
     "archival_interval_desc": "Com que frequência verificar o arquivamento de gravações no armazenamento secundário",
     "unlimited": "Ilimitado",
     "federation": "Federação Multi-Site",
-    "federation_desc": "Conecte e gerencie instâncias remotas do VibeNVR a partir deste nó mestre."
+    "federation_desc": "Conecte e gerencie instâncias remotas do VibeNVR a partir deste nó mestre.",
+    "theme": "Tema da interface",
+    "theme_help": "Escolha entre Claro, Escuro ou siga automaticamente a aparência do sistema"
   },
   "timeline": {
     "title": "Linha do tempo",
@@ -1553,5 +1555,14 @@
     "cleanup_schedule": "Programação de limpeza automática",
     "cleanup_check": "Verifique a retenção a cada",
     "bulk_warning": "Essas ações excluem gravações, incluindo arquivos arquivados. Eles não movem arquivos para um arquivo e não podem ser desfeitos."
+  },
+  "theme": {
+    "theme": "Tema",
+    "light": "Claro",
+    "dark": "Escuro",
+    "system": "Seguir o sistema",
+    "light_mode": "Modo claro",
+    "dark_mode": "Modo escuro",
+    "system_mode": "Seguir o sistema"
   }
 }
