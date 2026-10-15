@@ -33,124 +33,146 @@ export const StorageManager = ({
             onToggle={onToggle}
         >
             <div className="space-y-4">
-                {/* Storage Occupation Display */}
-                <div className="bg-muted/30 rounded-lg p-4 mb-4 border border-border/50">
-                    <div className="flex justify-between items-end mb-2">
-                        <span className="text-sm font-medium">{t('settings_forms.storage_occ', 'Storage Occupation')}</span>
-                        <span className="text-xs text-muted-foreground">
-                            {globalSettings.max_global_storage_gb > 0 ? (storageStats.storage?.vibe_used_gb || 0) : storageStats.storage?.used_gb} GB / {globalSettings.max_global_storage_gb > 0 ? globalSettings.max_global_storage_gb : storageStats.storage?.total_gb} GB
-                            ({Math.round(occupationPercent)}%)
-                        </span>
+                <div className="bg-muted/30 rounded-lg p-4 border border-border/50 space-y-2">
+                    <div className="flex flex-wrap justify-between gap-2">
+                        <h4 className="text-sm font-semibold">{t('storage_ui.filesystem_usage', 'Recording filesystem usage')}</h4>
+                        <span className="text-sm font-medium">{storageStats.storage?.used_gb ?? 0} GB / {storageStats.storage?.total_gb ?? 0} GB ({storageStats.storage?.percent ?? 0}%)</span>
                     </div>
                     <div className="w-full h-3 bg-background rounded-full border border-border overflow-hidden">
                         <div
-                            className={'h-full transition-all duration-500 rounded-full ' +
-                                (occupationPercent > 90 ? 'bg-red-500' : occupationPercent > 70 ? 'bg-amber-500' : 'bg-green-500')
-                            }
-                            style={{ width: Math.min(occupationPercent, 100) + '%' }}
+                            className={`h-full rounded-full transition-all duration-500 ${(storageStats.storage?.percent || 0) > 90 ? 'bg-red-500' : (storageStats.storage?.percent || 0) > 70 ? 'bg-amber-500' : 'bg-green-500'}`}
+                            style={{ width: Math.min(storageStats.storage?.percent || 0, 100) + '%' }}
                         />
                     </div>
+                    <p className="text-xs text-muted-foreground">{t('storage_ui.filesystem_help', 'Usage of the entire filesystem containing the default recording folder, including other applications and untracked files. This is not the size of VibeNVR recordings or the archive filesystem.')}</p>
+                </div>
+
+                {/* Database-tracked recording usage and optional global quota */}
+                <div className="bg-muted/30 rounded-lg p-4 mb-4 border border-border/50">
+                    <div className="flex flex-wrap justify-between items-end gap-2 mb-2">
+                        <span className="text-sm font-medium">{t('storage_ui.tracked_recordings', 'VibeNVR tracked recordings')}</span>
+                        <span className="text-xs text-muted-foreground">
+                            {storageStats.storage?.vibe_used_gb || 0} GB
+                            {globalSettings.max_global_storage_gb > 0 && <> / {globalSettings.max_global_storage_gb} GB ({Math.round(occupationPercent)}%)</>}
+                        </span>
+                    </div>
+                    {globalSettings.max_global_storage_gb > 0 && (
+                        <div className="w-full h-3 bg-background rounded-full border border-border overflow-hidden">
+                            <div
+                                className={'h-full transition-all duration-500 rounded-full ' +
+                                    (occupationPercent > 90 ? 'bg-red-500' : occupationPercent > 70 ? 'bg-amber-500' : 'bg-green-500')
+                                }
+                                style={{ width: Math.min(occupationPercent, 100) + '%' }}
+                            />
+                        </div>
+                    )}
                     <p className="text-xs text-muted-foreground mt-2 italic opacity-70">
                         {globalSettings.max_global_storage_gb > 0
                             ? t('settings_forms.storage_using', 'Currently using {{used}} GB of your {{max}} GB limit.', {used: storageStats.storage?.vibe_used_gb || 0, max: globalSettings.max_global_storage_gb})
-                            : t('settings_forms.storage_no_limit', 'Total disk usage. No global limit set.')}
+                            : t('storage_ui.no_quota', 'No global recording quota set.')}
                     </p>
+                    <p className="text-xs text-muted-foreground">{t('storage_ui.tracked_help', 'Database-recorded sizes of videos and snapshots across local and archive profiles. Breakdowns below use the same records, not a filesystem scan.')}</p>
                     <div className="mt-3 p-2 bg-blue-500/10 border border-blue-500/20 rounded text-[10px] text-blue-600 dark:text-blue-400">
                         <strong>{t('settings_forms.note', 'Note:')}</strong> {t('settings_forms.storage_note_desc', 'Camera-specific quotas are secondary to this global limit. If the global limit is reached, the oldest files across ALL cameras will be cleaned up regardless of individual camera settings.')}
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                    <InputField
-                        label={t('settings_forms.storage_quota', 'Storage Quota (GB)')}
-                        type="number"
-                        help={t('settings_forms.storage_quota_help', 'Total space allowed for recordings. The system will start deleting old recordings when this limit is reached.')}
-                        unit="GB"
-                        value={globalSettings.max_global_storage_gb}
-                        onChange={(val) => setGlobalSettings({ ...globalSettings, max_global_storage_gb: val })}
-                    />
-                    <div className="space-y-2">
-                        <label className="block text-sm font-medium">{t('settings_forms.storage_policy', 'Auto-Cleanup Policy')}</label>
-                        <div className="p-3 bg-muted/50 rounded-lg border border-border/50 text-xs text-muted-foreground">
-                            VibeNVR uses a "FIFO" (First In, First Out) cleanup strategy. When quota is exceeded or disk space is low (&lt; 5%), the oldest recordings are automatically removed.
+                <div className="rounded-lg border border-border p-4 space-y-4">
+                    <h4 className="text-sm font-semibold">{t('storage_ui.archive_title', 'Archive — move recordings')}</h4>
+                    <p className="text-xs text-muted-foreground">{t('storage_ui.global_archive_help', 'Choose an archive destination and recording age for each camera. This schedule controls when eligible recordings are checked; it does not set their retention.')}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label htmlFor="storage-archival-interval" className="block text-sm font-medium mb-2">{t('storage_ui.archival_check', 'Check for archival every')}</label>
+                            <select
+                                id="storage-archival-interval"
+                                value={globalSettings.archival_interval_hours || 24}
+                                onChange={(e) => setGlobalSettings({ ...globalSettings, archival_interval_hours: parseFloat(e.target.value) })}
+                                className="w-full max-w-full sm:max-w-xs bg-background border border-input rounded-lg px-3 py-2"
+                            >
+                                <option value="0.5">{t('settings_forms.every_30m', 'Every 30 Minutes')}</option>
+                                <option value="1">{t('settings_forms.every_1h', 'Every Hour')}</option>
+                                <option value="6">{t('settings_forms.every_6h', 'Every 6 Hours')}</option>
+                                <option value="12">{t('settings_forms.every_12h', 'Every 12 Hours')}</option>
+                                <option value="24">{t('settings_forms.every_24h', 'Every 24 Hours')}</option>
+                                <option value="48">{t('settings_forms.every_2d', 'Every 2 Days')}</option>
+                                <option value="168">{t('settings_forms.every_1w', 'Every Week')}</option>
+                            </select>
+                            <p className="text-xs text-muted-foreground mt-2">
+                                {t('settings.archival_interval_desc', 'How often to check for archiving recordings to secondary storage')}
+                            </p>
                         </div>
-                    </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border/50">
-                    {/* Archival Settings */}
-                    <div>
-                        <label className="block text-sm font-medium mb-2">{t('settings_forms.archival_interval', 'Archival Interval (Hours)')}</label>
-                        <select
-                            value={globalSettings.archival_interval_hours || 24}
-                            onChange={(e) => setGlobalSettings({ ...globalSettings, archival_interval_hours: parseFloat(e.target.value) })}
-                            className="w-full max-w-full sm:max-w-xs bg-background border border-input rounded-lg px-3 py-2"
-                        >
-                            <option value="0.5">{t('settings_forms.every_30m', 'Every 30 Minutes')}</option>
-                            <option value="1">{t('settings_forms.every_1h', 'Every Hour')}</option>
-                            <option value="6">{t('settings_forms.every_6h', 'Every 6 Hours')}</option>
-                            <option value="12">{t('settings_forms.every_12h', 'Every 12 Hours')}</option>
-                            <option value="24">{t('settings_forms.every_24h', 'Every 24 Hours')}</option>
-                            <option value="48">{t('settings_forms.every_2d', 'Every 2 Days')}</option>
-                            <option value="168">{t('settings_forms.every_1w', 'Every Week')}</option>
-                        </select>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            {t('settings.archival_interval_desc', 'How often to check for archiving recordings to secondary storage')}
-                        </p>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="block text-sm font-medium">{t('settings_forms.storage_enable_archival', 'Enable Automatic Archival')}</label>
-                        <div className="flex items-center gap-3">
+                        <div className="space-y-1.5">
                             <Toggle
+                                label={t('settings_forms.storage_enable_archival', 'Enable Automatic Archival')}
                                 checked={globalSettings.archival_enabled !== false}
                                 onChange={(val) => setGlobalSettings({ ...globalSettings, archival_enabled: val })}
                             />
                             <span className={`text-xs font-medium ${globalSettings.archival_enabled !== false ? 'text-green-500' : 'text-amber-500'}`}>
                                 {globalSettings.archival_enabled !== false ? t('settings_forms.enabled', 'ENABLED') : t('settings_forms.disabled', 'DISABLED')}
                             </span>
+                            <p className="text-xs text-muted-foreground">
+                                {t('settings_forms.archival_enable_desc', 'When enabled, the system will automatically move old recordings to their assigned Storage Profiles (Tier 2).')}
+                            </p>
                         </div>
-                        <p className="text-[10px] text-muted-foreground">
-                            {t('settings_forms.archival_enable_desc', 'When enabled, the system will automatically move old recordings to their assigned Storage Profiles (Tier 2).')}
-                        </p>
                     </div>
+                </div>
 
-                    {/* Cleanup Settings */}
-                    <div className="pt-4 border-t border-border/50 col-span-1 md:col-span-2"></div>
-                    <div>
-                        <label className="block text-sm font-medium mb-2">{t('settings_forms.storage_interval', 'Cleanup Interval (Hours)')}</label>
-                        <select
-                            value={globalSettings.cleanup_interval_hours || 24}
-                            onChange={(e) => setGlobalSettings({ ...globalSettings, cleanup_interval_hours: parseFloat(e.target.value) })}
-                            className="w-full max-w-full sm:max-w-xs bg-background border border-input rounded-lg px-3 py-2"
-                        >
-                            <option value="0.5">{t('settings_forms.every_30m', 'Every 30 Minutes')}</option>
-                            <option value="1">{t('settings_forms.every_1h', 'Every Hour')}</option>
-                            <option value="6">{t('settings_forms.every_6h', 'Every 6 Hours')}</option>
-                            <option value="12">{t('settings_forms.every_12h', 'Every 12 Hours')}</option>
-                            <option value="24">{t('settings_forms.every_24h', 'Every 24 Hours')}</option>
-                            <option value="48">{t('settings_forms.every_2d', 'Every 2 Days')}</option>
-                            <option value="168">{t('settings_forms.every_1w', 'Every Week')}</option>
-                        </select>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            {t('settings.storage_interval_desc', 'How often to check for cleaning up old recordings')}
-                        </p>
+                <div className="rounded-lg border border-border p-4 space-y-4">
+                    <h4 className="text-sm font-semibold">{t('storage_ui.cleanup_title', 'Cleanup — delete recordings')}</h4>
+                    <p className="text-xs text-muted-foreground">{t('storage_ui.retention_warning', 'Retention and camera quotas apply to local and archived files. Moving files to an archive does not extend retention or protect them from cleanup.')}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                        <InputField
+                            label={t('settings_forms.storage_quota', 'Storage Quota (GB)')}
+                            type="number"
+                            help={t('settings_forms.storage_quota_help', 'Total space allowed for recordings. The system will start deleting old recordings when this limit is reached.')}
+                            unit="GB"
+                            value={globalSettings.max_global_storage_gb}
+                            onChange={(val) => setGlobalSettings({ ...globalSettings, max_global_storage_gb: val })}
+                        />
+                        <div className="space-y-2">
+                            <h5 className="text-sm font-medium">{t('settings_forms.storage_policy', 'Auto-Cleanup Policy')}</h5>
+                            <p className="p-3 bg-muted/50 rounded-lg border border-border/50 text-xs text-muted-foreground">
+                                {t('storage_ui.cleanup_policy', 'Cleanup deletes the oldest recordings first when quotas are exceeded. Emergency cleanup can run when free disk space falls below 5%.')}
+                            </p>
+                        </div>
                     </div>
+                    <h5 className="text-sm font-medium">{t('storage_ui.cleanup_schedule', 'Automatic cleanup schedule')}</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label htmlFor="storage-cleanup-interval" className="block text-sm font-medium mb-2">{t('storage_ui.cleanup_check', 'Check retention every')}</label>
+                            <select
+                                id="storage-cleanup-interval"
+                                value={globalSettings.cleanup_interval_hours || 24}
+                                onChange={(e) => setGlobalSettings({ ...globalSettings, cleanup_interval_hours: parseFloat(e.target.value) })}
+                                className="w-full max-w-full sm:max-w-xs bg-background border border-input rounded-lg px-3 py-2"
+                            >
+                                <option value="0.5">{t('settings_forms.every_30m', 'Every 30 Minutes')}</option>
+                                <option value="1">{t('settings_forms.every_1h', 'Every Hour')}</option>
+                                <option value="6">{t('settings_forms.every_6h', 'Every 6 Hours')}</option>
+                                <option value="12">{t('settings_forms.every_12h', 'Every 12 Hours')}</option>
+                                <option value="24">{t('settings_forms.every_24h', 'Every 24 Hours')}</option>
+                                <option value="48">{t('settings_forms.every_2d', 'Every 2 Days')}</option>
+                                <option value="168">{t('settings_forms.every_1w', 'Every Week')}</option>
+                            </select>
+                            <p className="text-xs text-muted-foreground mt-2">
+                                {t('settings.storage_interval_desc', 'How often to check for cleaning up old recordings')}
+                            </p>
+                        </div>
 
-                    <div className="space-y-1.5">
-                        <label className="block text-sm font-medium">{t('settings_forms.storage_enable_clean', 'Enable Automatic Cleanup')}</label>
-                        <div className="flex items-center gap-3">
+                        <div className="space-y-1.5">
                             <Toggle
+                                label={t('settings_forms.storage_enable_clean', 'Enable Automatic Cleanup')}
                                 checked={globalSettings.cleanup_enabled !== false}
                                 onChange={(val) => setGlobalSettings({ ...globalSettings, cleanup_enabled: val })}
                             />
                             <span className={`text-xs font-medium ${globalSettings.cleanup_enabled !== false ? 'text-green-500' : 'text-amber-500'}`}>
                                 {globalSettings.cleanup_enabled !== false ? t('settings_forms.enabled', 'ENABLED') : t('settings_forms.disabled', 'DISABLED')}
                             </span>
+                            <p className="text-xs text-muted-foreground">
+                                {t('settings_forms.storage_enable_desc', 'When enabled, the system will automatically delete old recordings to respect quotas.')}
+                            </p>
                         </div>
-                        <p className="text-[10px] text-muted-foreground">
-                            {t('settings_forms.storage_enable_desc', 'When enabled, the system will automatically delete old recordings to respect quotas.')}
-                        </p>
                     </div>
                 </div>
 
@@ -162,6 +184,7 @@ export const StorageManager = ({
                 {/* Per-Profile Storage Breakdown */}
                 <div className="pt-4 border-t border-border mt-4">
                     <h4 className="text-sm font-semibold mb-3">{t("settings.storage_breakdown_by_profile", "Storage Breakdown by Profile")}</h4>
+                    <p className="text-xs text-muted-foreground mb-3">{t('storage_ui.tracked_help', 'Database-recorded sizes of videos and snapshots across local and archive profiles. Breakdowns below use the same records, not a filesystem scan.')}</p>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left border-collapse">
                             <thead>
@@ -319,7 +342,7 @@ export const StorageManager = ({
                     <div>
                         <h4 className="text-sm font-semibold mb-3">{t('settings_forms.maintenance', 'Maintenance')}</h4>
                         <div className="flex flex-col sm:flex-row flex-wrap gap-3">
-                            <div className="flex-1 min-w-[280px]">
+                            <div className="flex-1 min-w-0">
                                 <Button
                                     onClick={async () => {
                                         setConfirmConfig({
@@ -353,7 +376,7 @@ export const StorageManager = ({
                                 </p>
                             </div>
 
-                            <div className="flex-1 min-w-[280px]">
+                            <div className="flex-1 min-w-0">
                                 <Button
                                     onClick={async () => {
                                         setConfirmConfig({
@@ -401,8 +424,9 @@ export const StorageManager = ({
 
                 {/* Bulk Delete Section */}
                 {currentUser?.role === 'admin' && (
-                    <div className="pt-4 border-t border-border mt-4">
+                    <div className="p-4 border border-red-500/30 rounded-lg mt-4 bg-red-500/5">
                         <h4 className="text-sm font-semibold mb-3">{t('settings_forms.bulk_del', 'Bulk Deletion')}</h4>
+                        <p className="text-xs text-muted-foreground mb-3">{t('storage_ui.bulk_warning', 'These actions delete recordings, including archived files. They do not move files to an archive and cannot be undone.')}</p>
                         <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3">
                             <Button
                                 variant="outline"

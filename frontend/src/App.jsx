@@ -56,7 +56,7 @@ function AppContent() {
         '/about': 'about',
         '/profile': 'profile'
     };
-    const activeTab = pathToTab[location.pathname] || 'dashboard';
+    const activeTab = location.pathname.startsWith('/cameras/') ? 'cameras' : (pathToTab[location.pathname] || 'dashboard');
 
     const [defaultLandingPage, setDefaultLandingPage] = useState('live');
 
@@ -128,7 +128,7 @@ function AppContent() {
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/live" element={<LiveView />} />
-                            <Route path="/cameras" element={<Cameras />} />
+                            <Route path="/cameras/*" element={<Cameras />} />
                             <Route path="/timeline" element={<Timeline />} />
                             <Route path="/recordings" element={<Timeline />} />
                             <Route path="/settings" element={<Settings />} />
