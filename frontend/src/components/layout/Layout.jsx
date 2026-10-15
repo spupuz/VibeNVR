@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router';
 import { Sidebar } from './Sidebar';
 import { Menu, X, ShieldAlert, AlertTriangle } from 'lucide-react';
@@ -10,9 +10,15 @@ export const Layout = ({ children, activeTab, onTabChange, theme, toggleTheme })
     const location = useLocation();
     const { healthDetails, user } = useAuth();
     const isLivePage = activeTab === 'live' || location.pathname.startsWith('/live') || activeTab === 'timeline';
+    const isCameraEditorPage = location.pathname === '/cameras/new' || /^\/cameras\/\d+\/edit$/.test(location.pathname);
+    const mainRef = useRef(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const isWeakKey = healthDetails?.is_weak_key && user?.role === 'admin';
+
+    useEffect(() => {
+        if (isCameraEditorPage) mainRef.current?.scrollTo({ top: 0 });
+    }, [location.pathname, isCameraEditorPage]);
 
     return (
         <div className="min-h-screen bg-background text-foreground flex overflow-x-hidden relative w-full max-w-full">
@@ -99,8 +105,8 @@ export const Layout = ({ children, activeTab, onTabChange, theme, toggleTheme })
                     <div className="w-10 shrink-0" /> {/* Spacer for centering */}
                 </div>
 
-                <main className={`flex-1 overflow-y-auto overflow-x-hidden relative ${isLivePage ? 'p-0 w-full' : 'px-4 sm:px-5 py-4 lg:p-8'}`}>
-                    <div className={isLivePage ? "w-full min-h-full flex flex-col" : "w-full max-w-7xl mx-auto min-w-0 overflow-hidden"}>
+                <main ref={mainRef} className={`flex-1 overflow-y-auto overflow-x-hidden relative ${isLivePage ? 'p-0 w-full' : 'px-4 sm:px-5 py-4 lg:p-8'}`}>
+                    <div className={isLivePage ? "w-full min-h-full flex flex-col" : `w-full max-w-7xl mx-auto min-w-0 ${isCameraEditorPage ? '' : 'overflow-hidden'}`}>
                         {children}
                     </div>
                 </main>

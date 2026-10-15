@@ -4,7 +4,7 @@ import { parseRtspUrl } from '../../../../utils/cameraUtils';
 import { Shield, ShieldAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-export const GeneralTab = ({ newCamera, setNewCamera, storageProfiles }) => {
+export const GeneralTab = ({ newCamera, setNewCamera }) => {
   const { t } = useTranslation();
     return (
         <div className="space-y-6">
@@ -172,60 +172,6 @@ export const GeneralTab = ({ newCamera, setNewCamera, storageProfiles }) => {
                         />
                     </>
                 )}
-
-                <SectionHeader title={t('cameras.storage', 'Storage')} description={t('cameras.where_to_save_recording', 'Where to save recordings and snapshots')} />
-                <SelectField
-                    label={t('cameras.storage_profile', 'Storage Profile')}
-                    value={newCamera.storage_profile_id || ''}
-                    onChange={(val) => setNewCamera({ ...newCamera, storage_profile_id: val === '' ? null : parseInt(val) })}
-                    options={[
-                        { value: '', label: t('cameras.default_var_lib_vibe_re', 'Default (/var/lib/vibe/recordings)') },
-                        ...storageProfiles.map(p => ({ value: p.id.toString(), label: `${p.name} (${p.path})` }))
-                    ]}
-                    help={t('cameras.select_a_custom_storage', "Select a custom storage location for this camera's media.")}
-                />
-
-                <div className="mt-4 border-l-2 border-border pl-4 space-y-4">
-                    <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">{t('cameras.tiered_storage_routing', 'Tiered Storage Routing')}</h4>
-                    
-                    <SelectField
-                        label={t('cameras.motion_storage_profile', 'Motion Storage Profile')}
-                        value={newCamera.motion_storage_profile_id || ''}
-                        onChange={(val) => setNewCamera({ ...newCamera, motion_storage_profile_id: val === '' ? null : parseInt(val) })}
-                        options={[{ value: '', label: t('cameras.use_default_profile', 'Use Default Profile') }, ...storageProfiles.map(p => ({ value: p.id.toString(), label: p.name }))]}
-                    />
-                    <SelectField
-                        label={t('cameras.continuous_storage_profile', 'Continuous Storage Profile')}
-                        value={newCamera.continuous_storage_profile_id || ''}
-                        onChange={(val) => setNewCamera({ ...newCamera, continuous_storage_profile_id: val === '' ? null : parseInt(val) })}
-                        options={[{ value: '', label: t('cameras.use_default_profile', 'Use Default Profile') }, ...storageProfiles.map(p => ({ value: p.id.toString(), label: p.name }))]}
-                    />
-                    <SelectField
-                        label={t('cameras.snapshot_storage_profile', 'Snapshot Storage Profile')}
-                        value={newCamera.snapshot_storage_profile_id || ''}
-                        onChange={(val) => setNewCamera({ ...newCamera, snapshot_storage_profile_id: val === '' ? null : parseInt(val) })}
-                        options={[{ value: '', label: t('cameras.use_default_profile', 'Use Default Profile') }, ...storageProfiles.map(p => ({ value: p.id.toString(), label: p.name }))]}
-                    />
-                    <div className="grid grid-cols-2 gap-4">
-                        <SelectField
-                            label={t('cameras.archive_storage_profile', 'Archive Storage Profile')}
-                            value={newCamera.archive_storage_profile_id || ''}
-                            onChange={(val) => setNewCamera({ ...newCamera, archive_storage_profile_id: val === '' ? null : parseInt(val) })}
-                            options={[{ value: '', label: t('cameras.none_disabled', 'None (Disabled)') }, ...storageProfiles.map(p => ({ value: p.id.toString(), label: p.name }))]}
-                            help={t('cameras.archive_help', 'Automatically move old recordings to this profile.')}
-                        />
-                        {newCamera.archive_storage_profile_id ? (
-                            <InputField
-                                label={t('cameras.archive_after_hours', 'Archive After (Hours)')}
-                                type="number"
-                                min={0}
-                                value={newCamera.archive_after_hours || 0}
-                                onChange={(val) => setNewCamera({ ...newCamera, archive_after_hours: parseInt(val) || 0 })}
-                                help={t('cameras.archive_hours_help', 'Hours to wait before moving.')}
-                            />
-                        ) : <div />}
-                    </div>
-                </div>
 
                 <SelectField
                     label={t('cameras.live_view_mode', 'Live View Mode')}

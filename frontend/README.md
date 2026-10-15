@@ -1,5 +1,16 @@
 # React + Vite
 
+## Camera editor
+
+Camera creation and editing use `/cameras/new` and `/cameras/:id/edit` pages.
+`CameraEditor.jsx` reuses the camera sections and the controller in `Cameras.jsx`.
+Desktop navigation is on the left; mobile uses a section selector. The editor
+uses the main page scrollbar and a sticky action bar rather than a modal.
+Drafts, including credentials, stay in memory. Unsaved changes are protected on
+route navigation, browser unload, and federation node changes. Automatic node
+failover is postponed while the camera draft is dirty or saving.
+`Apply` saves without leaving; `Save Changes` returns to the camera list.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

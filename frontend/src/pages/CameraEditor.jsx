@@ -1,32 +1,29 @@
 import React, { useEffect } from 'react';
 import { 
-    X, Info, Settings2, Activity, EyeOff, Shield, Film, Image, Bell, Type, Copy, Check, Brain, Radio
+    ArrowLeft, Info, Settings2, Activity, EyeOff, Shield, Film, Image, Bell, Type, Copy, Check, Brain, Radio, HardDrive
 } from 'lucide-react';
-import { Portal } from '../../ui/Portal';
-import { SelectField } from '../../ui/FormControls';
-import { Button } from '../../ui/Button';
-import { CAMERA_SETTINGS_CATEGORIES, CATEGORY_FIELD_MAP, EXCLUDED_FIELDS } from '../../../utils/cameraSettingsMapping';
+import { SelectField } from '../components/ui/FormControls';
+import { Button } from '../components/ui/Button';
+import { CAMERA_SETTINGS_CATEGORIES, CATEGORY_FIELD_MAP, EXCLUDED_FIELDS } from '../utils/cameraSettingsMapping';
 
 // Import Tabs
-import { GeneralTab } from './Tabs/GeneralTab';
-import { DeviceTab } from './Tabs/DeviceTab';
-import { MotionTab } from './Tabs/MotionTab';
-import { EventSourcesTab } from './Tabs/EventSourcesTab';
-import { PrivacyTab } from './Tabs/PrivacyTab';
-import { MotionZonesTab } from './Tabs/MotionZonesTab';
-import { MoviesTab } from './Tabs/MoviesTab';
-import { SnapshotsTab } from './Tabs/SnapshotsTab';
-import { AlertsTab } from './Tabs/AlertsTab';
-import { OverlayTab } from './Tabs/OverlayTab';
-import { OnvifTab } from './Tabs/OnvifTab';
-import { AITab } from './Tabs/AITab';
+import { GeneralTab } from '../components/Cameras/AddEditModal/Tabs/GeneralTab';
+import { DeviceTab } from '../components/Cameras/AddEditModal/Tabs/DeviceTab';
+import { MotionTab } from '../components/Cameras/AddEditModal/Tabs/MotionTab';
+import { EventSourcesTab } from '../components/Cameras/AddEditModal/Tabs/EventSourcesTab';
+import { PrivacyTab } from '../components/Cameras/AddEditModal/Tabs/PrivacyTab';
+import { MotionZonesTab } from '../components/Cameras/AddEditModal/Tabs/MotionZonesTab';
+import { MoviesTab } from '../components/Cameras/AddEditModal/Tabs/MoviesTab';
+import { SnapshotsTab } from '../components/Cameras/AddEditModal/Tabs/SnapshotsTab';
+import { StorageTab } from '../components/Cameras/AddEditModal/Tabs/StorageTab';
+import { AlertsTab } from '../components/Cameras/AddEditModal/Tabs/AlertsTab';
+import { OverlayTab } from '../components/Cameras/AddEditModal/Tabs/OverlayTab';
+import { OnvifTab } from '../components/Cameras/AddEditModal/Tabs/OnvifTab';
+import { AITab } from '../components/Cameras/AddEditModal/Tabs/AITab';
 import { useTranslation } from 'react-i18next';
 
-export const CameraAddEditModal = ({
-    showAddModal,
-    setShowAddModal,
+export const CameraEditor = ({
     editingId,
-    setEditingId,
     activeTab,
     setActiveTab,
     newCamera,
@@ -39,7 +36,10 @@ export const CameraAddEditModal = ({
     handleCleanup,
     handleTestNotification,
     setShowCopyModal,
-    globalSettings
+    globalSettings,
+    onLeave,
+    isDirty,
+    isSaving
 }) => {
     const { t } = useTranslation();
     const [cloneSourceId, setCloneSourceId] = React.useState('');
@@ -55,8 +55,6 @@ export const CameraAddEditModal = ({
             setActiveTab('motion');
         }
     }, [newCamera?.detect_engine, activeTab, setActiveTab]);
-
-    if (!showAddModal) return null;
 
     const performClone = (sourceId, categories) => {
         const source = cameras.find(c => c.id === parseInt(sourceId));
@@ -81,7 +79,7 @@ export const CameraAddEditModal = ({
             ...prev,
             ...settingsToCopy,
             id: undefined,
-            name: prev.name || `Copy of ${source.name}`,
+            name: prev.name || t('camera_editor.clone_name', 'Copy of {{name}}', { name: source.name }),
             location: prev.location || source.location,
             is_active: source.is_active,
             created_at: undefined
@@ -107,6 +105,7 @@ export const CameraAddEditModal = ({
         { id: 'motion_zones', label: t('cameras.motion_zones', 'Motion Zones'), icon: Shield },
         { id: 'movies', label: t('cameras.movies', 'Movies'), icon: Film },
         { id: 'still_images', label: t('cameras.snapshots', 'Snapshots'), icon: Image },
+        { id: 'storage', label: t('cameras.storage', 'Storage'), icon: HardDrive },
         { id: 'notifications', label: t('cameras.alerts', 'Alerts'), icon: Bell },
         { id: 'overlay', label: t('cameras.overlay', 'Overlay'), icon: Type },
         { id: 'onvif', label: t('cameras.onvif', 'ONVIF'), icon: Shield },
@@ -118,25 +117,22 @@ export const CameraAddEditModal = ({
     });
 
     return (
-        <Portal>
-            <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-[2000] overflow-y-auto pt-20 sm:pt-6 p-4 lg:pl-64">
-                <div className="bg-card p-4 sm:p-6 rounded-xl w-full max-w-2xl border border-border relative">
-                    <div className="flex justify-between items-center mb-6">
-                        <div>
-                            <h2 className="text-xl font-bold">{editingId ? t('cameras.edit_camera', 'Edit Camera') : t('cameras.add_new_camera', 'Add New Camera')}</h2>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                {editingId ? t('cameras.configuring_camera', 'Configuring {{name}}', { name: newCamera.name }) : t('cameras.connect_configure', 'Connect and configure your RTSP camera')}
-                            </p>
-                        </div>
-                        <button
-                            onClick={() => { setShowAddModal(false); setEditingId(null); setCloneSourceId(''); }}
-                            className="p-2 hover:bg-muted rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                            aria-label={t('common.close', 'Close')}
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
+        <div className="space-y-6">
+            <div className="flex flex-wrap justify-between items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold">{editingId ? t('cameras.edit_camera', 'Edit Camera') : t('cameras.add_new_camera', 'Add New Camera')}</h1>
+                    <p className="text-xs text-muted-foreground mt-1">
+                        {editingId ? t('cameras.configuring_camera', 'Configuring {{name}}', { name: newCamera.name }) : t('cameras.connect_configure', 'Connect and configure your RTSP camera')}
+                    </p>
+                </div>
+                <Button type="button" variant="outline" onClick={onLeave} disabled={isSaving}>
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    {t('camera_editor.back', 'Back to cameras')}
+                </Button>
+            </div>
 
+            <form onSubmit={handleCreate} className="flex flex-col gap-6 min-h-[70vh]">
+                <fieldset disabled={isSaving} className="min-w-0 flex-1 space-y-6">
                     {!editingId && (
                         <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-xl animate-in fade-in slide-in-from-top-2 duration-300 shadow-sm">
                             <div className="flex items-center gap-2 mb-3 text-primary">
@@ -145,7 +141,7 @@ export const CameraAddEditModal = ({
                             </div>
                             
                             <SelectField
-                                label="Source Camera"
+                                label={t('camera_editor.source', 'Source Camera')}
                                 value={cloneSourceId}
                                 onChange={(val) => {
                                     setCloneSourceId(val);
@@ -170,8 +166,10 @@ export const CameraAddEditModal = ({
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 bg-background/50 p-2 rounded-lg border border-primary/10">
                                         {CAMERA_SETTINGS_CATEGORIES.map(cat => (
-                                            <div
+                                            <button
                                                 key={cat.id}
+                                                type="button"
+                                                aria-pressed={selectedCloneCategories.includes(cat.id)}
                                                 className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors border ${selectedCloneCategories.includes(cat.id) ? 'bg-primary/10 border-primary/20 text-primary font-medium' : 'hover:bg-muted border-transparent text-muted-foreground'}`}
                                                 onClick={() => toggleCloneCategory(cat.id)}
                                             >
@@ -179,7 +177,7 @@ export const CameraAddEditModal = ({
                                                 <div className={`w-3.5 h-3.5 rounded border transition-colors flex items-center justify-center shrink-0 ${selectedCloneCategories.includes(cat.id) ? 'bg-primary border-primary' : 'border-muted-foreground/30'}`}>
                                                     {selectedCloneCategories.includes(cat.id) && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                                                 </div>
-                                            </div>
+                                            </button>
                                         ))}
                                     </div>
                                     <p className="text-[10px] text-muted-foreground mt-2 italic">{t('cameras.unique_settings_urls_onvi', '* Unique settings (URLs, ONVIF credentials, Storage Profiles) are never cloned.')}</p>
@@ -188,38 +186,51 @@ export const CameraAddEditModal = ({
                         </div>
                     )}
 
-                    <div
-                        role="tablist"
-                        aria-label={t('cameras.settings_categories', 'Settings Categories')}
-                        className="flex space-x-4 mb-4 border-b border-border text-[11px] overflow-x-auto flex-nowrap min-h-[40px] pb-1 scrollbar-hide scroll-smooth relative"
-                    >
-                        {tabs.map((tab) => (
-                            <button
-                                key={tab.id}
-                                role="tab"
-                                aria-selected={activeTab === tab.id}
-                                className={`pb-2 flex items-center gap-1.5 flex-shrink-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-t-sm ${activeTab === tab.id ? 'border-b-2 border-primary font-bold text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-                                onClick={() => setActiveTab(tab.id)}
-                            >
-                                <tab.icon className="w-3.5 h-3.5" />
-                                {tab.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    <form onSubmit={handleCreate} className="space-y-4">
-                        <div className="max-h-[60vh] overflow-y-auto pr-2 -mr-2">
+                    <div className="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)] gap-6 items-start">
+                        <div className="lg:hidden">
+                            <SelectField
+                                label={t('cameras.settings_categories', 'Settings Categories')}
+                                value={activeTab}
+                                onChange={setActiveTab}
+                                options={tabs.map(tab => ({ value: tab.id, label: tab.label }))}
+                            />
+                        </div>
+                        <nav aria-label={t('cameras.settings_categories', 'Settings Categories')} className="hidden lg:block sticky top-4 rounded-xl border border-border bg-card p-2">
+                            {tabs.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    aria-current={activeTab === tab.id ? 'true' : undefined}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${activeTab === tab.id ? 'bg-primary/10 text-primary font-semibold' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+                                >
+                                    <tab.icon className="w-4 h-4 shrink-0" />
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </nav>
+                        <div className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-6 min-h-[65vh]">
                             {activeTab === 'general' && (
                                 <GeneralTab 
                                     newCamera={newCamera} 
                                     setNewCamera={setNewCamera} 
-                                    storageProfiles={storageProfiles} 
                                 />
                             )}
                             {activeTab === 'video' && (
                                 <DeviceTab 
                                     newCamera={newCamera} 
                                     setNewCamera={setNewCamera} 
+                                />
+                            )}
+                            {activeTab === 'storage' && (
+                                <StorageTab
+                                    editingId={editingId}
+                                    newCamera={newCamera}
+                                    setNewCamera={setNewCamera}
+                                    storageProfiles={storageProfiles}
+                                    stats={stats}
+                                    handleCleanup={handleCleanup}
+                                    globalSettings={globalSettings}
                                 />
                             )}
                             {activeTab === 'event_sources' && (
@@ -255,22 +266,14 @@ export const CameraAddEditModal = ({
                             )}
                             {activeTab === 'movies' && (
                                 <MoviesTab 
-                                    editingId={editingId} 
                                     newCamera={newCamera} 
                                     setNewCamera={setNewCamera} 
-                                    stats={stats} 
-                                    handleCleanup={handleCleanup} 
-                                    globalSettings={globalSettings}
                                 />
                             )}
                             {activeTab === 'still_images' && (
                                 <SnapshotsTab 
-                                    editingId={editingId} 
                                     newCamera={newCamera} 
                                     setNewCamera={setNewCamera} 
-                                    stats={stats} 
-                                    handleCleanup={handleCleanup} 
-                                    globalSettings={globalSettings}
                                 />
                             )}
                             {activeTab === 'notifications' && (
@@ -300,54 +303,32 @@ export const CameraAddEditModal = ({
                                 />
                             )}
                         </div>
+                    </div>
+                </fieldset>
 
-                        <div className="flex-none p-4 sm:p-6 border-t border-border bg-card/50 backdrop-blur-sm rounded-b-2xl">
-                            <div className="flex flex-col-reverse gap-3">
-                                {editingId && (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        title={t('cameras.copy_settings_to', 'Copy Settings to...')}
-                                        onClick={() => setShowCopyModal(true)}
-                                        className="flex items-center justify-center text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-4 py-2 rounded-lg transition-colors border-blue-100 dark:border-blue-900/30 w-full"
-                                    >
-                                        <Copy className="w-4 h-4 mr-2" />
-                                        <span>{t('cameras.copy_settings_to', 'Copy Settings to...')}</span>
-                                    </Button>
-                                )}
-                                {!editingId && <div className="hidden"></div>}
-
-                                <div className="flex flex-col sm:flex-row gap-3 w-full">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        onClick={() => { setShowAddModal(false); setEditingId(null); setCloneSourceId(''); }}
-                                        className="w-full sm:flex-1 border border-border sm:border-none whitespace-nowrap"
-                                    >
-                                        {t('actions.cancel', 'Cancel')}
-                                    </Button>
-                                    {editingId && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={(e) => handleCreate(e, false)}
-                                            className="w-full sm:flex-1 text-primary hover:bg-primary/10 border-primary/20 whitespace-nowrap"
-                                        >
-                                            {t('actions.apply', 'Apply')}
-                                        </Button>
-                                    )}
-                                    <Button
-                                        type="submit"
-                                        className="w-full sm:flex-1 whitespace-nowrap"
-                                    >
-                                        {editingId ? t('actions.save_changes', 'Save Changes') : t('actions.create_camera', 'Create Camera')}
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
+                <div className="sticky bottom-0 z-20 p-3 sm:p-4 border border-border bg-card/95 backdrop-blur-sm rounded-xl shadow-sm flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs text-muted-foreground" role="status">{isSaving ? t('camera_editor.saving', 'Saving...') : isDirty ? t('camera_editor.unsaved', 'Unsaved changes') : t('camera_editor.saved', 'No unsaved changes')}</p>
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                        <Button type="button" variant="ghost" onClick={onLeave} disabled={isSaving} className="flex-1 sm:flex-none">
+                            {t('camera_editor.back', 'Back to cameras')}
+                        </Button>
+                        {editingId && (
+                            <Button type="button" variant="outline" onClick={() => setShowCopyModal(true)} disabled={isSaving} title={t('cameras.copy_settings_to', 'Copy Settings to...')} aria-label={t('cameras.copy_settings_to', 'Copy Settings to...')}>
+                                <Copy className="w-4 h-4" />
+                                <span className="hidden xl:inline ml-2">{t('cameras.copy_settings_to', 'Copy Settings to...')}</span>
+                            </Button>
+                        )}
+                        {editingId && (
+                            <Button type="button" variant="outline" onClick={(e) => handleCreate(e, false)} disabled={isSaving} className="flex-1 sm:flex-none">
+                                {t('actions.apply', 'Apply')}
+                            </Button>
+                        )}
+                        <Button type="submit" disabled={isSaving} className="flex-1 sm:flex-none">
+                            {editingId ? t('actions.save_changes', 'Save Changes') : t('actions.create_camera', 'Create Camera')}
+                        </Button>
+                    </div>
                 </div>
-            </div>
-        </Portal>
+            </form>
+        </div>
     );
 };
