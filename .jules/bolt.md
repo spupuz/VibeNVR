@@ -21,3 +21,6 @@
 ## 2025-01-26 - Concurrent Promises vs Sequential Fetches in Loops
 **Learning:** Fetching data inside a `for...of` loop with `await fetch` creates a sequential waterfall, which is highly inefficient for independent network requests (such as polling stats from multiple federated nodes).
 **Action:** To optimize frontend network requests and eliminate O(N) latency bottlenecks, refactor sequential `await fetch` calls inside `for...of` loops to run concurrently using `Promise.all(array.map(...))`.
+## $(date +%Y-%m-%d) - [N+1 API Bottlenecks]
+**Learning:** Making multiple concurrent API calls (via `Promise.all` fetching the same endpoint `N` times) can inadvertently create database bottlenecks on the backend, increasing overall latency when users are modifying multiple items.
+**Action:** When updating multiple identical entities, always create and utilize a bulk API endpoint instead of iterating individual `PUT/POST` requests.

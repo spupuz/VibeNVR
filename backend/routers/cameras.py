@@ -469,6 +469,63 @@ def delete_camera(
     return camera_data
 
 
+@router.post("/bulk-update")
+def bulk_update_cameras(
+    request: schemas.CameraBulkUpdateRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
+    """Update multiple cameras at once"""
+    updated_count = 0
+    # Filter out unset values to only update what was provided
+    update_dict = request.update_data
+
+    if not update_dict:
+        return {"message": "No fields provided for update", "count": 0}
+
+    for camera_id in request.camera_ids:
+        existing_camera = crud.get_camera(db, camera_id=camera_id)
+        if not existing_camera:
+            continue
+
+        # Create a dict of the existing camera to merge with updates
+        cam_data = schemas.CameraCreate.model_validate(existing_camera).model_dump()
+        cam_data.update(update_dict)
+
+        # Sanitize URL credentials if included in updates
+        if "rtsp_url" in update_dict and update_dict["rtsp_url"]:
+            cam_data["rtsp_url"] = sanitize_rtsp_url(cam_data["rtsp_url"])
+
+        try:
+            # Validate merged data using CameraCreate
+            updated_camera_schema = schemas.CameraCreate(**cam_data)
+        except Exception as e:
+            logger.error(f"Validation failed for camera {camera_id} during bulk update: {e}")
+            continue
+
+        _probe_resolution_if_needed(updated_camera_schema, existing_camera)
+
+        was_active = existing_camera.is_active
+        old_onvif_host = existing_camera.onvif_host
+
+        db_camera = crud.update_camera(db, camera_id=camera_id, camera=updated_camera_schema)
+
+        if db_camera.onvif_host and (db_camera.onvif_host != old_onvif_host):
+            import onvif_service
+            background_tasks.add_task(
+                onvif_service.probe_and_update_onvif_features, db_camera.id, None
+            )
+
+        _sync_camera_engine_state(camera_id, db_camera, was_active, background_tasks)
+        updated_count += 1
+
+    return {
+        "message": f"Successfully updated {updated_count} camera(s)",
+        "count": updated_count,
+    }
+
+
 @router.post("/bulk-delete")
 def bulk_delete_cameras(
     camera_ids: List[int],

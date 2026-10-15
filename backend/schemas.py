@@ -441,6 +441,12 @@ class CameraBase(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+
+class CameraBulkUpdateRequest(BaseModel):
+    camera_ids: List[int]
+    update_data: dict
+
 class CameraCreate(CameraBase):
     @model_validator(mode='after')
     def validate_ai_passthrough(self) -> 'CameraCreate':
