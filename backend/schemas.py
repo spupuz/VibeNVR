@@ -239,6 +239,7 @@ class CameraBase(BaseModel):
     ai_enabled: bool = False
     ai_object_types: List[str] = ["person", "vehicle"]
     ai_threshold: float = 0.5
+    ai_min_size: float = 0.0
     ai_tracking_enabled: bool = False
 
     @field_validator('ai_object_types', mode='before')
@@ -340,6 +341,15 @@ class CameraBase(BaseModel):
             return 0.5
         # Clamp to a sane range: 0.1 to 0.99
         return max(0.1, min(0.99, val))
+
+    @field_validator('ai_min_size', mode='before')
+    @classmethod
+    def validate_ai_min_size(cls, v: Any) -> float:
+        try:
+            val = float(v)
+        except (TypeError, ValueError):
+            return 0.0
+        return max(0.0, min(1.0, val))
 
 
 
@@ -559,6 +569,7 @@ class CameraUpdate(BaseModel):
     ai_enabled: Optional[bool] = None
     ai_object_types: Optional[List[str]] = None
     ai_threshold: Optional[float] = None
+    ai_min_size: Optional[float] = None
     ai_tracking_enabled: Optional[bool] = None
 
 class CameraBulkUpdateRequest(BaseModel):
@@ -787,6 +798,7 @@ class CameraSummary(BaseModel):
     ai_enabled: bool
     ai_object_types: List[str]
     ai_threshold: float
+    ai_min_size: float = 0.0
     ai_hardware: Optional[str] = None
     ai_model: Optional[str] = None
     ai_tracking_enabled: bool

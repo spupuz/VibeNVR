@@ -211,6 +211,7 @@ class CameraConfig(BaseModel):
     ai_enabled: bool = False
     ai_object_types: List[str] = ["person", "vehicle"]
     ai_threshold: float = 0.5
+    ai_min_size: float = 0.0
     ai_tracking_enabled: bool = False
     
     # Tiered Storage Profiles

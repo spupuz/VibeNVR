@@ -416,7 +416,7 @@
     "enable_it_in_settings_ai_": "Aktivieren Sie es unter Einstellungen > AI Detection Engine, um diese Funktionen zu nutzen.",
     "enable_ai_inference": "Aktivieren Sie KI-Inferenz",
     "run_deep_learning_models_": "Führen Sie Deep-Learning-Modelle für Bewegungsereignisse aus, um Objekte zu identifizieren.",
-    "confidence_threshold": "Vertrauensschwelle",
+    "confidence_threshold": "Konfidenzschwellenwert",
     "object_tracking": "Objektverfolgung",
     "track_objects_across_fram": "Verfolgen Sie Objekte über Frames hinweg, um Fehlalarme zu reduzieren.",
     "recording_settings": "Aufnahmeeinstellungen",
@@ -620,7 +620,11 @@
     "isapi_error_connection_error": "Kann keine Verbindung zum HTTP-Port der Kamera herstellen",
     "isapi_error_unexpected_response": "Unerwartete ISAPI-Stream-Antwort",
     "isapi_trim_quiet_tail": "Ruhiges Filmmaterial aus Bewegungsclips kürzen",
-    "isapi_trim_quiet_tail_help": "Überprüfen Sie nur den fertigen Clip; behalten Sie die Sekunden für Aufnahme Nach nach der letzten deutlichen Bewegung bei. Im Zweifelsfall Original behalten."
+    "isapi_trim_quiet_tail_help": "Überprüfen Sie nur den fertigen Clip; behalten Sie die Sekunden für Aufnahme Nach nach der letzten deutlichen Bewegung bei. Im Zweifelsfall Original behalten.",
+    "min_object_size": "Mindestgröße des Objekts",
+    "disabled_any_size": "0% (Deaktiviert)",
+    "min_object_size_help": "Ignoriert erkannte Objekte, die weniger als diesen Prozentsatz der Bildfläche einnehmen. Hilft, winzige Fehlalarme herauszufiltern.",
+    "confidence_threshold_help": "Mindestvertrauen des KI-Modells zur Objekterkennung. Höhere Werte reduzieren Fehlalarme, können aber unauffällige Erkennungen übersehen."
   },
   "settings": {
     "general_preferences": "Allgemeine Einstellungen",

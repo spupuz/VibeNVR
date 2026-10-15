@@ -421,7 +421,7 @@
     "enable_it_in_settings_ai_": "在“设置”>“AI 检测引擎”中启用它以使用这些功能。",
     "enable_ai_inference": "启用人工智能推理",
     "run_deep_learning_models_": "对运动事件运行深度学习模型以识别对象。",
-    "confidence_threshold": "置信阈值",
+    "confidence_threshold": "置信度阈值",
     "object_tracking": "物体追踪",
     "track_objects_across_fram": "跨帧跟踪对象以减少误报。",
     "recording_settings": "录音设置",
@@ -620,7 +620,11 @@
     "isapi_error_connection_error": "无法连接到摄像机 HTTP 端口",
     "isapi_error_unexpected_response": "意外的 ISAPI 流响应",
     "isapi_trim_quiet_tail": "从运动剪辑中修剪静止画面",
-    "isapi_trim_quiet_tail_help": "仅检查完成的片段；在最后一次清晰的运动后保留\"之后捕捉\"的秒数。如果不确定则保留原件。"
+    "isapi_trim_quiet_tail_help": "仅检查完成的片段；在最后一次清晰的运动后保留\"之后捕捉\"的秒数。如果不确定则保留原件。",
+    "min_object_size": "最小目标尺寸",
+    "disabled_any_size": "0% (已禁用)",
+    "min_object_size_help": "忽略占画面面积百分比低于此阈值的检测对象。有助于过滤微小误报。",
+    "confidence_threshold_help": "AI 模型检测目标所需的最低置信度。较高的值可减少误报，但可能会遗漏不易察觉的目标。"
   },
   "settings": {
     "general_preferences": "常规首选项",

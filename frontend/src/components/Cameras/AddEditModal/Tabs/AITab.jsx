@@ -152,6 +152,37 @@ export const AITab = ({ newCamera, setNewCamera, globalSettings }) => {
                             </div>
                         </div>
 
+                        <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 mt-6">
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between mb-1">
+                                    <label htmlFor="minObjectSize" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block cursor-pointer">
+                                        {t('cameras.min_object_size', 'Minimum Object Size')}
+                                    </label>
+                                    <span className="text-xs font-mono text-primary font-medium">
+                                        {(newCamera.ai_min_size || 0) <= 0
+                                            ? t('cameras.disabled_any_size', '0% (Disabled)')
+                                            : `${((newCamera.ai_min_size || 0) * 100).toFixed(1)}%`}
+                                    </span>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mb-2">
+                                    {t('cameras.min_object_size_help', 'Ignore detected objects occupying less than this percentage of the frame area. Helps filter out tiny false positives.')}
+                                </p>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        id="minObjectSize"
+                                        type="range"
+                                        min="0"
+                                        max="0.20"
+                                        step="0.005"
+                                        disabled={isAiDisabledGlobally}
+                                        value={newCamera.ai_min_size || 0}
+                                        onChange={(e) => setNewCamera({ ...newCamera, ai_min_size: parseFloat(e.target.value) })}
+                                        className="flex-1 accent-primary h-1.5 bg-muted rounded-lg appearance-none cursor-pointer"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="p-4 bg-muted/30 rounded-xl border border-border mt-6">
                             <Toggle
                                 label={t('cameras.object_tracking', 'Object Tracking')}

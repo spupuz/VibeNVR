@@ -87,6 +87,7 @@ export const DEFAULT_CAMERA_STATE = {
     ai_enabled: false,
     ai_object_types: ['person', 'vehicle'],
     ai_threshold: 0.5,
+    ai_min_size: 0.0,
     ai_tracking_enabled: false,
     detect_engine: 'OpenCV',
     event_provider: 'server',

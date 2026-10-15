@@ -417,7 +417,7 @@
     "enable_it_in_settings_ai_": "これらの機能を使用するには、[設定] > [AI 検出エンジン] で有効にしてください。",
     "enable_ai_inference": "AI 推論を有効にする",
     "run_deep_learning_models_": "モーション イベントに対して深層学習モデルを実行してオブジェクトを識別します。",
-    "confidence_threshold": "信頼閾値",
+    "confidence_threshold": "信頼度しきい値",
     "object_tracking": "オブジェクト追跡",
     "track_objects_across_fram": "フレーム全体でオブジェクトを追跡して、誤検知を減らします。",
     "recording_settings": "録音設定",
@@ -620,7 +620,11 @@
     "isapi_error_connection_error": "カメラのHTTPポートに接続できません",
     "isapi_error_unexpected_response": "予期しないISAPIストリームの応答",
     "isapi_trim_quiet_tail": "モーションクリップから静止映像をトリミングする",
-    "isapi_trim_quiet_tail_help": "完成したクリップのみを確認してください。最後の明確な動きの後に「事後録画」の秒数を維持します。確信が持てない場合はオリジナルを維持してください。"
+    "isapi_trim_quiet_tail_help": "完成したクリップのみを確認してください。最後の明確な動きの後に「事後録画」の秒数を維持します。確信が持てない場合はオリジナルを維持してください。",
+    "min_object_size": "オブジェクトの最小サイズ",
+    "disabled_any_size": "0% (無効)",
+    "min_object_size_help": "フレーム面積のこの割合未満の検出オブジェクトを無視します。微小な誤検知を低減するのに役立ちます。",
+    "confidence_threshold_help": "オブジェクトを検出するために必要なAIモデルの最小信頼度。値を高くすると誤検知が減りますが、微妙な検出を見逃す可能性があります。"
   },
   "settings": {
     "general_preferences": "一般設定",

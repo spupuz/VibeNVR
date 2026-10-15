@@ -8,7 +8,7 @@ VibeNVR supports hardware-accelerated AI object detection via **Google Coral Edg
 
 When a camera's detection engine is set to **AI**, each video frame is:
 1. Resized and fed to a TFLite object detection model (e.g., **YOLOv8** or **MobileNet SSD v2**).
-2. Filtered by **confidence threshold** and **allowed object types**.
+2. Filtered by **confidence threshold**, **minimum object size**, and **allowed object types**.
 3. **Non-Maximum Suppression (NMS)** is applied to eliminate overlapping detections (especially relevant for YOLOv8).
 4. **Motion zones** (exclusion polygons) are applied to the bounding boxes.
 5. If any objects pass all filters → motion is triggered, a recording starts, and detected labels are stored in the event database.
@@ -55,6 +55,7 @@ Navigate to **Cameras → Edit → AI & Tracking Tab** to configure per-camera d
 |---------|-------------|---------|
 | **AI Detection** | Toggle to enable ML-based detection for this camera | `Disabled` |
 | **Confidence Threshold** | Minimum score (0–100%) for a detection to count | `50%` |
+| **Minimum Object Size** | Minimum % of frame area (0–20%) required to count (filters out tiny false positives like floor cracks or distant artifacts) | `0% (Disabled)` |
 | **Allowed Objects** | Whitelisted list: `person`, `vehicle`, `dog`, etc. | `person, vehicle` |
 | **Tracking Enabled** | Enable persistent object tracking across frames | `Disabled` |
 

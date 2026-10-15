@@ -420,7 +420,7 @@
     "enable_it_in_settings_ai_": "Activez-le dans Paramètres > Moteur de détection IA pour utiliser ces fonctionnalités.",
     "enable_ai_inference": "Activer l'inférence IA",
     "run_deep_learning_models_": "Exécutez des modèles de Deep Learning sur des événements de mouvement pour identifier des objets.",
-    "confidence_threshold": "Seuil de confiance",
+    "confidence_threshold": "Seuil de Confiance",
     "object_tracking": "Suivi d'objet",
     "track_objects_across_fram": "Suivez les objets à travers les images pour réduire les faux positifs.",
     "recording_settings": "Paramètres d'enregistrement",
@@ -620,7 +620,11 @@
     "isapi_error_connection_error": "Impossible de se connecter au port HTTP de la caméra",
     "isapi_error_unexpected_response": "Réponse inattendue du flux ISAPI",
     "isapi_trim_quiet_tail": "Supprimer les séquences calmes des clips de mouvement",
-    "isapi_trim_quiet_tail_help": "Vérifiez uniquement le clip terminé ; conservez les secondes de Capture Après après le dernier mouvement clair. Conservez l'original en cas de doute."
+    "isapi_trim_quiet_tail_help": "Vérifiez uniquement le clip terminé ; conservez les secondes de Capture Après après le dernier mouvement clair. Conservez l'original en cas de doute.",
+    "min_object_size": "Taille Minimale de l'Objet",
+    "disabled_any_size": "0% (Désactivé)",
+    "min_object_size_help": "Ignore les objets détectés occupant moins que ce pourcentage de la surface de l'image. Permet d'éliminer les micro faux positifs.",
+    "confidence_threshold_help": "Niveau de confiance minimal requis pour détecter un objet. Des valeurs plus élevées réduisent les faux positifs mais peuvent manquer des détections discrètes."
   },
   "settings": {
     "general_preferences": "Préférences générales",

@@ -194,6 +194,7 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
         "ai_enabled": cam.ai_enabled if cam.ai_enabled is not None else False,
         "ai_object_types": _parse_ai_object_types(cam.ai_object_types),
         "ai_threshold": cam.ai_threshold if cam.ai_threshold is not None else 0.5,
+        "ai_min_size": cam.ai_min_size if cam.ai_min_size is not None else 0.0,
         "ai_tracking_enabled": cam.ai_tracking_enabled if cam.ai_tracking_enabled is not None else False
     }
     

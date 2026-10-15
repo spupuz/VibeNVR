@@ -512,6 +512,7 @@ class AIDetector:
         model_type = raw.get('model_type', self.model_type)
         results = []
         threshold = current_config.get('ai_threshold', 0.5)
+        min_size = float(current_config.get('ai_min_size', 0.0) or 0.0)
         allowed_objects = current_config.get('ai_object_types', ["person", "vehicle"])
         vehicle_classes = ["car", "truck", "bus", "motorcycle"]
         input_h, input_w = input_frame.shape[0], input_frame.shape[1]
@@ -532,8 +533,13 @@ class AIDetector:
                             class_id = int(classes[i])
                             label = self.labels.get(class_id, "unknown")
                             if label in allowed_objects or ("vehicle" in allowed_objects and label in vehicle_classes):
+                                ymin, xmin, ymax, xmax = float(boxes[i][0]), float(boxes[i][1]), float(boxes[i][2]), float(boxes[i][3])
+                                box_area = max(0.0, xmax - xmin) * max(0.0, ymax - ymin)
+                                if min_size > 0.0 and box_area < min_size:
+                                    logger.debug(f"Camera {camera_id}: AI filtered out {label} (area {box_area*100:.2f}% < min_size {min_size*100:.2f}%)")
+                                    continue
                                 results.append({"label": label, "score": score, "confidence": score,
-                                                "box": [float(boxes[i][0]), float(boxes[i][1]), float(boxes[i][2]), float(boxes[i][3])]})
+                                                "box": [ymin, xmin, ymax, xmax], "area": round(box_area, 5)})
                 else:
                     # Standard YOLOv8 format
                     if output.ndim == 2 and output.shape[0] < output.shape[1]:
@@ -572,8 +578,13 @@ class AIDetector:
                                     ymin, xmin, ymax, xmax = y, x, y + bh, x + bw
                                 else:
                                     ymin, xmin, ymax, xmax = y/input_h, x/input_w, (y+bh)/input_h, (x+bw)/input_w
+                                ymin, xmin, ymax, xmax = float(ymin), float(xmin), float(ymax), float(xmax)
+                                box_area = max(0.0, xmax - xmin) * max(0.0, ymax - ymin)
+                                if min_size > 0.0 and box_area < min_size:
+                                    logger.debug(f"Camera {camera_id}: AI filtered out {label} (area {box_area*100:.2f}% < min_size {min_size*100:.2f}%)")
+                                    continue
                                 results.append({"label": label, "score": score, "confidence": score,
-                                                "box": [float(ymin), float(xmin), float(ymax), float(xmax)]})
+                                                "box": [ymin, xmin, ymax, xmax], "area": round(box_area, 5)})
                             results = sorted(results, key=lambda x: x['score'], reverse=True)[:10]
             else:
                 # SSD Post-processing
@@ -587,8 +598,13 @@ class AIDetector:
                         class_id = int(classes[i])
                         label = self.labels.get(class_id, "unknown")
                         if label in allowed_objects or ("vehicle" in allowed_objects and label in vehicle_classes):
+                            ymin, xmin, ymax, xmax = float(boxes[i][0]), float(boxes[i][1]), float(boxes[i][2]), float(boxes[i][3])
+                            box_area = max(0.0, xmax - xmin) * max(0.0, ymax - ymin)
+                            if min_size > 0.0 and box_area < min_size:
+                                logger.debug(f"Camera {camera_id}: AI filtered out {label} (area {box_area*100:.2f}% < min_size {min_size*100:.2f}%)")
+                                continue
                             results.append({"label": label, "score": score, "confidence": score,
-                                            "box": [float(boxes[i][0]), float(boxes[i][1]), float(boxes[i][2]), float(boxes[i][3])]})
+                                            "box": [ymin, xmin, ymax, xmax], "area": round(box_area, 5)})
         except Exception as e:
             logger.error(f"Camera {camera_id}: AI post-process error: {e}")
             return []

@@ -154,7 +154,8 @@ def perform_group_action(group_id: int, action: schemas.GroupAction, db: Session
                 'schedule_friday', 'schedule_friday_start', 'schedule_friday_end',
                 'schedule_saturday', 'schedule_saturday_start', 'schedule_saturday_end',
                 'schedule_sunday', 'schedule_sunday_start', 'schedule_sunday_end'
-            ]
+            ],
+            'ai': ['ai_enabled', 'ai_object_types', 'ai_threshold', 'ai_min_size', 'ai_tracking_enabled']
         }
 
         # Determine which fields to copy

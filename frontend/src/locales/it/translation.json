@@ -421,7 +421,7 @@
     "enable_it_in_settings_ai_": "Abilitalo in Impostazioni > Motore di rilevamento AI per utilizzare queste funzionalità.",
     "enable_ai_inference": "Abilita l'inferenza AI",
     "run_deep_learning_models_": "Esegui modelli di deep learning su eventi di movimento per identificare gli oggetti.",
-    "confidence_threshold": "Soglia di fiducia",
+    "confidence_threshold": "Soglia di Confidenza",
     "object_tracking": "Tracciamento degli oggetti",
     "track_objects_across_fram": "Traccia gli oggetti attraverso i fotogrammi per ridurre i falsi positivi.",
     "recording_settings": "Impostazioni di registrazione",
@@ -620,7 +620,11 @@
     "isapi_error_connection_error": "Impossibile connettersi alla porta HTTP della telecamera",
     "isapi_error_unexpected_response": "Risposta inattesa dallo stream ISAPI",
     "isapi_trim_quiet_tail": "Taglia le riprese silenziose dalle clip di movimento",
-    "isapi_trim_quiet_tail_help": "Controlla solo la clip finita; mantieni i secondi di 'Cattura Dopo' dopo l'ultimo movimento chiaro. Mantieni l'originale in caso di incertezza."
+    "isapi_trim_quiet_tail_help": "Controlla solo la clip finita; mantieni i secondi di 'Cattura Dopo' dopo l'ultimo movimento chiaro. Mantieni l'originale in caso di incertezza.",
+    "min_object_size": "Dimensione Minima Oggetto",
+    "disabled_any_size": "0% (Disabilitato)",
+    "min_object_size_help": "Ignora gli oggetti rilevati che occupano meno di questa percentuale dell'area del fotogramma. Aiuta a filtrare i micro falsi positivi.",
+    "confidence_threshold_help": "Confidenza minima richiesta al modello IA per rilevare un oggetto. Valori più alti riducono i falsi allarmi ma possono ignorare rilevamenti lievi."
   },
   "settings": {
     "general_preferences": "Preferenze Generali",

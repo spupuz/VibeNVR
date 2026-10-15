@@ -685,7 +685,11 @@
     "ai_detect_engine_note_1": "Since you selected \"AI\" as the Detection Engine, these objects are the",
     "ai_detect_engine_note_2": "thing that will trigger a motion event.",
     "onvif_edge_desc": "to offload processing to camera hardware, drastically reducing NVR server CPU usage.",
-    "tab_dot": "tab."
+    "tab_dot": "tab.",
+    "min_object_size": "Minimum Object Size",
+    "disabled_any_size": "0% (Disabled)",
+    "min_object_size_help": "Ignore detected objects occupying less than this percentage of the frame area. Helps filter out tiny false positives.",
+    "confidence_threshold_help": "Minimum AI model confidence required to detect an object. Higher values reduce false positives but may miss subtle detections."
   },
   "settings": {
     "general_preferences": "General Preferences",

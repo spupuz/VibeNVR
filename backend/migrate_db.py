@@ -205,6 +205,7 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "ai_enabled", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "ai_object_types", "VARCHAR", '["person", "vehicle"]')
     add_column_if_not_exists(engine, "cameras", "ai_threshold", "FLOAT", 0.5)
+    add_column_if_not_exists(engine, "cameras", "ai_min_size", "FLOAT", 0.0)
     add_column_if_not_exists(engine, "cameras", "ai_tracking_enabled", "BOOLEAN", False)
     
     # Cleanup moved AI settings (Moved to global)

@@ -417,7 +417,7 @@
     "enable_it_in_settings_ai_": "Habilítelo en Configuración > Motor de detección de IA para utilizar estas funciones.",
     "enable_ai_inference": "Habilitar la inferencia de IA",
     "run_deep_learning_models_": "Ejecute modelos de aprendizaje profundo sobre eventos de movimiento para identificar objetos.",
-    "confidence_threshold": "Umbral de confianza",
+    "confidence_threshold": "Umbral de Confianza",
     "object_tracking": "Seguimiento de objetos",
     "track_objects_across_fram": "Realice un seguimiento de los objetos a lo largo de los fotogramas para reducir los falsos positivos.",
     "recording_settings": "Configuración de grabación",
@@ -620,7 +620,11 @@
     "isapi_error_connection_error": "No se puede conectar al puerto HTTP de la cámara",
     "isapi_error_unexpected_response": "Respuesta de flujo ISAPI inesperada",
     "isapi_trim_quiet_tail": "Recortar imágenes silenciosas de los clips de movimiento",
-    "isapi_trim_quiet_tail_help": "Verifique solo el clip terminado; mantenga los segundos de Capturar Después luego del último movimiento claro. Conserve el original si no está seguro."
+    "isapi_trim_quiet_tail_help": "Verifique solo el clip terminado; mantenga los segundos de Capturar Después luego del último movimiento claro. Conserve el original si no está seguro.",
+    "min_object_size": "Tamaño Mínimo del Objeto",
+    "disabled_any_size": "0% (Desactivado)",
+    "min_object_size_help": "Ignora los objetos detectados que ocupen menos de este porcentaje del área del fotograma. Ayuda a filtrar falsos positivos diminutos.",
+    "confidence_threshold_help": "Confianza mínima del modelo de IA requerida para detectar un objeto. Valores más altos reducen falsos positivos pero pueden omitir detecciones sutiles."
   },
   "settings": {
     "general_preferences": "Preferencias generales",
