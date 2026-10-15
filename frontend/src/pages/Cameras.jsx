@@ -518,27 +518,30 @@ export const Cameras = () => {
                     return;
                 }
 
-                // ⚡ Bolt: Execute copy updates concurrently to eliminate O(N) wait times
-                await Promise.all(copyTargets.map(async (targetId) => {
-                    const targetCam = cameras.find(c => c.id === targetId);
-                    if (!targetCam) return;
+                // ⚡ Bolt: Use the bulk update endpoint to avoid N+1 DB queries and API calls
+                try {
+                    const res = await fetch(`/api/cameras/bulk-update`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            camera_ids: copyTargets,
+                            update_data: settingsToCopy
+                        })
+                    });
 
-                    const updatedCam = { ...targetCam, ...settingsToCopy };
-                    try {
-                        const res = await fetch(`/api/cameras/${targetId}`, {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                Authorization: `Bearer ${token}`
-                            },
-                            body: JSON.stringify(updatedCam)
-                        });
-                        if (!res.ok) throw new Error(`Camera ${targetId} failed`);
-                    } catch (err) {
-                        console.error(`Failed to update camera ${targetId}`, err);
-                        showToast(`Failed to copy to camera ${targetCam.name}: ${err.message}`, 'error');
+                    if (!res.ok) {
+                        const errData = await res.json();
+                        throw new Error(errData.detail || 'Bulk update failed');
                     }
-                }));
+                } catch (err) {
+                    console.error('Bulk update failed', err);
+                    showToast(`Failed to copy settings: ${err.message}`, 'error');
+                    setConfirmConfig({ isOpen: false });
+                    return;
+                }
 
                 setShowCopyModal(false);
                 setCopyTargets([]);

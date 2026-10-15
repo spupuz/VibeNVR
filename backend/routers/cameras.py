@@ -512,6 +512,46 @@ def reorder_cameras(
     return {"message": "Cameras reordered successfully"}
 
 
+@router.post("/bulk-update")
+def bulk_update_cameras(
+    request: schemas.CameraBulkUpdateRequest,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
+    """Bulk update multiple cameras with the same settings"""
+    if not request.camera_ids or not request.update_data:
+        return {"message": "No cameras or update data provided", "count": 0}
+
+    # Prepare update data for all target cameras
+    update_data = request.update_data.dict(exclude_unset=True)
+
+    # Convert list to JSON string for the DB column only if it's a list
+    if "ai_object_types" in update_data and isinstance(update_data["ai_object_types"], list):
+        update_data["ai_object_types"] = json.dumps(update_data["ai_object_types"])
+
+    # Filter out fields that shouldn't be copied in bulk (just in case they were somehow set)
+    filtered_update_data = {
+        k: v for k, v in update_data.items()
+        if k not in ("id", "name", "rtsp_url", "sub_rtsp_url", "location", "is_active", "status", "last_seen", "onvif_host", "onvif_port", "onvif_username", "onvif_password")
+    }
+
+    if not filtered_update_data:
+        return {"message": "No valid fields provided for bulk update", "count": 0}
+
+    mappings = []
+    for cam_id in request.camera_ids:
+        cam_update = dict(filtered_update_data)
+        cam_update["id"] = cam_id
+        mappings.append(cam_update)
+
+    if mappings:
+        crud.bulk_update_cameras_data(db, mappings)
+        # Re-generate motion config after update
+        motion_service.generate_motion_config(db)
+
+    return {"message": f"Successfully updated {len(mappings)} camera(s)", "count": len(mappings)}
+
+
 @router.websocket("/{camera_id}/ws")
 async def websocket_camera_stream(websocket: WebSocket, camera_id: int):
     """Proxy raw H.264 PyAV packets from engine to the frontend via WebSockets"""

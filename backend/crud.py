@@ -104,6 +104,12 @@ def update_camera(db: Session, camera_id: int, camera: schemas.CameraCreate):
     return db_camera
 
 
+def bulk_update_cameras_data(db: Session, mappings: list[dict]):
+    if mappings:
+        db.bulk_update_mappings(models.Camera, mappings)
+        db.commit()
+
+
 def delete_camera(db: Session, camera_id: int):
     from sqlalchemy.orm import joinedload
 

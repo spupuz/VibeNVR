@@ -24,3 +24,12 @@
 ## 2025-02-12 - Prevent O(N) database bottlenecks in high-frequency background polling
 **Learning:** Polling `/api/stats` every 15 seconds from the frontend triggered two separate `db.query().filter(models.Event.file_path.like(...)).scalar()` calls (COUNT and SUM) inside a loop over custom storage profiles in `_get_detailed_storage_stats`. Doing multiple `LIKE` string matches per profile on the potentially massive `events` table caused severe CPU and I/O bottlenecks.
 **Action:** Always combine aggregate database queries into a single SQL `SELECT COUNT(), SUM()` query to immediately halve the number of heavy `LIKE` operations and optimize backend polling routes.
+
+## 2025-02-12 - N+1 Queries in Client-Side Promise.all Loops
+**Learning:** While `Promise.all()` improves frontend latency for sequential fetches, dispatching multiple concurrent PUT/POST requests (e.g., when copying settings to multiple cameras) creates N+1 API and database bottlenecks on the backend.
+**Action:** For operations modifying multiple entities simultaneously, always implement and use a single bulk API endpoint (e.g., `POST /bulk-update`) rather than mapping over items with individual API calls.
+
+## 2025-02-12 - Bulk Update Schema Validation
+**Learning:** When defining a Pydantic schema for a partial or bulk update operation, inheriting directly from a base schema with required fields causes 422 validation failures when the frontend sends a subset of keys. Furthermore, using `Dict[str, Any]` bypasses validation entirely and creates Mass Assignment risks.
+**Action:** Always define a strict Pydantic update schema where all modifiable fields are explicitly marked as `Optional` and use `.model_dump(exclude_unset=True)` (or `.dict()` in v1) to safely extract only the provided fields for updates.
+
