@@ -21,6 +21,7 @@ const SiteSelector = () => {
                 <Network className="w-3 h-3" /> {t('federation.site', 'Site')}
             </label>
             <select
+                aria-label={t('federation.site', 'Site')}
                 value={activeNode || 'local'}
                 onChange={(e) => setActiveNode(e.target.value === 'local' ? null : e.target.value)}
                 className="w-full bg-transparent text-sm font-medium p-1.5 focus:outline-none focus:ring-2 focus:ring-primary rounded cursor-pointer"
