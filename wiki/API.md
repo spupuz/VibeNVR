@@ -459,6 +459,26 @@ Trigger a manual storage cleanup. This endpoint allows for granular purging of m
   }
   ```
 
+#### **POST** `/settings/test-vision-llm`
+Test connectivity and inference to an OpenAI-compatible Vision LLM endpoint (Admin only).
+- **Auth Required**: Admin privileges (Bearer JWT or API Key).
+- **Payload Example**:
+  ```json
+  {
+    "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+    "api_key": "AIzaSy...",
+    "model": "gemini-3.5-flash-lite",
+    "prompt": "Describe this test image in a few words."
+  }
+  ```
+- **Response Example**:
+  ```json
+  {
+    "status": "success",
+    "response": "A black test image."
+  }
+  ```
+
 #### **Global Settings Keys (`/settings`)**
 Commonly used keys for `/settings/{key}`:
 - `mqtt_enabled`: (`true`/`false`)
@@ -474,6 +494,12 @@ Commonly used keys for `/settings/{key}`:
 - `ai_hardware`: (`auto`/`cpu`/`tpu`) Global hardware preference.
 - `ai_nms_iou_threshold`: (`0.45`) IoU threshold for YOLOv8 NMS (Float).
 - `ai_confidence_default`: (`0.5`) Default threshold for new cameras (Float).
+- `llm_enricher_enabled`: (`true`/`false`) Master Vision LLM event captioning switch.
+- `llm_enricher_base_url`: Base URL for OpenAI-compatible endpoint.
+- `llm_enricher_api_key`: API key for Vision LLM provider.
+- `llm_enricher_model`: Model name (e.g. `llama3.2-vision`, `gemini-3.5-flash-lite`, `gpt-4o-mini`).
+- `llm_enricher_filter_classes`: Comma-separated labels to trigger VLM analysis (blank for all events).
+- `llm_enricher_prompt`: Custom security prompt override.
 
 ---
 

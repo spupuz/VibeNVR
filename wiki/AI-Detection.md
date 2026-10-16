@@ -375,3 +375,31 @@ VibeNVR implements **Non-Maximum Suppression (NMS)** for YOLOv8 models. This tec
 
 VibeNVR employs **Dynamic Resolution Scaling** for AI detection overlays.
 This means that bounding box thickness and label text size are strictly proportional to the native width of the video frame. Whether a camera is streaming at 640p (sub-stream) or 4K, the AI overlays will render at the exact same visual weight when displayed side-by-side in the Live View grid.
+
+---
+
+## ✨ Vision LLM Smart Event Enricher (Two-Tier Architecture)
+
+In addition to fast local object detection (Coral EdgeTPU / YOLOv8 / MobileNet), VibeNVR includes an asynchronous **Vision LLM Smart Event Enricher**.
+
+### 💡 Two-Tier Architecture Concept
+- **Tier 1 (Local Real-Time)**: Coral TPU or CPU runs high-frequency bounding box detection (10–30 ms) to trigger motion events and capture high-resolution snapshots.
+- **Tier 2 (Asynchronous VLM)**: When an event is created, VibeNVR dispatches the event snapshot in the background to an **OpenAI-compatible Vision endpoint** (local Ollama or cloud models such as Google Gemini) to generate natural language captions (e.g., *"A delivery driver dropping off a package at the front porch"*).
+- **Zero Stream Impact**: Stream FPS, recording, and real-time motion detection remain 100% unaffected.
+
+### ⚙️ Configuration Parameters
+Navigate to **System Settings → AI Detection Engine → Smart Event Enricher (Vision LLM)**:
+
+| Setting | Description | Default / Example |
+|---------|-------------|-------------------|
+| **Enable Vision LLM** | Master switch for asynchronous smart event captioning | `Disabled` |
+| **Endpoint Base URL** | OpenAI-compatible endpoint URL (excluding `/chat/completions`) | `http://localhost:11434/v1` (Ollama) or `https://generativelanguage.googleapis.com/v1beta/openai` (Gemini) |
+| **Model Name** | Name of the vision model to query | `llama3.2-vision` (Ollama) or `gemini-3.5-flash-lite` / `gemini-3.8-flash` |
+| **API Key (Optional)** | Bearer token / API key | Optional for local Ollama, required for Gemini / OpenAI |
+| **Filter Classes (Optional)** | Comma-separated classes to trigger LLM analysis | e.g. `person, car, truck` (blank = all confirmed events) |
+| **Custom Prompt (Optional)** | Custom instructions for the security analyst model | Optional custom prompt (e.g. in Italian or specialized formatting) |
+
+### 🔍 UI & Notification Integration
+- **Timeline & Event Card**: Shows the smart caption with a ✨ icon in event cards and in the full Event Preview modal (both desktop and mobile).
+- **Notifications**: Automatically enriches Telegram alerts and Webhook JSON payloads with `ai_description`.
+
