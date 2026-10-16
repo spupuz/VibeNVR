@@ -916,6 +916,16 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
             
             proxies = None
             if proxy_enabled and proxy_url:
+                from urllib.parse import urlparse
+                import utils
+                try:
+                    parsed = urlparse(proxy_url)
+                    if not utils.is_safe_host(parsed.hostname):
+                        raise ValueError("Unsafe Telegram Proxy URL. Link-local and multicast IPs are blocked.")
+                except Exception as e:
+                    if isinstance(e, ValueError):
+                        raise e
+                    raise ValueError("Invalid Telegram Proxy URL format.")
                 proxies = {"http": proxy_url, "https": proxy_url}
             
             retries = int(settings.get("telegram_proxy_retries", get_conf("telegram_proxy_retries")) or 3)

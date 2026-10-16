@@ -95,7 +95,16 @@ def _send_telegram_notification(
         # Setup Proxy if enabled globally
         proxies = None
         if global_tg_proxy_enabled and global_tg_proxy_url:
-            proxies = {"http": global_tg_proxy_url, "https": global_tg_proxy_url}
+            from urllib.parse import urlparse
+            import utils
+            try:
+                parsed = urlparse(global_tg_proxy_url)
+                if utils.is_safe_host(parsed.hostname):
+                    proxies = {"http": global_tg_proxy_url, "https": global_tg_proxy_url}
+                else:
+                    logger.error("[NOTIFY] Telegram proxy blocked: Unsafe Proxy URL")
+            except Exception:
+                logger.error("[NOTIFY] Telegram proxy blocked: Invalid Proxy URL format")
 
         # Check both Camera setting AND Global setting (Master switch logic)
         last_err = None
