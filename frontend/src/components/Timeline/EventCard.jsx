@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Video, Image as ImageIcon, Download, Trash2, Camera, HardDrive, Brain, CloudOff } from 'lucide-react';
+import { Video, Image as ImageIcon, Download, Trash2, Camera, HardDrive, Brain, CloudOff, Sparkles } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 /**
@@ -199,6 +199,12 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
                                     {label}
                                 </div>
                             ))}
+                        </div>
+                    )}
+                    {event.ai_description && (
+                        <div className="flex items-start gap-1 mt-1.5 p-1.5 bg-amber-500/10 text-amber-700 dark:text-amber-300 rounded-lg text-[10px] border border-amber-500/20 leading-tight">
+                            <Sparkles className="w-3 h-3 flex-shrink-0 mt-0.5 text-amber-500" />
+                            <span className="line-clamp-2 italic">{event.ai_description}</span>
                         </div>
                     )}
                 </div>

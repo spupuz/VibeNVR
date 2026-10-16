@@ -85,6 +85,10 @@ def _send_telegram_notification(
                 if labels:
                     safe_labels = html.escape(", ".join(labels))
                     caption += f"\n🔍 Objects: {safe_labels}"
+
+            ai_desc = details.get("ai_description")
+            if ai_desc:
+                caption += f"\n✨ <i>{html.escape(str(ai_desc))}</i>"
         elif event_type == "camera_health":
             safe_title = html.escape(details.get("title", "Camera Alert"))
             safe_msg = html.escape(details.get("message", ""))

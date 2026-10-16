@@ -88,7 +88,13 @@ export const Settings = () => {
         oauth_provider_name: 'SSO',
         oauth_client_id: '',
         oauth_client_secret: '',
-        oauth_metadata_url: ''
+        oauth_metadata_url: '',
+        llm_enricher_enabled: false,
+        llm_enricher_base_url: 'http://localhost:11434/v1',
+        llm_enricher_api_key: '',
+        llm_enricher_model: 'llama3.2-vision',
+        llm_enricher_prompt: '',
+        llm_enricher_filter_classes: ''
     });
 
     const [storageStats, setStorageStats] = useState({ used_gb: 0, total_gb: 0 });
@@ -223,7 +229,13 @@ export const Settings = () => {
                     oauth_provider_name: data.oauth_provider_name?.value || prev.oauth_provider_name,
                     oauth_client_id: data.oauth_client_id?.value || prev.oauth_client_id,
                     oauth_client_secret: data.oauth_client_secret?.value || prev.oauth_client_secret,
-                    oauth_metadata_url: data.oauth_metadata_url?.value || prev.oauth_metadata_url
+                    oauth_metadata_url: data.oauth_metadata_url?.value || prev.oauth_metadata_url,
+                    llm_enricher_enabled: data.llm_enricher_enabled?.value !== undefined ? String(data.llm_enricher_enabled.value).toLowerCase() === 'true' : prev.llm_enricher_enabled,
+                    llm_enricher_base_url: data.llm_enricher_base_url?.value || prev.llm_enricher_base_url,
+                    llm_enricher_api_key: data.llm_enricher_api_key?.value || prev.llm_enricher_api_key,
+                    llm_enricher_model: data.llm_enricher_model?.value || prev.llm_enricher_model,
+                    llm_enricher_prompt: data.llm_enricher_prompt?.value || prev.llm_enricher_prompt,
+                    llm_enricher_filter_classes: data.llm_enricher_filter_classes?.value || prev.llm_enricher_filter_classes
                 }));
             }
         } catch (err) {
@@ -308,7 +320,13 @@ export const Settings = () => {
                     oauth_provider_name: settingsToSave.oauth_provider_name || '',
                     oauth_client_id: settingsToSave.oauth_client_id,
                     oauth_client_secret: settingsToSave.oauth_client_secret,
-                    oauth_metadata_url: settingsToSave.oauth_metadata_url
+                    oauth_metadata_url: settingsToSave.oauth_metadata_url,
+                    llm_enricher_enabled: Boolean(settingsToSave.llm_enricher_enabled).toString(),
+                    llm_enricher_base_url: settingsToSave.llm_enricher_base_url || 'http://localhost:11434/v1',
+                    llm_enricher_api_key: settingsToSave.llm_enricher_api_key || '',
+                    llm_enricher_model: settingsToSave.llm_enricher_model || 'llama3.2-vision',
+                    llm_enricher_prompt: settingsToSave.llm_enricher_prompt || '',
+                    llm_enricher_filter_classes: settingsToSave.llm_enricher_filter_classes || ''
                 })
             });
             showToast('Settings saved successfully!', 'success');

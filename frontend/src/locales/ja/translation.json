@@ -93,7 +93,8 @@
     "deleted_successfully": "正常に削除されました",
     "edit": "編集",
     "connected": "接続済み",
-    "disconnected": "切断"
+    "disconnected": "切断",
+    "testing": "接続をテスト中..."
   },
   "login": {
     "welcome_back": "お帰りなさい",
@@ -943,7 +944,10 @@
     "transcode_failed": "トランスコードに失敗しました。ファイルを開くにはダウンロードしてください。",
     "download_original": "元のファイルをダウンロード",
     "tip_label": "ヒント",
-    "transcode_tip": "トランスコードなしでどのブラウザでもすぐに録画を再生するには、カメラ設定で録画モードを「トランスコード」に変更してください。"
+    "transcode_tip": "トランスコードなしでどのブラウザでもすぐに録画を再生するには、カメラ設定で録画モードを「トランスコード」に変更してください。",
+    "select_all_categories": "すべてのカテゴリを選択",
+    "deselect_all_categories": "すべてのカテゴリの選択を解除",
+    "ai_summary": "AI スマート説明"
   },
   "live": {
     "title": "ライブビュー",
@@ -1057,8 +1061,25 @@
     "topic_structure": "トピックの構造"
   },
   "settings_aisettings": {
-    "title": "AIとオブジェクト検出",
-    "subtitle": "ハードウェアアクセラレーションと検出モデルを構成します。"
+    "title": "AI 検出エンジン",
+    "subtitle": "グローバル AI モデルのアーキテクチャ、パフォーマンス、Vision LLM スマートキャプションを設定します。",
+    "test_success": "LLM 接続に成功しました！ 応答: {{response}}",
+    "test_failed": "LLM 接続に失敗しました",
+    "llm_title": "スマートイベントエンリッチャー (Vision LLM)",
+    "llm_desc": "OpenAI 互換エンドポイントまたはローカル Ollama を通じて、イベントの簡潔な自然言語説明を生成します。",
+    "llm_enable": "Vision LLM スマートキャプションを有効化",
+    "llm_enable_help": "有効にすると、確認されたイベントのスナップショットを非同期で分析してキャプションを生成します。",
+    "llm_base_url": "エンドポイント ベース URL",
+    "llm_base_url_help": "Ollama (http://host:11434/v1)、OpenAI (https://api.openai.com/v1) 等に対応。",
+    "llm_model": "モデル名",
+    "llm_model_help": "例: llama3.2-vision, moondream, gpt-4o-mini",
+    "llm_api_key": "API キー (任意)",
+    "llm_api_key_help": "認証のないローカル Ollama の場合は空白のままにします。",
+    "llm_filter_classes": "フィルタークラス (任意)",
+    "llm_filter_classes_help": "カンマ区切りのラベル（例: person, car）。空白の場合はすべてのイベントを分析します。",
+    "llm_prompt": "カスタムプロンプト (任意)",
+    "llm_prompt_help": "空白のままにすると標準のセキュリティプロンプトが使用されます。",
+    "test_btn": "Vision LLM をテスト"
   },
   "settings_advancedsettings": {
     "title": "高度なシステムオプション",

@@ -93,7 +93,8 @@
     "offline": "Offline",
     "edit": "Modificare",
     "connected": "Connesso",
-    "disconnected": "Disconnesso"
+    "disconnected": "Disconnesso",
+    "testing": "Test connessione in corso..."
   },
   "login": {
     "welcome_back": "Bentornato",
@@ -943,7 +944,10 @@
     "transcode_failed": "Transcodifica non riuscita. Scarica il file per visualizzarlo.",
     "download_original": "Download File Originale",
     "tip_label": "Suggerimento",
-    "transcode_tip": "Per riprodurre subito le registrazioni in qualsiasi browser senza transcodifica, imposta la Modalità di Registrazione su 'Transcodificata' nelle Impostazioni Telecamera."
+    "transcode_tip": "Per riprodurre subito le registrazioni in qualsiasi browser senza transcodifica, imposta la Modalità di Registrazione su 'Transcodificata' nelle Impostazioni Telecamera.",
+    "select_all_categories": "Seleziona tutte le categorie",
+    "deselect_all_categories": "Deseleziona tutte le categorie",
+    "ai_summary": "Descrizione Smart AI"
   },
   "live": {
     "title": "Vista Live",
@@ -1057,8 +1061,25 @@
     "password": "Password"
   },
   "settings_aisettings": {
-    "title": "AI e Rilevamento Oggetti",
-    "subtitle": "Configura accelerazione hardware e modelli di rilevamento."
+    "title": "Motore di Rilevamento AI",
+    "subtitle": "Configura l'architettura del modello AI globale, le prestazioni e la didascalia smart Vision LLM.",
+    "test_success": "Connessione LLM riuscita! Risposta: {{response}}",
+    "test_failed": "Connessione LLM non riuscita",
+    "llm_title": "Arricchimento Eventi Smart (Vision LLM)",
+    "llm_desc": "Genera descrizioni concise in linguaggio naturale degli eventi (es. \"Corriere consegna pacco\") tramite endpoint compatibili OpenAI o Ollama locale (Llama 3.2 Vision, Moondream, ecc.). Funziona in modo asincrono sugli snapshot degli eventi con zero impatto sui FPS dello stream.",
+    "llm_enable": "Abilita Didascalie Smart Vision LLM",
+    "llm_enable_help": "Se abilitato, gli snapshot degli eventi confermati vengono analizzati in background per generare descrizioni intelligenti.",
+    "llm_base_url": "URL Base Endpoint",
+    "llm_base_url_help": "Compatibile con Ollama (http://host:11434/v1), OpenAI (https://api.openai.com/v1), vLLM, LMStudio, ecc.",
+    "llm_model": "Nome Modello",
+    "llm_model_help": "Es. llama3.2-vision, moondream, gpt-4o-mini, qwen2-vl",
+    "llm_api_key": "Chiave API (Opzionale)",
+    "llm_api_key_help": "Lascia vuoto per istanze Ollama locali senza autenticazione.",
+    "llm_filter_classes": "Filtro Classi (Opzionale)",
+    "llm_filter_classes_help": "Etichette separate da virgola che attivano l'analisi LLM (es. person, car). Lascia vuoto per analizzare tutti gli eventi.",
+    "llm_prompt": "Prompt Personalizzato (Opzionale)",
+    "llm_prompt_help": "Lascia vuoto per utilizzare il prompt predefinito ottimizzato per la videosorveglianza.",
+    "test_btn": "Testa Vision LLM"
   },
   "settings_advancedsettings": {
     "title": "Opzioni di Sistema Avanzate",

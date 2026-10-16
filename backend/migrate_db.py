@@ -223,6 +223,7 @@ def migrate():
     add_column_if_not_exists(engine, "events", "ai_metadata", "TEXT")
     add_column_if_not_exists(engine, "events", "event_source", "VARCHAR")
     add_column_if_not_exists(engine, "events", "event_metadata", "TEXT")
+    add_column_if_not_exists(engine, "events", "ai_description", "TEXT")
 
     # Users
     add_column_if_not_exists(engine, "users", "avatar_path", "VARCHAR")

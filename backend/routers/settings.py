@@ -963,3 +963,38 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
             
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/test-vision-llm")
+def test_vision_llm(
+    config: schemas.TestVisionLLMConfig,
+    current_user: models.User = Depends(auth_service.get_current_active_admin),
+):
+    """Test connection to an OpenAI-compatible Vision LLM endpoint (Admin only)"""
+    import llm_enricher_service
+    # 1x1 black JPEG pixel bytes for test payload
+    dummy_jpeg = (
+        b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00`\x00`\x00\x00'
+        b'\xff\xdb\x00C\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\x07\t\t'
+        b'\x08\n\x0c\x14\r\x0c\x0b\x0b\x0c\x19\x12\x13\x0f\x14\x1d\x1a'
+        b'\x1f\x1e\x1d\x1a\x1c\x1c $.\' ",#\x1c\x1c(7),01444\x1f\'9=82<.342'
+        b'\xff\xc0\x00\x0b\x08\x00\x01\x00\x01\x01\x01\x11\x00\xff\xc4\x00'
+        b'\x1f\x00\x00\x01\x05\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00'
+        b'\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\xff\xda\x00'
+        b'\x08\x01\x01\x00\x00?\x00\xbf\x00\xff\xd9'
+    )
+    prompt = config.prompt or "Describe this test image in a few words."
+    res, err = llm_enricher_service.query_vision_llm(
+        image_bytes=dummy_jpeg,
+        base_url=config.base_url.rstrip("/"),
+        api_key=config.api_key or "",
+        model=config.model,
+        prompt=prompt,
+        timeout=15,
+    )
+    if res is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Vision LLM error: {err or 'Unknown error'}"
+        )
+    return {"status": "success", "response": res}
+

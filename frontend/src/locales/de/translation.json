@@ -93,7 +93,8 @@
     "offline": "Offline",
     "online": "Online",
     "connected": "Verbunden",
-    "disconnected": "Getrennt"
+    "disconnected": "Getrennt",
+    "testing": "Verbindung wird getestet..."
   },
   "login": {
     "welcome_back": "Willkommen zurück",
@@ -943,7 +944,10 @@
     "transcode_failed": "Transkodierung fehlgeschlagen. Bitte laden Sie die Datei herunter, um sie anzusehen.",
     "download_original": "Originaldatei herunterladen",
     "tip_label": "Tipp",
-    "transcode_tip": "Um Aufnahmen in jedem Browser sofort ohne Transkodierung abzuspielen, stellen Sie den Aufnahmemodus in den Kameraeinstellungen auf Transkodiert."
+    "transcode_tip": "Um Aufnahmen in jedem Browser sofort ohne Transkodierung abzuspielen, stellen Sie den Aufnahmemodus in den Kameraeinstellungen auf Transkodiert.",
+    "select_all_categories": "Alle Kategorien auswählen",
+    "deselect_all_categories": "Alle Kategorien abwählen",
+    "ai_summary": "KI Smart-Beschreibung"
   },
   "live": {
     "title": "Live-Ansicht",
@@ -1057,8 +1061,25 @@
     "topic_structure": "Themenstruktur"
   },
   "settings_aisettings": {
-    "title": "KI & Objekterkennung",
-    "subtitle": "Hardwarebeschleunigung und Erkennungsmodelle konfigurieren."
+    "title": "KI-Erkennungs-Engine",
+    "subtitle": "Konfigurieren Sie die globale KI-Modellarchitektur, Leistung und Vision LLM Smart-Beschreibungen.",
+    "test_success": "LLM-Verbindung erfolgreich! Antwort: {{response}}",
+    "test_failed": "LLM-Verbindung fehlgeschlagen",
+    "llm_title": "Intelligenter Ereignis-Enricher (Vision LLM)",
+    "llm_desc": "Erzeugt prägnante Beschreibungen von Ereignissen in natürlicher Sprache über OpenAI-kompatible Endpunkte oder lokales Ollama.",
+    "llm_enable": "Vision LLM Smart-Beschreibungen aktivieren",
+    "llm_enable_help": "Wenn aktiviert, werden Snapshots bestätigter Ereignisse asynchron analysiert.",
+    "llm_base_url": "Endpunkt-Basis-URL",
+    "llm_base_url_help": "Kompatibel mit Ollama (http://host:11434/v1), OpenAI (https://api.openai.com/v1), etc.",
+    "llm_model": "Modellname",
+    "llm_model_help": "Z. B. llama3.2-vision, moondream, gpt-4o-mini",
+    "llm_api_key": "API-Schlüssel (Optional)",
+    "llm_api_key_help": "Leer lassen für lokales Ollama ohne Authentifizierung.",
+    "llm_filter_classes": "Klassen filtern (Optional)",
+    "llm_filter_classes_help": "Kommagetrennte Bezeichnungen (z. B. person, car).",
+    "llm_prompt": "Benutzerdefinierter Prompt (Optional)",
+    "llm_prompt_help": "Leer lassen für Standard-Prompt.",
+    "test_btn": "Vision LLM testen"
   },
   "settings_advancedsettings": {
     "title": "Erweiterte Systemoptionen",

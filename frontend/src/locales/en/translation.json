@@ -46,8 +46,8 @@
     "limits_help": "Size limits can delete the oldest files before their age limit. Existing limits remain active when collapsed. Zero means no camera size limit.",
     "video_limit": "Video size limit",
     "snapshot_limit": "Snapshot size limit",
-    "advanced_routing": "Separate recording destinations (Advanced)",
-    "routing_help": "Save motion clips, continuous video, or snapshots to different storage locations or drives. Overrides remain active when this section is collapsed.",
+    "advanced_routing": "Advanced recording routing",
+    "routing_help": "Override the recording destination for motion, continuous video, or snapshots. Existing overrides remain active when collapsed.",
     "archive_title": "Archive — move recordings",
     "move_after_help": "Recordings become eligible after this age and move on the next global archival check. Zero disables archival for this camera.",
     "retention_warning": "Retention and camera quotas apply to local and archived files. Moving files to an archive does not extend retention or protect them from cleanup.",
@@ -158,7 +158,8 @@
     "online": "Online",
     "edit": "Edit",
     "connected": "Connected",
-    "disconnected": "Disconnected"
+    "disconnected": "Disconnected",
+    "testing": "Testing Connection..."
   },
   "login": {
     "welcome_back": "Welcome Back",
@@ -662,10 +663,10 @@
     "delete_selected": "Delete Selected",
     "system_only_trigger_recordings": "The system will only trigger recordings when specific objects are identified.",
     "tiered_storage_routing": "Tiered Storage Routing",
-    "motion_storage_profile": "Motion recordings destination",
-    "use_default_profile": "Use main location (Default)",
-    "continuous_storage_profile": "Continuous video destination",
-    "snapshot_storage_profile": "Snapshots destination",
+    "motion_storage_profile": "Motion Storage Profile",
+    "use_default_profile": "Use Default Profile",
+    "continuous_storage_profile": "Continuous Storage Profile",
+    "snapshot_storage_profile": "Snapshot Storage Profile",
     "archive_storage_profile": "Archive Storage Profile",
     "none_disabled": "None (Disabled)",
     "archive_help": "Automatically move old recordings to this profile.",
@@ -1008,7 +1009,10 @@
     "media_unavailable": "Media unavailable or remote storage is currently unreachable.",
     "media_offline": "Media Offline",
     "backup_comment": "Backup comment (optional)",
-    "comment": "Comment"
+    "comment": "Comment",
+    "select_all_categories": "Select all categories",
+    "deselect_all_categories": "Deselect all categories",
+    "ai_summary": "AI Smart Caption"
   },
   "live": {
     "edge_motion": "EDGE MOTION",
@@ -1127,7 +1131,24 @@
   },
   "settings_aisettings": {
     "title": "AI Detection Engine",
-    "subtitle": "Configure the global AI model architecture and performance."
+    "subtitle": "Configure the global AI model architecture, performance, and Vision LLM smart captioning.",
+    "test_success": "LLM Connection successful! Response: {{response}}",
+    "test_failed": "LLM Connection failed",
+    "llm_title": "Smart Event Enricher (Vision LLM)",
+    "llm_desc": "Generates concise natural language descriptions of events (e.g. \"Delivery driver dropping package\") via OpenAI-compatible endpoints or local Ollama (Llama 3.2 Vision, Moondream, etc.). Operates asynchronously on event snapshots with zero impact on stream FPS.",
+    "llm_enable": "Enable Vision LLM Smart Captioning",
+    "llm_enable_help": "When enabled, snapshots of confirmed events are analyzed asynchronously to produce smart captions.",
+    "llm_base_url": "Endpoint Base URL",
+    "llm_base_url_help": "Compatible with Ollama (http://host:11434/v1), OpenAI (https://api.openai.com/v1), vLLM, LMStudio, etc.",
+    "llm_model": "Model Name",
+    "llm_model_help": "E.g. llama3.2-vision, moondream, gpt-4o-mini, qwen2-vl",
+    "llm_api_key": "API Key (Optional)",
+    "llm_api_key_help": "Leave empty for local Ollama without authentication.",
+    "llm_filter_classes": "Filter Classes (Optional)",
+    "llm_filter_classes_help": "Comma-separated labels to trigger LLM analysis (e.g. person, car). Leave blank to analyze all events.",
+    "llm_prompt": "Custom Prompt (Optional)",
+    "llm_prompt_help": "Leave blank to use the built-in security analyst prompt.",
+    "test_btn": "Test Vision LLM"
   },
   "settings_advancedsettings": {
     "title": "Advanced Optimization",
@@ -1246,7 +1267,7 @@
     "storage_interval_desc": "How often to check and clean up old recordings",
     "storage_enable_clean": "Enable Automatic Cleanup",
     "enabled": "ENABLED",
-    "disabled": "DISABLED",
+    "disabled": "Disabled",
     "storage_enable_desc": "When enabled, the system will automatically delete old recordings to respect quotas.",
     "storage_breakdown": "Storage Breakdown by Camera",
     "camera": "Camera",

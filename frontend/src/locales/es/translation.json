@@ -93,7 +93,8 @@
     "online": "En línea",
     "edit": "Editar",
     "connected": "Conectado",
-    "disconnected": "Desconectado"
+    "disconnected": "Desconectado",
+    "testing": "Probando conexión..."
   },
   "login": {
     "welcome_back": "Bienvenido de nuevo",
@@ -943,7 +944,10 @@
     "transcode_failed": "Error en la transcodificación. Descargue el archivo para verlo.",
     "download_original": "Descargar archivo original",
     "tip_label": "Sugerencia",
-    "transcode_tip": "Para reproducir grabaciones al instante en cualquier navegador sin transcodificar, cambie el modo de grabación a Transcodificado en la configuración de la cámara."
+    "transcode_tip": "Para reproducir grabaciones al instante en cualquier navegador sin transcodificar, cambie el modo de grabación a Transcodificado en la configuración de la cámara.",
+    "select_all_categories": "Seleccionar todas las categorías",
+    "deselect_all_categories": "Deseleccionar todas las categorías",
+    "ai_summary": "Descripción Inteligente IA"
   },
   "live": {
     "title": "Vista en vivo",
@@ -1057,8 +1061,25 @@
     "topic_structure": "Estructura del tema"
   },
   "settings_aisettings": {
-    "title": "IA y detección de objetos",
-    "subtitle": "Configurar aceleración de hardware y modelos de detección."
+    "title": "Motor de Detección de IA",
+    "subtitle": "Configure la arquitectura global del modelo de IA, el rendimiento y las descripciones inteligentes de Vision LLM.",
+    "test_success": "¡Conexión LLM exitosa! Respuesta: {{response}}",
+    "test_failed": "Error de conexión LLM",
+    "llm_title": "Enriquecedor de Eventos Inteligente (Vision LLM)",
+    "llm_desc": "Genera descripciones concisas en lenguaje natural de eventos a través de puntos finales compatibles con OpenAI u Ollama local.",
+    "llm_enable": "Habilitar Descripciones Inteligentes Vision LLM",
+    "llm_enable_help": "Cuando está habilitado, las capturas de eventos confirmados se analizan de forma asíncrona.",
+    "llm_base_url": "URL Base del Punto Final",
+    "llm_base_url_help": "Compatible con Ollama (http://host:11434/v1), OpenAI (https://api.openai.com/v1), vLLM, etc.",
+    "llm_model": "Nombre del Modelo",
+    "llm_model_help": "Ej. llama3.2-vision, moondream, gpt-4o-mini",
+    "llm_api_key": "Clave API (Opcional)",
+    "llm_api_key_help": "Dejar en blanco para Ollama local sin autenticación.",
+    "llm_filter_classes": "Filtrar Clases (Opcional)",
+    "llm_filter_classes_help": "Etiquetas separadas por comas (ej. person, car).",
+    "llm_prompt": "Prompt Personalizado (Opcional)",
+    "llm_prompt_help": "Dejar en blanco para usar el prompt predeterminado.",
+    "test_btn": "Probar Vision LLM"
   },
   "settings_advancedsettings": {
     "title": "Opciones avanzadas",

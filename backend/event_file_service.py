@@ -412,7 +412,21 @@ def process_webhook_file_event(
         # -----------------------------------
 
         try:
-            crud.create_event(db, event_data)
+            created_event = crud.create_event(db, event_data)
+            
+            # Asynchronously enrich event with Vision LLM if enabled
+            if created_event and event_data.thumbnail_path:
+                try:
+                    import threading
+                    import llm_enricher_service
+                    threading.Thread(
+                        target=llm_enricher_service.enrich_event_background,
+                        args=(created_event.id, event_data.thumbnail_path),
+                        daemon=True
+                    ).start()
+                except Exception as enrich_err:
+                    logger.warning(f"[BG-WORK] Failed to dispatch LLM enrichment: {enrich_err}")
+
             if in_schedule:
                 notification_service.send_notifications(camera.id, event_type, payload)
         except Exception as e:

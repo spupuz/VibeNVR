@@ -239,6 +239,7 @@ class Event(Base):
     ai_metadata = Column(String, nullable=True) # JSON object of detections
     event_source = Column(String, nullable=True)
     event_metadata = Column(String, nullable=True)  # JSON, bounded provider fields only
+    ai_description = Column(String, nullable=True)  # Vision LLM generated summary
     
     camera = relationship("Camera", back_populates="events")
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Download, Trash2, Play, HardDrive, CloudOff, Film, RefreshCw, Loader2 } from 'lucide-react';
+import { X, Download, Trash2, Play, HardDrive, CloudOff, Film, RefreshCw, Loader2, Sparkles } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const getApiBase = () => window.__ACTIVE_NODE_ID ? `/api/federation/proxy/${window.__ACTIVE_NODE_ID}` : `/api`;
@@ -309,6 +309,12 @@ export const EventPreview = React.memo(({
                         </div>
                     )}
                 </div>
+                {selectedEvent.ai_description && (
+                    <div className="mt-2 p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-800 dark:text-amber-200 flex items-start gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-[11px] leading-relaxed italic">{selectedEvent.ai_description}</p>
+                    </div>
+                )}
             </div>
         );
     }
@@ -401,6 +407,18 @@ export const EventPreview = React.memo(({
             <div className="flex-1 bg-black rounded-lg overflow-hidden flex items-center justify-center min-h-0 relative">
                 {renderPlayerContent(false)}
             </div>
+
+            {selectedEvent.ai_description && (
+                <div className="mt-2 p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-800 dark:text-amber-200 flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                        <span className="font-semibold text-[11px] uppercase tracking-wider block text-amber-600 dark:text-amber-400 mb-0.5">
+                            {t('timeline.ai_summary', 'AI Smart Caption')}
+                        </span>
+                        <p className="leading-relaxed">{selectedEvent.ai_description}</p>
+                    </div>
+                </div>
+            )}
 
             <div className="mt-2 text-[10px] text-muted-foreground font-mono bg-muted/30 p-1.5 rounded truncate">
                 {selectedEvent.file_path}

@@ -21,6 +21,12 @@ class TestNotificationConfig(BaseModel):
                     raise ValueError(f'Invalid or unsafe proxy URL: {proxy_url}')
         return self
 
+class TestVisionLLMConfig(BaseModel):
+    base_url: str
+    api_key: Optional[str] = ""
+    model: str
+    prompt: Optional[str] = None
+
 class CameraBase(BaseModel):
     name: str
     rtsp_url: str
@@ -591,6 +597,7 @@ class EventBase(BaseModel):
     ai_metadata: Optional[str] = None
     event_source: Optional[str] = None
     event_metadata: Optional[str] = None
+    ai_description: Optional[str] = None
 
 class EventCreate(EventBase):
     pass

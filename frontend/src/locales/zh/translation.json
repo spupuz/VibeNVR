@@ -93,7 +93,8 @@
     "online": "在线",
     "edit": "编辑",
     "connected": "已连接",
-    "disconnected": "已断开"
+    "disconnected": "已断开",
+    "testing": "正在测试连接..."
   },
   "login": {
     "welcome_back": "欢迎回来",
@@ -943,7 +944,10 @@
     "transcode_failed": "转码失败。请下载原文件观看。",
     "download_original": "下载原始文件",
     "tip_label": "提示",
-    "transcode_tip": "若要在任何浏览器中即时播放而无需转码，请在摄像机设置中将录像模式切换为“转码”。"
+    "transcode_tip": "若要在任何浏览器中即时播放而无需转码，请在摄像机设置中将录像模式切换为“转码”。",
+    "select_all_categories": "全选类别",
+    "deselect_all_categories": "取消全选类别",
+    "ai_summary": "AI 智能描述"
   },
   "live": {
     "title": "实时视图",
@@ -1057,8 +1061,25 @@
     "service_disabled": "服务已禁用"
   },
   "settings_aisettings": {
-    "title": "AI 与 对象检测",
-    "subtitle": "配置硬件加速和检测模型。"
+    "title": "AI 检测引擎",
+    "subtitle": "配置全局 AI 模型架构、性能和 Vision LLM 智能描述。",
+    "test_success": "LLM 连接成功！响应: {{response}}",
+    "test_failed": "LLM 连接失败",
+    "llm_title": "智能事件描述增强 (Vision LLM)",
+    "llm_desc": "通过兼容 OpenAI 的接口或本地 Ollama（如 Llama 3.2 Vision、Moondream 等）生成简明自然语言事件描述。",
+    "llm_enable": "启用 Vision LLM 智能描述",
+    "llm_enable_help": "启用后，将异步分析已确认事件的快照以生成智能描述。",
+    "llm_base_url": "接口基础 URL",
+    "llm_base_url_help": "兼容 Ollama (http://host:11434/v1)、OpenAI (https://api.openai.com/v1)、vLLM 等。",
+    "llm_model": "模型名称",
+    "llm_model_help": "例如 llama3.2-vision, moondream, gpt-4o-mini",
+    "llm_api_key": "API 密钥 (可选)",
+    "llm_api_key_help": "本地无认证 Ollama 请留空。",
+    "llm_filter_classes": "过滤类别 (可选)",
+    "llm_filter_classes_help": "触发 LLM 分析的逗号分隔标签（例如 person, car）。留空则分析所有事件。",
+    "llm_prompt": "自定义提示词 (可选)",
+    "llm_prompt_help": "留空以使用内置的安全分析提示词。",
+    "test_btn": "测试 Vision LLM"
   },
   "settings_advancedsettings": {
     "title": "高级系统选项",

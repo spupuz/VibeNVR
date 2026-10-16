@@ -93,7 +93,8 @@
     "online": "En ligne",
     "edit": "Modifier",
     "connected": "Connecté",
-    "disconnected": "Déconnecté"
+    "disconnected": "Déconnecté",
+    "testing": "Test de connexion..."
   },
   "login": {
     "welcome_back": "Bon retour",
@@ -943,7 +944,10 @@
     "transcode_failed": "Échec du transcodage. Veuillez télécharger le fichier pour le visionner.",
     "download_original": "Télécharger le fichier original",
     "tip_label": "Conseil",
-    "transcode_tip": "Pour lire instantanément les enregistrements dans n'importe quel navigateur sans transcodage, réglez le mode d'enregistrement sur Transcodé dans les paramètres de la caméra."
+    "transcode_tip": "Pour lire instantanément les enregistrements dans n'importe quel navigateur sans transcodage, réglez le mode d'enregistrement sur Transcodé dans les paramètres de la caméra.",
+    "select_all_categories": "Sélectionner toutes les catégories",
+    "deselect_all_categories": "Désélectionner toutes les catégories",
+    "ai_summary": "Légende Intelligente IA"
   },
   "live": {
     "title": "Vue en direct",
@@ -1057,8 +1061,25 @@
     "topic_structure": "Structure du sujet"
   },
   "settings_aisettings": {
-    "title": "IA & Détection",
-    "subtitle": "Configurez l'accélération matérielle et les modèles."
+    "title": "Moteur de Détection IA",
+    "subtitle": "Configurez l'architecture globale du modèle IA, les performances et le sous-titrage intelligent Vision LLM.",
+    "test_success": "Connexion LLM réussie ! Réponse : {{response}}",
+    "test_failed": "Échec de la connexion LLM",
+    "llm_title": "Enrichisseur d'Événements Intelligent (Vision LLM)",
+    "llm_desc": "Génère des descriptions concises en langage naturel des événements via des points de terminaison compatibles OpenAI ou Ollama local.",
+    "llm_enable": "Activer le Sous-titrage Intelligent Vision LLM",
+    "llm_enable_help": "Lorsqu'il est activé, les captures instantanées d'événements confirmés sont analysées de manière asynchrone.",
+    "llm_base_url": "URL de Base du Point de Terminaison",
+    "llm_base_url_help": "Compatible avec Ollama (http://host:11434/v1), OpenAI (https://api.openai.com/v1), etc.",
+    "llm_model": "Nom du Modèle",
+    "llm_model_help": "Ex. llama3.2-vision, moondream, gpt-4o-mini",
+    "llm_api_key": "Clé API (Optionnel)",
+    "llm_api_key_help": "Laisser vide pour Ollama local sans authentification.",
+    "llm_filter_classes": "Filtrer les Classes (Optionnel)",
+    "llm_filter_classes_help": "Étiquettes séparées par des virgules (ex. person, car).",
+    "llm_prompt": "Invite Personnalisée (Optionnel)",
+    "llm_prompt_help": "Laisser vide pour utiliser l'invite intégrée.",
+    "test_btn": "Tester Vision LLM"
   },
   "settings_advancedsettings": {
     "title": "Options système avancées",
