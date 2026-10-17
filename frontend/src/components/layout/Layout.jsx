@@ -5,7 +5,7 @@ import { Menu, X, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 
-export const Layout = ({ children, activeTab, onTabChange, theme, toggleTheme }) => {
+export const Layout = ({ children, activeTab, onTabChange }) => {
   const { t } = useTranslation();
     const location = useLocation();
     const { healthDetails, user } = useAuth();
@@ -82,8 +82,6 @@ export const Layout = ({ children, activeTab, onTabChange, theme, toggleTheme })
                     onTabChange(tab);
                     setSidebarOpen(false);
                 }}
-                theme={theme}
-                toggleTheme={toggleTheme}
                 isOpen={sidebarOpen}
                 onClose={() => setSidebarOpen(false)}
             />

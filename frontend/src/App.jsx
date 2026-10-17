@@ -28,20 +28,6 @@ function AppContent() {
     const { isAuthenticated, loading, token, isBackendReady } = useAuth();
     const { activeNode } = useFederation();
 
-    // Theme logic
-    const [theme, setTheme] = useState(() => {
-        if (typeof window !== 'undefined') return localStorage.getItem('theme') || 'light';
-        return 'light';
-    });
-
-    useEffect(() => {
-        const root = window.document.documentElement;
-        root.classList.remove('light', 'dark');
-        root.classList.add(theme);
-        localStorage.setItem('theme', theme);
-    }, [theme]);
-
-    const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
     // Tab mapping
     const pathToTab = {
@@ -121,8 +107,6 @@ function AppContent() {
                     <Layout
                         activeTab={activeTab}
                         onTabChange={handleTabChange}
-                        theme={theme}
-                        toggleTheme={toggleTheme}
                     >
                         <Routes key={activeNode || 'local'}>
                             <Route path="/" element={<Dashboard />} />
@@ -144,16 +128,19 @@ function AppContent() {
 }
 
 import { ToastProvider } from './contexts/ToastContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 function App() {
     return (
-        <AuthProvider>
-            <ToastProvider>
-                <FederationProvider>
-                    <AppContent />
-                </FederationProvider>
-            </ToastProvider>
-        </AuthProvider>
+        <ThemeProvider>
+            <AuthProvider>
+                <ToastProvider>
+                    <FederationProvider>
+                        <AppContent />
+                    </FederationProvider>
+                </ToastProvider>
+            </AuthProvider>
+        </ThemeProvider>
     );
 }
 

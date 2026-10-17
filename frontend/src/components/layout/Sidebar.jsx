@@ -100,7 +100,7 @@ export const Sidebar = ({ activeTab, onTabChange, isOpen, onClose }) => {
                 <img
                     src={isDark ? "/vibe_logo_dark.png" : "/vibe_logo_variant_2.png"}
                     alt="VibeNVR"
-                    className="h-20 lg:h-24 w-auto"
+                    className="h-20 lg:h-24 w-auto rounded-xl object-contain select-none"
                 />
                 {/* Close button for mobile - absolute positioned */}
                 <button
