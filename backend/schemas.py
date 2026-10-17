@@ -16,8 +16,10 @@ class TestNotificationConfig(BaseModel):
                 raise ValueError(f'Invalid or unsafe URL: {url}')
         elif self.channel == 'telegram':
             proxy_url = self.settings.get('telegram_proxy_url')
-            if proxy_url and str(self.settings.get('telegram_proxy_enabled', 'false')).lower() == 'true':
-                if not utils.is_safe_webhook_url(proxy_url):
+            if proxy_url:
+                from urllib.parse import urlparse
+                parsed = urlparse(proxy_url)
+                if not utils.is_safe_host(parsed.hostname):
                     raise ValueError(f'Invalid or unsafe proxy URL: {proxy_url}')
         return self
 
