@@ -230,7 +230,7 @@ async def webhook_event(
         try:
             from health_service import HEALTH_CACHE
 
-            new_status = payload.get("status")
+            new_status = payload.get("status") or payload.get("new_status")
             if new_status:
                 HEALTH_CACHE[camera.id] = new_status
                 # Persist to DB

@@ -10,9 +10,10 @@ class MQTTService:
         self.client = None
         self.config = {}
         self.connected = False
-        self.reconnect_timer = None
         self._lock = threading.Lock()
         self.cameras_discovered = set()
+        self._watchdog_thread = None
+        self._stop_event = threading.Event()
 
     def update_config(self, config):
         """Update configuration and (re)connect if necessary"""
@@ -27,6 +28,7 @@ class MQTTService:
             if not enabled:
                 if self.client:
                     logger.info("MQTT Service disabled, disconnecting...")
+                    self._stop_event.set()
                     self._disconnect()
                 return
 
@@ -41,7 +43,8 @@ class MQTTService:
                 host != old_config.get("mqtt_host") or
                 port != old_config.get("mqtt_port") or
                 config.get("mqtt_username") != old_config.get("mqtt_username") or
-                config.get("mqtt_password") != old_config.get("mqtt_password")
+                config.get("mqtt_password") != old_config.get("mqtt_password") or
+                config.get("mqtt_topic_prefix") != old_config.get("mqtt_topic_prefix")
             )
 
             if needs_reconnect:
@@ -50,6 +53,50 @@ class MQTTService:
                 self._connect()
             else:
                 logger.debug("MQTT configuration unchanged and connected.")
+
+        self._ensure_watchdog()
+
+    def _ensure_watchdog(self):
+        """Start watchdog thread if not running"""
+        if self._watchdog_thread is None or not self._watchdog_thread.is_alive():
+            self._stop_event.clear()
+            self._watchdog_thread = threading.Thread(target=self._watchdog_loop, daemon=True, name="MQTTWatchdog")
+            self._watchdog_thread.start()
+
+    def _watchdog_loop(self):
+        """Background watchdog to verify connection and periodically publish camera availability heartbeat"""
+        while not self._stop_event.is_set():
+            if self._stop_event.wait(30.0):
+                break
+
+            with self._lock:
+                if not self.config.get("mqtt_enabled", False):
+                    continue
+                host = self.config.get("mqtt_host")
+                if not host:
+                    continue
+
+                if not self.connected or not self.client:
+                    logger.info("MQTT Watchdog: Connection lost or not established, attempting reconnect...")
+                    try:
+                        self._disconnect()
+                        self._connect()
+                    except Exception as e:
+                        logger.error(f"MQTT Watchdog reconnect error: {e}")
+                    continue
+
+            # Heartbeat: periodically refresh status & discovery for all active cameras
+            try:
+                if self.connected and self.client:
+                    from core import manager
+                    prefix = self.config.get("mqtt_topic_prefix", "vibenvr")
+                    self.client.publish(f"{prefix}/status", "online", retain=True)
+                    for camera_id, thread in list(manager.cameras.items()):
+                        if camera_id not in self.cameras_discovered:
+                            self.publish_discovery(camera_id, thread.config.get("name", f"Camera {camera_id}"))
+                        self.publish_status(camera_id, thread.get_health())
+            except Exception as e:
+                logger.debug(f"MQTT Watchdog heartbeat error: {e}")
 
     def _connect(self):
         try:
@@ -72,6 +119,13 @@ class MQTTService:
             password = self.config.get("mqtt_password")
             if username:
                 self.client.username_pw_set(username, password)
+
+            # Last Will and Testament: mark system status as offline if client drops
+            prefix = self.config.get("mqtt_topic_prefix", "vibenvr")
+            try:
+                self.client.will_set(f"{prefix}/status", "offline", qos=1, retain=True)
+            except Exception as e:
+                logger.debug(f"Failed to set MQTT LWT: {e}")
             
             self.client.connect_async(self.config["mqtt_host"], self.config["mqtt_port"], 60)
             self.client.loop_start()
@@ -80,6 +134,11 @@ class MQTTService:
 
     def _disconnect(self):
         if self.client:
+            try:
+                prefix = self.config.get("mqtt_topic_prefix", "vibenvr")
+                self.client.publish(f"{prefix}/status", "offline", retain=True)
+            except Exception:
+                pass
             self.client.loop_stop()
             self.client.disconnect()
             self.client = None
@@ -91,8 +150,11 @@ class MQTTService:
             logger.info("MQTT Connected successfully.")
             self.connected = True
             
-            # Send discovery for all cameras immediately on connection
+            # Send system online status and discovery for all cameras immediately on connection
             try:
+                prefix = self.config.get("mqtt_topic_prefix", "vibenvr")
+                if self.client:
+                    self.client.publish(f"{prefix}/status", "online", retain=True)
                 from core import manager
                 for camera_id, thread in manager.cameras.items():
                     self.publish_discovery(camera_id, thread.config.get("name", f"Camera {camera_id}"))
@@ -137,8 +199,6 @@ class MQTTService:
         }
         self.client.publish(discovery_topic, json.dumps(payload), retain=True)
         
-        # 2. Status/Health (as a separate diagnostic entity if wanted, but availability covers it)
-        
         logger.debug(f"Published discovery for camera {camera_id} ({camera_name})")
         self.cameras_discovered.add(camera_id)
 
@@ -162,7 +222,7 @@ class MQTTService:
             
         elif event_type == "camera_health":
             if payload:
-                status = payload.get("status", "unknown").lower()
+                status = (payload.get("status") or payload.get("new_status") or "unknown").lower()
                 # Map to online/offline for HA availability
                 availability = "online" if status == "connected" else "offline"
                 self.client.publish(f"{base_topic}/status", availability, retain=True)
@@ -172,7 +232,7 @@ class MQTTService:
         if not self.client:
             return
         prefix = self.config.get("mqtt_topic_prefix", "vibenvr")
-        availability = "online" if status.lower() == "connected" else "offline"
+        availability = "online" if str(status).lower() == "connected" else "offline"
         self.client.publish(f"{prefix}/{camera_id}/status", availability, retain=True)
 
 mqtt_service = MQTTService()

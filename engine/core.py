@@ -59,6 +59,11 @@ class CameraManager:
             logger.info(f"Stopping camera {name} (ID: {camera_id})")
             self.cameras[camera_id].stop()
             self.cameras.pop(camera_id, None)
+            try:
+                from mqtt_service import mqtt_service
+                mqtt_service.publish_status(camera_id, "disconnected")
+            except Exception:
+                pass
 
     def stop_all(self):
         logger.info("Stopping all cameras...")
@@ -168,7 +173,7 @@ class CameraManager:
             if payload:
                  data["title"] = payload.get("title")
                  data["message"] = payload.get("message")
-                 data["status"] = payload.get("status")
+                 data["status"] = payload.get("status") or payload.get("new_status")
         
         elif event_type == "snapshot_save":
             webhook_type = "picture_save"

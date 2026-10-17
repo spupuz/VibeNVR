@@ -545,7 +545,12 @@ class CameraThread(threading.Thread):
                 if current_health in event_map:
                     title, msg = event_map[current_health]
                     if self.event_callback:
-                        self.event_callback(self.camera_id, 'health_status_changed', {"title": title, "message": msg, "new_status": current_health})
+                        self.event_callback(self.camera_id, 'health_status_changed', {
+                            "title": title,
+                            "message": msg,
+                            "status": current_health,
+                            "new_status": current_health
+                        })
 
     def stop_recording(self):
         self.continuous_recorder.stop_recording(self.event_callback, self.width, self.height)

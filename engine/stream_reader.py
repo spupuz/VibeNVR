@@ -83,6 +83,7 @@ class StreamReader(threading.Thread):
                     "camera_id": self.camera_id,
                     "camera_name": self.camera_name,
                     "status": status,
+                    "new_status": status,
                     "timestamp": int(time.time()),
                     "title": title,
                     "message": message,
