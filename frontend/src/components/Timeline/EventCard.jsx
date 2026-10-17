@@ -79,7 +79,7 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
                         role="checkbox"
                         aria-checked={isMultiSelected}
                         tabIndex={0}
-                        aria-label={t('timeline.select_event', 'Select event')}
+                        aria-label={t('timeline.select_event_time', { defaultValue: 'Select event at {{time}}', time: time })}
                         className={`absolute top-2 left-2 z-20 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:opacity-100 rounded ${isMultiSelected ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-100'}`}
                         onClick={(e) => {
                             e.stopPropagation();

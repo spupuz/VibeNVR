@@ -9,4 +9,10 @@
 ## 2025-02-16 - Add missing aria-label to custom checkboxes
 **Learning:** Custom interactive elements (like `div`s with `role="checkbox"`) used as list items or categories need an explicit `aria-label` to provide accessible names for assistive technologies, as their text content might not always be perfectly associated with the checkbox state by screen readers.
 **Action:** When implementing custom checkboxes using generic tags like `div`, explicitly bind the textual label to the `aria-label` attribute (e.g. `aria-label={cat.label}`).
-## 2026-10-16 - Add ARIA label to site selector\n**Learning:** Added aria-label to the site selector select element in the Sidebar to improve screen reader accessibility.\n**Action:** Always add ARIA labels to form elements like select to provide context for screen readers.
+## 2026-10-16 - Add ARIA label to site selector
+**Learning:** Added aria-label to the site selector select element in the Sidebar to improve screen reader accessibility.
+**Action:** Always add ARIA labels to form elements like select to provide context for screen readers.
+
+## 2025-02-18 - Add contextual aria-labels to custom checkboxes
+**Learning:** Custom interactive elements (like `div`s with `role="checkbox"`) that represent dynamic items in a list (e.g. "Select event", "Select group") should use a contextual `aria-label` (e.g. "Select event at 12:34 PM"). A generic, static label causes screen readers to repeat identical text for every item on the page.
+**Action:** When creating custom form controls (like `div role="checkbox"`) inside a repeated component like a list or card grid, always dynamically interpolate a unique identifier (like the item name or time) into the `aria-label` attribute via translation functions.
