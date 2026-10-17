@@ -269,7 +269,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                 role="checkbox"
                                 aria-checked={selectedGroupIds.includes(group.id)}
                                 tabIndex={0}
-                                aria-label={t('timeline.select_group', 'Select group')}
+                                aria-label={t('timeline.select_group_name', { defaultValue: 'Select group {{name}}', name: group.name })}
                                 className={`absolute top-4 left-4 z-10 w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${selectedGroupIds.includes(group.id) ? 'bg-primary border-primary' : 'bg-background/80 border-border group-hover:border-primary/50'
                                     }`}
                                 onClick={(e) => {
