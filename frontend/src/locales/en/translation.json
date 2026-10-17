@@ -1201,6 +1201,7 @@
     "subtitle": "Configure global quotas, cleanup policies, and custom storage profiles."
   },
   "settings_forms": {
+    "update_rejected": "The server rejected the settings update.",
     "default_landing": "Default Landing Page",
     "default_landing_help": "Which page to show first when opening the application",
     "default_streaming": "Default Streaming Mode",
