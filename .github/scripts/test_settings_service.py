@@ -33,7 +33,7 @@ def test_validate_setting_valid():
     validate_setting("default_live_view_mode", "mjpeg")
 
     # booleans
-    for key in ["opt_verbose_engine_logs", "telemetry_enabled", "mqtt_enabled", "cleanup_enabled"]:
+    for key in ["opt_verbose_engine_logs", "telemetry_enabled", "mqtt_enabled", "cleanup_enabled", "archival_enabled"]:
         validate_setting(key, "true")
         validate_setting(key, "false")
         validate_setting(key, "TRUE")
@@ -100,7 +100,7 @@ def test_validate_setting_invalid_mode():
     assert "Invalid mode. Must be 'auto', 'webcodecs', 'mse', or 'mjpeg'" in str(excinfo.value.detail)
 
 def test_validate_setting_invalid_boolean():
-    for key in ["opt_verbose_engine_logs", "telemetry_enabled", "mqtt_enabled", "cleanup_enabled"]:
+    for key in ["opt_verbose_engine_logs", "telemetry_enabled", "mqtt_enabled", "cleanup_enabled", "archival_enabled"]:
         with pytest.raises(HTTPException) as excinfo:
             validate_setting(key, "1")
         assert excinfo.value.status_code == 400

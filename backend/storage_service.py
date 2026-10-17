@@ -3,7 +3,7 @@ import shutil
 import time
 import logging
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 import models
@@ -388,10 +388,34 @@ def cleanup_temp_files():
     except Exception as e:
         logger.error(f"Error cleaning temp files: {e}")
 
+def _is_archival_enabled(db: Session):
+    value = get_setting(db, "archival_enabled")
+    return value is None or str(value).lower() == "true"
+
+
+def _iter_archival_events(db: Session, camera_id: int, cutoff: datetime):
+    """Page eligible events so per-event commits do not invalidate a DB cursor."""
+    last_event_id = 0
+    while True:
+        batch = db.query(models.Event).filter(
+            models.Event.camera_id == camera_id,
+            models.Event.timestamp_start < cutoff,
+            models.Event.id > last_event_id
+        ).order_by(models.Event.id.asc()).limit(100).all()
+        if not batch:
+            return
+        for event in batch:
+            last_event_id = event.id
+            yield event
+
+
 def run_archival(db: Session):
-    """Move old recordings to the designated archive storage profile."""
+    """Move old recordings; return False if any archival work failed."""
+    completed = True
+    archived_count = 0
     try:
         import sftp_client
+        import event_file_service
         cameras = db.query(models.Camera).filter(
             models.Camera.archive_storage_profile_id.isnot(None),
             models.Camera.archive_after_hours > 0
@@ -399,94 +423,125 @@ def run_archival(db: Session):
         for camera in cameras:
             profile = camera.archive_storage_profile
             if not profile:
+                completed = False
+                logger.error(f"Archival camera {camera.id}: archive profile is unavailable.")
                 continue
             
             is_sftp = getattr(profile, "storage_type", "local") == "sftp"
             if not is_sftp and not profile.path:
+                completed = False
+                logger.error(f"Archival profile {profile.id}: destination path is missing.")
                 continue
-            
-            archive_dir = os.path.abspath(profile.path) if not is_sftp else None
-            cutoff = datetime.utcnow() - timedelta(hours=camera.archive_after_hours)
-            
-            events = db.query(models.Event).filter(
-                models.Event.camera_id == camera.id,
-                models.Event.timestamp_start < cutoff
-            ).all()
-            
-            for event in events:
+
+            archive_root = os.path.abspath(profile.path) if not is_sftp else None
+            archive_dir = os.path.abspath(translate_path(archive_root)) if not is_sftp else None
+            if not is_sftp and not os.path.isdir(archive_dir):
+                completed = False
+                logger.error(f"Archival profile {profile.id}: destination root is not accessible; check its mount.")
+                continue
+            cutoff = datetime.now(timezone.utc) - timedelta(hours=camera.archive_after_hours)
+
+            for event in _iter_archival_events(db, camera.id, cutoff):
                 try:
                     if not event.file_path:
                         continue
-                    if not is_sftp and event.file_path.startswith(archive_dir):
-                        continue
                     if is_sftp and event.file_path.startswith(f"sftp://{profile.id}/"):
+                        continue
+                    if not is_sftp and os.path.isabs(event.file_path) and any(
+                        os.path.commonpath([os.path.abspath(event.file_path), root]) == root
+                        for root in (archive_root, archive_dir)
+                    ):
                         continue
                         
                     src = translate_path(event.file_path)
                     if not src or not os.path.exists(src):
+                        completed = False
+                        logger.warning(f"Archival event {event.id}: source file is not accessible.")
+                        continue
+                    if not event_file_service.is_path_safe(src, db):
+                        raise ValueError("Archival source is outside allowed storage directories")
+                    if not is_sftp and os.path.commonpath([os.path.abspath(src), archive_dir]) == archive_dir:
                         continue
                         
                     filename = os.path.basename(src)
                     date_folder = os.path.basename(os.path.dirname(src))
+                    src_thumb = None
+                    dest_thumb = None
                     
                     if is_sftp:
                         dest_suffix = f"{camera.id}/{date_folder}/{filename}"
                         remote_dest = sftp_client.upload_file(profile, src, dest_suffix)
                         if not remote_dest:
+                            completed = False
+                            logger.error(f"Archival event {event.id}: SFTP upload failed.")
                             continue
-                        
-                        event.file_path = f"sftp://{profile.id}/{dest_suffix}"
                         
                         # Handle thumbnail
                         if event.thumbnail_path:
                             src_thumb = translate_path(event.thumbnail_path)
                             if src_thumb and os.path.exists(src_thumb):
+                                if not event_file_service.is_path_safe(src_thumb, db):
+                                    raise ValueError("Archival thumbnail is outside allowed storage directories")
                                 thumb_suffix = f"{camera.id}/{date_folder}/{os.path.basename(src_thumb)}"
-                                sftp_client.upload_file(profile, src_thumb, thumb_suffix)
-                                event.thumbnail_path = f"sftp://{profile.id}/{thumb_suffix}"
-                                
+                                if not sftp_client.upload_file(profile, src_thumb, thumb_suffix):
+                                    raise RuntimeError("Archival thumbnail upload failed")
+                                dest_thumb = f"sftp://{profile.id}/{thumb_suffix}"
+
+                        event.file_path = f"sftp://{profile.id}/{dest_suffix}"
+                        if dest_thumb:
+                            event.thumbnail_path = dest_thumb
                         db.commit()
                         os.remove(src)
-                        if event.thumbnail_path and 'src_thumb' in locals() and os.path.exists(src_thumb):
+                        if dest_thumb and src_thumb and os.path.exists(src_thumb):
                             try:
                                 os.remove(src_thumb)
-                            except:
-                                pass
-                        
-                        logger.info(f"Archived event {event.id} to sftp://{profile.id}/{dest_suffix}")
+                            except OSError:
+                                completed = False
+                                logger.warning(f"Archival event {event.id}: could not remove the original thumbnail.")
                     else:
                         dest_dir = os.path.join(archive_dir, str(camera.id), date_folder)
-                        os.makedirs(dest_dir, exist_ok=True)
                         dest = os.path.join(dest_dir, filename)
+                        if not event_file_service.is_path_safe(dest, db):
+                            raise ValueError("Archival destination is outside allowed storage directories")
+                        os.makedirs(dest_dir, exist_ok=True)
                         
                         if src != dest:
                             shutil.copy2(src, dest)
-                            dest_thumb = None
-                            src_thumb = None
                             if getattr(event, 'thumbnail_path', None):
                                 src_thumb = translate_path(event.thumbnail_path)
                                 if src_thumb and os.path.exists(src_thumb):
+                                    if not event_file_service.is_path_safe(src_thumb, db):
+                                        raise ValueError("Archival thumbnail is outside allowed storage directories")
                                     dest_thumb = os.path.join(dest_dir, os.path.basename(src_thumb))
+                                    if not event_file_service.is_path_safe(dest_thumb, db):
+                                        raise ValueError("Archival thumbnail destination is outside allowed storage directories")
                                     shutil.copy2(src_thumb, dest_thumb)
-                            
-                            event.file_path = dest
+
+                            event.file_path = os.path.join(archive_root, str(camera.id), date_folder, filename)
                             if dest_thumb:
-                                event.thumbnail_path = dest_thumb
+                                event.thumbnail_path = os.path.join(archive_root, str(camera.id), date_folder, os.path.basename(src_thumb))
                             db.commit()
                             
                             os.remove(src)
                             if dest_thumb and src_thumb and os.path.exists(src_thumb):
                                 try:
                                     os.remove(src_thumb)
-                                except:
-                                    pass
-                        
-                        logger.info(f"Archived event {event.id} to {dest}")
+                                except OSError:
+                                    completed = False
+                                    logger.warning(f"Archival event {event.id}: could not remove the original thumbnail.")
+
+                    archived_count += 1
+                    logger.info(f"Archived event {event.id} to storage profile {profile.id}")
                 except Exception as e:
+                    completed = False
                     logger.error(f"Error archiving event {event.id}: {e}")
                     db.rollback()
     except Exception as e:
+        completed = False
         logger.error(f"Error in archival job: {e}")
+        db.rollback()
+    logger.info(f"Archival finished: moved {archived_count} event(s); success={completed}")
+    return completed
 
 
 def run_cleanup(quota_only=False):
@@ -503,7 +558,7 @@ def run_cleanup(quota_only=False):
                         f"CRITICAL: Disk space is low ({percent_free:.2f}% free). Forcing emergency archival and cleanup."
                     )
                     # Try to archive first to save files
-                    if get_setting(db, "archival_enabled") == "true":
+                    if _is_archival_enabled(db):
                         run_archival(db)
                     
                     # Refresh usage after archival
@@ -658,7 +713,7 @@ def storage_monitor_loop():
                 interval_str = get_setting(db, "cleanup_interval_hours")
                 cleanup_interval_hours = float(interval_str) if interval_str else 24.0
                 
-                archival_enabled = get_setting(db, "archival_enabled") == "true"
+                archival_enabled = _is_archival_enabled(db)
                 archival_interval_str = get_setting(db, "archival_interval_hours")
                 archival_interval_hours = float(archival_interval_str) if archival_interval_str else 24.0
 
@@ -669,8 +724,11 @@ def storage_monitor_loop():
                         f"Triggering scheduled storage ARCHIVAL (Interval: {archival_interval_hours}h)"
                     )
                     with database.get_db_ctx() as db:
-                        run_archival(db)
-                    last_archival_run = now
+                        archival_completed = run_archival(db)
+                    if archival_completed:
+                        last_archival_run = now
+                    else:
+                        logger.warning("Archival incomplete; retrying on the next storage monitor check.")
             else:
                 logger.debug("Automatic storage archival is DISABLED.")
 

@@ -116,7 +116,7 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
                 raise HTTPException(status_code=400, detail=f"Value for {key} must be a number")
 
         # Force lowercase for boolean fields
-        boolean_keys = ["opt_verbose_engine_logs", "telemetry_enabled", "mqtt_enabled", "cleanup_enabled", "ai_enabled", "go2rtc_enabled", "backup_auto_enabled", "oauth_global_enabled", "oauth_auto_redirect"]
+        boolean_keys = ["opt_verbose_engine_logs", "telemetry_enabled", "mqtt_enabled", "cleanup_enabled", "archival_enabled", "ai_enabled", "go2rtc_enabled", "backup_auto_enabled", "oauth_global_enabled", "oauth_auto_redirect"]
         if key in boolean_keys:
             value = str(value).lower()
         

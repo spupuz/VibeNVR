@@ -85,6 +85,9 @@ VibeNVR's code includes specific mitigations against common attack vectors:
     - The final resolved path MUST be dynamically validated against active `StorageProfile` paths via the `is_path_safe` mechanism. Any attempt to access or delete files outside these authorized boundaries results in a security alert in the logs and the action is blocked, replacing legacy hardcoded `/data/` checks.
 5. **Tiered Archival Safety**:
     - The tiered storage archival subsystem uses the identical path translation logic (`translate_path`) to ensure that all moved files remain securely within the designated absolute boundaries of valid storage profiles. This protects against traversal if an archival profile path is maliciously crafted.
+    - Archive source, destination, and thumbnail paths are checked against the existing storage-path safety helper. Original media is removed only after copying/uploading and committing the new database paths.
+    - Local archive roots must already exist in the backend container; archival does not create a missing root that could conceal an absent volume. Directory existence alone is not proof that NFS is mounted, so deployments must verify their volume mappings.
+    - Failed or incomplete archival jobs do not advance the successful-run timestamp and are retried on the next storage monitor check (normally 10 minutes). Retention and quota cleanup rules remain unchanged.
 6. **Storage Resilience & Disk Safety**:
     - **Reactive Monitoring**: VibeNVR implements a reactive 10-minute monitoring loop for storage quotas. This ensures that disk usage remains within limits even under high-volume recording conditions.
     - **Emergency Disk Safety**: If absolute disk space falls below **5%**, an emergency archival and cleanup cycle is automatically triggered to prevent filesystem exhaustion and system instability.

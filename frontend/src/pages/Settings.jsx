@@ -43,6 +43,8 @@ export const Settings = () => {
         max_global_storage_gb: '',
         cleanup_enabled: true,
         cleanup_interval_hours: 24,
+        archival_enabled: true,
+        archival_interval_hours: 24,
         smtp_server: '',
         smtp_port: '587',
         smtp_username: '',
@@ -183,6 +185,8 @@ export const Settings = () => {
                     max_global_storage_gb: data.max_global_storage_gb?.value !== undefined ? (parseFloat(data.max_global_storage_gb.value) || 0) : prev.max_global_storage_gb,
                     cleanup_enabled: data.cleanup_enabled?.value !== undefined ? String(data.cleanup_enabled.value).toLowerCase() === 'true' : prev.cleanup_enabled,
                     cleanup_interval_hours: data.cleanup_interval_hours?.value !== undefined ? (parseFloat(data.cleanup_interval_hours.value) || 24) : prev.cleanup_interval_hours,
+                    archival_enabled: data.archival_enabled?.value != null ? String(data.archival_enabled.value).toLowerCase() === 'true' : prev.archival_enabled,
+                    archival_interval_hours: data.archival_interval_hours?.value !== undefined ? (parseFloat(data.archival_interval_hours.value) || 24) : prev.archival_interval_hours,
                     smtp_server: data.smtp_server?.value || prev.smtp_server,
                     smtp_port: data.smtp_port?.value || prev.smtp_port,
                     smtp_username: data.smtp_username?.value || prev.smtp_username,
@@ -263,7 +267,7 @@ export const Settings = () => {
         localStorage.setItem('liveViewColumns', liveViewColumns);
 
         try {
-            await fetch('/api/settings/bulk', {
+            const res = await fetch('/api/settings/bulk', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -273,6 +277,8 @@ export const Settings = () => {
                     max_global_storage_gb: (settingsToSave.max_global_storage_gb || 0).toString(),
                     cleanup_enabled: settingsToSave.cleanup_enabled.toString(),
                     cleanup_interval_hours: settingsToSave.cleanup_interval_hours.toString(),
+                    archival_enabled: settingsToSave.archival_enabled.toString(),
+                    archival_interval_hours: settingsToSave.archival_interval_hours.toString(),
                     smtp_server: settingsToSave.smtp_server,
                     smtp_port: settingsToSave.smtp_port,
                     smtp_username: settingsToSave.smtp_username,
@@ -329,6 +335,7 @@ export const Settings = () => {
                     llm_enricher_filter_classes: settingsToSave.llm_enricher_filter_classes || ''
                 })
             });
+            if (!res.ok) throw new Error(t('settings_forms.update_rejected', 'The server rejected the settings update.'));
             showToast('Settings saved successfully!', 'success');
         } catch (err) {
             showToast('Failed to save settings: ' + err.message, 'error');

@@ -152,7 +152,7 @@ export const Cameras = () => {
                 setGlobalSettings({
                     max_global_storage_gb: data.max_global_storage_gb?.value !== undefined ? parseFloat(data.max_global_storage_gb.value) : 0,
                     cleanup_enabled: data.cleanup_enabled?.value === 'true',
-                    archival_enabled: data.archival_enabled?.value === 'true',
+                    archival_enabled: data.archival_enabled?.value != null ? String(data.archival_enabled.value).toLowerCase() === 'true' : true,
                     ai_enabled: data.ai_enabled?.value === 'true' || data.ai_enabled?.value === true
                 });
             }
