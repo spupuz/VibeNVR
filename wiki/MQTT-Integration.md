@@ -32,18 +32,32 @@ To enable MQTT, navigate to **Settings -> MQTT Service** in the VibeNVR UI.
 
 ## 🛰️ Topic Structure
 
-All messages follow the pattern: `<prefix>/<camera_id>/<subtopic>`.
+Messages are organized under your configured base prefix.
+
+### 1. System Level Topics
+| Topic | Payload | Description |
+| :--- | :--- | :--- |
+| **`<prefix>/status`** | `online` / `offline` | Global VibeNVR engine status (includes MQTT Last Will and Testament - LWT). |
+
+### 2. Camera Specific Topics
+All camera messages follow the pattern: `<prefix>/<camera_id>/<subtopic>`.
 
 | Subtopic | Payload | Description |
 | :--- | :--- | :--- |
-| **`status`** | `online` / `offline` | Availability of the camera service. |
+| **`status`** | `online` / `offline` | Availability of the camera stream (retained & refreshed via 30s heartbeat). |
 | **`motion`** | `ON` / `OFF` | Current motion state. |
 | **`attributes`** | `JSON` | AI metadata, labels, and event details. |
 
-### Example Topic
+### Example Topics
 If your prefix is `vibenvr` and camera ID is `88`:
-- Topic: `vibenvr/88/motion`
-- Payload: `ON`
+- System Status: `vibenvr/status` -> `online`
+- Camera Availability: `vibenvr/88/status` -> `online`
+- Motion Sensor: `vibenvr/88/motion` -> `ON`
+
+> [!NOTE]
+> **Availability Heartbeat & Self-Healing**: VibeNVR runs a background watchdog thread (every 30 seconds) that re-verifies camera connectivity and refreshes retained availability messages. If a network blip or broker restart causes an inconsistent state, camera availability automatically self-heals without user intervention.
+>
+> **Dynamic Prefix Changes**: When changing the MQTT Topic Prefix in Settings, VibeNVR automatically reconnects, resets the discovery cache, and republishes Home Assistant discovery and availability payloads under the new prefix.
 
 ---
 
