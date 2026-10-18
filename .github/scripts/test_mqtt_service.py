@@ -50,3 +50,66 @@ def test_connect_fallback():
         finally:
             if original_has_attr:
                 mqtt_service_module.mqtt.CallbackAPIVersion = original_attr
+
+
+@pytest.mark.parametrize("health, availability", [
+    ("CONNECTED", "online"),
+    ("UNREACHABLE", "offline"),
+    ("UNAUTHORIZED", "offline"),
+])
+def test_camera_health_check_mqtt_availability(health, availability):
+    """Periodic camera health must reach MQTT using the same payload as stream health."""
+    from camera_thread import CameraThread
+    from core import CameraManager
+
+    service = MQTTService()
+    service.client = MagicMock()
+    service.cameras_discovered.add(1)
+    manager = CameraManager()
+    camera = MagicMock()
+    camera.camera_id = 1
+    camera.config = {"name": "Test Camera"}
+    camera.last_health_check_time = 0.0
+    camera.last_health_report_status = "STARTING"
+    camera.stream_reader.get_health.return_value = health
+    camera.event_callback = manager.handle_event
+    manager.cameras[1] = camera
+
+    with patch("mqtt_service.mqtt_service", service), patch("threading.Thread"):
+        CameraThread._check_health(camera)
+
+    service.client.publish.assert_called_once_with(
+        "vibenvr/1/status", availability, retain=True
+    )
+
+
+@pytest.mark.parametrize("health, availability", [
+    ("STARTING", "offline"),
+    ("CONNECTED", "online"),
+    ("UNREACHABLE", "offline"),
+])
+def test_camera_start_publishes_actual_health(health, availability):
+    """Starting a camera must not advertise connectivity before it is established."""
+    from core import CameraManager
+
+    service = MQTTService()
+    service.client = MagicMock()
+    manager = CameraManager()
+
+    with patch("core.CameraThread") as mock_camera, patch("mqtt_service.mqtt_service", service):
+        mock_camera.return_value.get_health.return_value = health
+        manager.start_camera(1, {"name": "Test Camera"})
+
+    service.client.publish.assert_called_once_with(
+        "vibenvr/1/status", availability, retain=True
+    )
+
+
+@pytest.mark.parametrize("event_type, state", [("motion_on", "ON"), ("motion_off", "OFF")])
+def test_motion_events_preserve_binary_state(event_type, state):
+    service = MQTTService()
+    service.client = MagicMock()
+
+    service.publish_event(1, event_type)
+
+    service.client.publish.assert_called_once_with("vibenvr/1/motion", state, retain=True)

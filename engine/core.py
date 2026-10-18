@@ -49,7 +49,7 @@ class CameraManager:
         try:
             from mqtt_service import mqtt_service
             mqtt_service.publish_discovery(camera_id, name)
-            mqtt_service.publish_status(camera_id, "connected")
+            mqtt_service.publish_status(camera_id, thread.get_health())
         except:
             pass
 
