@@ -7,6 +7,14 @@ try:
 except (ImportError, ValueError):
     from .camera_thread import CameraThread
 
+try:
+    from mqtt_service import mqtt_service
+except (ImportError, ValueError):
+    try:
+        from .mqtt_service import mqtt_service
+    except Exception:
+        mqtt_service = None
+
 logger = logging.getLogger(__name__)
 
 # Backend URL for webhooks
@@ -47,11 +55,11 @@ class CameraManager:
         
         # Trigger MQTT Discovery
         try:
-            from mqtt_service import mqtt_service
-            mqtt_service.publish_discovery(camera_id, name)
-            mqtt_service.publish_status(camera_id, "connected")
-        except:
-            pass
+            if mqtt_service:
+                mqtt_service.publish_discovery(camera_id, name)
+                mqtt_service.publish_status(camera_id, thread.get_health())
+        except Exception as e:
+            logger.debug(f"MQTT start_camera status error: {e}")
 
     def stop_camera(self, camera_id: int):
         if camera_id in self.cameras:
@@ -211,13 +219,13 @@ class CameraManager:
         
         # 2. Also publish to MQTT
         try:
-            from mqtt_service import mqtt_service
-            # Handle discovery if not already done for this camera session
-            if camera_id not in mqtt_service.cameras_discovered:
-                mqtt_service.publish_discovery(camera_id, name)
-            
-            # Publish the specific event
-            mqtt_service.publish_event(camera_id, webhook_type, payload)
+            if mqtt_service:
+                # Handle discovery if not already done for this camera session
+                if camera_id not in mqtt_service.cameras_discovered:
+                    mqtt_service.publish_discovery(camera_id, name)
+                
+                # Publish the specific event
+                mqtt_service.publish_event(camera_id, webhook_type, payload)
         except Exception as e:
             logger.error(f"MQTT publish failed: {e}")
 
