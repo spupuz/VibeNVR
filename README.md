@@ -54,7 +54,7 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | 🤖 **ONVIF Edge Motion** | Offload motion detection to camera hardware via ONVIF. **Stability+**: New Auto-Rebind pattern ensures reliability on devices with session limits. |
 | 📊 **AI Timeline Filtering** | Filter recorded events by detected object type (Person, Vehicle) directly from the Timeline view. |
 | 🎮 **Advanced ONVIF** | Real-time Pan, Tilt, Zoom, **Home Positions**, and **Presets Navigation**. **NEW**: Instantly probe cameras to discover **Stream Profiles** and auto-complete RTSP URLs directly from the UI. |
-| 🏠 **Native MQTT Service** | Built-in MQTT service for real-time motion reporting and **Home Assistant Discovery**. Publishes AI metadata and camera status. |
+| 🏠 **Native MQTT Service** | Built-in MQTT service for real-time motion reporting and **Home Assistant Discovery**. Publishes AI metadata, camera status, and features a background **Availability Watchdog** with periodic heartbeats (30s) and **Last Will & Testament (LWT)** for zero-lag self-healing. |
 | 🔍 **Network Discovery** | Securely scan network ranges for ONVIF/RTSP devices via authenticated **SSE (Server-Sent Events)** streams. |
 | 🛡️ **System Integrity Audit** | Integrated security and consistency audits verify RBAC isolation, path sanitization, and **Self-Healing Configuration Synchronization** (e.g., recursive JSON recovery). |
 | 📊 **Standardized Logging** | Unified timestamping and formatting across all containers. Includes **Automatic Redaction** of sensitive credentials (RTSP, tokens) and binary noise filtering. |

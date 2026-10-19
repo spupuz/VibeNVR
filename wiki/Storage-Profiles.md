@@ -101,8 +101,10 @@ VibeNVR supports an automated archival subsystem, allowing you to gracefully mov
 
 - **Archival Enabled**: A global toggle that instructs the `StorageService` to attempt archival *before* purging events.
 - **Archival Interval**: An independent background scheduler (e.g., every 24 hours) that sweeps for archivable events, preventing blocking on the main cleanup loop.
+- **Failed-Move Retries & Self-Healing**: If a remote mount or SFTP server becomes temporarily unreachable during an archival sweep, the system flags the batch as incomplete and safely retries the failed file transfers on the next scheduled monitor pass instead of permanently losing them or deleting them prematurely.
+- **Path Traversal Protection**: Every source and destination path (including associated thumbnails) is strictly validated via `is_path_safe` and `translate_path` prior to any transfer or deletion.
 
-If an event reaches its retention limit and archival is enabled, it will be moved to the assigned archival path. If archival fails or the archival volume is full, the system falls back to standard deletion to preserve primary disk space.
+If an event reaches its retention limit and archival is enabled, it will be moved to the assigned archival path. If archival is disabled or emergency space limits are reached, the system falls back to standard deletion to preserve primary disk space.
 
 ## Disk Safety
 If the total free space on the `/data` volume falls below **5%**, VibeNVR triggers an **Emergency Cleanup**. It will purge the oldest events from the system regardless of quotas or retention settings until at least 10% free space is recovered. This protects the database and OS from filesystem exhaustion.
