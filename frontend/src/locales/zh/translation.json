@@ -410,7 +410,7 @@
     "test_health_webhook": "测试运行状况 Webhook",
     "motion_zones_exclusion": "运动区（排除）",
     "define_areas_to_ignore_fo": "定义运动检测要忽略的区域",
-    "exclusion_zones_are_invis": "排除区域在录制和实时视图中不可见。\\n它们仅防止指定区域中的误动作触发。",
+    "exclusion_zones_are_invis": "排除区域在录制和实时视图中不可见。 它们仅防止指定区域中的误动作触发。",
     "person": "人",
     "vehicle": "车辆",
     "bicycle": "自行车",

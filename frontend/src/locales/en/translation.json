@@ -519,7 +519,7 @@
     "test_health_webhook": "Test Health Webhook",
     "motion_zones_exclusion": "Motion Zones (Exclusion)",
     "define_areas_to_ignore_fo": "Define areas to ignore for motion detection",
-    "exclusion_zones_are_invis": "Exclusion zones are invisible in recordings and live view.\\nThey only prevent false motion triggers in the specified areas.",
+    "exclusion_zones_are_invis": "Exclusion zones are invisible in recordings and live view. They only prevent false motion triggers in the specified areas.",
     "person": "Person",
     "vehicle": "Vehicle",
     "bicycle": "Bicycle",

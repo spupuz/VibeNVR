@@ -34,7 +34,7 @@ export const MotionZonesTab = ({ editingId, token, newCamera, setNewCamera }) =>
                 label={t('cameras.motion_zones', 'Motion Zones')}
                 description={t('cameras.draw_areas_that_should_be', 'Draw areas that should be IGNORED by the motion detection engine.')}
                 color="#ef4444"
-                hint={t('cameras.exclusion_zones_are_invis', `Exclusion zones are invisible in recordings and live view.\nThey only prevent false motion triggers in the specified areas.`)}
+                hint={t('cameras.exclusion_zones_are_invis', 'Exclusion zones are invisible in recordings and live view. They only prevent false motion triggers in the specified areas.')}
             />
         </div>
     );

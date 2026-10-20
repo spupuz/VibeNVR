@@ -406,7 +406,7 @@
     "test_health_webhook": "テストヘルス Webhook",
     "motion_zones_exclusion": "モーションゾーン（除外）",
     "define_areas_to_ignore_fo": "モーション検出で無視する領域を定義する",
-    "exclusion_zones_are_invis": "除外ゾーンは録画やライブ ビューでは表示されません。\\n除外ゾーンは、指定された領域での誤ったモーション トリガーのみを防ぎます。",
+    "exclusion_zones_are_invis": "除外ゾーンは録画やライブ ビューでは表示されません。 除外ゾーンは、指定された領域での誤ったモーション トリガーのみを防ぎます。",
     "person": "人",
     "vehicle": "車両",
     "bicycle": "自転車",

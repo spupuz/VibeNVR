@@ -407,7 +407,7 @@
     "test_health_webhook": "Testen Sie den Health-Webhook",
     "motion_zones_exclusion": "Bewegungszonen (Ausschluss)",
     "define_areas_to_ignore_fo": "Definieren Sie Bereiche, die bei der Bewegungserkennung ignoriert werden sollen",
-    "exclusion_zones_are_invis": "Sperrzonen sind in Aufzeichnungen und in der Live-Ansicht unsichtbar.\\nSie verhindern nur Fehlbewegungsauslöser in den angegebenen Bereichen.",
+    "exclusion_zones_are_invis": "Sperrzonen sind in Aufzeichnungen und in der Live-Ansicht unsichtbar. Sie verhindern nur Fehlbewegungsauslöser in den angegebenen Bereichen.",
     "vehicle": "Fahrzeug",
     "bicycle": "Fahrrad",
     "motorcycle": "Motorrad",

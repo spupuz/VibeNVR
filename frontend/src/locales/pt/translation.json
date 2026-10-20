@@ -407,7 +407,7 @@
     "test_health_webhook": "Testar Webhook de Saúde",
     "motion_zones_exclusion": "Zonas de movimento (exclusão)",
     "define_areas_to_ignore_fo": "Defina áreas a serem ignoradas para detecção de movimento",
-    "exclusion_zones_are_invis": "As zonas de exclusão são invisíveis nas gravações e na visualização ao vivo.\\nElas apenas evitam acionamentos de movimentos falsos nas áreas especificadas.",
+    "exclusion_zones_are_invis": "As zonas de exclusão são invisíveis nas gravações e na visualização ao vivo. Elas apenas evitam acionamentos de movimentos falsos nas áreas especificadas.",
     "person": "Pessoa",
     "vehicle": "Veículo",
     "bicycle": "Bicicleta",
