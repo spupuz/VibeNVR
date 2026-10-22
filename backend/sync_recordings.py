@@ -440,6 +440,10 @@ def _scan_sftp_profile(db, profile, cameras, dry_run):
     added_count = 0
     skipped_count = 0
     
+    if not utils.is_safe_host(profile.sftp_host):
+        logger.error(f"SFTP Scan aborted: Unsafe host {profile.sftp_host}")
+        return 0, 0
+
     try:
         transport = paramiko.Transport((profile.sftp_host, profile.sftp_port))
         password = utils.decrypt_password(profile.sftp_password)

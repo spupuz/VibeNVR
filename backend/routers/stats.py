@@ -39,11 +39,15 @@ def check_profile_health(p) -> str:
         if not real_path or not os.path.exists(real_path):
             status = "Path Not Found"
     elif p.storage_type == "sftp":
-        try:
-            with socket.create_connection((p.sftp_host, p.sftp_port), timeout=2):
-                pass
-        except Exception:
+        import utils
+        if not utils.is_safe_host(p.sftp_host):
             status = "Unreachable"
+        else:
+            try:
+                with socket.create_connection((p.sftp_host, p.sftp_port), timeout=2):
+                    pass
+            except Exception:
+                status = "Unreachable"
             
     STORAGE_HEALTH_CACHE[p.id] = (status, now)
     return status
