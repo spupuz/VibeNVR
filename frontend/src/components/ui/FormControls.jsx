@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { HelpCircle, Eye, EyeOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 // Portal Tooltip Component (Immune to overflow clipping)
 export const Tooltip = ({ text, children }) => {
@@ -215,6 +216,50 @@ export const SelectField = ({ value, onChange, label, options = [], className = 
                     </option>
                 ))}
             </select>
+        </div>
+    );
+};
+
+// Textarea with Mask/Unmask toggle for sensitive multiline content (e.g. Apprise URLs, Webhooks)
+export const MaskedTextarea = ({ value, onChange, label, placeholder = '', rows = 3, help = '', className = '', id: externalId }) => {
+    const { t } = useTranslation();
+    const generatedId = useId();
+    const id = externalId || generatedId;
+    const [isEditing, setIsEditing] = useState(false);
+
+    return (
+        <div className={`space-y-1.5 ${className}`}>
+            <div className="flex items-center justify-between">
+                <LabelWithHelp label={label} help={help} htmlFor={id} />
+                <button
+                    type="button"
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="inline-flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors font-medium px-2 py-0.5 rounded hover:bg-primary/10"
+                >
+                    {isEditing ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    <span>{isEditing ? t('common.hide_mask', 'Hide / Mask') : t('common.show_edit', 'Show / Edit')}</span>
+                </button>
+            </div>
+            {isEditing ? (
+                <textarea
+                    id={id}
+                    rows={rows}
+                    placeholder={placeholder}
+                    value={value || ''}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="w-full bg-input/50 border border-input rounded-xl px-3 py-2 text-xs font-mono focus:ring-1 focus:ring-primary focus:outline-none transition-all resize-y placeholder:text-muted-foreground/50"
+                />
+            ) : (
+                <div
+                    onClick={() => setIsEditing(true)}
+                    className="w-full bg-input/20 border border-input/60 rounded-xl px-3 py-2 text-xs font-mono text-muted-foreground cursor-pointer hover:bg-input/30 transition-all select-none flex items-center justify-between"
+                >
+                    <span>
+                        {value ? '••••••••••••••••••••••••••••••••' : <span className="italic opacity-60">{placeholder || 'No URLs configured'}</span>}
+                    </span>
+                    <span className="text-[11px] text-primary/70 font-sans ml-2">{t('common.click_to_edit', 'Click to edit')}</span>
+                </div>
+            )}
         </div>
     );
 };

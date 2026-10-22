@@ -1,9 +1,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bell } from 'lucide-react';
+import { Bell, ExternalLink } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { CollapsibleSection } from '../../../components/ui/CollapsibleSection';
-import { InputField, Toggle } from '../../../components/ui/FormControls';
+import { InputField, Toggle, MaskedTextarea } from '../../../components/ui/FormControls';
 
 export const NotificationSettings = ({
     globalSettings,
@@ -181,6 +181,45 @@ export const NotificationSettings = ({
                     />
                 </div>
 
+                {/* Apprise Section */}
+                <div className="pt-6 border-t border-border/50 mt-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground shrink-0">{t('settings_notificationsettings.apprise_configuration', 'Apprise Configuration (Discord, Pushover, Gotify, NTFY, etc.)')}</h4>
+                            <a
+                                href="https://github.com/caronc/apprise/wiki"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium"
+                            >
+                                <ExternalLink className="w-3 h-3" />
+                                {t('settings_notificationsettings.view_apprise_docs', 'Supported Services & Syntax Guide')}
+                            </a>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => handleTestNotify('apprise')}
+                            className="h-11 sm:h-9 w-full sm:w-auto text-xs px-5 shadow-sm active:scale-95"
+                        >
+                            <Bell className="w-4 h-4 mr-2 opacity-60" />
+                            {t('settings_notificationsettings.test_apprise', 'Test Apprise')}
+                        </Button>
+                    </div>
+                    <div className="space-y-2">
+                        <MaskedTextarea
+                            label={t('settings_notificationsettings.apprise_urls', 'Global Apprise Notification URLs')}
+                            placeholder="discord://webhook_id/webhook_token&#10;pover://user@token&#10;gotify://hostname/token"
+                            rows={3}
+                            value={globalSettings.notify_apprise_urls || ''}
+                            onChange={(val) => setGlobalSettings({ ...globalSettings, notify_apprise_urls: val })}
+                        />
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                            {t('settings_notificationsettings.apprise_help', 'Enter one Apprise URL per line (or separated by commas). Supports Gotify, Pushover, Discord, NTFY, Slack, Matrix, and 80+ other services.')}
+                        </p>
+                    </div>
+                </div>
+
                 {/* Defaults section inside Notifications */}
                 <div className="pt-4 border-t border-border/50">
                     <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground">{t('timeline.attachment_defaults', 'Attachment Defaults')}</h4>
@@ -195,6 +234,11 @@ export const NotificationSettings = ({
                             label={t('settings_notificationsettings.attach_snapshot_telegram', 'Attach Snapshot to Telegram (Global)')}
                             checked={globalSettings.global_attach_image_telegram}
                             onChange={(val) => setGlobalSettings({ ...globalSettings, global_attach_image_telegram: val })}
+                        />
+                        <Toggle
+                            label={t('settings_notificationsettings.attach_snapshot_apprise', 'Attach Snapshot to Apprise (Global)')}
+                            checked={globalSettings.global_attach_image_apprise !== false}
+                            onChange={(val) => setGlobalSettings({ ...globalSettings, global_attach_image_apprise: val })}
                         />
                         <p className="text-[10px] text-muted-foreground">{t('timeline.default_behavior_for_imag', 'Default behavior for image attachments in notifications')}</p>
                     </div>

@@ -141,10 +141,13 @@ def perform_group_action(group_id: int, action: schemas.GroupAction, db: Session
             'overlay': ['text_left', 'text_right', 'text_scale'],
             'alerts': [
                 'notify_webhook_url', 'notify_telegram_token', 'notify_telegram_chat_id', 'notify_email_address',
+                'notify_apprise_urls',
                 'notify_health_webhook_url', 'notify_health_telegram_token', 'notify_health_telegram_chat_id',
-                'notify_health_email_recipient', 'notify_start_email', 'notify_start_telegram', 'notify_start_webhook',
-                'notify_start_command', 'notify_end_webhook', 'notify_end_command', 'notify_health_email',
-                'notify_health_telegram', 'notify_health_webhook', 'notify_attach_image_email', 'notify_attach_image_telegram'
+                'notify_health_email_recipient', 'notify_health_apprise_urls',
+                'notify_start_email', 'notify_start_telegram', 'notify_start_webhook',
+                'notify_start_command', 'notify_start_apprise', 'notify_end_webhook', 'notify_end_command', 'notify_health_email',
+                'notify_health_telegram', 'notify_health_webhook', 'notify_health_apprise',
+                'notify_attach_image_email', 'notify_attach_image_telegram', 'notify_attach_image_apprise'
             ],
             'schedule': [
                 'schedule_monday', 'schedule_monday_start', 'schedule_monday_end',

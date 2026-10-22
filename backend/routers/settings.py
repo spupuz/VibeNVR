@@ -184,6 +184,8 @@ DEFAULT_SETTINGS = {
     "telegram_proxy_retry_delay": {"value": "2", "description": "Seconds to wait between retries"},
     "notify_email_recipient": {"value": "", "description": "Default recipient for email notifications"},
     "notify_webhook_url": {"value": "", "description": "Global Webhook URL for notifications"},
+    "notify_apprise_urls": {"value": "", "description": "Global Apprise notification URLs (separated by newlines or commas)"},
+    "global_attach_image_apprise": {"value": "true", "description": "Default behavior for image attachments in Apprise notifications"},
     "default_landing_page": {"value": "live", "description": "Default page when opening the app (dashboard, timeline, live)"},
     
     # AI Detection Settings
@@ -961,6 +963,43 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
                 raise ValueError(f"Webhook returned error: {resp.status_code} {resp.text}")
                 
             return {"status": "success", "message": f"Test payload sent to {url}"}
+
+        elif channel == "apprise":
+            raw_urls = settings.get("notify_apprise_urls") or get_conf("notify_apprise_urls")
+            if not raw_urls:
+                raise ValueError("Missing Apprise URLs. Configure at least one Apprise URL first.")
+
+            # Support newline or comma separated URLs
+            urls = [u.strip() for u in str(raw_urls).replace("\r", "\n").replace(",", "\n").split("\n") if u.strip()]
+            if not urls:
+                raise ValueError("No valid Apprise URL provided.")
+
+            try:
+                import apprise
+            except ImportError:
+                raise ValueError("Apprise library is not installed in the backend environment.")
+
+            apobj = apprise.Apprise()
+            valid_count = 0
+            for url in urls:
+                # Security sanity check: block localhost / SSRF targets if needed, or let apprise validate schema
+                if apobj.add(url):
+                    valid_count += 1
+                else:
+                    logger.warning(f"[APPRISE TEST] Failed to parse URL: {url}")
+
+            if valid_count == 0:
+                raise ValueError("None of the provided Apprise URLs could be parsed as valid notification services.")
+
+            notify_result = apobj.notify(
+                title="🔔 VibeNVR Test Notification",
+                body="Success! Your Apprise notification service is configured correctly in VibeNVR.",
+            )
+
+            if not notify_result:
+                raise ValueError("Apprise notification failed to send. Check server logs and target service credentials.")
+
+            return {"status": "success", "message": f"Test Apprise notification sent to {valid_count} destination(s)"}
             
         else:
             raise ValueError(f"Unknown channel: {channel}")

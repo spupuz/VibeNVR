@@ -159,7 +159,10 @@
     "edit": "Edit",
     "connected": "Connected",
     "disconnected": "Disconnected",
-    "testing": "Testing Connection..."
+    "testing": "Testing Connection...",
+    "show_edit": "Show / Edit",
+    "hide_mask": "Hide / Mask",
+    "click_to_edit": "Click to edit"
   },
   "login": {
     "welcome_back": "Welcome Back",
@@ -690,7 +693,17 @@
     "min_object_size": "Minimum Object Size",
     "disabled_any_size": "0% (Disabled)",
     "min_object_size_help": "Ignore detected objects occupying less than this percentage of the frame area. Helps filter out tiny false positives.",
-    "confidence_threshold_help": "Minimum AI model confidence required to detect an object. Higher values reduce false positives but may miss subtle detections."
+    "confidence_threshold_help": "Minimum AI model confidence required to detect an object. Higher values reduce false positives but may miss subtle detections.",
+    "apprise_notifications": "Apprise Notifications",
+    "apprise_description": "Send alerts to Discord, Pushover, Gotify, NTFY, Slack, etc.",
+    "send_apprise_on_start": "Send Apprise Alert on Start",
+    "apprise_urls": "Apprise URL(s)",
+    "test_apprise": "Test Apprise",
+    "notify_health_via_apprise": "Notify Health via Apprise",
+    "health_apprise_urls": "Health Apprise URL(s)",
+    "test_health_apprise": "Test Health Apprise",
+    "view_apprise_docs": "Syntax & Providers Guide",
+    "apprise_override_hint": "If left empty, the global Apprise URLs configured in Settings → Notifications will be used."
   },
   "settings": {
     "general_preferences": "General Preferences",
@@ -733,7 +746,7 @@
     "dog": "Dog",
     "cat": "Cat",
     "deselect_all": "Deselect All",
-    "select_event": "Select event",
+    "select_event": "Select an event to preview",
     "auto_next": "Auto-next",
     "newest_oldest": "Newest → Oldest",
     "oldest_newest": "Oldest → Newest",
@@ -1109,7 +1122,13 @@
     "telegram_proxy_url": "Telegram Proxy URL",
     "telegram_proxy_help": "Format: socks5://... or http://...",
     "telegram_proxy_retries": "Max Retries",
-    "telegram_proxy_retry_delay": "Retry Delay (s)"
+    "telegram_proxy_retry_delay": "Retry Delay (s)",
+    "apprise_configuration": "Apprise Configuration (Discord, Pushover, Gotify, NTFY, etc.)",
+    "test_apprise": "Test Apprise",
+    "apprise_urls": "Global Apprise Notification URLs",
+    "apprise_help": "Enter one Apprise URL per line (or separated by commas). Supports Gotify, Pushover, Discord, NTFY, Slack, Matrix, and 80+ other services.",
+    "attach_snapshot_apprise": "Attach Snapshot to Apprise (Global)",
+    "view_apprise_docs": "Supported Services & Syntax Guide"
   },
   "settings_mqttsettings": {
     "title": "MQTT Service",

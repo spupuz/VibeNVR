@@ -295,6 +295,7 @@ def _send_email_notification(
                             <td>Time</td>
                             <td>{details.get('timestamp', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))}</td>
                         </tr>
+                        {f'<tr><td>AI Summary</td><td><em>{html.escape(str(details.get("ai_description")))}</em></td></tr>' if details.get('ai_description') else ''}
                     </table>
                 </div>
                 <div class="footer">
@@ -347,6 +348,109 @@ def _send_email_notification(
         logger.error(f"[NOTIFY] Email failed: {e}")
 
 
+def _send_apprise_notification(
+    camera,
+    event_type: str,
+    details: dict,
+    image_path: Optional[str],
+    apprise_urls: str,
+    global_attach_apprise: bool,
+):
+    should_notify_apprise = False
+    if event_type == "event_start":
+        should_notify_apprise = camera.notify_start_apprise
+    elif event_type == "camera_health":
+        should_notify_apprise = camera.notify_health_apprise
+
+    if not (should_notify_apprise and apprise_urls):
+        return
+
+    try:
+        import apprise
+    except ImportError:
+        logger.error("[NOTIFY] Apprise is not installed in the environment.")
+        return
+
+    # Parse URLs (separated by newlines or commas)
+    urls = [
+        u.strip()
+        for u in str(apprise_urls).replace("\r", "\n").replace(",", "\n").split("\n")
+        if u.strip()
+    ]
+    if not urls:
+        return
+
+    try:
+        apobj = apprise.Apprise()
+        for url in urls:
+            apobj.add(url)
+
+        # Format Timestamp
+        ts_raw = details.get("timestamp")
+        ts_formatted = str(ts_raw) if ts_raw else ""
+        try:
+            if ts_raw:
+                dt = datetime.datetime.fromisoformat(str(ts_raw))
+                ts_formatted = dt.strftime("%Y-%m-%d %H:%M:%S")
+        except Exception:
+            pass
+
+        if event_type == "event_start":
+            source = details.get("source", "Standard")
+            prefix = (
+                "🤖 AI "
+                if "AI Engine" in source
+                else ("📷 Edge " if source in ("ONVIF Edge", "onvif", "hikvision_isapi") else "🚨 ")
+            )
+            title = f"{prefix}Motion Detected!"
+            body = f"📷 Camera: {camera.name}\n⏰ Time: {ts_formatted}"
+
+            ai_meta = details.get("ai_metadata")
+            if ai_meta and isinstance(ai_meta, list):
+                labels = sorted(
+                    list(
+                        set(
+                            [
+                                str(r.get("label")).capitalize()
+                                for r in ai_meta
+                                if r.get("label")
+                            ]
+                        )
+                    )
+                )
+                if labels:
+                    body += f"\n🔍 Objects: {', '.join(labels)}"
+
+            ai_desc = details.get("ai_description")
+            if ai_desc:
+                body += f"\n✨ {ai_desc}"
+        elif event_type == "camera_health":
+            title = f"⚠️ {details.get('title', 'Camera Alert')}"
+            body = f"📷 Camera: {camera.name}\n{details.get('message', 'Camera status event reported')}"
+        else:
+            title = f"🔔 VibeNVR Alert"
+            body = f"📷 Camera: {camera.name}\nEvent: {event_type}\n⏰ Time: {ts_formatted}"
+
+        # Handle attachment
+        attach = None
+        if (
+            image_path
+            and camera.notify_attach_image_apprise
+            and global_attach_apprise
+            and os.path.exists(image_path)
+        ):
+            attach = image_path
+
+        logger.info(f"[NOTIFY] Sending Apprise notification for {camera.name} ({len(urls)} targets)")
+        apobj.notify(
+            title=title,
+            body=body,
+            attach=attach,
+        )
+    except Exception as e:
+        logger.error(f"[NOTIFY] Apprise failed: {e}")
+
+
 def _send_webhook_notification(
     camera, event_type: str, details: dict, webhook_url: str
 ):
@@ -367,17 +471,23 @@ def _send_webhook_notification(
         return
 
     try:
+        webhook_payload = {
+            "camera_name": camera.name,
+            "event": event_type,
+            "title": details.get("title"),
+            "message": details.get("message"),
+            "timestamp": details.get("timestamp"),
+            "file_path": details.get("file_path"),
+            "source": details.get("source", "Standard"),
+        }
+        if details.get("ai_metadata"):
+            webhook_payload["ai_metadata"] = details.get("ai_metadata")
+        if details.get("ai_description"):
+            webhook_payload["ai_description"] = details.get("ai_description")
+
         requests.post(
             webhook_url,
-            json={
-                "camera_name": camera.name,
-                "event": event_type,
-                "title": details.get("title"),
-                "message": details.get("message"),
-                "timestamp": details.get("timestamp"),
-                "file_path": details.get("file_path"),
-                "source": details.get("source", "Standard"),
-            },
+            json=webhook_payload,
             timeout=5,
             allow_redirects=False,
         )
@@ -435,10 +545,12 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
             )
             global_email_recipient = get_conf("notify_email_recipient")
             global_webhook_url = get_conf("notify_webhook_url")
+            global_apprise_urls = get_conf("notify_apprise_urls")
 
             # Global Attach Settings (Default to True if not set)
             global_attach_email = get_conf("global_attach_image_email") != "false"
             global_attach_telegram = get_conf("global_attach_image_telegram") != "false"
+            global_attach_apprise = get_conf("global_attach_image_apprise") != "false"
 
             # Resolve effective config based on Event Type
             is_health_event = event_type == "camera_health"
@@ -451,12 +563,14 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                     camera.notify_health_email_recipient or global_email_recipient
                 )
                 webhook_url = camera.notify_health_webhook_url or global_webhook_url
+                apprise_urls = camera.notify_health_apprise_urls or global_apprise_urls
             else:
                 # Standard (Motion/Event) -> Global Fallback
                 tg_token = camera.notify_telegram_token or global_tg_token
                 tg_chat = camera.notify_telegram_chat_id or global_tg_chat
                 email_recipient = camera.notify_email_address or global_email_recipient
                 webhook_url = camera.notify_webhook_url or global_webhook_url
+                apprise_urls = camera.notify_apprise_urls or global_apprise_urls
 
             # Prepare Attachment (Snapshot)
             file_path = details.get("file_path")
@@ -512,6 +626,21 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
             if image_path:
                 logger.info(f"[NOTIFY] Attaching image: {image_path}")
 
+            # Check if event record has been enriched with AI description in the meantime
+            if not details.get("ai_description"):
+                try:
+                    fp = details.get("file_path")
+                    if fp:
+                        ev = (
+                            db_notify.query(models.Event)
+                            .filter(models.Event.file_path == fp)
+                            .first()
+                        )
+                        if ev and ev.ai_description:
+                            details["ai_description"] = ev.ai_description
+                except Exception:
+                    pass
+
             _send_telegram_notification(
                 camera=camera,
                 event_type=event_type,
@@ -546,6 +675,15 @@ def send_notifications(camera_id: int, event_type: str, details: dict):
                 event_type=event_type,
                 details=details,
                 webhook_url=webhook_url,
+            )
+
+            _send_apprise_notification(
+                camera=camera,
+                event_type=event_type,
+                details=details,
+                image_path=image_path,
+                apprise_urls=apprise_urls,
+                global_attach_apprise=global_attach_apprise,
             )
 
         except Exception as e:

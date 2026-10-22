@@ -83,7 +83,8 @@ def gather_metrics(db: Session):
         notifications_enabled = db.query(models.Camera).filter(
             (models.Camera.notify_telegram_token != None) | 
             (models.Camera.notify_email_address != None) |
-            (models.Camera.notify_webhook_url != None)
+            (models.Camera.notify_webhook_url != None) |
+            (models.Camera.notify_apprise_urls != None)
         ).count() > 0
 
         # New metrics

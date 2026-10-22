@@ -58,9 +58,11 @@ export const Settings = () => {
         telegram_proxy_retry_delay: '2',
         notify_email_recipient: '',
         notify_webhook_url: '',
+        notify_apprise_urls: '',
         default_landing_page: 'live',
         global_attach_image_email: true,
         global_attach_image_telegram: true,
+        global_attach_image_apprise: true,
         opt_live_view_fps_throttle: 2,
         opt_motion_fps_throttle: 3,
         opt_live_view_height_limit: 720,
@@ -200,9 +202,11 @@ export const Settings = () => {
                     telegram_proxy_retry_delay: data.telegram_proxy_retry_delay?.value || prev.telegram_proxy_retry_delay,
                     notify_email_recipient: data.notify_email_recipient?.value || prev.notify_email_recipient,
                     notify_webhook_url: data.notify_webhook_url?.value || prev.notify_webhook_url,
+                    notify_apprise_urls: data.notify_apprise_urls?.value !== undefined ? data.notify_apprise_urls.value : prev.notify_apprise_urls,
                     default_landing_page: data.default_landing_page?.value || prev.default_landing_page,
                     global_attach_image_email: data.global_attach_image_email?.value !== undefined ? String(data.global_attach_image_email.value).toLowerCase() !== 'false' : prev.global_attach_image_email,
                     global_attach_image_telegram: data.global_attach_image_telegram?.value !== undefined ? String(data.global_attach_image_telegram.value).toLowerCase() !== 'false' : prev.global_attach_image_telegram,
+                    global_attach_image_apprise: data.global_attach_image_apprise?.value !== undefined ? String(data.global_attach_image_apprise.value).toLowerCase() !== 'false' : prev.global_attach_image_apprise,
 
                     opt_live_view_fps_throttle: data.opt_live_view_fps_throttle?.value !== undefined ? parseInt(data.opt_live_view_fps_throttle.value) : prev.opt_live_view_fps_throttle,
                     opt_motion_fps_throttle: data.opt_motion_fps_throttle?.value !== undefined ? parseInt(data.opt_motion_fps_throttle.value) : prev.opt_motion_fps_throttle,
@@ -292,10 +296,12 @@ export const Settings = () => {
                     telegram_proxy_retry_delay: (settingsToSave.telegram_proxy_retry_delay || '2').toString(),
                     notify_email_recipient: settingsToSave.notify_email_recipient,
                     notify_webhook_url: settingsToSave.notify_webhook_url,
+                    notify_apprise_urls: settingsToSave.notify_apprise_urls || '',
 
                     default_landing_page: settingsToSave.default_landing_page,
                     global_attach_image_email: settingsToSave.global_attach_image_email.toString(),
                     global_attach_image_telegram: settingsToSave.global_attach_image_telegram.toString(),
+                    global_attach_image_apprise: Boolean(settingsToSave.global_attach_image_apprise).toString(),
 
                     opt_live_view_fps_throttle: settingsToSave.opt_live_view_fps_throttle.toString(),
                     opt_motion_fps_throttle: settingsToSave.opt_motion_fps_throttle.toString(),
@@ -448,6 +454,10 @@ export const Settings = () => {
         } else if (channel === 'webhook') {
             payload.settings = {
                 notify_webhook_url: globalSettings.notify_webhook_url
+            };
+        } else if (channel === 'apprise') {
+            payload.settings = {
+                notify_apprise_urls: globalSettings.notify_apprise_urls
             };
         }
 

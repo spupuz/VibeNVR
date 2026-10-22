@@ -102,17 +102,20 @@ class Camera(Base):
     notify_telegram_token = Column(String, nullable=True)
     notify_telegram_chat_id = Column(String, nullable=True)
     notify_email_address = Column(String, nullable=True)
+    notify_apprise_urls = Column(String, nullable=True)
 
     # Health Notification Destinations (Overrides generic if set)
     notify_health_webhook_url = Column(String, nullable=True)
     notify_health_telegram_token = Column(String, nullable=True)
     notify_health_telegram_chat_id = Column(String, nullable=True)
     notify_health_email_recipient = Column(String, nullable=True)
+    notify_health_apprise_urls = Column(String, nullable=True)
 
     notify_start_email = Column(Boolean, default=False)
     notify_start_telegram = Column(Boolean, default=False)
     notify_start_webhook = Column(Boolean, default=False)
     notify_start_command = Column(Boolean, default=False)
+    notify_start_apprise = Column(Boolean, default=False)
     notify_end_webhook = Column(Boolean, default=False)
     notify_end_command = Column(Boolean, default=False)
     
@@ -120,9 +123,11 @@ class Camera(Base):
     notify_health_email = Column(Boolean, default=False)
     notify_health_telegram = Column(Boolean, default=False)
     notify_health_webhook = Column(Boolean, default=False)
+    notify_health_apprise = Column(Boolean, default=False)
     
     notify_attach_image_email = Column(Boolean, default=True)
     notify_attach_image_telegram = Column(Boolean, default=True)
+    notify_attach_image_apprise = Column(Boolean, default=True)
 
 
     # Schedule & Detection Settings

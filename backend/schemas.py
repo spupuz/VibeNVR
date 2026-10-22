@@ -185,18 +185,21 @@ class CameraBase(BaseModel):
     notify_telegram_token: Optional[str] = None
     notify_telegram_chat_id: Optional[str] = None
     notify_email_address: Optional[str] = None
+    notify_apprise_urls: Optional[str] = None
 
     # Health Notification Destinations
     notify_health_webhook_url: Optional[str] = None
     notify_health_telegram_token: Optional[str] = None
     notify_health_telegram_chat_id: Optional[str] = None
     notify_health_email_recipient: Optional[str] = None
+    notify_health_apprise_urls: Optional[str] = None
 
     # Notifications
     notify_start_email: Optional[bool] = False
     notify_start_telegram: Optional[bool] = False
     notify_start_webhook: Optional[bool] = False
     notify_start_command: Optional[bool] = False
+    notify_start_apprise: Optional[bool] = False
     notify_end_webhook: Optional[bool] = False
     notify_end_command: Optional[bool] = False
     
@@ -204,8 +207,11 @@ class CameraBase(BaseModel):
     notify_health_email: Optional[bool] = False
     notify_health_telegram: Optional[bool] = False
     notify_health_webhook: Optional[bool] = False
+    notify_health_apprise: Optional[bool] = False
     
     notify_attach_image_email: Optional[bool] = True
+    notify_attach_image_telegram: Optional[bool] = True
+    notify_attach_image_apprise: Optional[bool] = True
 
 
 
@@ -514,21 +520,26 @@ class CameraUpdate(BaseModel):
     notify_telegram_token: Optional[str] = None
     notify_telegram_chat_id: Optional[str] = None
     notify_email_address: Optional[str] = None
+    notify_apprise_urls: Optional[str] = None
     notify_start_email: Optional[bool] = None
     notify_start_telegram: Optional[bool] = None
     notify_start_webhook: Optional[bool] = None
     notify_start_command: Optional[str] = None
+    notify_start_apprise: Optional[bool] = None
     notify_end_webhook: Optional[bool] = None
     notify_end_command: Optional[str] = None
     notify_attach_image_email: Optional[bool] = None
     notify_attach_image_telegram: Optional[bool] = None
+    notify_attach_image_apprise: Optional[bool] = None
     notify_health_webhook_url: Optional[str] = None
     notify_health_telegram_token: Optional[str] = None
     notify_health_telegram_chat_id: Optional[str] = None
     notify_health_email_recipient: Optional[str] = None
+    notify_health_apprise_urls: Optional[str] = None
     notify_health_email: Optional[bool] = None
     notify_health_telegram: Optional[bool] = None
     notify_health_webhook: Optional[bool] = None
+    notify_health_apprise: Optional[bool] = None
     auto_threshold_tuning: Optional[bool] = None
     auto_noise_detection: Optional[bool] = None
     light_switch_detection: Optional[int] = None

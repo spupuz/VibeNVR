@@ -1,6 +1,7 @@
 import React from 'react';
-import { Toggle, InputField, SectionHeader } from '../../../ui/FormControls';
+import { Toggle, InputField, SectionHeader, MaskedTextarea } from '../../../ui/FormControls';
 import { Button } from '../../../ui/Button';
+import { ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export const AlertsTab = ({ newCamera, setNewCamera, handleTestNotification }) => {
@@ -236,6 +237,103 @@ export const AlertsTab = ({ newCamera, setNewCamera, handleTestNotification }) =
                                     className="h-8 text-xs font-medium"
                                 >
                                     {t('cameras.test_health_webhook', 'Test Health Webhook')}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Apprise Section */}
+            <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <SectionHeader
+                        title={t('cameras.apprise_notifications', 'Apprise Notifications')}
+                        description={t('cameras.apprise_description', 'Send alerts to Discord, Pushover, Gotify, NTFY, Slack, etc.')}
+                    />
+                    <a
+                        href="https://github.com/caronc/apprise/wiki"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium sm:self-start"
+                    >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        {t('cameras.view_apprise_docs', 'Syntax & Providers Guide')}
+                    </a>
+                </div>
+
+                {/* Motion Apprise */}
+                <div className="space-y-3">
+                    <Toggle
+                        label={t('cameras.send_apprise_on_start', 'Send Apprise Alert on Start')}
+                        checked={newCamera.notify_start_apprise}
+                        onChange={(val) => setNewCamera({ ...newCamera, notify_start_apprise: val })}
+                    />
+                    {newCamera.notify_start_apprise && (
+                        <div className="ml-9 p-3 bg-muted/30 rounded-lg border border-border space-y-3 animate-in fade-in slide-in-from-top-1">
+                            <div className="space-y-1.5">
+                                <MaskedTextarea
+                                    label={t('cameras.apprise_urls', 'Apprise URL(s)')}
+                                    placeholder={t('cameras.leave_empty_to_use_glob', 'Leave empty to use Global Settings')}
+                                    rows={2}
+                                    value={newCamera.notify_apprise_urls || ''}
+                                    onChange={(val) => setNewCamera({ ...newCamera, notify_apprise_urls: val })}
+                                />
+                                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                    {t('cameras.apprise_override_hint', 'If left empty, the global Apprise URLs configured in Settings → Notifications will be used.')}
+                                </p>
+                            </div>
+                            <Toggle
+                                label={t('cameras.attach_snapshot_image', 'Attach Snapshot Image')}
+                                checked={newCamera.notify_attach_image_apprise !== false}
+                                onChange={(val) => setNewCamera({ ...newCamera, notify_attach_image_apprise: val })}
+                                compact={true}
+                            />
+                            <div className="flex justify-end">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleTestNotification('apprise', { notify_apprise_urls: newCamera.notify_apprise_urls })}
+                                    className="h-8 text-xs font-medium"
+                                >
+                                    {t('cameras.test_apprise', 'Test Apprise')}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Health Apprise */}
+                <div className="space-y-3">
+                    <Toggle
+                        label={t('cameras.notify_health_via_apprise', 'Notify Health via Apprise')}
+                        checked={newCamera.notify_health_apprise}
+                        onChange={(val) => setNewCamera({ ...newCamera, notify_health_apprise: val })}
+                    />
+                    {newCamera.notify_health_apprise && (
+                        <div className="ml-9 p-3 bg-muted/30 rounded-lg border border-border space-y-3 animate-in fade-in slide-in-from-top-1">
+                            <div className="space-y-1.5">
+                                <MaskedTextarea
+                                    label={t('cameras.health_apprise_urls', 'Health Apprise URL(s)')}
+                                    placeholder={t('cameras.leave_empty_to_use_glob', 'Leave empty to use Global Settings')}
+                                    rows={2}
+                                    value={newCamera.notify_health_apprise_urls || ''}
+                                    onChange={(val) => setNewCamera({ ...newCamera, notify_health_apprise_urls: val })}
+                                />
+                                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                    {t('cameras.apprise_override_hint', 'If left empty, the global Apprise URLs configured in Settings → Notifications will be used.')}
+                                </p>
+                            </div>
+                            <div className="flex justify-end mt-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleTestNotification('apprise', { notify_apprise_urls: newCamera.notify_health_apprise_urls })}
+                                    className="h-8 text-xs font-medium"
+                                >
+                                    {t('cameras.test_health_apprise', 'Test Health Apprise')}
                                 </Button>
                             </div>
                         </div>

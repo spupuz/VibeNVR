@@ -171,28 +171,33 @@ def migrate():
     add_column_if_not_exists(engine, "cameras", "notify_telegram_token", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "notify_telegram_chat_id", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "notify_email_address", "VARCHAR")
+    add_column_if_not_exists(engine, "cameras", "notify_apprise_urls", "VARCHAR")
 
     # Health Notification Destinations
     add_column_if_not_exists(engine, "cameras", "notify_health_webhook_url", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "notify_health_telegram_token", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "notify_health_telegram_chat_id", "VARCHAR")
     add_column_if_not_exists(engine, "cameras", "notify_health_email_recipient", "VARCHAR")
+    add_column_if_not_exists(engine, "cameras", "notify_health_apprise_urls", "VARCHAR")
 
     # Notifications
     add_column_if_not_exists(engine, "cameras", "notify_start_email", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "notify_start_telegram", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "notify_start_webhook", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "notify_start_command", "BOOLEAN", False)
+    add_column_if_not_exists(engine, "cameras", "notify_start_apprise", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "notify_end_webhook", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "notify_end_command", "BOOLEAN", False)
     
     add_column_if_not_exists(engine, "cameras", "notify_attach_image_email", "BOOLEAN", True)
     add_column_if_not_exists(engine, "cameras", "notify_attach_image_telegram", "BOOLEAN", True)
+    add_column_if_not_exists(engine, "cameras", "notify_attach_image_apprise", "BOOLEAN", True)
 
     # Health Notifications
     add_column_if_not_exists(engine, "cameras", "notify_health_email", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "notify_health_telegram", "BOOLEAN", False)
     add_column_if_not_exists(engine, "cameras", "notify_health_webhook", "BOOLEAN", False)
+    add_column_if_not_exists(engine, "cameras", "notify_health_apprise", "BOOLEAN", False)
 
     # Schedule
     days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
