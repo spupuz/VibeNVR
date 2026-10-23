@@ -37,7 +37,8 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | 🤖 **AI Object Detection** | High-performance inference with **YOLOv8** or MobileNet SSD v2. Support for **Google Coral Edge TPU** or CPU. Detects people, vehicles, animals, and filters by confidence. **NMS (Non-Maximum Suppression)** ensures clean detections. **New**: Real-time **AI Tracking Boxes** for WebCodecs streams. |
 | ✨ **Vision LLM Smart Captioning** | **NEW Two-Tier AI**: Asynchronously enriches confirmed events with concise natural language captions (e.g. "Delivery driver dropping package") via **OpenAI-compatible endpoints** or local **Ollama** (Llama 3.2 Vision, Moondream, Gemini Flash). Zero impact on stream FPS. |
 | 🛡️ **Universal AI Activation** | A global master switch allows for instant system-wide AI enabling/disabling. If OFF, AI models are not loaded, saving significant resources. Cameras automatically fallback to **OpenCV** detection with clear UI indicators. |
-| 🔍 **Descriptive AI Alerts** | Dynamic notifications including detected object labels (e.g., 🔍 Objects: Person, Vehicle) and confidence scores. |
+| 🔍 **Descriptive AI Alerts** | Dynamic notifications including detected object labels (e.g., 🔍 Objects: Person, Vehicle), Vision LLM captions, and confidence scores. |
+| 🔔 **Multi-Channel Alerts** | Built-in support for **Telegram**, **Email**, **Webhooks**, and **Apprise** (Discord, Pushover, Gotify, NTFY, Slack, etc.) with independent motion & health triggers, snapshot attachments, and confidential URL masking. |
 | 📅 **Event Timeline** | Unified browser for movie recordings and high-res snapshots with instant filters (Camera, Event Type, Objects, Date, Time). |
 | 🛡️ **Privacy Masking** | Permanent black-out zones burned into recordings. **Motion Zones** for exclusion masking. |
 | 🔑 **API Access Tokens** | Secure, read-only API tokens with **TTL (Expiration)** and hashed storage for 3rd party integrations. |

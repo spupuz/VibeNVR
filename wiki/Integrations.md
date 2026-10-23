@@ -97,6 +97,32 @@ If your NVR is on a restricted network or Telegram is blocked in your region, Vi
 
 ---
 
+## 🔔 Apprise Multi-Provider Notifications
+
+VibeNVR integrates [Apprise](https://github.com/caronc/apprise) to deliver alerts across **80+ notification services**, including **Discord, Pushover, Gotify, NTFY, Slack, Matrix, Microsoft Teams**, and more.
+
+### ✨ Highlights
+- **Global & Per-Camera Endpoints**: Define global default Apprise URLs in **Settings -> Notifications**, or override them per camera in the **Alerts** tab.
+- **Independent Triggers**: Configure alerts for motion/event start (`Send Apprise Alert on Start`) and camera health issues (`Notify Health via Apprise`) independently.
+- **Snapshot Attachments**: Automatically attach high-resolution event snapshot images to supported push providers. Controlled globally via **Attachment Defaults** and toggled per camera.
+- **AI Enrichment**: Automatically formats alerts with detected AI objects and Vision LLM descriptions (`ai_description`) when available.
+- **Confidential URL Masking**: The UI uses a secure `MaskedTextarea` component that hides sensitive webhook tokens and passwords by default, requiring an explicit toggle to view or edit.
+- **Instant Test Utility**: Test your Apprise configuration directly from the UI via the **Test Apprise** button before saving.
+
+### ⚙️ Setup & URL Format
+Apprise supports newline-separated or comma-separated service URLs:
+
+```text
+discord://webhook_id/webhook_token
+pover://user@token
+gotify://hostname/token
+ntfy://ntfy.sh/topic
+slack://TokenA/TokenB/TokenC
+```
+
+> [!TIP]
+> For a full list of supported schemes, parameters, and syntax examples, see the [Apprise Wiki](https://github.com/caronc/apprise/wiki).
+
 ---
 
 ## 🛠️ REST API

@@ -28,7 +28,7 @@ Users can selectively pick which categories of settings to propagate. The availa
 *   **Privacy Masks**: Black-out polygons used for legal/privacy shielding.
 *   **Motion Zones**: Exclusion areas where motion is ignored.
 *   **Snapshots**: Frequency and quality for still images.
-*   **Alerts/Notifications**: Telegram, Email, and Webhook dispatch settings.
+*   **Alerts/Notifications**: Telegram, Email, Webhook, and Apprise dispatch settings (including health alerts and snapshot attachments).
 *   **Overlay (OSD)**: Timestamp and text overlays on the video stream.
 *   **Storage Routing**: Assignment of Primary, Motion, Continuous, Snapshot, and Archive Storage Profiles.
 *   **Advanced/Schedule**: Weekly schedules and other low-level system flags.

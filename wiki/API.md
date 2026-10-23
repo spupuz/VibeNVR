@@ -459,6 +459,26 @@ Trigger a manual storage cleanup. This endpoint allows for granular purging of m
   }
   ```
 
+#### **POST** `/settings/test-notify`
+Send a synchronous test notification across configured channels (`email`, `telegram`, `webhook`, `apprise`) (Admin only).
+- **Auth Required**: Admin privileges (Bearer JWT or API Key).
+- **Payload Example (`apprise`)**:
+  ```json
+  {
+    "channel": "apprise",
+    "settings": {
+      "notify_apprise_urls": "discord://webhook_id/webhook_token\npover://user@token"
+    }
+  }
+  ```
+- **Response Example**:
+  ```json
+  {
+    "status": "success",
+    "message": "Test Apprise notification sent to 2 destination(s)"
+  }
+  ```
+
 #### **POST** `/settings/test-vision-llm`
 Test connectivity and inference to an OpenAI-compatible Vision LLM endpoint (Admin only).
 - **Auth Required**: Admin privileges (Bearer JWT or API Key).
@@ -489,6 +509,10 @@ Commonly used keys for `/settings/{key}`:
 - `mqtt_topic_prefix`: Root topic (Default: `vibenvr`)
 - `telemetry_enabled`: (`true`/`false`)
 - `notify_webhook_url`: Global endpoint for notifications
+- `notify_apprise_urls`: Global Apprise notification URLs (separated by newlines or commas)
+- `global_attach_image_apprise`: (`true`/`false`) Default behavior for image attachments in Apprise notifications
+- `global_attach_image_telegram`: (`true`/`false`) Default behavior for image attachments in Telegram notifications
+- `global_attach_image_email`: (`true`/`false`) Default behavior for image attachments in Email notifications
 - `ai_enabled`: (`true`/`false`) Master AI activation switch.
 - `ai_model`: (`YOLOv8`/`MobileNet SSD v2`) Global detection model.
 - `ai_hardware`: (`auto`/`cpu`/`tpu`) Global hardware preference.

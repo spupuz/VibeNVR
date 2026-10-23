@@ -34,7 +34,7 @@ The telemetry report contains only technical and aggregate usage metrics:
 | **Features** | `mqtt_active` | `True` | Whether the Native MQTT Service is enabled. |
 | **Features** | `onvif_count` | `3` | Total number of cameras with ONVIF configured. |
 | **Features** | `substream_count`| `2` | Total number of cameras using sub-streams. |
-| **Status** | `notifications` | `True` | Whether any notification channel (Telegram, Email, Webhook) is configured. |
+| **Status** | `notifications` | `True` | Whether any notification channel (Telegram, Email, Webhook, Apprise) is configured. |
 
 ---
 
