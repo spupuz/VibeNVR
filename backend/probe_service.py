@@ -30,6 +30,17 @@ def probe_stream(rtsp_url: str, rtsp_transport: str = "tcp"):
     Probes the RTSP stream using ffprobe to detect resolution.
     Returns a dict with 'width' and 'height', or None if failed.
     """
+    import utils
+    from urllib.parse import urlparse
+    try:
+        parsed = urlparse(rtsp_url)
+        if not utils.is_safe_host(parsed.hostname):
+            logger.error(f"Unsafe RTSP host blocked: {parsed.hostname}")
+            return None
+    except Exception as e:
+        logger.error(f"Invalid RTSP URL: {e}")
+        return None
+
     cmd = [
         "ffprobe",
         "-v", "quiet",
