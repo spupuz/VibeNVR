@@ -74,8 +74,8 @@ export const CopySettingsModal = ({
                                 ))}
                             </div>
                             <div className="flex gap-2 mt-2">
-                                <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id))}>{t('cameras.select_all', 'Select All')}</button>
-                                <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setSelectedCategories([])}>{t('cameras.clear', 'Clear')}</button>
+                                <button type="button" aria-label={t('cameras.select_all_categories', 'Select all categories')} className="text-[10px] uppercase font-bold text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id))}>{t('cameras.select_all', 'Select All')}</button>
+                                <button type="button" aria-label={t('cameras.clear_categories', 'Clear categories')} className="text-[10px] uppercase font-bold text-muted-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setSelectedCategories([])}>{t('cameras.clear', 'Clear')}</button>
                             </div>
                         </div>
 
@@ -123,8 +123,8 @@ export const CopySettingsModal = ({
                                 )}
                             </div>
                             <div className="flex gap-2 mt-2">
-                                <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setCopyTargets(cameras.filter(c => c.id !== editingId).map(c => c.id))}>{t('cameras.select_all', 'Select All')}</button>
-                                <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setCopyTargets([])}>{t('cameras.clear', 'Clear')}</button>
+                                <button type="button" aria-label={t('cameras.select_all_targets', 'Select all target cameras')} className="text-[10px] uppercase font-bold text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setCopyTargets(cameras.filter(c => c.id !== editingId).map(c => c.id))}>{t('cameras.select_all', 'Select All')}</button>
+                                <button type="button" aria-label={t('cameras.clear_targets', 'Clear target cameras')} className="text-[10px] uppercase font-bold text-muted-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setCopyTargets([])}>{t('cameras.clear', 'Clear')}</button>
                             </div>
                         </div>
                     </div>

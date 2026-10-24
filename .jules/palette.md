@@ -16,3 +16,6 @@
 ## 2025-02-18 - Add contextual aria-labels to custom checkboxes
 **Learning:** Custom interactive elements (like `div`s with `role="checkbox"`) that represent dynamic items in a list (e.g. "Select event", "Select group") should use a contextual `aria-label` (e.g. "Select event at 12:34 PM"). A generic, static label causes screen readers to repeat identical text for every item on the page.
 **Action:** When creating custom form controls (like `div role="checkbox"`) inside a repeated component like a list or card grid, always dynamically interpolate a unique identifier (like the item name or time) into the `aria-label` attribute via translation functions.
+## 2026-10-24 - Add aria-label and type=button to generic action buttons
+**Learning:** When using generic text buttons (like "Select All" or "Clear") inside modals that apply to specific contexts (e.g., categories vs target cameras), screen readers need additional context to distinguish between them, and generic buttons outside explicit forms should always specify `type="button"` to prevent unexpected submit behaviors if wrapped in a form later.
+**Action:** Always add descriptive, context-specific `aria-label` attributes and explicit `type="button"` attributes to generic action buttons in React components to improve accessibility and component robustness.
