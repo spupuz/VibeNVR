@@ -74,8 +74,8 @@ export const CopySettingsModal = ({
                                 ))}
                             </div>
                             <div className="flex gap-2 mt-2">
-                                <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id))}>{t('cameras.select_all', 'Select All')}</button>
-                                <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setSelectedCategories([])}>{t('cameras.clear', 'Clear')}</button>
+                                <button type="button" className="text-[10px] uppercase font-bold text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setSelectedCategories(CAMERA_SETTINGS_CATEGORIES.map(c => c.id))}>{t('cameras.select_all', 'Select All')}</button>
+                                <button type="button" className="text-[10px] uppercase font-bold text-muted-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setSelectedCategories([])}>{t('cameras.clear', 'Clear')}</button>
                             </div>
                         </div>
 
@@ -123,20 +123,20 @@ export const CopySettingsModal = ({
                                 )}
                             </div>
                             <div className="flex gap-2 mt-2">
-                                <button className="text-[10px] uppercase font-bold text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setCopyTargets(cameras.filter(c => c.id !== editingId).map(c => c.id))}>{t('cameras.select_all', 'Select All')}</button>
-                                <button className="text-[10px] uppercase font-bold text-muted-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setCopyTargets([])}>{t('cameras.clear', 'Clear')}</button>
+                                <button type="button" className="text-[10px] uppercase font-bold text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setCopyTargets(cameras.filter(c => c.id !== editingId).map(c => c.id))}>{t('cameras.select_all', 'Select All')}</button>
+                                <button type="button" className="text-[10px] uppercase font-bold text-muted-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm px-0.5" onClick={() => setCopyTargets([])}>{t('cameras.clear', 'Clear')}</button>
                             </div>
                         </div>
                     </div>
 
                     <div className="flex justify-end space-x-3 mt-8 pt-4 border-t border-border">
-                        <Button
+                        <Button type="button"
                             variant="ghost"
                             onClick={() => { setShowCopyModal(false); setCopyTargets([]); }}
                         >
                             Cancel
                         </Button>
-                        <Button
+                        <Button type="button"
                             onClick={handleCopy}
                             disabled={copyTargets.length === 0 || selectedCategories.length === 0}
                             className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20"

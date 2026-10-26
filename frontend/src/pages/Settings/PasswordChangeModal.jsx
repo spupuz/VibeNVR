@@ -21,7 +21,7 @@ export const PasswordChangeModal = ({
                         <Key className="w-5 h-5 text-primary" />
                         {pwdTargetUser ? `Change Password: ${pwdTargetUser.username}` : 'Change Password'}
                     </h3>
-                    <button
+                    <button type="button"
                         onClick={onClose}
                         className="text-muted-foreground hover:text-foreground transition-colors"
                         aria-label="Close"

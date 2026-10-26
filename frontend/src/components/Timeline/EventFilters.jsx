@@ -150,7 +150,7 @@ export const EventFilters = React.memo(({
             </div>
 
             {/* Reset Button */}
-            <button
+            <button type="button"
                 onClick={onReset}
                 className={`flex items-center space-x-1.5 px-3 py-2 border rounded-xl text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
                 ${selectedDate === new Date().toLocaleDateString('en-CA') && selectedCameraFilter === 'all' && selectedTypeFilter === 'all' && selectedObjectFilter === 'all' && selectedEventTypeFilter === 'all'
@@ -163,7 +163,7 @@ export const EventFilters = React.memo(({
 
             {/* Selected Hour Active Filter */}
             {selectedHour !== null && (
-                <button
+                <button type="button"
                     onClick={() => setSelectedHour(null)}
                     className="px-3 py-2 text-sm bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                     aria-label={`Clear hour filter for ${selectedHour}:00`}

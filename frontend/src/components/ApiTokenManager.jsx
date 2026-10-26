@@ -134,7 +134,7 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                     <p className="text-sm text-muted-foreground">{t('timeline.manage_tokens_for_externa', 'Manage tokens for external tools like Homepage')}</p>
                 </div>
                 {!createdToken && (
-                    <Button
+                    <Button type="button"
                         onClick={() => setIsCreating(!isCreating)}
                         variant={isCreating ? "ghost" : "default"}
                         className="w-full sm:w-auto h-11 sm:h-9 font-bold px-6"
@@ -155,11 +155,11 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                             </p>
                             <div className="flex items-center gap-2 mt-3 bg-background p-2 rounded border border-border">
                                 <code className="flex-1 font-mono text-sm break-all">{createdToken.token}</code>
-                                <Button size="sm" variant="ghost" title={t('common.copy', 'Copy')} aria-label={t('common.copy', 'Copy')} onClick={() => copyToClipboard(createdToken.token)}>
+                                <Button type="button" size="sm" variant="ghost" title={t('common.copy', 'Copy')} aria-label={t('common.copy', 'Copy')} onClick={() => copyToClipboard(createdToken.token)}>
                                     <Copy className="w-4 h-4" />
                                 </Button>
                             </div>
-                            <Button
+                            <Button type="button"
                                 className="mt-4"
                                 size="sm"
                                 variant="outline"
@@ -244,7 +244,7 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                                         </span>
                                     </td>
                                     <td className="p-3 text-right">
-                                        <button
+                                        <button type="button"
                                             onClick={() => setConfirmDelete({ isOpen: true, tokenId: apiToken.id })}
                                             className="p-2 hover:bg-red-100 text-red-500 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center ml-auto"
                                             title={t('settings_apitokensettings.revoke_token', 'Revoke Token')}
@@ -281,7 +281,7 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                                         </span>
                                     )}
                                 </div>
-                                <button
+                                <button type="button"
                                     onClick={() => setConfirmDelete({ isOpen: true, tokenId: apiToken.id })}
                                     className="p-3 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors min-w-[44px] min-h-[44px]"
                                     title={t('settings_apitokensettings.revoke_token', 'Revoke Token')}

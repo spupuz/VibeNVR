@@ -150,7 +150,7 @@ export const StorageProfileManager = () => {
                         <p className="text-xs text-muted-foreground italic leading-tight break-words">{t('timeline.map_recordings_to_differe', 'Map recordings to different host volumes (e.g., SSD for motion, NAS for long-term storage).')}</p>
                     </div>
                 </div>
-                <Button 
+                <Button type="button"
                     variant={isCreating ? "ghost" : "default"} 
                     size="sm" 
                     onClick={() => {
@@ -289,10 +289,10 @@ export const StorageProfileManager = () => {
                             {p.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{p.description}</p>}
                         </div>
                         <div className="flex items-center gap-1 sm:opacity-0 group-hover:opacity-100 transition-opacity self-end sm:self-auto">
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(p)} className="h-10 w-10 text-muted-foreground hover:text-primary" title={t('actions.edit', 'Edit')} aria-label={t('actions.edit', 'Edit')}>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => handleEdit(p)} className="h-10 w-10 text-muted-foreground hover:text-primary" title={t('actions.edit', 'Edit')} aria-label={t('actions.edit', 'Edit')}>
                                 <Edit className="w-5 h-5" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)} className="h-10 w-10 text-red-400 hover:text-red-500 hover:bg-red-50" title={t('actions.delete', 'Delete')} aria-label={t('actions.delete', 'Delete')}>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => handleDelete(p.id)} className="h-10 w-10 text-red-400 hover:text-red-500 hover:bg-red-50" title={t('actions.delete', 'Delete')} aria-label={t('actions.delete', 'Delete')}>
                                 <Trash2 className="w-5 h-5" />
                             </Button>
                         </div>

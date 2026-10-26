@@ -168,7 +168,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isAudi
     };
 
     const ControlButton = ({ icon: Icon, onClickStart, action, className = "" }) => (
-        <button
+        <button type="button"
             onPointerDown={(e) => {
                 // Ensure we don't trigger context menus or scroll on hold
                 if (e.pointerType === 'touch') e.target.releasePointerCapture(e.pointerId);
@@ -195,7 +195,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isAudi
             {/* Top Left Audio Controls */}
             {camera.audio_enabled && (
                 <div className="absolute top-2 left-2 z-[110] pointer-events-auto">
-                    <button
+                    <button type="button"
                         onClick={() => isAudioSupported && onToggleAudio(camera.id)}
                         onContextMenu={(e) => e.preventDefault()}
                         disabled={!isAudioSupported}
@@ -222,7 +222,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isAudi
 
             {/* Close Button */}
             {onClose && (
-                <button
+                <button type="button"
                     onClick={onClose}
                     onContextMenu={(e) => e.preventDefault()}
                     className="absolute top-2 right-2 z-[110] p-2 bg-background/80 hover:bg-red-500 hover:text-white rounded-full border border-border shadow-xl pointer-events-auto transition-all active:scale-90"
@@ -247,7 +247,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isAudi
                         <div className="relative w-40 h-40 pointer-events-auto">
                             {/* Center Stop Button */}
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-                                <button 
+                                <button type="button"
                                     onClick={stopPTZ}
                                     onContextMenu={(e) => e.preventDefault()}
                                     className="p-3 rounded-full bg-red-500 text-white shadow-xl hover:bg-red-600 transition-colors select-none flex items-center justify-center"
@@ -299,7 +299,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isAudi
                         {/* Preset Dropdown Menu */}
                         {presets.length > 0 && (
                             <div className="relative">
-                                <button
+                                <button type="button"
                                     onClick={() => setShowPresets(!showPresets)}
                                     className={`p-2 rounded-full border shadow-lg transition-all active:scale-95 flex items-center justify-center
                                         ${showPresets 
@@ -316,7 +316,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isAudi
                                     <div className="absolute bottom-full left-0 mb-2 w-32 bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-2 duration-200">
                                         <div className="p-1 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20">
                                             {presets.map((preset) => (
-                                                <button
+                                                <button type="button"
                                                     key={preset.token}
                                                     onClick={() => {
                                                         gotoPreset(preset.token, preset.name);
@@ -339,7 +339,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isAudi
 
                         {canPanTilt && canHome && (
                             <div className="flex flex-col gap-2">
-                                <button 
+                                <button type="button"
                                     onClick={gotoHome}
                                     disabled={isGoingHome}
                                     onContextMenu={(e) => e.preventDefault()}
@@ -349,7 +349,7 @@ export const PTZControls = ({ camera, onClose, isAuditing, onToggleAudio, isAudi
                                 >
                                     {isGoingHome ? <Loader2 className="w-4 h-4 animate-spin" /> : <Home className="w-4 h-4" />}
                                 </button>
-                                <button 
+                                <button type="button"
                                     onClick={setHome}
                                     disabled={isSettingHome || isGoingHome}
                                     onContextMenu={(e) => e.preventDefault()}

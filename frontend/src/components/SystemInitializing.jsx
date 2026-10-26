@@ -87,7 +87,7 @@ export const SystemInitializing = () => {
                     </div>
 
                     <div className="pt-2">
-                        <button
+                        <button type="button"
                             onClick={handleRetry}
                             disabled={retrying}
                             className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-50 shadow-lg shadow-primary/20 group"

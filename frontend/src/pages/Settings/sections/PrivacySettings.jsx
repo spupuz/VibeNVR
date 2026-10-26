@@ -60,7 +60,7 @@ export const PrivacySettings = ({
 
                         {globalSettings.telemetry_enabled && (
                             <div className="pt-4 border-t border-border/50 flex flex-col gap-2">
-                                <Button
+                                <Button type="button"
                                     onClick={handleManualTelemetry}
                                     disabled={isReportingTelemetry}
                                     variant="outline"

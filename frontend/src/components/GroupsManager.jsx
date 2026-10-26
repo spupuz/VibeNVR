@@ -232,7 +232,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                 </h3>
                 <div className="flex items-center gap-4">
                     {user?.role === 'admin' && groups.length > 0 && (
-                        <button
+                        <button type="button"
                             onClick={handleSelectAllGroups}
                             aria-label={selectedGroupIds.length === groups.length ? t('timeline.deselect_all', 'Deselect All') : t('timeline.select_all', 'Select All')}
                             className="flex items-center justify-center space-x-2 bg-muted hover:bg-secondary text-foreground px-3 h-8 rounded-lg transition-all whitespace-nowrap text-xs font-bold border border-border shadow-sm active:scale-95"
@@ -244,7 +244,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                         </button>
                     )}
                     {user?.role === 'admin' && (
-                        <button
+                        <button type="button"
                             onClick={() => setShowCreateModal(true)}
                             className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
                         >
@@ -346,7 +346,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                             {/* Left Action: Copy Settings */}
                             <div>
                                 {user?.role === 'admin' && (
-                                    <button
+                                    <button type="button"
                                         onClick={() => setCopyingGroup(group)}
                                         aria-label={t('timeline.copy_settings', 'Copy Settings')}
                                         className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
@@ -362,7 +362,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                             <div className="flex space-x-2">
                                 {user?.role === 'admin' && (
                                     <>
-                                        <button
+                                        <button type="button"
                                             onClick={() => openManageModal(group)}
                                             className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                                             title={t('timeline.edit_group', 'Edit Group')}
@@ -370,7 +370,7 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                                         >
                                             <Edit className="w-5 h-5" />
                                         </button>
-                                        <button
+                                        <button type="button"
                                             onClick={() => handleDeleteGroup(group.id)}
                                             className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                                             title={t('timeline.delete_group', 'Delete Group')}
@@ -462,8 +462,8 @@ export const GroupsManager = ({ cameras, onUpdate }) => {
                             })()}
                         </div>
                         <div className="flex justify-end space-x-2 pt-4 border-t border-border">
-                            <button onClick={() => setManagingGroup(null)} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">{t('timeline.cancel', 'Cancel')}</button>
-                            <button onClick={saveGroupCameras} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">{t('timeline.save_changes', 'Save Changes')}</button>
+                            <button type="button" onClick={() => setManagingGroup(null)} className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">{t('timeline.cancel', 'Cancel')}</button>
+                            <button type="button" onClick={saveGroupCameras} className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">{t('timeline.save_changes', 'Save Changes')}</button>
                         </div>
                     </div>
                 </div>

@@ -731,7 +731,7 @@ export const Settings = () => {
 
             {user?.role === 'admin' && (
                 <div className="fixed bottom-6 inset-x-5 sm:inset-x-auto sm:right-8 z-50 flex justify-center sm:justify-end pointer-events-none">
-                    <button
+                    <button type="button"
                         onClick={() => handleSave()}
                         className="pointer-events-auto h-12 flex items-center justify-center space-x-3 bg-primary text-primary-foreground px-10 rounded-xl hover:bg-primary/90 transition-all active:scale-95 font-bold text-base shadow-2xl shadow-primary/30 border border-primary/20 ring-4 ring-background/50 backdrop-blur-sm"
                     >

@@ -125,7 +125,7 @@ export const Logs = () => {
                     </h2>
                     <p className="text-muted-foreground mt-1">{t('logs.subtitle', 'View and analyze system activity.')}</p>
                 </div>
-                <button
+                <button type="button"
                     onClick={handleDownload}
                     className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-all shadow-sm"
                 >
@@ -178,7 +178,7 @@ export const Logs = () => {
                 </div>
 
                 <div className="flex items-center gap-2 ml-auto">
-                    <button
+                    <button type="button"
                         onClick={() => setAutoScroll(!autoScroll)}
                         className={`p-2 rounded-md border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${autoScroll ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-background border-border text-muted-foreground'}`}
                         title={autoScroll ? t('logs.pause_scroll', 'Pause Auto-scroll') : t('logs.resume_scroll', 'Resume Auto-scroll')}
@@ -186,7 +186,7 @@ export const Logs = () => {
                     >
                         {autoScroll ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                     </button>
-                    <button
+                    <button type="button"
                         onClick={fetchLogs}
                         className="p-2 rounded-md hover:bg-accent text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                         title={t('logs.refresh_now', 'Refresh Now')}
@@ -194,7 +194,7 @@ export const Logs = () => {
                     >
                         <RefreshCw className="w-4 h-4" />
                     </button>
-                    <button
+                    <button type="button"
                         onClick={() => setShowSettings(true)}
                         className="p-2 rounded-md hover:bg-accent text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                         title={t('logs.log_rotation_settings', 'Log Rotation Settings')}
@@ -374,13 +374,13 @@ const LogSettingsModal = ({ isOpen, onClose, token, showToast }) => {
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">
-                    <button
+                    <button type="button"
                         onClick={onClose}
                         className="px-4 py-2 rounded text-sm font-medium hover:bg-accent"
                     >
                         {t('logs.cancel', 'Cancel')}
                     </button>
-                    <button
+                    <button type="button"
                         onClick={handleSave}
                         disabled={loading}
                         className="px-4 py-2 rounded text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"

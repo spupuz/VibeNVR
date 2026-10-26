@@ -37,7 +37,7 @@ export const BulkActionBar = React.memo(({
                 </div>
                 
                 <div className="flex-1 flex items-center justify-end gap-1 sm:gap-4">
-                    <button
+                    <button type="button"
                         onClick={handleSelectAll}
                         aria-label={selectedIds.size === filteredEvents.length ? t('timeline.deselect_all', 'Deselect All') : t('timeline.select_all', 'Select All')}
                         className="px-1.5 py-1.5 hover:bg-white/10 rounded-xl transition-colors flex items-center gap-1 sm:gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
@@ -55,7 +55,7 @@ export const BulkActionBar = React.memo(({
                         )}
                     </button>
                     
-                    <button
+                    <button type="button"
                         onClick={() => setSelectedIds(new Set())}
                         title={t('common.cancel', 'Cancel')}
                         aria-label={t('timeline.cancel_selection', 'Cancel selection')}
@@ -66,7 +66,7 @@ export const BulkActionBar = React.memo(({
                     </button>
                     
                     {user?.role === 'admin' && (
-                        <button
+                        <button type="button"
                             onClick={handleBulkDelete}
                             disabled={isBulkDeleting}
                             aria-label={t('timeline.delete_selected_items', `Delete {{count}} selected items`, { count: selectedIds.size })}

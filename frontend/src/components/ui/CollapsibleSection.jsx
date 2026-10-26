@@ -4,7 +4,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 export const CollapsibleSection = ({ title, description, icon, isOpen, onToggle, children, id }) => {
     return (
         <div className="bg-card border border-border rounded-xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md">
-            <button
+            <button type="button"
                 onClick={() => onToggle(id)}
                 aria-expanded={isOpen}
                 aria-controls={id ? `${id}-content` : undefined}
