@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Key, Plus, Trash2, Copy, AlertTriangle, Check } from 'lucide-react';
 import { Button } from './ui/Button';
+import { CopyButton } from './ui/CopyButton';
 import { CollapsibleSection } from './ui/CollapsibleSection';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -86,39 +87,6 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
         }
     };
 
-    const copyToClipboard = (text) => {
-        // Fallback for non-secure contexts (HTTP)
-        const fallbackCopy = (textToCopy) => {
-            const textArea = document.createElement("textarea");
-            textArea.value = textToCopy;
-            textArea.style.position = "fixed";
-            textArea.style.left = "-999999px";
-            textArea.style.top = "-999999px";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                showToast('Token copied to clipboard', 'success');
-            } catch (err) {
-                console.error('Fallback copy failed', err);
-                showToast('Failed to copy token', 'error');
-            }
-            document.body.removeChild(textArea);
-        };
-
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text)
-                .then(() => showToast('Token copied to clipboard', 'success'))
-                .catch(err => {
-                    console.error('Clipboard API failed', err);
-                    fallbackCopy(text);
-                });
-        } else {
-            fallbackCopy(text);
-        }
-    };
-
     return (
         <CollapsibleSection
             id="api-tokens"
@@ -155,9 +123,7 @@ export const ApiTokenManager = ({ isOpen, onToggle }) => {
                             </p>
                             <div className="flex items-center gap-2 mt-3 bg-background p-2 rounded border border-border">
                                 <code className="flex-1 font-mono text-sm break-all">{createdToken.token}</code>
-                                <Button size="sm" variant="ghost" title={t('common.copy', 'Copy')} aria-label={t('common.copy', 'Copy')} onClick={() => copyToClipboard(createdToken.token)}>
-                                    <Copy className="w-4 h-4" />
-                                </Button>
+                                <CopyButton textToCopy={createdToken.token} />
                             </div>
                             <Button
                                 className="mt-4"
