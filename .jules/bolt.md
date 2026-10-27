@@ -33,3 +33,7 @@
 **Learning:** When defining a Pydantic schema for a partial or bulk update operation, inheriting directly from a base schema with required fields causes 422 validation failures when the frontend sends a subset of keys. Furthermore, using `Dict[str, Any]` bypasses validation entirely and creates Mass Assignment risks.
 **Action:** Always define a strict Pydantic update schema where all modifiable fields are explicitly marked as `Optional` and use `.model_dump(exclude_unset=True)` (or `.dict()` in v1) to safely extract only the provided fields for updates.
 
+
+## 2025-02-20 - Fast Comm-Separated Parsing
+**Learning:** Chained array methods (`split(',').map().filter()`) created a performance bottleneck during rendering loops for events due to O(N) intermediate array allocations.
+**Action:** Always refactor string parsing logic in frequently rendered lists to a single-pass loop or regex to minimize garbage collection overhead in React.

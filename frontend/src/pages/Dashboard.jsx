@@ -7,6 +7,7 @@ import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, Cartesia
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { parseAILabels } from '../utils/aiUtils';
 import { useTranslation } from 'react-i18next';
 import { FederationSummaryWidget } from '../components/widgets/FederationSummaryWidget';
 
@@ -711,9 +712,8 @@ export const Dashboard = () => {
                                 let aiLabels = [];
                                 try {
                                     if (evt.ai_metadata) {
-                                        // VibeNVR stores labels as a comma-separated string
-                                        const rawLabels = evt.ai_metadata.split(',').map(l => l.trim().toLowerCase()).filter(l => l);
-                                        aiLabels = [...new Set(rawLabels)];
+                                        // ⚡ Bolt: Optimization - Use fast single-pass string parser to prevent O(N) array allocations inside render loop
+                                        aiLabels = parseAILabels(evt.ai_metadata);
                                     }
                                 } catch (e) { console.error("AI parse error", e); }
 

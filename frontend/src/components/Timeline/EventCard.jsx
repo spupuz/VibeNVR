@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Video, Image as ImageIcon, Download, Trash2, Camera, HardDrive, Brain, CloudOff, Sparkles } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { parseAILabels } from '../../utils/aiUtils';
 
 /**
  * Individual Event Card Component
@@ -190,7 +191,8 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
                     )}
                     {event.ai_metadata && (
                         <div className="flex flex-wrap gap-1 mt-1">
-                            {[...new Set(event.ai_metadata.split(',').map(l => l.trim().toLowerCase()).filter(l => l))].map((label, idx) => (
+                            {/* ⚡ Bolt: Optimization - Use fast single-pass string parser to prevent O(N) array allocations inside render loop */}
+                            {parseAILabels(event.ai_metadata).map((label, idx) => (
                                 <div 
                                     key={idx} 
                                     className="flex items-center gap-0.5 px-1 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-[9px] font-bold uppercase border border-blue-500/20 shadow-sm"
