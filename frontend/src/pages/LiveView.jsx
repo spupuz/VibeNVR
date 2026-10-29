@@ -234,7 +234,7 @@ const VideoPlayer = ({
 
             {/* EXIT FULLSCREEN BUTTON */}
             {isFullscreen && (
-                <button
+                <button type="button"
                     onClick={handleExitFullscreen}
                     className="absolute top-4 right-4 z-[60] p-3 bg-black/70 hover:bg-black/90 text-white rounded-full shadow-2xl backdrop-blur-sm transition-all active:scale-90 border border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     title="Exit Fullscreen" aria-label={t('live.exit_fullscreen', 'Exit Fullscreen')}
@@ -323,10 +323,10 @@ const VideoPlayer = ({
             {!showPTZ && (
                 <div className="absolute inset-x-0 bottom-0 p-2 z-40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex justify-center pointer-events-none">
                     <div className="flex items-center gap-0.5 sm:gap-1 bg-black/80 backdrop-blur-xl p-1 rounded-xl border border-white/10 shadow-3xl pointer-events-auto max-w-full overflow-hidden">
-                        <button onClick={() => onFocus(camera.id)} className={`p-1 rounded-md text-white transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isFocused ? 'bg-primary' : 'hover:bg-white/10'}`} title="Focus" aria-label={t('live.focus', 'Focus')}>
+                        <button type="button" onClick={() => onFocus(camera.id)} className={`p-1 rounded-md text-white transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isFocused ? 'bg-primary' : 'hover:bg-white/10'}`} title="Focus" aria-label={t('live.focus', 'Focus')}>
                             <Square className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </button>
-                        <button onClick={handleFullscreen} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title="Fullscreen" aria-label={t('live.fullscreen', 'Fullscreen')}>
+                        <button type="button" onClick={handleFullscreen} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title="Fullscreen" aria-label={t('live.fullscreen', 'Fullscreen')}>
                             <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </button>
 
@@ -335,7 +335,7 @@ const VideoPlayer = ({
                         )}
 
                         {user?.role === 'admin' && (
-                            <button onClick={() => {
+                            <button type="button" onClick={() => {
                                 fetch(`${getApiBase()}/cameras/${camera.id}/snapshot`, {
                                     method: 'POST',
                                     headers: { Authorization: `Bearer ${token}` }
@@ -346,10 +346,10 @@ const VideoPlayer = ({
                         )}
                         {hasPermission(camera, 'can_replay') && (
                             <>
-                                <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=snapshot`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title="Gallery" aria-label={t('live.gallery', 'Gallery')}>
+                                <button type="button" onClick={() => navigate(`/timeline?camera=${camera.id}&type=snapshot`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title="Gallery" aria-label={t('live.gallery', 'Gallery')}>
                                     <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                 </button>
-                                <button onClick={() => navigate(`/timeline?camera=${camera.id}&type=video`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title="Videos" aria-label={t('live.videos', 'Videos')}>
+                                <button type="button" onClick={() => navigate(`/timeline?camera=${camera.id}&type=video`)} className="p-1 text-white hover:bg-white/10 rounded-md transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title="Videos" aria-label={t('live.videos', 'Videos')}>
                                     <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                 </button>
                             </>
@@ -360,7 +360,7 @@ const VideoPlayer = ({
                         )}
 
                         {user?.role === 'admin' && (
-                            <button
+                            <button type="button"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     onToggleRecording(camera);
@@ -374,7 +374,7 @@ const VideoPlayer = ({
                         )}
 
                         {hasPermission(camera, 'can_control') && (
-                            <button
+                            <button type="button"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setShowPTZ(!showPTZ);
@@ -387,7 +387,7 @@ const VideoPlayer = ({
                             </button>
                         )}
                         {user?.role === 'admin' && (
-                            <button onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1 text-primary-foreground bg-primary hover:bg-primary/80 rounded-md transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title="Settings" aria-label={t('common.settings', 'Settings')}>
+                            <button type="button" onClick={() => navigate(`/cameras?edit=${camera.id}`)} className="p-1 text-primary-foreground bg-primary hover:bg-primary/80 rounded-md transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title="Settings" aria-label={t('common.settings', 'Settings')}>
                                 <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             </button>
                         )}
@@ -684,7 +684,7 @@ export const LiveView = () => {
                     </div>
 
                     {focusCameraId && (
-                        <button onClick={() => setFocusCameraId(null)} className="text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded px-1">
+                        <button type="button" onClick={() => setFocusCameraId(null)} className="text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded px-1">
                             {t('live.show_all', 'Show All')}
                         </button>
                     )}
@@ -711,7 +711,7 @@ export const LiveView = () => {
                             </label>
                         </div>
                     </div>
-                    <button 
+                    <button type="button"
                         onClick={dismissInsecureWarning}
                         className="p-2 hover:bg-yellow-500/20 rounded-md transition-colors flex-shrink-0 self-start sm:self-auto"
                         title={t('common.dismiss', 'Dismiss')}

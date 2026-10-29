@@ -120,7 +120,7 @@ export const EventCard = React.memo(({ event, onClick, camera, isSelected, isMul
 
                     {/* Delete */}
                     {user?.role === 'admin' && (
-                        <button
+                        <button type="button"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onDelete(event.id);

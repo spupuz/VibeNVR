@@ -48,3 +48,7 @@
 **Vulnerability:** Server-Side Request Forgery (SSRF) allowed probing of internal/restricted IPs via ffprobe in the RTSP probe service by directly executing `ffprobe` on user-provided `rtsp_url` without hostname validation.
 **Learning:** Even when delegating URL handling to external processes like `ffprobe`, the backend must perform full hostname validation first, as these tools have complex capabilities and network stacks that can reach internal interfaces. Pydantic validators on requests do not always catch sophisticated workarounds (e.g. integer IP formats or DNS rebinding) if they don't explicitly enforce full blocklists on resolved IPs.
 **Prevention:** Always validate URLs against `utils.is_safe_host()` or similar logic which resolves the hostname and blocks link-local, loopback, and multicast ranges before passing them to internal tools or external systems.
+## 2024-10-24 - Fix SSRF Vulnerability in query_vision_llm
+**Vulnerability:** Server-Side Request Forgery (SSRF). An unvalidated `base_url` parameter could be passed to the LLM enricher service, potentially exposing internal services or AWS metadata to external probing.
+**Learning:** The URL parameter `base_url` for outgoing requests must always be validated against SSRF, even in seemingly internal-facing utilities.
+**Prevention:** Enforce usage of `utils.is_safe_webhook_url()` (or `utils.is_safe_host()`) for all dynamically constructed outgoing HTTP requests.

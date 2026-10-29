@@ -72,7 +72,7 @@ const Toast = ({ message, type, onClose }) => {
             <div className="flex-1 text-sm font-medium text-foreground">
                 {message}
             </div>
-            <button
+            <button type="button"
                 onClick={onClose}
                 className="p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-muted-foreground transition-colors"
                 aria-label="Close"

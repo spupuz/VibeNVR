@@ -142,7 +142,7 @@ export const CameraCard = memo(({ camera, onDelete, onEdit, onToggleActive, isSe
             <div className="flex justify-end p-4 bg-muted/10 border-t border-border space-x-2">
                 {user?.role === 'admin' && (
                     <>
-                        <button
+                        <button type="button"
                             aria-label={t('camera.export_name', { defaultValue: 'Export {{name}} settings', name: camera.name })}
                             onClick={async () => {
                                 try {
@@ -179,7 +179,7 @@ export const CameraCard = memo(({ camera, onDelete, onEdit, onToggleActive, isSe
                         >
                             <Download className="w-5 h-5" />
                         </button>
-                        <button
+                        <button type="button"
                             aria-label={t('camera.edit_name', { defaultValue: 'Edit {{name}}', name: camera.name })}
                             onClick={() => onEdit(camera)}
                             className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
@@ -187,7 +187,7 @@ export const CameraCard = memo(({ camera, onDelete, onEdit, onToggleActive, isSe
                         >
                             <Edit className="w-5 h-5" />
                         </button>
-                        <button
+                        <button type="button"
                             aria-label={t('camera.delete_name', { defaultValue: 'Delete {{name}}', name: camera.name })}
                             onClick={() => onDelete(camera.id)}
                             className="p-2 hover:bg-red-50 dark:hover:bg-red-900/40 text-muted-foreground hover:text-red-500 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
