@@ -102,7 +102,7 @@ export const FederationSummaryWidget = () => {
                                 </div>
                             )}
 
-                            <button 
+                            <button type="button"
                                 onClick={() => setActiveNode(node.id)}
                                 disabled={node.status !== 'online'}
                                 aria-label={t('federation.switch_to_site_name', 'Switch to site: {{name}}', { name: node.name })}

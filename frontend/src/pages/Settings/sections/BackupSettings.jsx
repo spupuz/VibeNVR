@@ -67,7 +67,7 @@ export const BackupSettings = ({
 
                 {/* Export/Import Buttons (Legacy/Local) */}
                 <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-2 border-t border-border/50 mt-4">
-                    <Button
+                    <Button type="button"
                         onClick={handleExport}
                         variant="outline"
                         className="w-full sm:w-auto px-6 py-3 font-bold shadow-sm active:scale-95 text-xs"
@@ -83,7 +83,7 @@ export const BackupSettings = ({
                             onChange={handleImport}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         />
-                        <Button
+                        <Button type="button"
                             className="w-full sm:w-auto px-6 py-3 font-bold shadow-sm text-xs"
                             variant="outline"
                         >

@@ -134,7 +134,7 @@ export const FederationSettings = ({ isOpen, onToggle }) => {
                     <div>
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-sm font-medium text-foreground">{t('federation.remote_nodes', 'Remote Nodes')}</h3>
-                            <button
+                            <button type="button"
                                 onClick={() => startEdit()}
                                 className="flex items-center space-x-1 px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
                             >
@@ -171,7 +171,7 @@ export const FederationSettings = ({ isOpen, onToggle }) => {
                                             </div>
                                         </div>
                                         <div className="flex space-x-2">
-                                            <button 
+                                            <button type="button"
                                                 onClick={() => handleTestConnection(node)} 
                                                 disabled={testingId === node.id}
                                                 title={t('federation.test_connection', 'Test Connection')}
@@ -180,10 +180,10 @@ export const FederationSettings = ({ isOpen, onToggle }) => {
                                             >
                                                 {testingId === node.id ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Activity className="w-5 h-5" />}
                                             </button>
-                                            <button onClick={() => startEdit(node)} className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]" title={t('common.edit', 'Edit')} aria-label={t('common.edit', 'Edit')}>
+                                            <button type="button" onClick={() => startEdit(node)} className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]" title={t('common.edit', 'Edit')} aria-label={t('common.edit', 'Edit')}>
                                                 <Edit className="w-5 h-5" />
                                             </button>
-                                            <button onClick={() => handleDelete(node.id)} className="p-2 hover:bg-red-50 text-muted-foreground hover:text-red-500 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]" title={t('common.delete', 'Delete')} aria-label={t('common.delete', 'Delete')}>
+                                            <button type="button" onClick={() => handleDelete(node.id)} className="p-2 hover:bg-red-50 text-muted-foreground hover:text-red-500 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]" title={t('common.delete', 'Delete')} aria-label={t('common.delete', 'Delete')}>
                                                 <Trash2 className="w-5 h-5" />
                                             </button>
                                         </div>

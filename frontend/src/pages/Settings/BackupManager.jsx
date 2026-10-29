@@ -156,7 +156,7 @@ export const BackupManager = () => {
                         onChange={(e) => setComment(e.target.value)}
                         className="bg-card border border-border/50 text-foreground text-sm rounded-lg block w-full p-2.5 min-h-[44px] sm:min-w-[250px]"
                     />
-                    <Button 
+                    <Button type="button"
                         onClick={handleBackupNow} 
                         disabled={actionLoading}
                         variant="primary"
@@ -221,7 +221,7 @@ export const BackupManager = () => {
                                         </td>
                                         <td className="px-5 py-4 text-right">
                                             <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button 
+                                                <button type="button"
                                                     onClick={() => handleRestore(b.filename)}
                                                     className="p-2 text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
                                                     title={t('common.restore', 'Restore')}
@@ -229,7 +229,7 @@ export const BackupManager = () => {
                                                 >
                                                     <RotateCcw className="w-5 h-5" />
                                                 </button>
-                                                <button 
+                                                <button type="button"
                                                     onClick={() => handleDelete(b.filename)}
                                                     className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
                                                     title={t('common.delete', 'Delete')}
@@ -274,7 +274,7 @@ export const BackupManager = () => {
                                         <span className="whitespace-nowrap">{formatDate(b.created_at)}</span>
                                     </div>
                                     <div className="flex gap-3 shrink-0">
-                                        <button 
+                                        <button type="button"
                                             onClick={() => handleRestore(b.filename)}
                                             className="p-3 text-emerald-500 bg-emerald-500/10 rounded-xl border border-emerald-500/20 flex items-center justify-center min-h-[44px] min-w-[44px] active:scale-95 transition-all"
                                             title={t('common.restore', 'Restore')}
@@ -282,7 +282,7 @@ export const BackupManager = () => {
                                         >
                                             <RotateCcw className="w-5 h-5" />
                                         </button>
-                                        <button 
+                                        <button type="button"
                                             onClick={() => handleDelete(b.filename)}
                                             className="p-3 text-rose-500 bg-rose-500/10 rounded-xl border border-rose-500/20 flex items-center justify-center min-h-[44px] min-w-[44px] active:scale-95 transition-all"
                                             title={t('common.delete', 'Delete')}
