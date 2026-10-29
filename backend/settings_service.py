@@ -80,6 +80,9 @@ def validate_setting(key: str, value: str):
         elif key == "telegram_proxy_url" and value:
             _validate_webhook_url(value)
 
+        elif key == "llm_enricher_base_url" and value:
+            _validate_webhook_url(value)
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid value for {key}: {str(e)}")
 

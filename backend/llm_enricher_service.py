@@ -2,7 +2,7 @@ import os
 import base64
 import logging
 import requests
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from sqlalchemy.orm import Session
 import database
 import models
@@ -73,8 +73,16 @@ def query_vision_llm(
     model: str,
     prompt: str,
     timeout: int = 12
-) -> Optional[str]:
+) -> Tuple[Optional[str], Optional[str]]:
     """Send image bytes to OpenAI-compatible Vision /chat/completions endpoint."""
+    import utils
+    from urllib.parse import urlparse
+
+    parsed = urlparse(base_url)
+    if not utils.is_safe_host(parsed.hostname):
+        logger.error(f"[LLM-ENRICHER] Unsafe base_url blocked: {base_url}")
+        return None, "Unsafe base_url blocked"
+
     try:
         base64_img = base64.b64encode(image_bytes).decode("utf-8")
         url = f"{base_url}/chat/completions"
