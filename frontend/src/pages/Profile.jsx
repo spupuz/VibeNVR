@@ -362,7 +362,7 @@ export const Profile = () => {
                                 <Key className="w-5 h-5 text-primary" />
                                 Change Password
                             </h3>
-                            <button onClick={() => setPwdModalOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label={t('common.close', 'Close')}>
+                            <button type="button" onClick={() => setPwdModalOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label={t('common.close', 'Close')}>
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -418,7 +418,7 @@ export const Profile = () => {
                                 <Shield className="w-5 h-5 text-red-500" />
                                 Disable Two-Factor Authentication
                             </h3>
-                            <button onClick={() => { setDisable2FAModalOpen(false); setDisable2FAPassword(''); }} className="text-muted-foreground hover:text-foreground" aria-label={t('common.close', 'Close')}>
+                            <button type="button" onClick={() => { setDisable2FAModalOpen(false); setDisable2FAPassword(''); }} className="text-muted-foreground hover:text-foreground" aria-label={t('common.close', 'Close')}>
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -459,7 +459,7 @@ export const Profile = () => {
                                 <Smartphone className="w-5 h-5 text-primary" />
                                 Setup 2FA
                             </h3>
-                            <button onClick={() => { setIs2FASetupOpen(false); setSetupCode(''); }} className="text-muted-foreground hover:text-foreground" aria-label={t('common.close', 'Close')}>
+                            <button type="button" onClick={() => { setIs2FASetupOpen(false); setSetupCode(''); }} className="text-muted-foreground hover:text-foreground" aria-label={t('common.close', 'Close')}>
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -473,7 +473,7 @@ export const Profile = () => {
                                 <p className="text-sm text-muted-foreground">{t('timeline.scan_this_qr_code_with_yo', 'Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)')}</p>
                                 <div className="text-xs font-mono bg-muted p-2 rounded border border-border break-all select-all flex items-center justify-center gap-2">
                                     {setupData.secret}
-                                    <button onClick={() => navigator.clipboard.writeText(setupData.secret)} className="hover:text-primary" title="Copy Secret" aria-label={t('profile.copy_secret', 'Copy Secret')}>
+                                    <button type="button" onClick={() => navigator.clipboard.writeText(setupData.secret)} className="hover:text-primary" title="Copy Secret" aria-label={t('profile.copy_secret', 'Copy Secret')}>
                                         <Copy className="w-3 h-3" />
                                     </button>
                                 </div>
@@ -495,8 +495,8 @@ export const Profile = () => {
                         </div>
 
                         <div className="flex justify-end gap-2 pt-4 border-t border-border">
-                            <Button variant="outline" onClick={() => { setIs2FASetupOpen(false); setSetupCode(''); }}>{t('timeline.cancel', 'Cancel')}</Button>
-                            <Button onClick={verifyAndEnable2FA} disabled={verifying2FA}>
+                            <Button type="button" variant="outline" onClick={() => { setIs2FASetupOpen(false); setSetupCode(''); }}>{t('timeline.cancel', 'Cancel')}</Button>
+                            <Button type="button" onClick={verifyAndEnable2FA} disabled={verifying2FA}>
                                 {verifying2FA ? 'Verifying...' : 'Enable 2FA'}
                             </Button>
                         </div>
@@ -530,10 +530,10 @@ export const Profile = () => {
                         </div>
 
                         <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-border">
-                            <Button variant="outline" onClick={handleDownloadCodes} className="flex gap-2">
+                            <Button type="button" variant="outline" onClick={handleDownloadCodes} className="flex gap-2">
                                 Download as TXT
                             </Button>
-                            <Button onClick={async () => {
+                            <Button type="button" onClick={async () => {
                                 setShowRecoveryCodes(false);
                                 setIs2FASetupOpen(false);
                                 await checkAuth();
@@ -643,7 +643,7 @@ export const Profile = () => {
                                             <p className="text-xs text-muted-foreground">{t('timeline.secure_your_account', 'Secure your account')}</p>
                                         </div>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => setPwdModalOpen(true)} className="w-full sm:w-auto">
+                                    <Button type="button" variant="outline" size="sm" onClick={() => setPwdModalOpen(true)} className="w-full sm:w-auto">
                                         {t('timeline.change_password', 'Change Password')}
                                     </Button>
                                 </div>
@@ -671,15 +671,15 @@ export const Profile = () => {
                                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-3 sm:mt-0">
                                         {user.is_2fa_enabled ? (
                                             <>
-                                                <Button variant="outline" onClick={handleRegenerateCodes} disabled={regeneratingCodes} className="w-full sm:w-auto px-6 font-semibold">
+                                                <Button type="button" variant="outline" onClick={handleRegenerateCodes} disabled={regeneratingCodes} className="w-full sm:w-auto px-6 font-semibold">
                                                     {t('timeline.regenerate_codes', 'Regenerate Codes')}
                                                 </Button>
-                                                <Button variant="outline" onClick={handleDisable2FA} className="w-full sm:w-auto px-6 font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-900">
+                                                <Button type="button" variant="outline" onClick={handleDisable2FA} className="w-full sm:w-auto px-6 font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-900">
                                                     {t('timeline.disable_2fa', 'Disable 2FA')}
                                                 </Button>
                                             </>
                                         ) : (
-                                            <Button variant="outline" onClick={start2FASetup} className="w-full sm:w-auto px-6 font-semibold">
+                                            <Button type="button" variant="outline" onClick={start2FASetup} className="w-full sm:w-auto px-6 font-semibold">
                                                 {t('timeline.enable_2fa', 'Enable 2FA')}
                                             </Button>
                                         )}
@@ -709,11 +709,11 @@ export const Profile = () => {
                                         </div>
                                         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-3 sm:mt-0">
                                             {user.oauth_subject_id ? (
-                                                <Button variant="outline" onClick={handleUnlinkOAuth} className="w-full sm:w-auto px-6 font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-900">
+                                                <Button type="button" variant="outline" onClick={handleUnlinkOAuth} className="w-full sm:w-auto px-6 font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-900">
                                                     Unlink Account
                                                 </Button>
                                             ) : (
-                                                <Button variant="outline" onClick={() => window.location.href = '/api/oauth/login'} className="w-full sm:w-auto px-6 font-semibold">
+                                                <Button type="button" variant="outline" onClick={() => window.location.href = '/api/oauth/login'} className="w-full sm:w-auto px-6 font-semibold">
                                                     Link Account
                                                 </Button>
                                             )}
@@ -748,7 +748,7 @@ export const Profile = () => {
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                        <button
+                                                        <button type="button"
                                                             onClick={() => handleRevokeDevice(device.id)}
                                                             className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-full transition-colors"
                                                             title={t('profile.revoke_device', 'Revoke Device')}

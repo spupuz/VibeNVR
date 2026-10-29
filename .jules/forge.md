@@ -1,0 +1,1 @@
+## 2025-01-31 - Explicit Type for Non-Submit Buttons\n**Learning:** In React components, always explicitly set `type="button"` for non-submit `<button>` elements to prevent unintended form submissions if they are later wrapped in a form.\n**Action:** When adding new buttons that do not trigger form submission, always include the `type="button"` attribute.

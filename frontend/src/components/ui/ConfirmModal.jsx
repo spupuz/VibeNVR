@@ -34,13 +34,13 @@ export const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, conf
                         </p>
                     </div>
                     <div className="bg-muted/30 p-4 flex gap-3 justify-end border-t border-border">
-                        <Button
+                        <Button type="button"
                             variant="ghost"
                             onClick={onCancel}
                         >
                             {cancelText || t('actions.cancel', 'Cancel')}
                         </Button>
-                        <Button
+                        <Button type="button"
                             onClick={onConfirm}
                             variant={variants[variant]}
                         >

@@ -375,7 +375,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                                 <span>{t('cameras.found', 'Found')} <strong>{filteredResults.length}</strong> viable cameras out of {progress.total} scanned IPs.</span>
                             </div>
                         )}
-                        <Button
+                        <Button type="button"
                             variant={showAllDevices ? "secondary" : "ghost"}
                             size="sm"
                             className="text-xs h-8 ml-auto"
@@ -429,7 +429,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                                 )}
                                 <div className="flex gap-1">
                                     {dev.status === 'potential_camera' && (
-                                        <Button 
+                                        <Button type="button"
                                             variant="secondary" 
                                             size="sm" 
                                             className="h-8 text-xs px-3"
@@ -439,7 +439,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                                             {t('cameras.add', 'Add')}
                                         </Button>
                                     )}
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleProbe(dev)} title={t('cameras.probe_device', 'Probe Device')} aria-label={t('cameras.probe_device', 'Probe Device')}>
+                                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleProbe(dev)} title={t('cameras.probe_device', 'Probe Device')} aria-label={t('cameras.probe_device', 'Probe Device')}>
                                         <ChevronRight className="w-5 h-5" />
                                     </Button>
                                 </div>
@@ -455,7 +455,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                     <div className="bg-card border-2 border-border rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
                         <div className="p-6 border-b border-border flex justify-between items-center">
                             <h4 className="font-semibold text-lg">{t('cameras.probe_device', 'Probe Device:')} {probingDevice.ip}</h4>
-                            <Button variant="ghost" size="icon" onClick={() => setProbingDevice(null)} title={t('common.close', 'Close')} aria-label={t('common.close', 'Close')}><X className="w-5 h-5" /></Button>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => setProbingDevice(null)} title={t('common.close', 'Close')} aria-label={t('common.close', 'Close')}><X className="w-5 h-5" /></Button>
                         </div>
 
                         <div className="p-6">
@@ -484,7 +484,7 @@ export const CameraScanner = ({ onAddCamera, existingCameras = [] }) => {
                                         value={credentials.password}
                                         onChange={(val) => setCredentials({ ...credentials, password: val })}
                                     />
-                                    <Button onClick={runProbe} className="w-full mt-4">{t('cameras.connect_probe', 'Connect & Probe')}</Button>
+                                    <Button type="button" onClick={runProbe} className="w-full mt-4">{t('cameras.connect_probe', 'Connect & Probe')}</Button>
                                 </div>
                             )}
 

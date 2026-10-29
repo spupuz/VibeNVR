@@ -7,6 +7,7 @@ import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, Cartesia
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { parseAILabels } from '../utils/aiUtils';
 import { useTranslation } from 'react-i18next';
 import { FederationSummaryWidget } from '../components/widgets/FederationSummaryWidget';
 
@@ -711,9 +712,8 @@ export const Dashboard = () => {
                                 let aiLabels = [];
                                 try {
                                     if (evt.ai_metadata) {
-                                        // VibeNVR stores labels as a comma-separated string
-                                        const rawLabels = evt.ai_metadata.split(',').map(l => l.trim().toLowerCase()).filter(l => l);
-                                        aiLabels = [...new Set(rawLabels)];
+                                        // ⚡ Bolt: Optimization - Use fast single-pass string parser to prevent O(N) array allocations inside render loop
+                                        aiLabels = parseAILabels(evt.ai_metadata);
                                     }
                                 } catch (e) { console.error("AI parse error", e); }
 
@@ -770,7 +770,7 @@ export const Dashboard = () => {
                     <h2 className="text-3xl font-bold tracking-tight">{t('timeline.dashboard', 'Dashboard')}</h2>
                     <p className="text-muted-foreground mt-2">{t('timeline.drag_widgets_to_reorder_c', 'Drag widgets to reorder. Configure visibility in settings.')}</p>
                 </div>
-                <button
+                <button type="button"
                     onClick={() => setShowWidgetModal(true)}
                     className="p-2 hover:bg-muted rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" aria-label={t('timeline.settings', 'Settings')}
                 >
@@ -797,7 +797,7 @@ export const Dashboard = () => {
                             }).map(([key, label]) => (
                                 <div key={key} className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-lg">
                                     <span className="text-sm font-medium">{label}</span>
-                                    <button
+                                    <button type="button"
                                         role="switch"
                                         aria-checked={visibleWidgets[key] || false}
                                         aria-label={label}
@@ -814,7 +814,7 @@ export const Dashboard = () => {
                             ))}
                         </div>
                         <div className="flex justify-end">
-                            <button
+                            <button type="button"
                                 onClick={() => setShowWidgetModal(false)}
                                 className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
                             >

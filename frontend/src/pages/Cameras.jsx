@@ -601,7 +601,7 @@ export const Cameras = () => {
                 <div className="space-y-4 rounded-xl border border-border bg-card p-6">
                     <h1 className="text-xl font-bold">{t('cameras.edit_camera', 'Edit Camera')}</h1>
                     <p className="text-muted-foreground">{cameraLoadError ? t('camera_editor.load_failed', 'Could not load cameras. Please try again.') : t('camera_editor.not_found', 'Camera not found on the selected node.')}</p>
-                    <Button onClick={() => navigate('/cameras')}>{t('camera_editor.back', 'Back to cameras')}</Button>
+                    <Button type="button" onClick={() => navigate('/cameras')}>{t('camera_editor.back', 'Back to cameras')}</Button>
                 </div>
             );
         }
@@ -663,7 +663,7 @@ export const Cameras = () => {
                                 />
                             </div>
                             {user?.role === 'admin' && cameras.length > 0 && (
-                                <button
+                                <button type="button"
                                     onClick={() => handleSelectAll(cameras.map(c => c.id))}
                                     className="flex items-center justify-center space-x-2 bg-card hover:bg-muted text-foreground px-4 py-2 rounded-lg transition-all whitespace-nowrap text-sm font-bold border border-border shadow-sm active:scale-95 min-h-[40px] w-full sm:w-auto"
                                 >
@@ -678,14 +678,14 @@ export const Cameras = () => {
                     {user?.role === 'admin' && view === 'cameras' && (
                         <>
 
-                            <Button
+                            <Button type="button"
                                 onClick={() => navigate('/cameras/new')}
                             >
                                 <Plus className="w-4 h-4 mr-2" />
                                 <span>{t('cameras.add_camera', 'Add Camera')}</span>
                             </Button>
 
-                            <Button
+                            <Button type="button"
                                 variant={showScanner ? "secondary" : "outline"}
                                 onClick={() => setShowScanner(!showScanner)}
                                 className="transition-all"
@@ -694,7 +694,7 @@ export const Cameras = () => {
                                 <span>{showScanner ? t('cameras.hide_scanner', 'Hide Scanner') : t('cameras.scan_network', 'Scan Network')}</span>
                             </Button>
 
-                            <Button
+                            <Button type="button"
                                 variant="outline"
                                 onClick={async () => {
                                     try {
@@ -814,7 +814,7 @@ export const Cameras = () => {
                                     }}
                                 />
 
-                                <Button
+                                <Button type="button"
                                     variant="outline"
                                     className="rounded-r-none border-r-0"
                                     onClick={() => fileInputRef.current.click()}
@@ -824,7 +824,7 @@ export const Cameras = () => {
                                     <Upload className="w-4 h-4 mr-2" />
                                     <span>{t('cameras.import', 'Import')}</span>
                                 </Button>
-                                <Button
+                                <Button type="button"
                                     variant="outline"
                                     className="rounded-l-none"
                                     onClick={() => motionEyeInputRef.current.click()}
@@ -882,13 +882,13 @@ export const Cameras = () => {
 
             {/* Tabs */}
             <div className="flex space-x-1 border-b border-border mb-6">
-                <button
+                <button type="button"
                     onClick={() => setView('cameras')}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${view === 'cameras' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                 >
                     {t('cameras.cameras_tab', 'Cameras')}
                 </button>
-                <button
+                <button type="button"
                     onClick={() => setView('groups')}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${view === 'groups' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                 >
@@ -936,7 +936,7 @@ export const Cameras = () => {
                                                             </span>
                                                             {groupName}
                                                             {user?.role === 'admin' && (
-                                                                <button
+                                                                <button type="button"
                                                                     onClick={() => handleSelectAll(groupCamIds)}
                                                                     className="ml-auto text-[10px] font-bold px-2 py-1 bg-muted hover:bg-secondary rounded-md transition-all border border-border flex items-center gap-1.5 uppercase tracking-tight"
                                                                 >
@@ -978,7 +978,7 @@ export const Cameras = () => {
                                                         <h3 className="text-xl font-bold mb-6 text-foreground/90 flex items-center border-b pb-2 pt-4 opacity-80">
                                                             Ungrouped Cameras
                                                             {user?.role === 'admin' && (
-                                                                <button
+                                                                <button type="button"
                                                                     onClick={() => handleSelectAll(ungrouped.map(c => c.id))}
                                                                     className="ml-auto text-[10px] font-bold px-2 py-1 bg-muted hover:bg-secondary rounded-md transition-all border border-border flex items-center gap-1.5 uppercase tracking-tight"
                                                                 >

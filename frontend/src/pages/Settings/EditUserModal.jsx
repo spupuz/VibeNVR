@@ -25,7 +25,7 @@ export const EditUserModal = ({
                         <User className="w-5 h-5 text-primary" />
                         {t('settings.edit_user', 'Edit User')}: {editingUser.username}
                     </h3>
-                    <button
+                    <button type="button"
                         onClick={onClose}
                         className="text-muted-foreground hover:text-foreground transition-colors"
                         aria-label={t('common.close', 'Close')}

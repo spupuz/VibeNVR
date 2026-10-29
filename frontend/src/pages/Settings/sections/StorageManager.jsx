@@ -343,7 +343,7 @@ export const StorageManager = ({
                         <h4 className="text-sm font-semibold mb-3">{t('settings_forms.maintenance', 'Maintenance')}</h4>
                         <div className="flex flex-col sm:flex-row flex-wrap gap-3">
                             <div className="flex-1 min-w-0">
-                                <Button
+                                <Button type="button"
                                     onClick={async () => {
                                         setConfirmConfig({
                                             isOpen: true,
@@ -377,7 +377,7 @@ export const StorageManager = ({
                             </div>
 
                             <div className="flex-1 min-w-0">
-                                <Button
+                                <Button type="button"
                                     onClick={async () => {
                                         setConfirmConfig({
                                             isOpen: true,
@@ -428,7 +428,7 @@ export const StorageManager = ({
                         <h4 className="text-sm font-semibold mb-3">{t('settings_forms.bulk_del', 'Bulk Deletion')}</h4>
                         <p className="text-xs text-muted-foreground mb-3">{t('storage_ui.bulk_warning', 'These actions delete recordings, including archived files. They do not move files to an archive and cannot be undone.')}</p>
                         <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3">
-                            <Button
+                            <Button type="button"
                                 variant="outline"
                                 className="w-full sm:w-auto border-red-500/50 text-red-500 hover:bg-red-500/10 py-3 h-auto min-h-[44px]"
                                 onClick={() => setConfirmConfig({
@@ -455,7 +455,7 @@ export const StorageManager = ({
                                 <span className="truncate sm:whitespace-normal">{t('settings_forms.del_all_vid', 'Delete All Videos')}</span>
                             </Button>
 
-                            <Button
+                            <Button type="button"
                                 variant="outline"
                                 className="w-full sm:w-auto border-red-500/50 text-red-500 hover:bg-red-500/10 py-3 h-auto min-h-[44px]"
                                 onClick={() => setConfirmConfig({

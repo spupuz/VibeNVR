@@ -19,7 +19,7 @@ export const SyncResultModal = ({
                         <HardDrive className="w-5 h-5 text-blue-500" />
                         Recovery Complete
                     </h3>
-                    <button
+                    <button type="button"
                         onClick={onClose}
                         className="text-muted-foreground hover:text-foreground"
                         aria-label={t('common.close', 'Close')}
@@ -82,7 +82,7 @@ export const SyncResultModal = ({
                 </div>
 
                 <div className="mt-6 flex justify-end">
-                    <Button
+                    <Button type="button"
                         onClick={onClose}
                         className="bg-primary text-primary-foreground hover:bg-primary/90"
                     >

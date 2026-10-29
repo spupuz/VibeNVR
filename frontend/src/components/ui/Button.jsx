@@ -24,7 +24,7 @@ export const Button = ({ children, className = '', variant = 'primary', size = '
     const sizeStyle = sizes[size] || sizes.default;
 
     return (
-        <button
+        <button type="button"
             className={`${baseStyles} ${variantStyle} ${sizeStyle} ${className}`}
             {...props}
         >
