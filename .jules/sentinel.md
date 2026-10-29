@@ -52,3 +52,8 @@
 **Vulnerability:** Server-Side Request Forgery (SSRF). An unvalidated `base_url` parameter could be passed to the LLM enricher service, potentially exposing internal services or AWS metadata to external probing.
 **Learning:** The URL parameter `base_url` for outgoing requests must always be validated against SSRF, even in seemingly internal-facing utilities.
 **Prevention:** Enforce usage of `utils.is_safe_webhook_url()` (or `utils.is_safe_host()`) for all dynamically constructed outgoing HTTP requests.
+
+## 2026-10-29 - SSRF Vulnerability in LLM Enricher Configuration
+**Vulnerability:** The `test-vision-llm` endpoint and LLM enricher settings allowed arbitrary `base_url` configurations without SSRF validation. This permitted an attacker to probe internal services via HTTP POST requests, bypassing network segmentation.
+**Learning:** Configurations that are used to generate outbound network requests must be validated against SSRF protections (e.g. `utils.is_safe_host`) at the time they are created or tested.
+**Prevention:** Always apply strict SSRF validations using a Pydantic `@model_validator` or in the service layer when dealing with user-controlled endpoint configurations. Enforce defense-in-depth by re-validating right before the request.

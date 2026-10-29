@@ -29,6 +29,15 @@ class TestVisionLLMConfig(BaseModel):
     model: str
     prompt: Optional[str] = None
 
+    @model_validator(mode='after')
+    def validate_url(self) -> 'TestVisionLLMConfig':
+        from urllib.parse import urlparse
+        import utils
+        parsed = urlparse(self.base_url)
+        if not utils.is_safe_host(parsed.hostname):
+            raise ValueError(f'Invalid or unsafe URL: {self.base_url}')
+        return self
+
 class CameraBase(BaseModel):
     name: str
     rtsp_url: str
