@@ -48,7 +48,7 @@ export const ImportSelectionModal = ({ showModal, onClose, onConfirm, cameras })
                             {t('cameras.import_selection_desc', 'Choose which cameras you want to import from the file.')}
                         </p>
                     </div>
-                    <button onClick={onClose} className="p-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors" aria-label={t('common.close', 'Close')}>
+                    <button type="button" onClick={onClose} className="p-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors" aria-label={t('common.close', 'Close')}>
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -58,10 +58,10 @@ export const ImportSelectionModal = ({ showModal, onClose, onConfirm, cameras })
                         {selectedIndices.length} / {cameras.length} {t('cameras.selected', 'Selected')}
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={handleSelectAll}>
+                        <Button type="button" variant="outline" size="sm" onClick={handleSelectAll}>
                             {t('cameras.select_all', 'Select All')}
                         </Button>
-                        <Button variant="outline" size="sm" onClick={handleDeselectAll}>
+                        <Button type="button" variant="outline" size="sm" onClick={handleDeselectAll}>
                             {t('cameras.deselect_all', 'Deselect All')}
                         </Button>
                     </div>
@@ -100,10 +100,10 @@ export const ImportSelectionModal = ({ showModal, onClose, onConfirm, cameras })
                 </div>
 
                 <div className="p-6 border-t border-border flex justify-end gap-3 shrink-0 bg-muted/10 rounded-b-2xl">
-                    <Button variant="outline" onClick={onClose}>
+                    <Button type="button" variant="outline" onClick={onClose}>
                         {t('common.cancel', 'Cancel')}
                     </Button>
-                    <Button 
+                    <Button type="button"
                         onClick={handleConfirm} 
                         disabled={selectedIndices.length === 0}
                     >

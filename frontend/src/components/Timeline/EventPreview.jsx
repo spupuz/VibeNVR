@@ -280,7 +280,7 @@ export const EventPreview = React.memo(({
                                 </select>
                             )}
                         </label>
-                        <button
+                        <button type="button"
                             onClick={() => setSelectedEvent(null)}
                             className="p-1 hover:bg-accent rounded-lg text-muted-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             title={t('common.close', 'Close')}
@@ -392,7 +392,7 @@ export const EventPreview = React.memo(({
                         <Download className="w-4 h-4" />
                     </a>
                     {user?.role === 'admin' && (
-                        <button
+                        <button type="button"
                             onClick={() => handleDelete(selectedEvent.id)}
                             className="p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2"
                             title={t('common.delete', 'Delete')}

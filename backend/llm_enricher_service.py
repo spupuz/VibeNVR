@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 import database
 import models
 import storage_service
+import utils
 
 logger = logging.getLogger(__name__)
 
@@ -75,13 +76,9 @@ def query_vision_llm(
     timeout: int = 12
 ) -> Tuple[Optional[str], Optional[str]]:
     """Send image bytes to OpenAI-compatible Vision /chat/completions endpoint."""
-    import utils
-    from urllib.parse import urlparse
-
-    parsed = urlparse(base_url)
-    if not utils.is_safe_host(parsed.hostname):
-        logger.error(f"[LLM-ENRICHER] Unsafe base_url blocked: {base_url}")
-        return None, "Unsafe base_url blocked"
+    if not utils.is_safe_webhook_url(base_url):
+        logger.error(f"[LLM-ENRICHER] Unsafe base URL blocked: {base_url}")
+        return None, "Unsafe base URL blocked by security policy"
 
     try:
         base64_img = base64.b64encode(image_bytes).decode("utf-8")
