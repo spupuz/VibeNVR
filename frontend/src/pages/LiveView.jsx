@@ -715,6 +715,7 @@ export const LiveView = () => {
                         onClick={dismissInsecureWarning}
                         className="p-2 hover:bg-yellow-500/20 rounded-md transition-colors flex-shrink-0 self-start sm:self-auto"
                         title={t('common.dismiss', 'Dismiss')}
+                        aria-label={t('common.dismiss', 'Dismiss')}
                     >
                         <X className="w-5 h-5" />
                     </button>
