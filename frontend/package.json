@@ -42,6 +42,7 @@
     "i18next-parser": "^9.4.0",
     "postcss": "^8.5.25",
     "tailwindcss": "^4.3.3",
+    "@tailwindcss/postcss": "^4.0.0",
     "vite": "^8.1.1"
   },
   "pnpm": {
