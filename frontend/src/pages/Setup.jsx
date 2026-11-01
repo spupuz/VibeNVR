@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router';
 import { ShieldCheck, User, Lock, Mail, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import packageJson from '../../package.json';
 
 export const Setup = () => {
   const { t } = useTranslation();
@@ -135,6 +137,15 @@ export const Setup = () => {
                         Create Administrator
                     </Button>
                 </form>
+
+                <div className="flex flex-col items-center justify-center space-y-2 mt-4">
+                    <p className="text-center text-xs text-muted-foreground">
+                        {t('login.secure_system', 'Secure Video Surveillance System')} &bull; v{packageJson.version}
+                    </p>
+                    <div className="w-32">
+                        <LanguageSwitcher className="text-center" />
+                    </div>
+                </div>
             </div>
         </div>
     );
