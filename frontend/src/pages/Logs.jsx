@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../contexts/ToastContext';
-import { Terminal, Download, Search, Pause, Play, RefreshCw, FileText, Settings as SettingsIcon } from 'lucide-react';
+import { Terminal, Download, Search, Pause, Play, RefreshCw, FileText, Settings as SettingsIcon, Copy } from 'lucide-react';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 
 export const Logs = () => {
@@ -71,6 +71,21 @@ export const Logs = () => {
             return () => clearInterval(interval);
         }
     }, [token, service, lines, search, autoScroll, user]);
+
+    // Handle Copy to Clipboard
+    const handleCopy = () => {
+        if (!logs || logs.length === 0) {
+            showToast(t('logs.no_logs_to_copy', 'No logs to copy'), 'error');
+            return;
+        }
+        const logText = logs.join('\n');
+        navigator.clipboard.writeText(logText).then(() => {
+            showToast(t('logs.copy_success', 'Logs copied to clipboard'), 'success');
+        }).catch(err => {
+            console.error('Failed to copy logs', err);
+            showToast(t('logs.copy_failed', 'Failed to copy logs'), 'error');
+        });
+    };
 
     // Handle Download
     const handleDownload = () => {
@@ -193,6 +208,15 @@ export const Logs = () => {
                         aria-label={t('logs.refresh_now', 'Refresh Now')}
                     >
                         <RefreshCw className="w-4 h-4" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleCopy}
+                        className="p-2 rounded-md hover:bg-accent text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                        title={t('logs.copy_logs', 'Copy Logs')}
+                        aria-label={t('logs.copy_logs', 'Copy Logs')}
+                    >
+                        <Copy className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => setShowSettings(true)}
