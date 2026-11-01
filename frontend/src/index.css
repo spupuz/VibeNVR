@@ -95,12 +95,14 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
 
   html,
   body {
-    @apply bg-background text-foreground overflow-x-hidden;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    overflow-x: hidden;
     max-width: 100vw;
   }
 }
