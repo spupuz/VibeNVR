@@ -75,6 +75,11 @@ def query_vision_llm(
     timeout: int = 12
 ) -> Optional[str]:
     """Send image bytes to OpenAI-compatible Vision /chat/completions endpoint."""
+    import utils
+    if not utils.is_safe_webhook_url(base_url):
+        logger.error(f"[LLM-ENRICHER] Unsafe base_url blocked: {base_url}")
+        return None, "Unsafe base_url blocked by SSRF protection"
+
     try:
         base64_img = base64.b64encode(image_bytes).decode("utf-8")
         url = f"{base_url}/chat/completions"

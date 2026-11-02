@@ -29,6 +29,12 @@ class TestVisionLLMConfig(BaseModel):
     model: str
     prompt: Optional[str] = None
 
+    @model_validator(mode='after')
+    def validate_base_url(self) -> 'TestVisionLLMConfig':
+        if not utils.is_safe_webhook_url(self.base_url):
+            raise ValueError(f'Invalid or unsafe base_url: {self.base_url}')
+        return self
+
 class CameraBase(BaseModel):
     name: str
     rtsp_url: str
