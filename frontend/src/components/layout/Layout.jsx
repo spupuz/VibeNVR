@@ -91,6 +91,7 @@ export const Layout = ({ children, activeTab, onTabChange }) => {
                 {/* Mobile header - fixed at top */}
                 <div className="lg:hidden sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border p-3 flex items-center justify-between w-full max-w-full overflow-hidden">
                     <button
+                        type="button"
                         onClick={() => setSidebarOpen(true)}
                         className="p-2 rounded-lg hover:bg-accent shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                         aria-label={t('layout.open_sidebar', 'Open Sidebar')}

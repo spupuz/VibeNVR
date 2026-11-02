@@ -44,6 +44,7 @@ const SiteSelector = () => {
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     <button
+        type="button"
         onClick={onClick}
         title={label}
         aria-label={label}
@@ -105,6 +106,7 @@ export const Sidebar = ({ activeTab, onTabChange, isOpen, onClose }) => {
                 />
                 {/* Close button for mobile - absolute positioned */}
                 <button
+                    type="button"
                     onClick={onClose}
                     className="lg:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     aria-label={t("nav.close_sidebar", "Close Sidebar")}
@@ -132,6 +134,7 @@ export const Sidebar = ({ activeTab, onTabChange, isOpen, onClose }) => {
 
             <div className="p-4 border-t border-border space-y-2">
                 <button
+                    type="button"
                     onClick={() => onTabChange('profile')}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card
                     ${activeTab === 'profile'
