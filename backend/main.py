@@ -320,7 +320,7 @@ try:
     with open("package.json", "r") as f:
         data = json.load(f)
         VERSION = data.get("version", "1.18.2")
-except:
+except (FileNotFoundError, json.JSONDecodeError, OSError):
     VERSION = "1.18.2"
 
 _is_dev = os.getenv("ENVIRONMENT", "production").lower() == "dev"
