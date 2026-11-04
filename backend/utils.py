@@ -32,7 +32,26 @@ def is_safe_webhook_url(url: str) -> bool:
         if parsed.scheme not in ("http", "https"):
             return False
 
-        return is_safe_host(parsed.hostname)
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+
+        # Block private IPs to prevent SSRF
+        try:
+            ip_obj = ipaddress.ip_address(hostname)
+            if (
+                ip_obj.is_private
+                or ip_obj.is_loopback
+                or ip_obj.is_link_local
+                or ip_obj.is_multicast
+                or ip_obj.is_unspecified
+            ):
+                return False
+        except ValueError:
+            # Not a valid IP address, check as hostname
+            pass
+
+        return is_safe_host(hostname)
     except Exception:
         return False
 
