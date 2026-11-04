@@ -663,8 +663,7 @@ export const Cameras = () => {
                                 />
                             </div>
                             {user?.role === 'admin' && cameras.length > 0 && (
-                                <button
-                                    type="button"
+                                <button type="button"
                                     onClick={() => handleSelectAll(cameras.map(c => c.id))}
                                     className="flex items-center justify-center space-x-2 bg-card hover:bg-muted text-foreground px-4 py-2 rounded-lg transition-all whitespace-nowrap text-sm font-bold border border-border shadow-sm active:scale-95 min-h-[40px] w-full sm:w-auto"
                                     aria-label={cameras.every(c => selectedCameraIds.includes(c.id)) ? t('cameras.deselect_all_cameras', 'Deselect all cameras') : t('cameras.select_all_cameras', 'Select all cameras')}
@@ -884,15 +883,13 @@ export const Cameras = () => {
 
             {/* Tabs */}
             <div className="flex space-x-1 border-b border-border mb-6">
-                <button
-                    type="button"
+                <button type="button"
                     onClick={() => setView('cameras')}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${view === 'cameras' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                 >
                     {t('cameras.cameras_tab', 'Cameras')}
                 </button>
-                <button
-                    type="button"
+                <button type="button"
                     onClick={() => setView('groups')}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${view === 'groups' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                 >
@@ -940,8 +937,7 @@ export const Cameras = () => {
                                                             </span>
                                                             {groupName}
                                                             {user?.role === 'admin' && (
-                                                                <button
-                                                                    type="button"
+                                                                <button type="button"
                                                                     onClick={() => handleSelectAll(groupCamIds)}
                                                                     className="ml-auto text-[10px] font-bold px-2 py-1 bg-muted hover:bg-secondary rounded-md transition-all border border-border flex items-center gap-1.5 uppercase tracking-tight"
                                                                     aria-label={allInGroupSelected ? t('cameras.deselect_group_name', { defaultValue: 'Deselect group {{name}}', name: groupName }) : t('cameras.select_group_name', { defaultValue: 'Select group {{name}}', name: groupName })}
@@ -984,8 +980,7 @@ export const Cameras = () => {
                                                         <h3 className="text-xl font-bold mb-6 text-foreground/90 flex items-center border-b pb-2 pt-4 opacity-80">
                                                             Ungrouped Cameras
                                                             {user?.role === 'admin' && (
-                                                                <button
-                                                                    type="button"
+                                                                <button type="button"
                                                                     onClick={() => handleSelectAll(ungrouped.map(c => c.id))}
                                                                     className="ml-auto text-[10px] font-bold px-2 py-1 bg-muted hover:bg-secondary rounded-md transition-all border border-border flex items-center gap-1.5 uppercase tracking-tight"
                                                                     aria-label={ungrouped.every(c => selectedCameraIds.includes(c.id)) ? t('cameras.deselect_ungrouped_cameras', 'Deselect ungrouped cameras') : t('cameras.select_ungrouped_cameras', 'Select ungrouped cameras')}
