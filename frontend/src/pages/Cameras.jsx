@@ -664,8 +664,10 @@ export const Cameras = () => {
                             </div>
                             {user?.role === 'admin' && cameras.length > 0 && (
                                 <button
+                                    type="button"
                                     onClick={() => handleSelectAll(cameras.map(c => c.id))}
                                     className="flex items-center justify-center space-x-2 bg-card hover:bg-muted text-foreground px-4 py-2 rounded-lg transition-all whitespace-nowrap text-sm font-bold border border-border shadow-sm active:scale-95 min-h-[40px] w-full sm:w-auto"
+                                    aria-label={cameras.every(c => selectedCameraIds.includes(c.id)) ? t('cameras.deselect_all_cameras', 'Deselect all cameras') : t('cameras.select_all_cameras', 'Select all cameras')}
                                 >
                                     <div className={`w-4 h-4 rounded-sm border flex items-center justify-center transition-colors ${cameras.every(c => selectedCameraIds.includes(c.id)) ? 'bg-primary border-primary' : 'bg-background border-border'}`}>
                                         {cameras.every(c => selectedCameraIds.includes(c.id)) && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
@@ -883,12 +885,14 @@ export const Cameras = () => {
             {/* Tabs */}
             <div className="flex space-x-1 border-b border-border mb-6">
                 <button
+                    type="button"
                     onClick={() => setView('cameras')}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${view === 'cameras' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                 >
                     {t('cameras.cameras_tab', 'Cameras')}
                 </button>
                 <button
+                    type="button"
                     onClick={() => setView('groups')}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${view === 'groups' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                 >
@@ -937,8 +941,10 @@ export const Cameras = () => {
                                                             {groupName}
                                                             {user?.role === 'admin' && (
                                                                 <button
+                                                                    type="button"
                                                                     onClick={() => handleSelectAll(groupCamIds)}
                                                                     className="ml-auto text-[10px] font-bold px-2 py-1 bg-muted hover:bg-secondary rounded-md transition-all border border-border flex items-center gap-1.5 uppercase tracking-tight"
+                                                                    aria-label={allInGroupSelected ? t('cameras.deselect_group_name', { defaultValue: 'Deselect group {{name}}', name: groupName }) : t('cameras.select_group_name', { defaultValue: 'Select group {{name}}', name: groupName })}
                                                                 >
                                                                     <div className={`w-3 h-3 rounded-sm border flex items-center justify-center transition-colors ${allInGroupSelected ? 'bg-primary border-primary' : 'bg-background border-border'}`}>
                                                                         {allInGroupSelected && <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={6} d="M5 13l4 4L19 7" /></svg>}
@@ -979,8 +985,10 @@ export const Cameras = () => {
                                                             Ungrouped Cameras
                                                             {user?.role === 'admin' && (
                                                                 <button
+                                                                    type="button"
                                                                     onClick={() => handleSelectAll(ungrouped.map(c => c.id))}
                                                                     className="ml-auto text-[10px] font-bold px-2 py-1 bg-muted hover:bg-secondary rounded-md transition-all border border-border flex items-center gap-1.5 uppercase tracking-tight"
+                                                                    aria-label={ungrouped.every(c => selectedCameraIds.includes(c.id)) ? t('cameras.deselect_ungrouped_cameras', 'Deselect ungrouped cameras') : t('cameras.select_ungrouped_cameras', 'Select ungrouped cameras')}
                                                                 >
                                                                     <div className={`w-3 h-3 rounded-sm border flex items-center justify-center transition-colors ${ungrouped.every(c => selectedCameraIds.includes(c.id)) ? 'bg-primary border-primary' : 'bg-background border-border'}`}>
                                                                         {ungrouped.every(c => selectedCameraIds.includes(c.id)) && <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={6} d="M5 13l4 4L19 7" /></svg>}
