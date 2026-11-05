@@ -74,11 +74,16 @@ def is_path_safe(path: str, db: Session = None) -> bool:
     
     session = db or database.SessionLocal()
     try:
-        for p in session.query(models.StorageProfile).all():
-            if p.path:
-                p_abs = os.path.abspath(p.path)
-                if os.path.commonpath([abs_path, p_abs]) == p_abs:
-                    return True
+        # ⚡ Bolt: fetch profiles once; avoid repeated query cost in hot paths
+        profiles = session.query(models.StorageProfile).all()
+        for prof in profiles:
+            if prof.path:
+                p_abs = os.path.abspath(prof.path)
+                try:
+                    if os.path.commonpath([abs_path, p_abs]) == p_abs:
+                        return True
+                except ValueError:
+                    continue
         return False
     finally:
         if db is None:
