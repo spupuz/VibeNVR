@@ -77,6 +77,7 @@ def is_path_safe(path: str, db: Session = None) -> bool:
     
     session = db or database.SessionLocal()
     try:
+        # ⚡ Bolt: fetch profiles once; avoid repeated query cost in hot paths
         profiles = session.query(models.StorageProfile).all()
         for prof in profiles:
             if prof.path:
