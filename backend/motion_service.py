@@ -54,12 +54,12 @@ def _parse_ai_object_types(v: Any) -> list[str]:
             data = json.loads(v_sanitized)
             if isinstance(data, list):
                 return [str(item) for item in data]
-        except:
+        except (json.JSONDecodeError, ValueError):
             try:
                 data = json.loads(v_sanitized.replace("'", '"'))
                 if isinstance(data, list):
                     return [str(item) for item in data]
-            except:
+            except (json.JSONDecodeError, ValueError):
                 pass
         # Handle PostgreSQL array syntax '{item1,item2}'
         if v_sanitized.startswith('{') and v_sanitized.endswith('}'):
@@ -101,7 +101,7 @@ def get_optimization_settings(db: Session) -> dict:
             else:
                 try:
                     defaults[s.key] = int(s.value)
-                except:
+                except ValueError:
                     pass # Keep default if invalid
         
         # Also fetch ai_enabled, ai_model, ai_hardware and go2rtc_enabled separately (not opt_ keys)
