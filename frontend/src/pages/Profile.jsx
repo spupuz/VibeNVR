@@ -442,6 +442,7 @@ export const Profile = () => {
                             <div className="flex justify-end gap-2 pt-4 border-t border-border mt-4">
                                 <Button type="button" variant="outline" onClick={() => { setDisable2FAModalOpen(false); setDisable2FAPassword(''); }}>{t('timeline.cancel', 'Cancel')}</Button>
                                 <Button type="submit" disabled={disabling2FA} className="bg-red-500 hover:bg-red-600 text-white">
+                                    {disabling2FA && <Loader2 className="w-4 h-4 mr-2 animate-spin inline-block" />}
                                     {disabling2FA ? 'Disabling...' : 'Disable 2FA'}
                                 </Button>
                             </div>
@@ -497,6 +498,7 @@ export const Profile = () => {
                         <div className="flex justify-end gap-2 pt-4 border-t border-border">
                             <Button type="button" variant="outline" onClick={() => { setIs2FASetupOpen(false); setSetupCode(''); }}>{t('timeline.cancel', 'Cancel')}</Button>
                             <Button type="button" onClick={verifyAndEnable2FA} disabled={verifying2FA}>
+                                {verifying2FA && <Loader2 className="w-4 h-4 mr-2 animate-spin inline-block" />}
                                 {verifying2FA ? 'Verifying...' : 'Enable 2FA'}
                             </Button>
                         </div>
@@ -556,8 +558,8 @@ export const Profile = () => {
                     <div className="bg-card rounded-xl border border-border shadow-sm p-6 flex flex-col items-center space-y-4">
                         <div className="relative group">
                             <Avatar user={user} size="2xl" className="w-32 h-32 text-4xl shadow-md" />
-                            <label className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full cursor-pointer hover:bg-primary/90 transition-colors shadow-lg group-hover:scale-105">
-                                <Camera className="w-4 h-4" />
+                            <label aria-label={t('profile.upload_avatar', 'Upload avatar')} className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full cursor-pointer hover:bg-primary/90 transition-colors shadow-lg group-hover:scale-105">
+                                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
                                 <input
                                     type="file"
                                     className="hidden"
@@ -671,7 +673,8 @@ export const Profile = () => {
                                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-3 sm:mt-0">
                                         {user.is_2fa_enabled ? (
                                             <>
-                                                <Button type="button" variant="outline" onClick={handleRegenerateCodes} disabled={regeneratingCodes} className="w-full sm:w-auto px-6 font-semibold">
+                                                <Button type="button" variant="outline" onClick={handleRegenerateCodes} disabled={regeneratingCodes} className="w-full sm:w-auto px-6 font-semibold flex items-center justify-center">
+                                                    {regeneratingCodes && <Loader2 className="w-4 h-4 mr-2 animate-spin inline-block" />}
                                                     {t('timeline.regenerate_codes', 'Regenerate Codes')}
                                                 </Button>
                                                 <Button type="button" variant="outline" onClick={handleDisable2FA} className="w-full sm:w-auto px-6 font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-900">
