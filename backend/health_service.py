@@ -227,14 +227,8 @@ async def trigger_health_notification(db: Session, camera, status):
     # We call send_notifications. Since it's usually synchronous, we might need a wrapper
     # but routers/events.py seems to handle email/telegram synchronously.
     try:
-        # Note: send_notifications expects (camera, type, details, db)
-        # We use a special type 'camera_health'
-        from routers.events import send_notifications
-
-        # Override camera notification flags temporarily or adjust send_notifications?
-        # Let's adjust send_notifications to handle 'camera_health' type specifically.
-        send_notifications(camera.id, "camera_health", details)
-
+        import notification_service
+        notification_service.send_notifications(camera.id, "camera_health", details)
     except Exception as e:
         logger.error(f"Failed to send health notification for {camera.name}: {e}")
 

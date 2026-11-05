@@ -837,11 +837,16 @@ async def import_cameras(
 
         imported_count: int = 0
         skipped_count: int = 0
-        cameras_data = (
-            data.get("cameras", [data.get("camera")])
-            if "cameras" in data
-            else [data.get("camera")]
-        )
+        if isinstance(data, list):
+            cameras_data = data
+        elif isinstance(data, dict):
+            cameras_data = (
+                data.get("cameras", [data.get("camera")])
+                if "cameras" in data
+                else [data.get("camera")]
+            )
+        else:
+            raise HTTPException(status_code=400, detail="Invalid JSON format: expected list or object")
 
         parsed_cameras = []
 

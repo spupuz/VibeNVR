@@ -493,7 +493,8 @@ def _get_database_size(db: Session) -> float:
         print(f"Error getting DB size: {e}")
     return db_size_mb
 
-def _get_system_health_and_mqtt(db: Session, cameras: list, active_cameras_count: int, engine_stats: dict) -> tuple:
+def _get_system_health_and_mqtt(db: Session, cameras: list, active_cameras_count: int, engine_stats: dict | None) -> tuple:
+    engine_stats = engine_stats or {}
     engine_cams = engine_stats.get("cameras", {})
     total_errors = len([c for c in cameras if engine_cams.get(str(c.id), {}).get("health_status") in ("UNREACHABLE", "UNAUTHORIZED") and c.is_active])
     system_status = "Healthy" if total_errors == 0 else "Issues Detected"
