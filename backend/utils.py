@@ -17,10 +17,12 @@ def is_safe_host(hostname: str) -> bool:
         ip = res[4][0]
         ip_obj = ipaddress.ip_address(ip)
         if (
-            ip_obj.is_link_local
-            or ip_obj.is_multicast
+            ip_obj.is_private
             or ip_obj.is_loopback
+            or ip_obj.is_link_local
+            or ip_obj.is_multicast
             or ip_obj.is_unspecified
+            or ip_obj.is_reserved
         ):
             return False
     return True
@@ -32,7 +34,27 @@ def is_safe_webhook_url(url: str) -> bool:
         if parsed.scheme not in ("http", "https"):
             return False
 
-        return is_safe_host(parsed.hostname)
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+
+        # Block private IPs to prevent SSRF
+        try:
+            ip_obj = ipaddress.ip_address(hostname)
+            if (
+                ip_obj.is_private
+                or ip_obj.is_loopback
+                or ip_obj.is_link_local
+                or ip_obj.is_multicast
+                or ip_obj.is_unspecified
+                or ip_obj.is_reserved
+            ):
+                return False
+        except ValueError:
+            # Not a valid IP address, check as hostname
+            pass
+
+        return is_safe_host(hostname)
     except Exception:
         return False
 
