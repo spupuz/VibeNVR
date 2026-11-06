@@ -802,7 +802,7 @@ export const Dashboard = () => {
                                         aria-checked={visibleWidgets[key] || false}
                                         aria-label={label}
                                         onClick={() => setVisibleWidgets(prev => ({ ...prev, [key]: !prev[key] }))}
-                                        className={'relative inline-flex h-6 w-11 items-center rounded-full transition-colors ' +
+                                        className={'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ' +
                                             (visibleWidgets[key] ? 'bg-primary' : 'bg-muted')
                                         }
                                     >
