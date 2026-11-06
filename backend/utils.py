@@ -17,10 +17,12 @@ def is_safe_host(hostname: str) -> bool:
         ip = res[4][0]
         ip_obj = ipaddress.ip_address(ip)
         if (
-            ip_obj.is_link_local
-            or ip_obj.is_multicast
+            ip_obj.is_private
             or ip_obj.is_loopback
+            or ip_obj.is_link_local
+            or ip_obj.is_multicast
             or ip_obj.is_unspecified
+            or ip_obj.is_reserved
         ):
             return False
     return True
@@ -45,6 +47,7 @@ def is_safe_webhook_url(url: str) -> bool:
                 or ip_obj.is_link_local
                 or ip_obj.is_multicast
                 or ip_obj.is_unspecified
+                or ip_obj.is_reserved
             ):
                 return False
         except ValueError:
