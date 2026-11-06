@@ -19,3 +19,6 @@
 ## 2026-10-24 - Add aria-label and type=button to generic action buttons
 **Learning:** When using generic text buttons (like "Select All" or "Clear") inside modals that apply to specific contexts (e.g., categories vs target cameras), screen readers need additional context to distinguish between them, and generic buttons outside explicit forms should always specify `type="button"` to prevent unexpected submit behaviors if wrapped in a form later.
 **Action:** Always add descriptive, context-specific `aria-label` attributes and explicit `type="button"` attributes to generic action buttons in React components to improve accessibility and component robustness.
+## 2026-11-05 - Added Loading Spinner to Profile Submit
+**Learning:** Found that async operations lock the UI without visual feedback, which causes users to wonder if the click registered. The Loader2 component was imported but unused for verifying 2FA, disabling 2FA, regenerating codes, and avatar uploads.
+**Action:** Always include a visual loading state (like Loader2 with animate-spin) on primary action buttons when awaiting async responses to improve immediate feedback.
