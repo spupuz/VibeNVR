@@ -54,12 +54,12 @@ def _parse_ai_object_types(v: Any) -> list[str]:
             data = json.loads(v_sanitized)
             if isinstance(data, list):
                 return [str(item) for item in data]
-        except:
+        except (json.JSONDecodeError, ValueError):
             try:
                 data = json.loads(v_sanitized.replace("'", '"'))
                 if isinstance(data, list):
                     return [str(item) for item in data]
-            except:
+            except (json.JSONDecodeError, ValueError):
                 pass
         # Handle PostgreSQL array syntax '{item1,item2}'
         if v_sanitized.startswith('{') and v_sanitized.endswith('}'):
