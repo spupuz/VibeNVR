@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const Button = ({ children, className = '', variant = 'primary', size = 'default', ...props }) => {
+export const Button = ({ children, className = '', variant = 'primary', size = 'default', type = 'button', ...props }) => {
     const baseStyles = "inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50";
 
     const variants = {
@@ -24,7 +24,7 @@ export const Button = ({ children, className = '', variant = 'primary', size = '
     const sizeStyle = sizes[size] || sizes.default;
 
     return (
-        <button type="button"
+        <button type={type}
             className={`${baseStyles} ${variantStyle} ${sizeStyle} ${className}`}
             {...props}
         >
