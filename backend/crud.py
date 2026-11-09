@@ -184,7 +184,10 @@ def get_events(
         local_tz = ZoneInfo(tz_name)
 
         # Parse date and set to start of day in local timezone
-        naive_start = datetime.strptime(date, "%Y-%m-%d")
+        try:
+            naive_start = datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            return []
         start_date = naive_start.replace(tzinfo=local_tz)
         end_date = start_date + timedelta(days=1)
 
