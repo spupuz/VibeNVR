@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -40,12 +40,12 @@ def create_event(
 
 @router.get("", response_model=List[schemas.Event])
 def read_events(
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
     camera_id: Optional[int] = None,
     type: Optional[str] = None,
     event_type: Optional[str] = None,
-    date: Optional[str] = None,
+    date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     db: Session = Depends(database.get_db),
     auth_info: tuple[models.User, bool] = Depends(
         auth_service.get_current_user_or_token
