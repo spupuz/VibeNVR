@@ -77,7 +77,7 @@ export const BulkActionBar = React.memo(({
                             ) : (
                                 <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             )}
-                            <span className="whitespace-nowrap">Delete {selectedIds.size}</span>
+                            <span className="whitespace-nowrap">{t('timeline.delete_selected_items', { count: selectedIds.size, defaultValue: 'Delete {{count}} selected items' })}</span>
                         </button>
                     )}
                 </div>
