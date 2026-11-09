@@ -299,7 +299,7 @@ class CameraBase(BaseModel):
                         return str(decoded[0])
                     else:
                         break
-                except:
+                except Exception:
                     break
             return curr
 
@@ -328,7 +328,7 @@ class CameraBase(BaseModel):
                         curr_v = data.strip()
                         continue
                     break
-                except:
+                except Exception:
                     break
             else:
                 # If it didn't decode to a list, try comma separated

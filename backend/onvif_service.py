@@ -530,9 +530,9 @@ async def _detect_onvif_capabilities(device: ONVIFCamera, profile_token: Optiona
                 try:
                     if hasattr(ptz_service, 'GotoHomePosition'):
                         features["ptz_can_home"] = True
-                except:
+                except Exception:
                     pass
-                
+
                 if not features["ptz_can_home"]:
                     try:
                         presets = await asyncio.to_thread(ptz_service.GetPresets, {'ProfileToken': token})
@@ -541,7 +541,7 @@ async def _detect_onvif_capabilities(device: ONVIFCamera, profile_token: Optiona
                             if p_name == "home" or p_name == "1" or str(p.token) == "1":
                                 features["ptz_can_home"] = True
                                 break
-                    except:
+                    except Exception:
                         pass
     except Exception as e:
         logger.debug(f"PTZ capability detection failed: {e}")
@@ -572,7 +572,8 @@ async def _detect_onvif_capabilities(device: ONVIFCamera, profile_token: Optiona
                 sources = await asyncio.to_thread(media_service.GetAudioSources)
                 if sources:
                     features["audio_enabled"] = True
-            except: pass
+            except Exception:
+                pass
     except Exception as e:
         logger.debug(f"Audio capability detection failed: {e}")
         
