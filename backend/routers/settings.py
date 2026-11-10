@@ -979,9 +979,15 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
             except ImportError:
                 raise ValueError("Apprise library is not installed in the backend environment.")
 
+            from urllib.parse import urlparse
             apobj = apprise.Apprise()
             valid_count = 0
             for url in urls:
+                parsed = urlparse(url)
+                if parsed.scheme in ("http", "https", "json", "post", "put", "get", "form"):
+                    if parsed.hostname and not utils.is_safe_host(parsed.hostname):
+                        logger.warning(f"[APPRISE TEST] Blocked unsafe Apprise URL (SSRF): {url}")
+                        continue
                 # Security sanity check: block localhost / SSRF targets if needed, or let apprise validate schema
                 if apobj.add(url):
                     valid_count += 1
