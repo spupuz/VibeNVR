@@ -381,8 +381,14 @@ def _send_apprise_notification(
         return
 
     try:
+        from urllib.parse import urlparse
         apobj = apprise.Apprise()
         for url in urls:
+            parsed = urlparse(url)
+            if parsed.scheme in ("http", "https", "json", "post", "put", "get", "form"):
+                if parsed.hostname and not utils.is_safe_host(parsed.hostname):
+                    logger.warning(f"[NOTIFY] Blocked unsafe Apprise URL (SSRF): {url}")
+                    continue
             apobj.add(url)
 
         # Format Timestamp

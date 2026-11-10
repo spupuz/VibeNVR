@@ -57,3 +57,11 @@
 **Vulnerability:** The `test-vision-llm` endpoint and LLM enricher settings allowed arbitrary `base_url` configurations without SSRF validation. This permitted an attacker to probe internal services via HTTP POST requests, bypassing network segmentation.
 **Learning:** Configurations that are used to generate outbound network requests must be validated against SSRF protections (e.g. `utils.is_safe_host`) at the time they are created or tested.
 **Prevention:** Always apply strict SSRF validations using a Pydantic `@model_validator` or in the service layer when dealing with user-controlled endpoint configurations. Enforce defense-in-depth by re-validating right before the request.
+## 2024-05-18 - SSRF Vulnerability in Apprise Notification URLs
+**Vulnerability:** The Apprise notification service (`apobj.add(url)`) allowed any URL protocol (e.g., `http`, `slack`, `json`) without validating the extracted hostname, enabling SSRF attacks against internal services like `localhost`.
+**Learning:** Because Apprise handles many URL schemes natively, it does not apply internal SSRF restrictions. Thus, any dynamically configurable notification backend supporting various protocols must validate hostnames before registering endpoints.
+**Prevention:** Always parse user-provided notification URLs (e.g., using `urllib.parse.urlparse`) and validate the `hostname` component against `utils.is_safe_host()` to ensure link-local, multicast, and loopback ranges are blocked.
+## 2024-05-18 - SSRF Vulnerability in Apprise Network URLs
+**Vulnerability:** The Apprise notification service (`apobj.add(url)`) allowed any network URL protocol (e.g., `http`, `json`) without validating the extracted hostname, enabling SSRF attacks against internal services like `localhost`.
+**Learning:** Apprise handles many non-HTTP URL schemes natively (like `slack://TokenA/TokenB`). Applying `utils.is_safe_host` to all Apprise URLs causes the application to send DNS queries for secret tokens, leaking them in plaintext.
+**Prevention:** Always parse user-provided notification URLs (e.g., using `urllib.parse.urlparse`) and selectively apply `utils.is_safe_host()` only when `parsed.scheme` matches network-fetching protocols like `http`, `https`, `json`, `post`, `put`, `get`, or `form`.
