@@ -56,6 +56,44 @@ def is_safe_webhook_url(url: str) -> bool:
         return False
 
 
+def is_safe_apprise_url(url: str) -> bool:
+    """Check if an Apprise notification URL is safe from SSRF attacks.
+
+    Network-fetching schemas (http, https, json) are checked against
+    loopback/multicast/link-local/unspecified addresses. Non-network
+    schemas (slack, telegram, etc.) are allowed since they do not
+    initiate outbound HTTP requests to arbitrary hosts.
+    """
+    try:
+        parsed = urlparse(url)
+        scheme = parsed.scheme.lower()
+
+        # Non-network schemas do not fetch remote URLs — safe by design
+        if scheme not in ("http", "https", "json"):
+            return True
+
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+
+        try:
+            ip_obj = ipaddress.ip_address(hostname)
+            if (
+                ip_obj.is_loopback
+                or ip_obj.is_link_local
+                or ip_obj.is_multicast
+                or ip_obj.is_unspecified
+            ):
+                return False
+        except ValueError:
+            # Not a literal IP — resolve as hostname
+            pass
+
+        return is_safe_host(hostname)
+    except Exception:
+        return False
+
+
 def mask_url(text: str) -> str:
     """Mask credentials in RTSP/HTTP URLs for safe logging."""
     if not text:
