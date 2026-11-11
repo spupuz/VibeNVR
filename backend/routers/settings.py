@@ -982,6 +982,10 @@ def test_notification(config: schemas.TestNotificationConfig, db: Session = Depe
             apobj = apprise.Apprise()
             valid_count = 0
             for url in urls:
+                if not utils.is_safe_apprise_url(url):
+                    logger.warning(f"[APPRISE TEST] Unsafe Apprise URL blocked: {url}")
+                    continue
+
                 # Security sanity check: block localhost / SSRF targets if needed, or let apprise validate schema
                 if apobj.add(url):
                     valid_count += 1

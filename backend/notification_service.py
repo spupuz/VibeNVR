@@ -383,7 +383,10 @@ def _send_apprise_notification(
     try:
         apobj = apprise.Apprise()
         for url in urls:
-            apobj.add(url)
+            if utils.is_safe_apprise_url(url):
+                apobj.add(url)
+            else:
+                logger.warning(f"[NOTIFY] Unsafe Apprise URL blocked: {url}")
 
         # Format Timestamp
         ts_raw = details.get("timestamp")
