@@ -56,6 +56,22 @@ def is_safe_webhook_url(url: str) -> bool:
         return False
 
 
+def is_safe_apprise_url(url: str) -> bool:
+    """Check if an Apprise URL is safe from SSRF attacks."""
+    try:
+        parsed = urlparse(url)
+        # Selectively apply SSRF validation only to network-fetching schemes.
+        if parsed.scheme.lower() in ("http", "https", "json", "post", "put", "get", "form"):
+            hostname = parsed.hostname
+            if not hostname:
+                return False
+            return is_safe_host(hostname)
+        # Other protocols (like slack:// or msteams://) do not fetch arbitrary network endpoints.
+        return True
+    except Exception:
+        return False
+
+
 def mask_url(text: str) -> str:
     """Mask credentials in RTSP/HTTP URLs for safe logging."""
     if not text:
