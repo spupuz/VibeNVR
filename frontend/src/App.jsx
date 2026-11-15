@@ -11,6 +11,7 @@ import { Setup } from './pages/Setup';
 import { About } from './pages/About';
 import { Logs } from './pages/Logs';
 import { Profile } from './pages/Profile';
+import { Wizard } from './pages/Wizard';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { FederationProvider, useFederation } from './contexts/FederationContext';
 import { Loader2 } from 'lucide-react';
@@ -40,7 +41,8 @@ function AppContent() {
         '/settings': 'settings',
         '/logs': 'logs',
         '/about': 'about',
-        '/profile': 'profile'
+        '/profile': 'profile',
+        '/wizard': 'wizard'
     };
     const activeTab = location.pathname.startsWith('/cameras/') ? 'cameras' : (pathToTab[location.pathname] || 'dashboard');
 
@@ -86,7 +88,8 @@ function AppContent() {
             'settings': '/settings',
             'logs': '/logs',
             'about': '/about',
-            'profile': '/profile'
+            'profile': '/profile',
+            'wizard': '/wizard'
         };
         navigate(tabToPath[tab] || '/dashboard');
     };
@@ -119,6 +122,7 @@ function AppContent() {
                             <Route path="/logs" element={<Logs />} />
                             <Route path="/about" element={<About />} />
                             <Route path="/profile" element={<Profile />} />
+                            <Route path="/wizard" element={<Wizard />} />
                         </Routes>
                     </Layout>
                 </ProtectedRoute>

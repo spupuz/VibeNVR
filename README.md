@@ -27,6 +27,7 @@ VibeNVR is a modern, modular, and containerized video surveillance system design
 | Feature | Description |
 |---------|-------------|
 | 🖥️ **Modern Web Interface** | Ultra-premium UI built with React, Vite, and Lucide icons. |
+| 🪄 **Setup & Configuration Wizard** | Guided, skippable 6-step wizard for Preferences, Storage & Backups, Cameras (with network scan & brand templates), Notifications/AI, and Federation. |
 | 🎨 **Customizable Dashboard** | Toggle widgets and graphs to suit your monitoring needs. **New**: Real-time MQTT and **AI Processor** status indicators. |
 | 🛡️ **Secure by Design** | Full JWT authentication, **SSO / OAuth (Auto-Redirect & RP-Logout)**, **2FA with Trusted Devices**, Rate Limiting, and HttpOnly Media Cookies. |
 | 👥 **Granular Access Control** | Role-Based Access Control (RBAC) allowing Admins to restrict Viewers with granular **VIEW**, **REPLAY**, and **CONTROL (PTZ)** permissions per camera or group. |

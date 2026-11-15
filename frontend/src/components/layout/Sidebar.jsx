@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Camera, Film, History, Settings, LogOut, X, Info, FileText, Github, Coffee } from 'lucide-react';
+import { LayoutDashboard, Camera, Film, History, Settings, LogOut, X, Info, FileText, Github, Coffee, Wand2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Avatar } from '../ui/Avatar';
@@ -86,6 +86,7 @@ export const Sidebar = ({ activeTab, onTabChange, isOpen, onClose }) => {
         { id: 'timeline', label: t('nav.timeline', 'Timeline'), icon: History },
 
         ...(user?.role !== 'viewer' ? [{ id: 'settings', label: t('nav.settings', 'Settings'), icon: Settings }] : []),
+        ...(user?.role === 'admin' ? [{ id: 'wizard', label: t('nav.wizard', 'Setup Wizard'), icon: Wand2 }] : []),
         ...(user?.role === 'admin' ? [{ id: 'logs', label: t('nav.logs', 'System Logs'), icon: FileText }] : []),
         { id: 'about', label: t('nav.about', 'About'), icon: Info },
     ];
