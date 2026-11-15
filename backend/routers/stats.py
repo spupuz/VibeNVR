@@ -524,10 +524,11 @@ def get_stats(db: Session = Depends(database.get_db), auth_info: tuple[models.Us
             allowed_ids = []
 
     # 1. Active Cameras
-    # ⚡ Bolt: Use lightweight query to avoid memory bloat and N+1 overhead since relationships aren't used for stats
-    cameras = crud.get_cameras_lightweight(db, skip=0, limit=1000)
-    if allowed_ids is not None:
-        cameras = [c for c in cameras if c.id in allowed_ids]
+    # ⚡ Bolt: Use lightweight query and push allowed_ids filtering into SQL
+    # to avoid fetching and post-filtering disallowed camera rows.
+    cameras = crud.get_cameras_lightweight(
+        db, skip=0, limit=1000, allowed_camera_ids=allowed_ids
+    )
 
     active_cameras_count = len([c for c in cameras if c.is_active])
 
