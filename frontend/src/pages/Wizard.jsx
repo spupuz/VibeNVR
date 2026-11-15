@@ -56,7 +56,7 @@ export const Wizard = () => {
                     ? Object.fromEntries(data.map(s => [s.key, s.value]))
                     : Object.fromEntries(Object.entries(data).map(([k, v]) => [k, v && typeof v === 'object' && 'value' in v ? v.value : v]));
                 const isTrue = (v) => v === true || String(v).toLowerCase() === 'true';
-                setPrefs(p => ({ ...p, default_landing_page: map.default_landing_page || 'live' }));
+                setPrefs(p => ({ ...p, default_landing_page: String(map.default_landing_page || 'live') }));
                 setStorage({
                     retention_days: Number(map.retention_days) || 7,
                     max_storage_percent: Number(map.max_storage_percent) || 85,
