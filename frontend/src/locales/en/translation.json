@@ -1727,5 +1727,11 @@
     "summary.cameras_added": "Cameras Added",
     "summary.notifications": "Notifications",
     "summary.federation": "Federation Node"
+  },
+  "support_modal": {
+    "title": "Enjoying VibeNVR?",
+    "message": "If you like this project and find it useful, please consider supporting its development with a small donation. Even a little bit helps keep it going!",
+    "later": "Maybe later",
+    "donate": "Buy Me a Coffee"
   }
 }

@@ -1731,5 +1731,11 @@
       "notifications": "通知",
       "federation": "联邦节点"
     }
+  },
+  "support_modal": {
+    "title": "喜欢 VibeNVR 吗？",
+    "message": "如果您喜欢这个项目并觉得它有用，请考虑通过小额捐赠支持它的开发。哪怕一点点支持也很有帮助！",
+    "later": "以后再说",
+    "donate": "请我喝杯咖啡"
   }
 }

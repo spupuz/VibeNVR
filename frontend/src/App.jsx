@@ -16,6 +16,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { FederationProvider, useFederation } from './contexts/FederationContext';
 import { Loader2 } from 'lucide-react';
 import { SystemInitializing } from './components/SystemInitializing';
+import { SupportModal } from './components/SupportModal';
 
 const ProtectedRoute = ({ children }) => {
     const { isAuthenticated, loading } = useAuth();
@@ -111,6 +112,7 @@ function AppContent() {
                         activeTab={activeTab}
                         onTabChange={handleTabChange}
                     >
+                        <SupportModal />
                         <Routes key={activeNode || 'local'}>
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/dashboard" element={<Dashboard />} />

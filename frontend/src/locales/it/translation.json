@@ -1729,5 +1729,11 @@
       "notifications": "Notifiche",
       "federation": "Nodo Federation"
     }
+  },
+  "support_modal": {
+    "title": "Ti piace VibeNVR?",
+    "message": "Se ti piace questo progetto e lo trovi utile, considera di supportarne lo sviluppo con una piccola donazione. Anche un piccolo contributo è prezioso!",
+    "later": "Magari più tardi",
+    "donate": "Offrimi un caffè"
   }
 }

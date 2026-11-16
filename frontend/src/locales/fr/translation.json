@@ -1731,5 +1731,11 @@
       "notifications": "Notifications",
       "federation": "Fédération"
     }
+  },
+  "support_modal": {
+    "title": "Vous aimez VibeNVR ?",
+    "message": "Si vous aimez ce projet et le trouvez utile, pensez à soutenir son développement par un petit don. Même un petit geste aide beaucoup !",
+    "later": "Plus tard",
+    "donate": "Offrir un café"
   }
 }
