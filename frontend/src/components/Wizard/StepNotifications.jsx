@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bell, Send, Loader2, Radio } from 'lucide-react';
+import { Bell, Send, Loader2, Radio, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -9,6 +9,7 @@ export const StepNotifications = ({ notifications, setNotifications }) => {
     const { token } = useAuth();
     const { showToast } = useToast();
     const [testing, setTesting] = useState(false);
+    const [showApprise, setShowApprise] = useState(false);
 
     const handleTestNotification = async () => {
         if (!notifications.apprise_urls?.trim()) {
@@ -50,13 +51,23 @@ export const StepNotifications = ({ notifications, setNotifications }) => {
                     {t('wizard.notify.apprise_url', 'Apprise Notification URL')}
                 </label>
                 <div className="flex gap-2">
-                    <input
-                        type="text"
-                        placeholder="tgram://bottoken/ChatID or discord://webhook_id/webhook_token"
-                        value={notifications.apprise_urls}
-                        onChange={(e) => setNotifications(prev => ({ ...prev, apprise_urls: e.target.value }))}
-                        className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
+                    <div className="relative flex-1">
+                        <input
+                            type={showApprise ? 'text' : 'password'}
+                            placeholder="tgram://bottoken/ChatID or discord://webhook_id/webhook_token"
+                            value={notifications.apprise_urls}
+                            onChange={(e) => setNotifications(prev => ({ ...prev, apprise_urls: e.target.value }))}
+                            className="w-full bg-background border border-border rounded-lg pl-3 pr-9 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowApprise(s => !s)}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            aria-label="Toggle visibility"
+                        >
+                            {showApprise ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
                     <button
                         type="button"
                         disabled={testing}

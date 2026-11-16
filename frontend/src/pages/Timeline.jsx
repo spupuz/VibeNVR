@@ -81,7 +81,7 @@ export const Timeline = () => {
     const fetchEvents = useCallback(() => {
         let url = `${getApiBase()}/events`;
         const params = new URLSearchParams();
-        params.append('limit', '1000');
+        params.append('limit', '500');
         if (cameraId) params.append('camera_id', cameraId);
         if (type) params.append('type', type);
         

@@ -53,7 +53,7 @@ export const Setup = () => {
                     if (userRes.ok) {
                         const userData = await userRes.json();
                         login(data.access_token, userData);
-                        navigate('/');
+                        navigate('/wizard');
                     }
                 } else {
                     navigate('/login');

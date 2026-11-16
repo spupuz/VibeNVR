@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Save } from 'lucide-react';
+import { Save, Wand2 } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useFederation } from '../contexts/FederationContext';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +29,7 @@ import { EditUserModal } from './Settings/EditUserModal';
 
 export const Settings = () => {
     const { user, token } = useAuth();
+    const navigate = useNavigate();
     const { activeNode } = useFederation();
     const { t } = useTranslation();
     const { showToast } = useToast();
@@ -580,9 +582,21 @@ export const Settings = () => {
 
     return (
         <div className="space-y-12 relative w-full pb-52 min-w-0 max-w-full overflow-hidden">
-            <div>
-                <h2 className="text-3xl font-bold tracking-tight">{t('settings_main.title', 'Settings')}</h2>
-                <p className="text-muted-foreground mt-2">{t('settings_main.subtitle', 'Configure your VibeNVR preferences.')}</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight">{t('settings_main.title', 'Settings')}</h2>
+                    <p className="text-muted-foreground mt-2">{t('settings_main.subtitle', 'Configure your VibeNVR preferences.')}</p>
+                </div>
+                {user?.role === 'admin' && (
+                    <button
+                        type="button"
+                        onClick={() => navigate('/wizard')}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 text-sm font-medium transition-colors self-start sm:self-auto"
+                    >
+                        <Wand2 className="w-4 h-4" />
+                        {t('nav.wizard', 'Setup Wizard')}
+                    </button>
+                )}
             </div>
 
             <div className="space-y-6">
