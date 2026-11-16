@@ -26,7 +26,7 @@ def get_cameras(db: Session, skip: int = 0, limit: int = 100, allowed_camera_ids
     )
 
 
-def get_cameras_lightweight(db: Session, skip: int = 0, limit: int = 100, allowed_camera_ids: list[int] = None):
+def get_cameras_lightweight(db: Session, skip: int = 0, limit: int = 100, allowed_camera_ids: list[int] | None = None):
     # ⚡ Bolt: Provide a lightweight query without eager loading overhead for performance-sensitive tasks
     query = db.query(models.Camera)
     if allowed_camera_ids is not None:
