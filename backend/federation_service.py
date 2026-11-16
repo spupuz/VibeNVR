@@ -48,14 +48,26 @@ async def proxy_request(node_url: str, api_token: str, path: str, request: Reque
         }
         if request.method not in ["GET", "HEAD", "OPTIONS"]:
             req_kwargs["content"] = body
-            
-        client = httpx.AsyncClient(timeout=30.0)
+
+        # ⚡ Bolt: reuse the module-level pooled client instead of creating a new
+        # AsyncClient per request. The per-request client was never closed, so its
+        # connection pool/socket leaked on every federated call, eventually
+        # exhausting file descriptors.
         req = client.build_request(**req_kwargs)
-        
+
         response = await client.send(req, stream=True)
-        
+
+        # ⚡ Bolt: release the upstream connection as soon as the body is fully
+        # consumed, otherwise streamed responses leak sockets as well.
+        async def _stream_and_close():
+            try:
+                async for chunk in response.aiter_raw():
+                    yield chunk
+            finally:
+                await response.aclose()
+
         return StreamingResponse(
-            response.aiter_raw(),
+            _stream_and_close(),
             status_code=response.status_code,
             headers={k: v for k, v in response.headers.items() if k.lower() not in ("content-encoding", "content-length", "transfer-encoding")}
         )
