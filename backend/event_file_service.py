@@ -67,8 +67,8 @@ def is_path_safe(path: str, db: Session = None) -> bool:
     """Check if a path is safe to access (inside /data/ or a valid storage profile)."""
     if not path:
         return False
-    abs_path = os.path.abspath(path)
-    data_dir = os.path.abspath("/data")
+    abs_path = os.path.realpath(path)
+    data_dir = os.path.realpath("/data")
     if os.path.commonpath([abs_path, data_dir]) == data_dir:
         return True
     
@@ -76,7 +76,7 @@ def is_path_safe(path: str, db: Session = None) -> bool:
     try:
         for p in session.query(models.StorageProfile).all():
             if p.path:
-                p_abs = os.path.abspath(p.path)
+                p_abs = os.path.realpath(p.path)
                 if os.path.commonpath([abs_path, p_abs]) == p_abs:
                     return True
         return False
