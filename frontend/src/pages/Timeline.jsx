@@ -130,7 +130,7 @@ export const Timeline = () => {
             .then(data => {
                 const replayCameras = data.filter(cam => hasPermission(cam, 'can_replay'));
                 setCameras(replayCameras);
-                setCameraMap(data.reduce((acc, cam) => ({ ...acc, [cam.id]: cam }), {}));
+                setCameraMap(data.reduce((acc, cam) => { acc[cam.id] = cam; return acc; }, {}));
             })
             .catch(err => console.error(err));
     }, [token, hasPermission]);
