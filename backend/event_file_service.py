@@ -67,21 +67,22 @@ def is_path_safe(path: str, db: Session = None) -> bool:
     """Check if a path is safe to access (inside /data/ or a valid storage profile)."""
     if not path:
         return False
-    abs_path = os.path.abspath(path)
-    data_dir = os.path.abspath("/data")
+    # Resolve symlinks to prevent traversal via symlinked paths
+    abs_path = os.path.realpath(path)
+    data_dir = os.path.realpath("/data")
     try:
         if os.path.commonpath([abs_path, data_dir]) == data_dir:
             return True
     except ValueError:
         pass
-    
+
     session = db or database.SessionLocal()
     try:
         # ⚡ Bolt: fetch profiles once; avoid repeated query cost in hot paths
         profiles = session.query(models.StorageProfile).all()
         for prof in profiles:
             if prof.path:
-                p_abs = os.path.abspath(prof.path)
+                p_abs = os.path.realpath(prof.path)
                 try:
                     if os.path.commonpath([abs_path, p_abs]) == p_abs:
                         return True
