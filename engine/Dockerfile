@@ -1,16 +1,15 @@
 # Use Ubuntu 24.04 LTS as the base for Python 3.12 and modern hardware support
 FROM ubuntu:24.04
 
-# Prevent interactive prompts during apt
+# Prevent interactive prompts during apt and unbuffer Python/nala output
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
 
-# Install nala first using Italian mirror to bypass slow default server, then fetch fast mirrors
-RUN sed -i 's/archive.ubuntu.com/it.archive.ubuntu.com/g' /etc/apt/sources.list.d/ubuntu.sources || true && \
-    sed -i 's/security.ubuntu.com/it.archive.ubuntu.com/g' /etc/apt/sources.list.d/ubuntu.sources || true && \
-    echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/force-unsafe-io && \
-    apt-get update && apt-get install -y --no-install-recommends nala && \
-    nala fetch --auto -y || true && \
-    nala upgrade -y && nala install -y --no-install-recommends \
+# Update base image packages and install system dependencies
+RUN echo "force-unsafe-io" > /etc/dpkg/dpkg.cfg.d/force-unsafe-io && \
+    apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
     software-properties-common curl wget gnupg \
     python3 \
     python3-dev \
@@ -32,7 +31,7 @@ RUN sed -i 's/archive.ubuntu.com/it.archive.ubuntu.com/g' /etc/apt/sources.list.
     build-essential && \
     arch="$(dpkg --print-architecture)" && \
     if [ "$arch" = "amd64" ] || [ "$arch" = "i386" ]; then \
-        nala install -y --no-install-recommends mesa-va-drivers intel-media-va-driver-non-free i965-va-driver-shaders; \
+        apt-get install -y --no-install-recommends mesa-va-drivers intel-media-va-driver-non-free i965-va-driver-shaders; \
         EDGETPU_URL="https://github.com/feranick/libedgetpu/releases/download/16.0TF2.17.1-1/libedgetpu1-std_16.0tf2.17.1-1.ubuntu24.04_amd64.deb"; \
     elif [ "$arch" = "arm64" ]; then \
         EDGETPU_URL="https://github.com/feranick/libedgetpu/releases/download/16.0TF2.17.1-1/libedgetpu1-std_16.0tf2.17.1-1.ubuntu24.04_arm64.deb"; \
@@ -89,7 +88,6 @@ RUN arch="$(dpkg --print-architecture)" && \
 ENV OPENCV_LOG_LEVEL=ERROR
 ENV OPENCV_FFMPEG_DEBUG=0
 ENV OPENCV_FFMPEG_CAPTURE_OPTIONS="rtsp_transport;tcp"
-ENV PYTHONUNBUFFERED=1
 ENV TF_CPP_MIN_LOG_LEVEL=3
 ENV TF_CPP_MIN_VLOG_LEVEL=0
 ENV GLOG_minloglevel=3
