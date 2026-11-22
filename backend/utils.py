@@ -21,6 +21,8 @@ def is_safe_host(hostname: str) -> bool:
             or ip_obj.is_multicast
             or ip_obj.is_loopback
             or ip_obj.is_unspecified
+            or ip_obj.is_private
+            or ip_obj.is_reserved
         ):
             return False
     return True
