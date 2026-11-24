@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 import jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 import crud
@@ -18,6 +18,34 @@ SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
 IS_WEAK_KEY = False
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 2  # 48 hours (Reduced from 7 days for security)
+
+# --- Cookie security policy -------------------------------------------------
+# COOKIE_SECURE governs the `Secure` flag of the HttpOnly auth cookies. This
+# helper is the single source of truth for that flag so that password login,
+# session bootstrap and SSO/OAuth login can never drift apart.
+_COOKIE_SECURE_TRUTHY = ("true", "1", "yes", "on")
+_COOKIE_SECURE_FALSY = ("false", "0", "no", "off")
+
+
+def resolve_cookie_secure(request: Request) -> bool:
+    """Return True when auth cookies must carry the `Secure` flag.
+
+    `COOKIE_SECURE` may be an explicit override (`true`/`false`) or `auto`
+    (default). In `auto` mode the flag is enabled whenever the request reached
+    us over HTTPS, either terminated by a reverse proxy (`X-Forwarded-Proto`,
+    set by the bundled Nginx frontend) or served directly over TLS.
+    """
+    mode = os.getenv("COOKIE_SECURE", "auto").strip().lower()
+    if mode in _COOKIE_SECURE_TRUTHY:
+        return True
+    if mode in _COOKIE_SECURE_FALSY:
+        return False
+
+    # Multiple proxies append to the header; the left-most value is the client's.
+    forwarded_proto = request.headers.get("x-forwarded-proto", "")
+    if forwarded_proto.split(",")[0].strip().lower() == "https":
+        return True
+    return request.url.scheme == "https"
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
