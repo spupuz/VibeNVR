@@ -104,9 +104,13 @@ def sync_db(data_root="/data"):
     try:
         cameras = db.query(Camera).all()
         print(f"Processing {len(cameras)} active cameras in DB.")
-        
+
+        # ⚡ Bolt: Pre-load all existing event file paths into a set to avoid an
+        # O(N) per-file DB query during the filesystem walk.
+        existing_paths = {row[0] for row in db.query(Event.file_path).all()}
+
         added_count = 0
-        
+
         for cam in cameras:
             cam_dir = os.path.join(data_root, str(cam.id))
             if not os.path.exists(cam_dir):
@@ -126,7 +130,7 @@ def sync_db(data_root="/data"):
                         db_path = f"/var/lib/vibe/recordings/{rel_path}"
                         
                         # Check exist
-                        exists = db.query(Event).filter(Event.file_path == db_path).count()
+                        exists = db_path in existing_paths
                         if exists > 0:
                             continue
                             
