@@ -64,7 +64,8 @@ class TokenRedactingFilter(logging.Filter):
         # Redact token from the message itself
         if isinstance(record.msg, str):
             # 1. Redact credentials in URLs (rtsp://user:pass@host)
-            record.msg = re.sub(r'([a-z]+://[^:]+:)([^@]+)(@)', r'\1***\3', record.msg)
+            # Negative lookahead preserves already-masked URLs (e.g. admin:***@host)
+            record.msg = re.sub(r'([a-z0-9]+://[^:@]+):(?!\*\*\*@)[^@]*(@)', r'\1:***\2', record.msg)
 
             # 2. Sensitive keys list (matching logs.py)
             sensitive_keys = r'password|pwd|secret|token|access_token|Authorization|X-API-Key|client_secret|totp_secret|media_token'

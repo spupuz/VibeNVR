@@ -5,7 +5,8 @@ def mask_url(text: str) -> str:
     if not text: return ""
     
     # 1. Redact credentials in URLs (rtsp://user:pass@host)
-    text = re.sub(r'([a-z]+://[^:]+:)([^@]+)(@)', r'\1***\3', text, flags=re.IGNORECASE)
+    # Negative lookahead preserves already-masked URLs (e.g. admin:***@host)
+    text = re.sub(r'([a-z0-9]+://[^:@]+):(?!\*\*\*@)[^@]*(@)', r'\1:***\2', text, flags=re.IGNORECASE)
     
     # 2. Sensitive keys list
     sensitive_keys = r'password|pwd|secret|token|access_token|Authorization|X-API-Key|client_secret|totp_secret|media_token'
