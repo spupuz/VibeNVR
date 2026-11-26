@@ -81,6 +81,9 @@ def update_setting(key: str, value: str, description: str = None, db: Session = 
         motion_service.generate_motion_config(db)
     elif key.startswith("opt_") or key.startswith("mqtt_") or key.startswith("ai_"):
         motion_service.sync_global_config(db)
+    # ⚡ Bolt: Invalidate cache for opt_ and related settings so next call reads fresh DB
+    if key.startswith("opt_") or key in ("ai_enabled", "ai_model", "ai_hardware", "go2rtc_enabled"):
+        motion_service.invalidate_optimization_settings_cache()
     return {"key": setting.key, "value": setting.value, "description": setting.description}
 
 @router.post("/bulk")
@@ -131,6 +134,9 @@ def update_bulk_settings(settings: dict, db: Session = Depends(database.get_db),
     # Otherwise sync global config if any opt_, mqtt_, or ai_ settings were updated
     elif any(k.startswith("opt_") or k.startswith("mqtt_") or k.startswith("ai_") for k in settings.keys()):
         motion_service.sync_global_config(db)
+    # ⚡ Bolt: Invalidate cache for opt_ and related settings so next call reads fresh DB
+    if any(k.startswith("opt_") or k in ("ai_enabled", "ai_model", "ai_hardware", "go2rtc_enabled") for k in settings.keys()):
+        motion_service.invalidate_optimization_settings_cache()
 
     return {"message": "Settings updated successfully", "count": len(settings)}
 

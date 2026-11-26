@@ -11,6 +11,11 @@ import logging
 # VibeEngine Control URL
 ENGINE_BASE_URL = "http://engine:8000"
 
+# ⚡ Bolt: Module-level cache for optimization settings to avoid repeated DB queries
+# Settings don't change frequently, so cache for 30 seconds
+_OPT_SETTINGS_CACHE = {"data": None, "timestamp": 0.0}
+_OPT_SETTINGS_TTL = 30.0  # seconds
+
 # go2rtc stream gateway. It runs inside the engine container (started by
 # engine/start.sh) and listens only on the internal docker network — no exposed
 # ports. When the global 'go2rtc_enabled' setting is on, the engine reads each
@@ -68,11 +73,16 @@ def _parse_ai_object_types(v: Any) -> list[str]:
         if "," in v_sanitized:
             return [item.strip() for item in v_sanitized.split(",") if item.strip()]
         return [v_sanitized]
-
     return ["person", "vehicle"]
 
 def get_optimization_settings(db: Session) -> dict:
     """Read optimization settings from DB with defaults (if not initialized yet)"""
+    # ⚡ Bolt: Return cached settings if still valid to avoid 2 DB queries per call
+    global _OPT_SETTINGS_CACHE, _OPT_SETTINGS_TTL
+    now = time.time()
+    if _OPT_SETTINGS_CACHE["data"] is not None and (now - _OPT_SETTINGS_CACHE["timestamp"]) < _OPT_SETTINGS_TTL:
+        return _OPT_SETTINGS_CACHE["data"]
+    
     # Defaults must match routers/settings.py
     defaults = {
         "opt_live_view_fps_throttle": 2,
@@ -115,8 +125,20 @@ def get_optimization_settings(db: Session) -> dict:
                 defaults[setting.key] = setting.value
     except Exception as e:
         logger.error(f"Error reading optimization settings: {e}")
+    
+    # Cache the result
+    _OPT_SETTINGS_CACHE["data"] = defaults.copy()
+    _OPT_SETTINGS_CACHE["timestamp"] = now
         
     return defaults
+
+
+def invalidate_optimization_settings_cache():
+    """Invalidate the optimization settings cache to force a fresh DB read on next call."""
+    global _OPT_SETTINGS_CACHE
+    _OPT_SETTINGS_CACHE["data"] = None
+    _OPT_SETTINGS_CACHE["timestamp"] = 0.0
+
 
 def _apply_go2rtc_routing(config: dict, cam: Camera, opt_settings: dict) -> None:
     """
@@ -205,6 +227,7 @@ def camera_to_config(cam: Camera, opt_settings: dict = None) -> dict:
     _apply_go2rtc_routing(config, cam, opt_settings)
 
     return config
+
 
 def generate_motion_config(db: Session):
     """
@@ -421,6 +444,7 @@ def update_camera_runtime(camera: Camera):
     except Exception as e:
         logger.error(f"Error updating camera {camera.id}: {e}")
         return False
+
 
 def toggle_recording_mode(camera_id: int, camera: Camera):
     """
