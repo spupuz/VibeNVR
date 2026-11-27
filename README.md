@@ -8,6 +8,21 @@
   <a href="https://trendshift.io/repositories/20525?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-20525" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/20525/daily?language=JavaScript" alt="spupuz%2FVibeNVR | Trendshift" width="250" height="55"/></a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/spupuz/VibeNVR/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/spupuz/VibeNVR/ci.yml?branch=main&logo=github&label=build" alt="Build" />
+  </a>
+  <a href="https://hub.docker.com/r/spupuz/vibenvr-backend">
+    <img src="https://img.shields.io/docker/v/spupuz/vibenvr-backend?sort=semver&logo=docker&label=version" alt="Docker Version" />
+  </a>
+  <a href="https://hub.docker.com/r/spupuz/vibenvr-backend">
+    <img src="https://img.shields.io/docker/pulls/spupuz/vibenvr-backend?logo=docker&label=pulls" alt="Docker Pulls" />
+  </a>
+  <a href="https://github.com/spupuz/VibeNVR/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/spupuz/VibeNVR?label=licence" alt="Licence" />
+  </a>
+</p>
+
 VibeNVR is a modern, modular, and containerized video surveillance system designed to manage IP cameras, recordings, motion detection, and a unified event timeline. It features a custom high-performance video engine (VibeEngine) built for efficiency and reliability, wrapped in a premium React-based interface.
 
 ### 🎬 Video Demo
