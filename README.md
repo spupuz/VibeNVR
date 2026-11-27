@@ -4,7 +4,9 @@
 
 # 📹 VibeNVR – Modern Video Surveillance System
 
-<a href="https://trendshift.io/repositories/20525?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-20525" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/20525/daily?language=JavaScript" alt="spupuz%2FVibeNVR | Trendshift" width="250" height="55"/></a>
+<p align="center">
+  <a href="https://trendshift.io/repositories/20525?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-20525" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/20525/daily?language=JavaScript" alt="spupuz%2FVibeNVR | Trendshift" width="250" height="55"/></a>
+</p>
 
 VibeNVR is a modern, modular, and containerized video surveillance system designed to manage IP cameras, recordings, motion detection, and a unified event timeline. It features a custom high-performance video engine (VibeEngine) built for efficiency and reliability, wrapped in a premium React-based interface.
 
