@@ -149,8 +149,10 @@ async def oauth_callback(request: Request, db: Session = Depends(database.get_db
         
     response = RedirectResponse(url=f"{base_url}/")
     
-    # Security: Use Secure cookies in production, lax SameSite
-    is_secure = request.url.scheme == "https"
+    # Security: centralized COOKIE_SECURE policy (respects X-Forwarded-Proto from
+    # the bundled Nginx proxy, unlike the raw request scheme which stays "http"
+    # behind a TLS-terminating proxy).
+    is_secure = auth_service.resolve_cookie_secure(request)
     
     response.set_cookie(
         key="auth_token",

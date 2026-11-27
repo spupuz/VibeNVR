@@ -130,16 +130,11 @@ async def login_for_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     
-    # Dynamic Cookie Security Logic
+    # Dynamic Cookie Security Logic (centralized in auth_service.resolve_cookie_secure)
     # 1. Respect manual override if set to 'true' or 'false'
     # 2. Use 'auto' (default) to detect based on request protocol
     cookie_secure_env = os.getenv("COOKIE_SECURE", "auto").lower()
-    if cookie_secure_env == "auto":
-        # Detect if the request is over HTTPS via headers or scheme
-        # X-Forwarded-Proto is set by our Nginx (frontend) based on $scheme
-        is_secure = request.headers.get("x-forwarded-proto") == "https" or request.url.scheme == "https"
-    else:
-        is_secure = cookie_secure_env == "true"
+    is_secure = auth_service.resolve_cookie_secure(request)
 
     # Set HttpOnly media_token cookie for secure media streaming/fetching
     response.set_cookie(
@@ -344,11 +339,7 @@ async def me_from_cookie(request: Request, response: Response, db: Session = Dep
 
     # Always re-set media_token so it is present regardless of how the session
     # was originally established (e.g. previous HTTPS login, or expired cookie).
-    cookie_secure_env = os.getenv("COOKIE_SECURE", "auto").lower()
-    if cookie_secure_env == "auto":
-        is_secure = request.headers.get("x-forwarded-proto") == "https" or request.url.scheme == "https"
-    else:
-        is_secure = cookie_secure_env == "true"
+    is_secure = auth_service.resolve_cookie_secure(request)
 
     response.set_cookie(
         key="media_token",
