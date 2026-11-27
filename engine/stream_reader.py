@@ -314,34 +314,45 @@ class StreamReader(threading.Thread):
                     for p in filtered:
                         raw_data = bytes(p)
                         if stream_type == 'video' and len(raw_data) > 4:
-                            pos = 0
-                            while True:
-                                pos = raw_data.find(b'\x00\x00\x01', pos)
-                                if pos == -1 or pos > len(raw_data) - 4:
-                                    break
-                                
-                                nal_header = raw_data[pos + 3]
-                                nal_type = nal_header & 0x1F
-                                
-                                if nal_type == 5 or nal_type == 7:
-                                    is_kf = True
+                            # ⚡ Bolt: Skip NAL scan for non-keyframes (vast majority of packets)
+                            # PyAV sets is_keyframe=True only on IDR frames containing SPS/PPS
+                            packet_is_keyframe = getattr(p, 'is_keyframe', False)
+                            
+                            if packet_is_keyframe:
+                                # Full NAL scan only for keyframes (SPS/PPS extraction)
+                                pos = 0
+                                while True:
+                                    pos = raw_data.find(b'\x00\x00\x01', pos)
+                                    if pos == -1 or pos > len(raw_data) - 4:
+                                        break
                                     
-                                if nal_type == 7 or nal_type == 8:
-                                    next_pos = raw_data.find(b'\x00\x00\x01', pos + 3)
-                                    if next_pos == -1: next_pos = len(raw_data)
-                                    nalu: bytes = raw_data[pos:next_pos]
-                                    with self.lock:
-                                        if nalu not in self.last_headers:
-                                            if len(self.last_headers) < 1024:
-                                                self.last_headers += nalu
-                                    pos = next_pos
-                                else:
-                                    pos += 3
-                        
+                                    nal_header = raw_data[pos + 3]
+                                    nal_type = nal_header & 0x1F
+                                    
+                                    if nal_type == 5 or nal_type == 7:
+                                        is_kf = True
+                                        
+                                    if nal_type == 7 or nal_type == 8:
+                                        next_pos = raw_data.find(b'\x00\x00\x01', pos + 3)
+                                        if next_pos == -1: next_pos = len(raw_data)
+                                        nalu: bytes = raw_data[pos:next_pos]
+                                        with self.lock:
+                                            if nalu not in self.last_headers:
+                                                if len(self.last_headers) < 1024:
+                                                    self.last_headers += nalu
+                                        pos = next_pos
+                                    else:
+                                        pos += 3
+                            else:
+                                # Fast path: non-keyframe - just check first NAL type
+                                if raw_data.startswith(b'\x00\x00\x01'):
+                                    nal_type = raw_data[3] & 0x1F
+                                    if nal_type == 5:  # IDR slice
+                                        is_kf = True
+                       
                         if len(raw_data) > 0:
                             p_type = 0 if stream_type == 'video' else 1
                             broadcast_payloads.append((p_type, raw_data))
-
                     # 2. Update Ring Buffer and local subscribers with ORIGINAL pristine packet
                     pts = getattr(packet, 'pts', None)
                     time_base = getattr(packet, 'time_base', None)
