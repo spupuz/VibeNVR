@@ -67,12 +67,16 @@ class CameraThread(threading.Thread):
         if secondary_url and isinstance(secondary_url, str) and secondary_url.strip():
             logger.info(f"Camera {self.camera_id}: Initializing Sub-Stream Reader")
             self.sub_stream_reader = StreamReader(
-                f"{self.camera_id}_sub", 
-                secondary_url, 
-                f"{self.config.get('name', str(camera_id))} (Sub)", 
+                f"{self.camera_id}_sub",
+                secondary_url,
+                f"{self.config.get('name', str(camera_id))} (Sub)",
                 event_callback=self.event_callback,
                 rtsp_transport=self.config.get('sub_rtsp_transport', 'tcp')
             )
+            # Sub-stream is only used for AI inference (throttled), not recording.
+            # Disable its packet ring buffer to save memory.
+            self.sub_stream_reader.pre_buffer_duration = 0.0
+
         self.motion_detector = MotionDetector(self.camera_id, self.config.get('name', str(camera_id)), self.config)
         self.continuous_recorder = RecordingManager(self.camera_id, self.config.get('name', str(camera_id)), self.config, stream_reader=self.stream_reader)
         self.motion_recorder = RecordingManager(self.camera_id, self.config.get('name', str(camera_id)), self.config, stream_reader=self.stream_reader)
@@ -720,12 +724,15 @@ class CameraThread(threading.Thread):
                     self.sub_stream_reader.update_url(secondary_url)
                 else:
                     self.sub_stream_reader = StreamReader(
-                        f"{self.camera_id}_sub", 
-                        secondary_url, 
-                        f"{self.config.get('name', str(self.camera_id))} (Sub)", 
+                        f"{self.camera_id}_sub",
+                        secondary_url,
+                        f"{self.config.get('name', str(self.camera_id))} (Sub)",
                         event_callback=self.event_callback,
                         rtsp_transport=self.config.get('sub_rtsp_transport', 'tcp')
                     )
+                    # Sub-stream is only used for AI inference (throttled), not recording.
+                    # Disable its packet ring buffer to save memory.
+                    self.sub_stream_reader.pre_buffer_duration = 0.0
                     self.sub_stream_reader.start()
             else:
                 if self.sub_stream_reader:
